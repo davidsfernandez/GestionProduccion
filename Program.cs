@@ -1,5 +1,8 @@
 using GestionProduccion.Data;
 using Microsoft.EntityFrameworkCore;
+using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Services;
+using GestionProduccion.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
+
+// 3. Add Custom Services
+builder.Services.AddScoped<IOpService, OpService>();
+
+// 4. Add SignalR
+builder.Services.AddSignalR();
 
 
 builder.Services.AddControllers();
@@ -33,5 +42,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map Hubs
+app.MapHub<ProducaoHub>("/producaoHub");
 
 app.Run();

@@ -51,13 +51,23 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
             "Pomelo.EntityFrameworkCore.MySql": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[8.0.0, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
-              "version": "[6.6.2, )"
+              "version": "[6.5.0, )"
             }
           },
           "imports": [
