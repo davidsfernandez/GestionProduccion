@@ -23,7 +23,7 @@
                     <div class="card">
                         <div class="card-header bg-primary text-white">📦 Ordens por Etapa</div>
                         <ul class="list-group list-group-flush">
-                            @foreach (var item in dashboard.OpsPorEtapa)
+                            @foreach (var item in dashboard.OperationsByStage)
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     @item.Key
@@ -37,13 +37,14 @@
                     <div class="card">
                         <div class="card-header bg-danger text-white">⚠️ Alertas (Ordens Paradas)</div>
                         <ul class="list-group list-group-flush">
-                            @if (dashboard.OpsParadas.Count > 0)
+                            @if (dashboard.StoppedOperations.Count > 0)
                             {
-                                @foreach (var op in dashboard.OpsParadas)
+                                @foreach (var op in dashboard.StoppedOperations)
                                 {
                                     <li class="list-group-item">
-                                        <strong>@op.CodigoUnico</strong><br/>
-                                        @op.DescricaoProduto
+                                        <strong>@op.UniqueCode</strong><br/>
+                                        @op.ProductDescription<br/>
+                                        <small class="text-muted">Entrega: @op.EstimatedDeliveryDate:D</small>
                                     </li>
                                 }
                             }
@@ -58,13 +59,13 @@
                     <div class="card">
                         <div class="card-header bg-info text-white">👥 Carga de Trabalho por Usuário</div>
                         <ul class="list-group list-group-flush">
-                            @if (dashboard.CargaTrabalhoPorUsuario.Count > 0)
+                            @if (dashboard.WorkloadByUser.Count > 0)
                             {
-                                @foreach (var user in dashboard.CargaTrabalhoPorUsuario)
+                                @foreach (var user in dashboard.WorkloadByUser)
                                 {
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        @user.NomeUsuario
-                                        <span class="badge bg-info rounded-pill">@user.QuantidadeOps</span>
+                                        @user.UserName
+                                        <span class="badge bg-info rounded-pill">@user.OperationCount</span>
                                     </li>
                                 }
                             }
@@ -87,7 +88,7 @@
 </AuthorizeView>
 
 @code {
-    private DashboardDto? dashboard;
+    private DashboardResponse? dashboard;
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,16 +106,37 @@
     {
         try
         {
-            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ops/dashboard");
+            dashboard = await Http.GetFromJsonAsync<DashboardResponse>("api/ProductionOrders/dashboard");
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine($"Erro ao carregar dashboard: {ex.Message}");
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         await SignalR.StopConnection();
+    }
+
+    private class DashboardResponse
+    {
+        public Dictionary<string, int> OperationsByStage { get; set; } = new();
+        public List<StoppedOperationDto> StoppedOperations { get; set; } = new();
+        public List<UserWorkloadDto> WorkloadByUser { get; set; } = new();
+    }
+
+    private class StoppedOperationDto
+    {
+        public int Id { get; set; }
+        public string UniqueCode { get; set; } = "";
+        public string ProductDescription { get; set; } = "";
+        public DateTime EstimatedDeliveryDate { get; set; }
+    }
+
+    private class UserWorkloadDto
+    {
+        public string UserName { get; set; } = "";
+        public int OperationCount { get; set; }
     }
 }
