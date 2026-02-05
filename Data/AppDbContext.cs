@@ -24,34 +24,6 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // --- TABLE AND COLUMN MAPPINGS ---
-        // Map DbSets to existing Portuguese table names from migrations
-        modelBuilder.Entity<User>().ToTable("Usuarios");
-        modelBuilder.Entity<User>().Property(u => u.Name).HasColumnName("Nome");
-        modelBuilder.Entity<User>().Property(u => u.PasswordHash).HasColumnName("HashPassword");
-        modelBuilder.Entity<User>().Property(u => u.Role).HasColumnName("Perfil");
-        modelBuilder.Entity<User>().Property(u => u.IsActive).HasColumnName("Ativo");
-
-        modelBuilder.Entity<ProductionOrder>().ToTable("OrdensProducao");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.UniqueCode).HasColumnName("CodigoUnico");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.ProductDescription).HasColumnName("DescricaoProduto");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.Quantity).HasColumnName("Quantidade");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.CurrentStage).HasColumnName("EtapaAtual");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.CurrentStatus).HasColumnName("StatusAtual");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.CreationDate).HasColumnName("DataCriacao");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.EstimatedDeliveryDate).HasColumnName("DataEstimadaEntrega");
-        modelBuilder.Entity<ProductionOrder>().Property(po => po.UserId).HasColumnName("UsuarioId");
-
-        modelBuilder.Entity<ProductionHistory>().ToTable("HistoricoProducoes");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.ProductionOrderId).HasColumnName("OrdemProducaoId");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.PreviousStage).HasColumnName("EtapaAnterior");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.NewStage).HasColumnName("EtapaNova");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.PreviousStatus).HasColumnName("StatusAnterior");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.NewStatus).HasColumnName("StatusNovo");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.UserId).HasColumnName("UsuarioId");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.ModificationDate).HasColumnName("DataModificacao");
-        modelBuilder.Entity<ProductionHistory>().Property(h => h.Note).HasColumnName("Observacao");
-
         // --- ENUM TO STRING CONVERSION ---
 
         // Converts UserRole enum in User entity

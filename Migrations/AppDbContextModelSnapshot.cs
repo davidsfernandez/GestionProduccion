@@ -19,184 +19,184 @@ namespace GestionProduccion.Migrations
                 .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.HistoricoProducao", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionHistory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("DataModificacao")
+                    b.Property<DateTime>("ModificationDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("EtapaAnterior")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("EtapaNova")
+                    b.Property<string>("NewStage")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("Observacao")
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Note")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
-                    b.Property<int>("OrdemProducaoId")
+                    b.Property<string>("PreviousStage")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("ProductionOrderId")
                         .HasColumnType("int");
 
-                    b.Property<string>("StatusAnterior")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("StatusNovo")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<int>("UsuarioId")
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrdemProducaoId");
+                    b.HasIndex("ProductionOrderId");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UserId");
 
-                    b.ToTable("HistoricoProducoes", (string)null);
+                    b.ToTable("ProductionHistories");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.OrdemProducao", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionOrder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("CodigoUnico")
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CurrentStage")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<DateTime>("DataCriacao")
+                    b.Property<string>("CurrentStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("EstimatedDeliveryDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("DataEstimadaEntrega")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("DescricaoProduto")
+                    b.Property<string>("ProductDescription")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<string>("EtapaAtual")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<int>("Quantidade")
+                    b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<string>("StatusAtual")
+                    b.Property<string>("UniqueCode")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<int?>("UsuarioId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CodigoUnico")
+                    b.HasIndex("UniqueCode")
                         .IsUnique();
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UserId");
 
-                    b.ToTable("OrdensProducao", (string)null);
+                    b.ToTable("ProductionOrders");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.Usuario", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
-                    b.Property<string>("HashPassword")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("Nome")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("Perfil")
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Usuarios", (string)null);
+                    b.ToTable("Users");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            Ativo = true,
                             Email = "admin@local.host",
-                            HashPassword = "$2a$11$kSeyEkpEtFOcgUE3Ra0JdeP2jI7lLYOx3MQybpSo4gD5VWUHYRI3u",
-                            Nome = "Administrador",
-                            Perfil = "Administrador"
+                            IsActive = true,
+                            Name = "Administrator",
+                            PasswordHash = "$2a$11$w68A2Yh3jmu/hvmx3NoJ2OJnSyJDWEg86/schjmvd.x4b098FvblC",
+                            Role = "Administrator"
                         });
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.HistoricoProducao", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionHistory", b =>
                 {
-                    b.HasOne("GestionProduccion.Domain.Entities.OrdemProducao", "OrdemProducao")
-                        .WithMany("Historico")
-                        .HasForeignKey("OrdemProducaoId")
+                    b.HasOne("GestionProduccion.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany("History")
+                        .HasForeignKey("ProductionOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("GestionProduccion.Domain.Entities.Usuario", "UsuarioResponsavel")
-                        .WithMany("AlteracoesNoHistorico")
-                        .HasForeignKey("UsuarioId")
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "ResponsibleUser")
+                        .WithMany("HistoryChanges")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("OrdemProducao");
+                    b.Navigation("ProductionOrder");
 
-                    b.Navigation("UsuarioResponsavel");
+                    b.Navigation("ResponsibleUser");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.OrdemProducao", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionOrder", b =>
                 {
-                    b.HasOne("GestionProduccion.Domain.Entities.Usuario", "UsuarioAtribuido")
-                        .WithMany("OrdensAtribuidas")
-                        .HasForeignKey("UsuarioId")
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
+                        .WithMany("AssignedOrders")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("UsuarioAtribuido");
+                    b.Navigation("AssignedUser");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.OrdemProducao", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionOrder", b =>
                 {
-                    b.Navigation("Historico");
+                    b.Navigation("History");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.Usuario", b =>
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.User", b =>
                 {
-                    b.Navigation("AlteracoesNoHistorico");
+                    b.Navigation("AssignedOrders");
 
-                    b.Navigation("OrdensAtribuidas");
+                    b.Navigation("HistoryChanges");
                 });
 #pragma warning restore 612, 618
         }
