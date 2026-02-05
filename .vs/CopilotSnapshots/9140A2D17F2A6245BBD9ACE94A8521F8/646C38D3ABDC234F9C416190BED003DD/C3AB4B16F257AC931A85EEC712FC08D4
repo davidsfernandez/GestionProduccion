@@ -1,0 +1,445 @@
+﻿REQUISITOS INICIALES DEL CLIENTE
+
+TITULO DEL PROYECTO DADO POR EL CLIENTE: Desenvolvimento de Sistema Web para Gestão de Produção e Delegação de Atividades
+
+DESCRIPCION DE LOS REQUISITOS INICIALES DEL CLIENTE: Estamos buscando um desenvolvedor para criar um sistema web simples e intuitivo para gerenciar a produção e delegar atividades. O sistema deve incluir as seguintes funcionalidades essenciais: Gerenciamento de Usuários e Permissões: Implementação de diferentes perfis de acesso, como Administrador, Líder, Costureira e Oficina, com permissões específicas para cada um. Ordem de Produção (OP): Funcionalidade para criar, visualizar e gerenciar Ordens de Produção. Etapas da Produção: Rastreamento das etapas do fluxo de trabalho, incluindo Corte, Costura, Revisão e Embalagem. Delegação de Atividades: Capacidade de atribuir tarefas e Ordens de Produção a oficinas ou indivíduos específicos. Status em Tempo Real: Exibição do status atual de cada atividade ou OP (parado, em produção, finalizado). Relatórios Simples: Geração de relatórios básicos para acompanhar o que está atribuído a quem e identificar possíveis atrasos na produção. O objetivo é otimizar a delegação de tarefas e ter uma visão clara do andamento da produção.
+
+
+Habilidades necesarias
+
+PHP MySQL HTML CSS JavaScript Database System Analysis Responsive Web Design Laravel Bootstrap jQuery SQL Modelado de Datos QA Testing
+
+ATENCION: NOSOTROS VAMOS A USAR C# .NET CORE, MYSQL, RAZOR PAGES, no usaremos PHP ni Laravel ni nada asociado, implementaremos el proyecto usando nuestro stack que es .NET Core
+
+
+
+ESTE ES UN PROMPT CREADO POR GOOGLE GEMINI PRO PARA PASARLO EN UNA PRIMERA INSTANCIA A GOOGLE CODE ASSIST.
+
+<Begin Google Gemini Pro Google Code Assist Prompt/>
+Actúa como un Arquitecto de Software experto en .NET 8 y Entity Framework Core.
+Necesito generar las Entidades (Domain Classes) para un "Sistema de Gestión de Producción" basado en los siguientes requisitos estrictos:
+
+1. **Gestión de Usuarios y Roles:**
+   - Crear un Enum `PerfilUsuario` con exactamente estos valores: Administrador, Lider, Costureira, Oficina.
+   - La entidad `Usuario` debe tener: Id, Nombre, Email, HashPassword, Perfil y Activo.
+
+2. **Orden de Producción (OP):**
+   - Entidad `OrdemProducao` que represente una tarea de trabajo.
+   - Debe tener un código único (ej: OP-2024-001), descripción del producto y cantidad.
+   - **IMPORTANTE:** Debe manejar dos dimensiones de estado:
+     a) `EtapaAtual`: Un Enum con valores (Corte, Costura, Revisao, Embalagem).
+     b) `StatusAtual`: Un Enum con valores (EmProducao, Parado, Finalizado).
+   - Debe tener fechas de creación y fecha estimada de entrega.
+
+3. **Delegación de Actividades:**
+   - La OP debe tener una relación con un `Usuario` asignado (puede ser nulo si no está asignada).
+   - Necesitamos saber a qué "Oficina" o "Individuo" se delegó.
+
+4. **Auditoría (Historial):**
+   - Entidad `HistoricoProducao` para rastrear cambios.
+   - Debe registrar: OPId, EtapaAnterior, EtapaNueva, StatusAnterior, StatusNuevo, UsuarioId (quien hizo el cambio) y Fecha.
+
+Reglas:
+- Usa Data Annotations ([Key], [Required], [StringLength]).
+- Configura las relaciones (Foreign Keys) correctamente.
+- Usa nombres en Portugués para clases y propiedades (como pide el cliente).
+
+Ahora necesito la capa de Servicios (Business Logic) implementando una interfaz `IOpService`.
+Requisitos de la lógica:
+
+1. **Crear OP:**
+   - Método `CriarOP`. Al crearla, la Etapa inicial debe ser 'Corte' y el Status 'EmProducao'.
+
+2. **Delegación de Actividades (Asignar):**
+   - Método `DelegarTarefa(int opId, int usuarioId)`.
+   - Permite asignar una OP a una 'Costureira' u 'Oficina'.
+   - Validar que la OP exista.
+
+3. **Gestión de Flujo (Workflow):**
+   - Método `AtualizarStatus(int opId, StatusOp novoStatus, string observacao)`. (Ej: Marcar como 'Parado' si falta tela).
+   - Método `AvancarEtapa(int opId)`. Lógica: Si está en 'Corte', pasa a 'Costura'. Si está en 'Costura', pasa a 'Revisao', etc.
+   - Al cambiar de etapa, el Status debe resetearse a 'EmProducao'.
+
+4. **Reglas de Negocio:**
+   - Cada cambio debe crear un registro en la tabla `HistoricoProducao` automáticamente.
+   - Usa Inyección de Dependencias y async/await.
+
+Finalmente, necesito implementar las funcionalidades de "Tiempo Real" y "Reportes Simples":
+
+1. **Status en Tempo Real (SignalR):**
+   - Genera un Hub de SignalR llamado `ProducaoHub`.
+   - Crea un método `NotificarAtualizacao(int opId, string novaEtapa, string novoStatus)` que envíe un mensaje a todos los clientes conectados ('ReceiveUpdate').
+   - Muestra cómo inyectar este Hub en el `OpService` para que, cuando se llame a `AvancarEtapa` o `AtualizarStatus`, se notifique al frontend automáticamente.
+
+2. **Relatórios Simples (Dashboard):**
+   - Agrega un método en el servicio `ObterDashboard()` que retorne un DTO con:
+     - Cantidad de OPs por Etapa (Cuántas en Corte, cuántas en Costura).
+     - Lista de OPs que están con Status 'Parado' (Alertas de atraso).
+     - Lista de OPs asignadas por Usuario (Carga de trabajo).
+
+3. **Controller:**
+   - Genera un `OpsController` (API) que exponga estos métodos.
+<End Google Gemini Pro - Google Code Assist Promtp/>
+
+================================================================================
+REVISIÓN DE ARQUITECTURA ACTUAL - MVP_V2 (Febrero 2026)
+================================================================================
+
+ESTADO GENERAL: MVP EN DESARROLLO AVANZADO ✅
+
+Verificado por: GitHub Copilot
+Fecha: 2026-02-XX
+Rama: MVP_V2
+Repositorio: https://github.com/davidsfernandez/GestionProduccion
+
+================================================================================
+1. SEPARACIÓN DE PROYECTOS (Backend/Frontend)
+================================================================================
+
+ESTADO: ✅ CUMPLE - Proyectos completamente separados
+
+ESTRUCTURA:
+GestionProduccion/ (Solución)
+├── GestionProduccion.csproj (.NET 8) ← BACKEND / API REST
+│   ├── Controllers/          [REST Endpoints]
+│   ├── Hubs/                 [SignalR: ProductionHub]
+│   ├── Services/             [Business Logic]
+│   ├── Domain/Entities/      [User, ProductionOrder, ProductionHistory]
+│   ├── Domain/Enums/         [UserRole, ProductionStage, ProductionStatus]
+│   ├── Data/                 [AppDbContext, Migrations]
+│   └── Program.cs            [Configuración DI, EF, SignalR, CORS]
+│
+└── Client/GestionProduccion.Client/GestionProduccion.Client.csproj (.NET 10) ← FRONTEND / BLAZOR WASM
+    ├── Pages/                [Componentes Razor dinámicos]
+    ├── Components/           [Componentes reutilizables]
+    ├── Services/             [HttpClient, SignalR Client]
+    ├── Auth/                 [Authentication JWT handling]
+    ├── Layout/               [MainLayout.razor]
+    ├── App.razor             [Routing + Auth]
+    └── wwwroot/              [Static assets + index.html]
+
+VERIFICACIÓN BACKEND:
+✅ Program.cs línea 130: app.MapControllers() → REST API
+✅ Program.cs línea 133: app.MapHub<ProductionHub>("/productionHub") → SignalR
+✅ Program.cs línea 136: app.MapFallbackToFile("index.html") → SPA Fallback
+✅ app.UseAuthentication() + app.UseAuthorization() → Middleware de seguridad
+
+VERIFICACIÓN FRONTEND:
+✅ App.razor: Router + CascadingAuthenticationState (componentes dinámicos)
+✅ index.html: Contenedor estático para aplicación Blazor WASM
+✅ Program.cs: Configuración de HttpClientFactory + SignalR Client
+✅ Components: Renderización reactiva en cliente (no servidor)
+
+CONCLUSIÓN: Backend y Frontend son **proyectos independientes** compilados y
+desplegados por separado. Comunicación a través de HTTP/WebSocket.
+
+================================================================================
+2. ARQUITECTURA RAZOR (Estático vs Dinámico)
+================================================================================
+
+ESTADO: ✅ CUMPLE - 100% Dinámico, NO estático
+
+BACKEND (ASP.NET Core):
+- ❌ NO usa Razor Pages (*.cshtml)
+- ✅ Sirve SOLO REST API via Controllers
+- ✅ Configura SignalR Hub para real-time
+- ✅ Serve static files (wwwroot) pero son compilados desde Blazor WASM
+
+FRONTEND (Blazor WebAssembly):
+- ✅ Usa componentes Razor (*.razor) compilados a WASM
+- ✅ index.html es CONTENEDOR ESTÁTICO pero renderización es DINÁMICA
+- ✅ Enrutamiento dinámico via Router (no server-side routing)
+- ✅ Autenticación en cliente (JWT + AuthenticationStateProvider)
+- ✅ Actualizaciones en tiempo real via SignalR Client
+
+DIFERENCIA CLAVE:
+┌─────────────────────────────────────────────────────────────────┐
+│ Razor Pages (Server-side) = HTML generado en servidor            │
+│ ❌ NO usado en este proyecto                                      │
+│                                                                   │
+│ Blazor WASM (Client-side) = Componentes .NET compilados a WASM   │
+│ ✅ USADO en este proyecto (dinámico)                             │
+│                                                                   │
+│ Diferencia: WASM = interactividad real-time sin postback         │
+└─────────────────────────────────────────────────────────────────┘
+
+CONCLUSIÓN: Arquitectura es **100% dinámica**. Blazor WASM proporciona
+experiencia de SPA moderna con interactividad en tiempo real.
+
+================================================================================
+3. NOMENCLATURA (Código vs Base de Datos)
+================================================================================
+
+ESTADO: ✅ CÓDIGO EN INGLÉS | ⚠️ BASE DE DATOS INCONSISTENTE
+
+CÓDIGO C# (Backend):
+✅ Classes en inglés:
+   - public class User { }
+   - public class ProductionOrder { }
+   - public class ProductionHistory { }
+
+✅ Enums en inglés:
+   - enum UserRole { Administrator, Leader, Tailor, Workshop }
+   - enum ProductionStage { Cutting, Sewing, Review, Packaging }
+   - enum ProductionStatus { InProduction, Paused, Finished }
+
+✅ Interfaces en inglés:
+   - public interface IProductionOrderService { }
+
+✅ Métodos en inglés:
+   - public async Task<ProductionOrder> CreateProductionOrderAsync(...)
+   - public async Task<bool> AssignTaskAsync(int orderId, int userId)
+   - public async Task<bool> AdvanceStageAsync(int orderId)
+   - public async Task<DashboardDTO> GetDashboardAsync()
+
+✅ CÓDIGO C# (Frontend):
+   - Components/ProductionOrderCard.razor
+   - Services/AuthService.cs
+   - Pages/ProductionOrders.razor
+
+BASE DE DATOS MySQL:
+⚠️ Tablas en portugués (mapeo manual):
+   - Usuarios → mapeada a User.cs
+   - OrdensProducao → mapeada a ProductionOrder.cs
+   - HistoricoProducoes → mapeada a ProductionHistory.cs
+
+⚠️ Columnas en portugués (mapeo manual via HasColumnName()):
+   - Nome → mapeada a Name
+   - HashPassword ✓ (OK)
+   - Perfil → mapeada a Role
+   - Ativo → mapeada a IsActive
+   - DescricaoProduto → mapeada a ProductDescription
+   - EtapaAtual → mapeada a CurrentStage
+   - StatusAtual → mapeada a CurrentStatus
+   - DataCriacao → mapeada a CreationDate
+   - DataEstimadaEntrega → mapeada a EstimatedDeliveryDate
+
+MAPEO ACTUAL EN AppDbContext:
+public class AppDbContext : DbContext
+{
+    // Lines 29-53 en Data/AppDbContext.cs
+    // Mapeos explícitos via HasColumnName()
+    // Genera código innecesariamente complejo
+}
+
+INTERFAZ DE USUARIO (Frontend):
+⚠️ PENDIENTE VERIFICACIÓN:
+   - ¿Textos mostrados al usuario en portugués?
+   - ¿Validaciones en portugués?
+   - ¿Mensajes de error en portugués?
+
+================================================================================
+4. RECOMENDACIÓN: NORMALIZAR BASE DE DATOS A INGLÉS
+================================================================================
+
+PROBLEMA IDENTIFICADO:
+- Código: Inglés (estándar profesional)
+- BD: Portugués (requerimiento inicial del cliente)
+- Mapeo: Manual + complejo (HasColumnName en cada propiedad)
+
+SOLUCIÓN RECOMENDADA (Opción A - PREFERIDA):
+
+Crear Migration nueva que:
+1. Renombre tablas a inglés:
+   - Usuarios → Users
+   - OrdensProducao → ProductionOrders
+   - HistoricoProducoes → ProductionHistories
+
+2. Renombre columnas a inglés:
+   - Nome → Name
+   - Perfil → Role
+   - Ativo → IsActive
+   - DescricaoProduto → ProductDescription
+   - EtapaAtual → CurrentStage
+   - StatusAtual → CurrentStatus
+   - DataCriacao → CreationDate
+   - DataEstimadaEntrega → EstimatedDeliveryDate
+   - DataModificacao → ModificationDate
+   - etc.
+
+BENEFICIOS:
+✅ Código y BD en mismo idioma (inglés)
+✅ Elimina necesidad de HasColumnName() (código más limpio)
+✅ Estándar profesional internacional
+✅ Facilita colaboración con otros desarrolladores
+✅ Reducción de errores (mapeos incorrectos)
+✅ AppDbContext más limpio y mantenible
+
+INTERFAZ DE USUARIO (según requerimiento):
+✅ Mantener mensajes/etiquetas en PORTUGUÉS
+✅ Usar archivos de recursos (i18n) o constantes
+✅ Ejemplo: DisplayName="Etapa Atual" en UI pero CurrentStage en BD
+
+IMPACTO:
+- ⏱️ Tiempo: ~2-3 horas (migration + testing)
+- 🔄 Cambios: AppDbContext + Migrations + Tests
+- 💾 Datos: Migración preserva datos existentes
+
+CONCLUSIÓN:
+Esta normalización es RECOMENDADA antes de continuar desarrollo.
+Alineará el proyecto con estándares profesionales internacionales.
+
+================================================================================
+5. CHECKLIST DE CONFORMIDAD ACTUAL
+================================================================================
+
+REQUISITO                          ESTADO      ACCIÓN
+─────────────────────────────────────────────────────────────
+Backend y Frontend separados        ✅ CUMPLE    Ninguna
+Backend como API REST               ✅ CUMPLE    Ninguna
+SignalR configurado                 ✅ CUMPLE    Ninguna
+Blazor WASM dinámico                ✅ CUMPLE    Ninguna
+Código en inglés                    ✅ CUMPLE    Ninguna
+BD en inglés (consistencia)         ⚠️  PARCIAL   **MIGRACIÓN RECOMENDADA**
+UI en portugués                     ⚠️  VERIFICAR **AUDITORÍA NECESARIA**
+Entidades de dominio                ✅ CUMPLE    Ver sección 6
+Servicios de negocio                ⚠️  PARCIAL   Ver sección 6
+Autenticación JWT                   ✅ CUMPLE    Implementado
+Autorización por roles              ✅ CUMPLE    Implementado
+Auditoría (ProductionHistory)       ✅ CUMPLE    Implementado
+CORS configurado                    ✅ CUMPLE    Implementado
+EF Core + Migrations                ✅ CUMPLE    Implementado
+Swagger/OpenAPI                     ✅ CUMPLE    Implementado
+
+================================================================================
+6. ESTADO DE FUNCIONALIDADES SEGÚN REQUISITOS
+================================================================================
+
+GESTIÓN DE USUARIOS Y ROLES:
+✅ Enum UserRole: Administrator, Leader, Tailor, Workshop
+✅ Entidad User: Id, Name, Email, PasswordHash, Role, IsActive
+✅ Autenticación: JWT + BCrypt
+✅ Autorización: Attributes [Authorize(Roles="...")]
+
+ORDEN DE PRODUCCIÓN (OP):
+✅ Entidad ProductionOrder implementada
+✅ Código único (OP-YYYY-NNN format)
+✅ Descripción y cantidad
+✅ EtapaAtual: Cutting, Sewing, Review, Packaging
+✅ StatusAtual: InProduction, Paused, Finished
+✅ Fechas: CreationDate, EstimatedDeliveryDate, CompletionDate
+✅ Relación con Usuario asignado
+
+AUDITORÍA (Historial):
+✅ Entidad ProductionHistory implementada
+✅ Registra cambios de etapa y estado
+✅ Incluye UserId (quién hizo el cambio)
+✅ Cascading delete configurado
+
+SERVICIOS DE LÓGICA DE NEGOCIO:
+⚠️ IProductionOrderService → PARCIALMENTE IMPLEMENTADO
+   ✅ Métodos existentes:
+      - CreateProductionOrderAsync()
+      - GetProductionOrderByIdAsync()
+      - ListProductionOrdersAsync()
+      - UpdateStatusAsync()
+      
+   ⚠️ Métodos FALTANTES o incompletos:
+      - AssignTaskAsync() → VERIFICAR IMPLEMENTACIÓN
+      - AdvanceStageAsync() → VERIFICAR LÓGICA
+      - GetDashboardAsync() → VERIFICAR DTO
+      - Validaciones completas
+      - Reglas de negocio (¿no retroceder etapas?)
+
+COMUNICACIÓN REAL-TIME (SignalR):
+⚠️ ProductionHub → IMPLEMENTADO pero REQUIERE VERIFICACIÓN
+   - Método NotifyUpdateAsync()
+   - Integración con OpService
+   - Clients listeners en Frontend
+
+REPORTES Y DASHBOARD:
+⚠️ PENDIENTE:
+   - DashboardDTO
+   - ObterDashboardAsync() implementation
+   - Agregaciones por etapa
+   - OPs en atraso
+   - Carga de trabajo por usuario
+
+ENDPOINTS REST:
+⚠️ ProductionOrdersController → REQUIERE AUDITORÍA
+   GET    /api/productionorders
+   GET    /api/productionorders/{id}
+   POST   /api/productionorders
+   PUT    /api/productionorders/{id}/stage
+   PUT    /api/productionorders/{id}/status
+   PUT    /api/productionorders/{id}/assign/{userId}
+   GET    /api/productionorders/dashboard
+
+INTERFAZ DE USUARIO (Blazor Components):
+⚠️ PENDIENTE AUDITORÍA DE:
+   - ProductionOrders.razor (lista)
+   - ProductionOrderDetail.razor (detalle)
+   - ProductionOrderForm.razor (crear/editar)
+   - Dashboard.razor (dashboard)
+   - Validaciones en portugués
+   - Mensajes en portugués
+
+================================================================================
+7. PRÓXIMAS ACCIONES RECOMENDADAS (PRIORIDAD)
+================================================================================
+
+PRIORIDAD 1 (ESTA SEMANA):
+────────────────────────────────────────────────────────
+□ 1.1 Crear migration de BD: Normalizar a inglés
+    - Renombrar tablas (Usuarios → Users, etc.)
+    - Renombrar columnas
+    - Preservar datos
+    - Testing
+
+□ 1.2 Actualizar AppDbContext
+    - Simplificar mapeos
+    - Remover HasColumnName() innecesarios
+    - Verificar relaciones
+
+□ 1.3 Auditoría de componentes Blazor
+    - Verificar textos en portugués
+    - Extraer strings a constantes/recursos
+    - Validar mensajes de error
+
+PRIORIDAD 2 (PRÓXIMA SEMANA):
+────────────────────────────────────────────────────────
+□ 2.1 Completar IProductionOrderService
+    - Implementar todas las funciones de negocio
+    - Validar reglas: no retroceder etapas, resetear status
+    - Crear registros en ProductionHistory
+
+□ 2.2 Implementar DashboardDTO y GetDashboardAsync()
+    - OPs por etapa (count)
+    - OPs en atraso
+    - Carga por usuario
+    - Estadísticas básicas
+
+□ 2.3 Integración SignalR completa
+    - Verificar ProductionHub
+    - Notificaciones al cambiar etapa
+    - Notificaciones al cambiar status
+    - Cliente Blazor escuchando updates
+
+□ 2.4 ProductionOrdersController completo
+    - Todos los endpoints
+    - Validaciones
+    - Manejo de errores
+
+PRIORIDAD 3 (SIGUIENTE SPRINT):
+────────────────────────────────────────────────────────
+□ 3.1 UI Components en Blazor
+    - Forms de creación/edición
+    - Lista con filtros
+    - Dashboard interactivo
+    - Validación en cliente
+
+□ 3.2 Testing
+    - Unit tests (servicios)
+    - Integration tests (API)
+    - Tests de SignalR
+    - Tests de componentes Blazor
+
+□ 3.3 Deployment
+    - Configuración de producción
+    - Variables de entorno
+    - HTTPS + CORS en prod
+    - CI/CD setup
+
+================================================================================
+FIN DE REVISIÓN DE ARQUITECTURA
+================================================================================

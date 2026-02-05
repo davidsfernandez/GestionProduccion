@@ -6,9 +6,9 @@ namespace GestionProduccion.Client.Services
 {
     public class SignalRService
     {
-        private HubConnection _hubConnection;
+        private HubConnection? _hubConnection;
 
-        public event Action<int, string, string> OnUpdateReceived;
+        public event Action<int, string, string>? OnUpdateReceived;
 
         public async Task StartConnection(string hubUrl)
         {

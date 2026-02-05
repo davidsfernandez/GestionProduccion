@@ -1,0 +1,110 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace GestionProduccion.Migrations
+{
+    /// <inheritdoc />
+    public partial class DbNormalizationToEnglish : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            // Rename tables from Portuguese to English
+            migrationBuilder.Sql("RENAME TABLE Usuarios TO Users");
+            migrationBuilder.Sql("RENAME TABLE OrdensProducao TO ProductionOrders");
+            migrationBuilder.Sql("RENAME TABLE HistoricoProducoes TO ProductionHistories");
+
+            // Rename columns in Users table
+            migrationBuilder.Sql("ALTER TABLE Users CHANGE COLUMN Nome Name VARCHAR(150)");
+            migrationBuilder.Sql("ALTER TABLE Users CHANGE COLUMN HashPassword PasswordHash LONGTEXT");
+            migrationBuilder.Sql("ALTER TABLE Users CHANGE COLUMN Perfil Role VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE Users CHANGE COLUMN Ativo IsActive TINYINT(1)");
+
+            // Rename columns in ProductionOrders table
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN CodigoUnico UniqueCode VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN DescricaoProduto ProductDescription VARCHAR(500)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN Quantidade Quantity INT");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN EtapaAtual CurrentStage VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN StatusAtual CurrentStatus VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN DataCriacao CreationDate DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN DataEstimadaEntrega EstimatedDeliveryDate DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders CHANGE COLUMN UsuarioId UserId INT");
+            
+            // Add new columns
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders ADD COLUMN QuantityCompleted INT DEFAULT 0");
+            migrationBuilder.Sql("ALTER TABLE ProductionOrders ADD COLUMN CompletionDate DATETIME(6) NULL");
+
+            // Rename columns in ProductionHistories table
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN OrdemProducaoId ProductionOrderId INT");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN EtapaAnterior PreviousStage VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN EtapaNova NewStage VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN StatusAnterior PreviousStatus VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN StatusNovo NewStatus VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN UsuarioId UserId INT");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN DataModificacao ModificationDate DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE ProductionHistories CHANGE COLUMN Observacao Note VARCHAR(500)");
+
+            // Recreate indexes with English names
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_OrdensProducao_CodigoUnico ON ProductionOrders");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_OrdensProducao_UsuarioId ON ProductionOrders");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_HistoricoProducoes_OrdemProducaoId ON ProductionHistories");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_HistoricoProducoes_UsuarioId ON ProductionHistories");
+
+            migrationBuilder.Sql("CREATE UNIQUE INDEX IX_ProductionOrders_UniqueCode ON ProductionOrders(UniqueCode)");
+            migrationBuilder.Sql("CREATE INDEX IX_ProductionOrders_UserId ON ProductionOrders(UserId)");
+            migrationBuilder.Sql("CREATE INDEX IX_ProductionHistories_ProductionOrderId ON ProductionHistories(ProductionOrderId)");
+            migrationBuilder.Sql("CREATE INDEX IX_ProductionHistories_UserId ON ProductionHistories(UserId)");
+            migrationBuilder.Sql("CREATE UNIQUE INDEX IX_Users_Email ON Users(Email)");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            // Revert: Rename tables back to Portuguese
+            migrationBuilder.Sql("RENAME TABLE Users TO Usuarios");
+            migrationBuilder.Sql("RENAME TABLE ProductionOrders TO OrdensProducao");
+            migrationBuilder.Sql("RENAME TABLE ProductionHistories TO HistoricoProducoes");
+
+            // Revert: Rename columns back to Portuguese
+            migrationBuilder.Sql("ALTER TABLE Usuarios CHANGE COLUMN Name Nome VARCHAR(100)");
+            migrationBuilder.Sql("ALTER TABLE Usuarios CHANGE COLUMN PasswordHash HashPassword LONGTEXT");
+            migrationBuilder.Sql("ALTER TABLE Usuarios CHANGE COLUMN Role Perfil VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE Usuarios CHANGE COLUMN IsActive Ativo TINYINT(1)");
+
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN UniqueCode CodigoUnico VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN ProductDescription DescricaoProduto VARCHAR(255)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN Quantity Quantidade INT");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN CurrentStage EtapaAtual VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN CurrentStatus StatusAtual VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN CreationDate DataCriacao DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN EstimatedDeliveryDate DataEstimadaEntrega DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao CHANGE COLUMN UserId UsuarioId INT");
+            
+            // Remove new columns
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao DROP COLUMN IF EXISTS QuantityCompleted");
+            migrationBuilder.Sql("ALTER TABLE OrdensProducao DROP COLUMN IF EXISTS CompletionDate");
+
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN ProductionOrderId OrdemProducaoId INT");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN PreviousStage EtapaAnterior VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN NewStage EtapaNova VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN PreviousStatus StatusAnterior VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN NewStatus StatusNovo VARCHAR(50)");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN UserId UsuarioId INT");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN ModificationDate DataModificacao DATETIME(6)");
+            migrationBuilder.Sql("ALTER TABLE HistoricoProducoes CHANGE COLUMN Note Observacao VARCHAR(500)");
+
+            // Revert: Restore old index names
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_ProductionOrders_UniqueCode ON OrdensProducao");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_ProductionOrders_UserId ON OrdensProducao");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_ProductionHistories_ProductionOrderId ON HistoricoProducoes");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_ProductionHistories_UserId ON HistoricoProducoes");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS IX_Users_Email ON Usuarios");
+
+            migrationBuilder.Sql("CREATE UNIQUE INDEX IX_OrdensProducao_CodigoUnico ON OrdensProducao(CodigoUnico)");
+            migrationBuilder.Sql("CREATE INDEX IX_OrdensProducao_UsuarioId ON OrdensProducao(UsuarioId)");
+            migrationBuilder.Sql("CREATE INDEX IX_HistoricoProducoes_OrdemProducaoId ON HistoricoProducoes(OrdemProducaoId)");
+            migrationBuilder.Sql("CREATE INDEX IX_HistoricoProducoes_UsuarioId ON HistoricoProducoes(UsuarioId)");
+        }
+    }
+}

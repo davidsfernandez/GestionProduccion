@@ -12,14 +12,13 @@
         <div class="top-row px-4">
              <AuthorizeView>
                 <Authorized>
-                    Hello, @context.User.Identity.Name!
-                    <button class="btn btn-link" @onclick="Logout">Logout</button>
+                    <span class="badge bg-success">✅ Autenticado: <strong>@context.User.Identity?.Name</strong></span>
+                    <button class="btn btn-sm btn-outline-danger ms-2" @onclick="Logout">🚪 Sair</button>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/login">Login</a>
+                    <a href="/login" class="btn btn-sm btn-primary">🔐 Autenticar</a>
                 </NotAuthorized>
             </AuthorizeView>
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
         <article class="content px-4">

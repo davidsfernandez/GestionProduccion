@@ -6,22 +6,22 @@
 @inject SignalRService SignalR
 @implements IAsyncDisposable
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Painel de Controle</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <h1>Dashboard de Producción</h1>
+        <h1>📊 Painel de Controle de Produção</h1>
 
         @if (dashboard == null)
         {
-            <p><em>Cargando...</em></p>
+            <p><em>⏳ Carregando...</em></p>
         }
         else
         {
             <div class="row">
                 <div class="col-md-4">
                     <div class="card">
-                        <div class="card-header">OPs por Etapa</div>
+                        <div class="card-header bg-primary text-white">📦 Ordens por Etapa</div>
                         <ul class="list-group list-group-flush">
                             @foreach (var item in dashboard.OpsPorEtapa)
                             {
@@ -35,25 +35,42 @@
                 </div>
                 <div class="col-md-4">
                     <div class="card">
-                        <div class="card-header">Alertas (OPs Paradas)</div>
+                        <div class="card-header bg-danger text-white">⚠️ Alertas (Ordens Paradas)</div>
                         <ul class="list-group list-group-flush">
-                            @foreach (var op in dashboard.OpsParadas)
+                            @if (dashboard.OpsParadas.Count > 0)
                             {
-                                <li class="list-group-item">@op.CodigoUnico - @op.DescricaoProduto</li>
+                                @foreach (var op in dashboard.OpsParadas)
+                                {
+                                    <li class="list-group-item">
+                                        <strong>@op.CodigoUnico</strong><br/>
+                                        @op.DescricaoProduto
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="list-group-item text-muted">✅ Nenhuma ordem parada</li>
                             }
                         </ul>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card">
-                        <div class="card-header">Carga de Trabajo por Usuario</div>
+                        <div class="card-header bg-info text-white">👥 Carga de Trabalho por Usuário</div>
                         <ul class="list-group list-group-flush">
-                            @foreach (var user in dashboard.CargaTrabalhoPorUsuario)
+                            @if (dashboard.CargaTrabalhoPorUsuario.Count > 0)
                             {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    @user.NomeUsuario
-                                    <span class="badge bg-info rounded-pill">@user.QuantidadeOps</span>
-                                </li>
+                                @foreach (var user in dashboard.CargaTrabalhoPorUsuario)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        @user.NomeUsuario
+                                        <span class="badge bg-info rounded-pill">@user.QuantidadeOps</span>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="list-group-item text-muted">Nenhum usuário com ordens</li>
                             }
                         </ul>
                     </div>
@@ -62,12 +79,15 @@
         }
     </Authorized>
     <NotAuthorized>
-        <p>You must be logged in to see the dashboard.</p>
+        <div class="alert alert-warning">
+            🔐 Você deve estar autenticado para visualizar o painel.
+            <a href="/login" class="alert-link">Clique aqui para fazer login</a>
+        </div>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    private DashboardDto dashboard;
+    private DashboardDto? dashboard;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,7 +98,7 @@
             await InvokeAsync(StateHasChanged);
         };
 
-        await SignalR.StartConnection(Http.BaseAddress + "producaoHub");
+        await SignalR.StartConnection(Http.BaseAddress?.ToString() ?? "https://localhost:5151/producaoHub");
     }
 
     private async Task LoadDashboard()

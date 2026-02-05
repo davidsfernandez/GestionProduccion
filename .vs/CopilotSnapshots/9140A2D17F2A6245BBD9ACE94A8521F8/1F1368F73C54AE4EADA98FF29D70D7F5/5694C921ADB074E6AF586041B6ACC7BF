@@ -1,0 +1,32 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace GestionProduccion.Migrations
+{
+    /// <inheritdoc />
+    public partial class DbNormalizationToEnglish : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.UpdateData(
+                table: "Usuarios",
+                keyColumn: "Id",
+                keyValue: 1,
+                columns: new[] { "Nome", "HashPassword", "Perfil" },
+                values: new object[] { "Administrator", "$2a$11$c7JphOMukm3CNrH3fI6b3.siyuTtq/pxLglzO2vb9g0bldm0FLI82", "Administrator" });
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.UpdateData(
+                table: "Usuarios",
+                keyColumn: "Id",
+                keyValue: 1,
+                columns: new[] { "HashPassword", "Nome", "Perfil" },
+                values: new object[] { "$2a$11$kSeyEkpEtFOcgUE3Ra0JdeP2jI7lLYOx3MQybpSo4gD5VWUHYRI3u", "Administrador", "Administrador" });
+        }
+    }
+}

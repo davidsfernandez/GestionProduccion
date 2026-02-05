@@ -1,0 +1,34 @@
+@page "/ordens"
+@using GestionProduccion.Client.Models
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<PageTitle>Gerenciar Ordens</PageTitle>
+
+<AuthorizeView Roles="Administrator,Leader">
+    <Authorized>
+        <div class="container-fluid mt-4">
+            <h2>📋 Gerenciar Ordens de Produção</h2>
+
+            @if (loading)
+            {
+                <div class="alert alert-info">⏳ Carregando ordens...</div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    ⚠️ Funcionalidade em desenvolvimento. Use o painel para gerenciar ordens.
+                </div>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-danger">
+            🔐 Acesso Negado. Apenas Administradores e Líderes podem gerenciar ordens.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool loading = true;
+}

@@ -13,6 +13,10 @@
     <None Remove="Client\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".github\copilot-instructions.md" />
+  </ItemGroup>
+
  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
@@ -24,5 +28,13 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
+
+  <!-- Copy Blazor client wwwroot files to server wwwroot -->
+  <Target Name="CopyBlazorToServer" AfterTargets="Build">
+    <ItemGroup>
+      <BlazorWwwroot Include="Client\GestionProduccion.Client\bin\Debug\net10.0\wwwroot\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BlazorWwwroot)" DestinationFiles="@(BlazorWwwroot->'wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

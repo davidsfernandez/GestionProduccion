@@ -6,33 +6,48 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<h3>Login</h3>
-<div class="card">
-    <div class="card-body">
-        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator />
-            <div class="form-group">
-                <label for="email">Email</label>
-                <InputText id="email" class="form-control" @bind-Value="loginModel.Email" />
-                <ValidationMessage For="@(() => loginModel.Email)" />
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2>🔐 Autenticação</h2>
+            <div class="card">
+                <div class="card-body">
+                    <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+                        <div class="form-group mb-3">
+                            <label for="email" class="form-label">📧 Email</label>
+                            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="seu.email@exemplo.com" />
+                            <ValidationMessage For="@(() => loginModel.Email)" class="text-danger" />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="password" class="form-label">🔑 Senha</label>
+                            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Digite sua senha" />
+                            <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            ➡️ Entrar
+                        </button>
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3 mb-0">
+                                ❌ @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
-                <ValidationMessage For="@(() => loginModel.Password)" />
+            <div class="alert alert-info mt-3" role="alert">
+                <strong>Dados de Teste:</strong><br/>
+                📧 Email: admin@local.host<br/>
+                🔑 Senha: admin
             </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="alert alert-danger mt-2">@errorMessage</div>
-            }
-        </EditForm>
+        </div>
     </div>
 </div>
 
 @code {
-    private LoginModel loginModel = new LoginModel();
-    private string errorMessage;
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
 
     private async Task HandleLogin()
     {
@@ -56,16 +71,16 @@
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error: {response.StatusCode} - {errorContent}";
+                errorMessage = $"Erro: {response.StatusCode} - {errorContent}";
             }
         }
         catch (HttpRequestException httpEx)
         {
-            errorMessage = $"Error de conexión: {httpEx.Message}. Verifica que el backend esté corriendo en https://localhost:7188";
+            errorMessage = $"Erro de conexão: {httpEx.Message}. Verifique se o backend está rodando em http://localhost:5151";
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error inesperado: {ex.Message}";
+            errorMessage = $"Erro inesperado: {ex.Message}";
         }
     }
 }

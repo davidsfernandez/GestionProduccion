@@ -63,7 +63,7 @@ namespace GestionProduccion.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("HistoricoProducoes");
+                    b.ToTable("HistoricoProducoes", (string)null);
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.OrdemProducao", b =>
@@ -111,7 +111,7 @@ namespace GestionProduccion.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("OrdensProducao");
+                    b.ToTable("OrdensProducao", (string)null);
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.Usuario", b =>
@@ -144,7 +144,7 @@ namespace GestionProduccion.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Usuarios");
+                    b.ToTable("Usuarios", (string)null);
 
                     b.HasData(
                         new

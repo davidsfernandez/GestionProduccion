@@ -26,6 +26,7 @@ builder.Services.AddHttpContextAccessor();
 
 // 4. Add Custom Services
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // 5. Add SignalR
 builder.Services.AddSignalR();
@@ -114,10 +115,13 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1"));
 }
 
 app.UseHttpsRedirection();
+
+// Serve static files from the Blazor client
+app.UseStaticFiles();
 
 app.UseCors("BlazorApp"); // Add CORS middleware
 
@@ -128,5 +132,8 @@ app.MapControllers();
 
 // Map Hubs
 app.MapHub<ProductionHub>("/productionHub");
+
+// Fallback to serve the Blazor app
+app.MapFallbackToFile("index.html");
 
 app.Run();

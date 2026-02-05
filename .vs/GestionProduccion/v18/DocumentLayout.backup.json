@@ -1,0 +1,248 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\david\\GestionProduccion\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\action_plan.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:action_plan.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\architecture_analysis.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:architecture_analysis.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\clientrequeriments.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:clientrequeriments.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\executive_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:executive_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\documentation_index.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:documentation_index.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\status_report.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:status_report.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\scripts\\backup_database.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:scripts\\backup_database.ps1||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\backup_instructions.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:backup_instructions.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\final_summary_day1.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:final_summary_day1.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\phase2_status.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:phase2_status.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\phase2_decision_needed.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:phase2_decision_needed.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|c:\\users\\david\\gestionproduccion\\day2_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{BE19CBF5-0838-893D-83F6-BE0C4851447E}|GestionProduccion.csproj|solutionrelative:day2_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 8,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "DAY2_SUMMARY.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\DAY2_SUMMARY.md",
+              "RelativeDocumentMoniker": "DAY2_SUMMARY.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\DAY2_SUMMARY.md",
+              "RelativeToolTip": "DAY2_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T14:24:09.923Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "PHASE2_DECISION_NEEDED.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\PHASE2_DECISION_NEEDED.md",
+              "RelativeDocumentMoniker": "PHASE2_DECISION_NEEDED.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\PHASE2_DECISION_NEEDED.md",
+              "RelativeToolTip": "PHASE2_DECISION_NEEDED.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T14:23:44.96Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ACTION_PLAN.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\ACTION_PLAN.md",
+              "RelativeDocumentMoniker": "ACTION_PLAN.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\ACTION_PLAN.md",
+              "RelativeToolTip": "ACTION_PLAN.md",
+              "ViewState": "AgIAAOoDAAAAAAAAAAAAAP8DAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T13:55:07.249Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "FINAL_SUMMARY_DAY1.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\FINAL_SUMMARY_DAY1.md",
+              "RelativeDocumentMoniker": "FINAL_SUMMARY_DAY1.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\FINAL_SUMMARY_DAY1.md",
+              "RelativeToolTip": "FINAL_SUMMARY_DAY1.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACsBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T14:04:32.294Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "PHASE2_STATUS.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\PHASE2_STATUS.md",
+              "RelativeDocumentMoniker": "PHASE2_STATUS.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\PHASE2_STATUS.md",
+              "RelativeToolTip": "PHASE2_STATUS.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T14:21:21.811Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "BACKUP_INSTRUCTIONS.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\BACKUP_INSTRUCTIONS.md",
+              "RelativeDocumentMoniker": "BACKUP_INSTRUCTIONS.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\BACKUP_INSTRUCTIONS.md",
+              "RelativeToolTip": "BACKUP_INSTRUCTIONS.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T14:01:26.697Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "backup_database.ps1",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\scripts\\backup_database.ps1",
+              "RelativeDocumentMoniker": "scripts\\backup_database.ps1",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\scripts\\backup_database.ps1",
+              "RelativeToolTip": "scripts\\backup_database.ps1",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002383|",
+              "WhenOpened": "2026-02-05T14:01:13.817Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "STATUS_REPORT.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\STATUS_REPORT.md",
+              "RelativeDocumentMoniker": "STATUS_REPORT.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\STATUS_REPORT.md",
+              "RelativeToolTip": "STATUS_REPORT.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T13:57:37.559Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "DOCUMENTATION_INDEX.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\DOCUMENTATION_INDEX.md",
+              "RelativeDocumentMoniker": "DOCUMENTATION_INDEX.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\DOCUMENTATION_INDEX.md",
+              "RelativeToolTip": "DOCUMENTATION_INDEX.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T13:56:29.458Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "EXECUTIVE_SUMMARY.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\EXECUTIVE_SUMMARY.md",
+              "RelativeDocumentMoniker": "EXECUTIVE_SUMMARY.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\EXECUTIVE_SUMMARY.md",
+              "RelativeToolTip": "EXECUTIVE_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T13:55:31.792Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ARCHITECTURE_ANALYSIS.md",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\ARCHITECTURE_ANALYSIS.md",
+              "RelativeDocumentMoniker": "ARCHITECTURE_ANALYSIS.md",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\ARCHITECTURE_ANALYSIS.md",
+              "RelativeToolTip": "ARCHITECTURE_ANALYSIS.md",
+              "ViewState": "AgIAAFkCAAAAAAAAAAAAAHgCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-05T13:54:05.575Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ClientRequeriments.txt",
+              "DocumentMoniker": "C:\\Users\\david\\GestionProduccion\\ClientRequeriments.txt",
+              "RelativeDocumentMoniker": "ClientRequeriments.txt",
+              "ToolTip": "C:\\Users\\david\\GestionProduccion\\ClientRequeriments.txt",
+              "RelativeToolTip": "ClientRequeriments.txt",
+              "ViewState": "AgIAAKcBAAAAAAAAAAAqwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2026-02-05T13:53:08.367Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

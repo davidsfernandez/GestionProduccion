@@ -1,0 +1,82 @@
+﻿REQUISITOS INICIALES DEL CLIENTE
+
+TITULO DEL PROYECTO DADO POR EL CLIENTE: Desenvolvimento de Sistema Web para Gestão de Produção e Delegação de Atividades
+
+DESCRIPCION DE LOS REQUISITOS INICIALES DEL CLIENTE: Estamos buscando um desenvolvedor para criar um sistema web simples e intuitivo para gerenciar a produção e delegar atividades. O sistema deve incluir as seguintes funcionalidades essenciais: Gerenciamento de Usuários e Permissões: Implementação de diferentes perfis de acesso, como Administrador, Líder, Costureira e Oficina, com permissões específicas para cada um. Ordem de Produção (OP): Funcionalidade para criar, visualizar e gerenciar Ordens de Produção. Etapas da Produção: Rastreamento das etapas do fluxo de trabalho, incluindo Corte, Costura, Revisão e Embalagem. Delegação de Atividades: Capacidade de atribuir tarefas e Ordens de Produção a oficinas ou indivíduos específicos. Status em Tempo Real: Exibição do status atual de cada atividade ou OP (parado, em produção, finalizado). Relatórios Simples: Geração de relatórios básicos para acompanhar o que está atribuído a quem e identificar possíveis atrasos na produção. O objetivo é otimizar a delegação de tarefas e ter uma visão clara do andamento da produção.
+
+
+Habilidades necesarias
+
+PHP MySQL HTML CSS JavaScript Database System Analysis Responsive Web Design Laravel Bootstrap jQuery SQL Modelado de Datos QA Testing
+
+ATENCION: NOSOTROS VAMOS A USAR C# .NET CORE, MYSQL, RAZOR PAGES, no usaremos PHP ni Laravel ni nada asociado, implementaremos el proyecto usando nuestro stack que es .NET Core
+
+
+
+ESTE ES UN PROMPT CREADO POR GOOGLE GEMINI PRO PARA PASARLO EN UNA PRIMERA INSTANCIA A GOOGLE CODE ASSIST.
+
+<Begin Google Gemini Pro Google Code Assist Prompt/>
+Actúa como un Arquitecto de Software experto en .NET 8 y Entity Framework Core.
+Necesito generar las Entidades (Domain Classes) para un "Sistema de Gestión de Producción" basado en los siguientes requisitos estrictos:
+
+1. **Gestión de Usuarios y Roles:**
+   - Crear un Enum `PerfilUsuario` con exactamente estos valores: Administrador, Lider, Costureira, Oficina.
+   - La entidad `Usuario` debe tener: Id, Nombre, Email, HashPassword, Perfil y Activo.
+
+2. **Orden de Producción (OP):**
+   - Entidad `OrdemProducao` que represente una tarea de trabajo.
+   - Debe tener un código único (ej: OP-2024-001), descripción del producto y cantidad.
+   - **IMPORTANTE:** Debe manejar dos dimensiones de estado:
+     a) `EtapaAtual`: Un Enum con valores (Corte, Costura, Revisao, Embalagem).
+     b) `StatusAtual`: Un Enum con valores (EmProducao, Parado, Finalizado).
+   - Debe tener fechas de creación y fecha estimada de entrega.
+
+3. **Delegación de Actividades:**
+   - La OP debe tener una relación con un `Usuario` asignado (puede ser nulo si no está asignada).
+   - Necesitamos saber a qué "Oficina" o "Individuo" se delegó.
+
+4. **Auditoría (Historial):**
+   - Entidad `HistoricoProducao` para rastrear cambios.
+   - Debe registrar: OPId, EtapaAnterior, EtapaNueva, StatusAnterior, StatusNuevo, UsuarioId (quien hizo el cambio) y Fecha.
+
+Reglas:
+- Usa Data Annotations ([Key], [Required], [StringLength]).
+- Configura las relaciones (Foreign Keys) correctamente.
+- Usa nombres en Portugués para clases y propiedades (como pide el cliente).
+
+Ahora necesito la capa de Servicios (Business Logic) implementando una interfaz `IOpService`.
+Requisitos de la lógica:
+
+1. **Crear OP:**
+   - Método `CriarOP`. Al crearla, la Etapa inicial debe ser 'Corte' y el Status 'EmProducao'.
+
+2. **Delegación de Actividades (Asignar):**
+   - Método `DelegarTarefa(int opId, int usuarioId)`.
+   - Permite asignar una OP a una 'Costureira' u 'Oficina'.
+   - Validar que la OP exista.
+
+3. **Gestión de Flujo (Workflow):**
+   - Método `AtualizarStatus(int opId, StatusOp novoStatus, string observacao)`. (Ej: Marcar como 'Parado' si falta tela).
+   - Método `AvancarEtapa(int opId)`. Lógica: Si está en 'Corte', pasa a 'Costura'. Si está en 'Costura', pasa a 'Revisao', etc.
+   - Al cambiar de etapa, el Status debe resetearse a 'EmProducao'.
+
+4. **Reglas de Negocio:**
+   - Cada cambio debe crear un registro en la tabla `HistoricoProducao` automáticamente.
+   - Usa Inyección de Dependencias y async/await.
+
+Finalmente, necesito implementar las funcionalidades de "Tiempo Real" y "Reportes Simples":
+
+1. **Status en Tempo Real (SignalR):**
+   - Genera un Hub de SignalR llamado `ProducaoHub`.
+   - Crea un método `NotificarAtualizacao(int opId, string novaEtapa, string novoStatus)` que envíe un mensaje a todos los clientes conectados ('ReceiveUpdate').
+   - Muestra cómo inyectar este Hub en el `OpService` para que, cuando se llame a `AvancarEtapa` o `AtualizarStatus`, se notifique al frontend automáticamente.
+
+2. **Relatórios Simples (Dashboard):**
+   - Agrega un método en el servicio `ObterDashboard()` que retorne un DTO con:
+     - Cantidad de OPs por Etapa (Cuántas en Corte, cuántas en Costura).
+     - Lista de OPs que están con Status 'Parado' (Alertas de atraso).
+     - Lista de OPs asignadas por Usuario (Carga de trabajo).
+
+3. **Controller:**
+   - Genera un `OpsController` (API) que exponga estos métodos.
+<End Google Gemini Pro - Google Code Assist Promtp/>
