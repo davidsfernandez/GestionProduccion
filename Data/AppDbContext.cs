@@ -97,5 +97,19 @@ public class AppDbContext : DbContext
             .WithMany(op => op.Historico)
             .HasForeignKey(h => h.OrdemProducaoId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // --- INSERCIÓN DE DATOS INICIALES (SEEDING) ---
+        modelBuilder.Entity<Usuario>().HasData(
+            new Usuario
+            {
+                Id = 1,
+                Nome = "Administrador",
+                Email = "admin@local.host",
+                // La contraseña es "admin", hasheada con BCrypt
+                HashPassword = BCrypt.Net.BCrypt.HashPassword("admin"),
+                Perfil = Domain.Enums.PerfilUsuario.Administrador,
+                Ativo = true
+            }
+        );
     }
 }

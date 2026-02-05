@@ -106,3 +106,12 @@ C:\Users\david\GestionProduccion\obj\Debug\net8.0\refint\GestionProduccion.dll
 C:\Users\david\GestionProduccion\obj\Debug\net8.0\GestionProduccion.pdb
 C:\Users\david\GestionProduccion\obj\Debug\net8.0\GestionProduccion.genruntimeconfig.cache
 C:\Users\david\GestionProduccion\obj\Debug\net8.0\ref\GestionProduccion.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\BCrypt.Net-Next.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\david\GestionProduccion\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll

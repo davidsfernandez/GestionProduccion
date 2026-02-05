@@ -1,12 +1,15 @@
-using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace GestionProduccion.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Requiere autenticación para todos los endpoints del controlador
 public class OpsController : ControllerBase
 {
     private readonly IOpService _opService;
@@ -17,7 +20,8 @@ public class OpsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CriarOP([FromBody] OrdemProducao op)
+    [Authorize(Roles = "Administrador,Lider")] // Solo roles específicos pueden crear
+    public async Task<IActionResult> CriarOP([FromBody] Domain.Entities.OrdemProducao op)
     {
         if (!ModelState.IsValid)
         {
@@ -27,7 +31,6 @@ public class OpsController : ControllerBase
         return CreatedAtAction(nameof(GetOpById), new { id = novaOp.Id }, novaOp);
     }
     
-    // Endpoint auxiliar para obtener una OP por ID
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOpById(int id)
     {
@@ -36,8 +39,8 @@ public class OpsController : ControllerBase
         return Ok($"Endpoint para obtener OP con Id {id}. Implementación pendiente.");
     }
 
-
     [HttpPost("{opId}/delegar/{usuarioId}")]
+    [Authorize(Roles = "Administrador,Lider")]
     public async Task<IActionResult> DelegarTarefa(int opId, int usuarioId)
     {
         try
@@ -45,17 +48,18 @@ public class OpsController : ControllerBase
             var opAtualizada = await _opService.DelegarTarefa(opId, usuarioId);
             return Ok(opAtualizada);
         }
-        catch (KeyNotFoundException ex)
+        catch (System.Collections.Generic.KeyNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
-        catch (InvalidOperationException ex)
+        catch (System.InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }
     }
 
     [HttpPatch("{opId}/status")]
+    [Authorize(Roles = "Administrador,Lider")]
     public async Task<IActionResult> AtualizarStatus(int opId, [FromBody] AtualizarStatusRequest request)
     {
         try
@@ -63,13 +67,14 @@ public class OpsController : ControllerBase
             var opAtualizada = await _opService.AtualizarStatus(opId, request.NovoStatus, request.Observacao);
             return Ok(opAtualizada);
         }
-        catch (KeyNotFoundException ex)
+        catch (System.Collections.Generic.KeyNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
     }
 
     [HttpPost("{opId}/avancar")]
+    [Authorize(Roles = "Administrador,Lider")]
     public async Task<IActionResult> AvancarEtapa(int opId)
     {
         try
@@ -77,11 +82,11 @@ public class OpsController : ControllerBase
             var opAtualizada = await _opService.AvancarEtapa(opId);
             return Ok(opAtualizada);
         }
-        catch (KeyNotFoundException ex)
+        catch (System.Collections.Generic.KeyNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
-        catch (InvalidOperationException ex)
+        catch (System.InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -93,11 +98,4 @@ public class OpsController : ControllerBase
         var dashboard = await _opService.ObterDashboard();
         return Ok(dashboard);
     }
-}
-
-// Clase DTO para el request de actualización de status
-public class AtualizarStatusRequest
-{
-    public StatusProducao NovoStatus { get; set; }
-    public string Observacao { get; set; } = string.Empty;
 }
