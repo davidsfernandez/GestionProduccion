@@ -11,7 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddTransient<AuthHeaderHandler>();
 
-builder.Services.AddHttpClient("API", client => client.BaseAddress = new Uri("https://localhost:7188"))
+builder.Services.AddHttpClient("API", client => client.BaseAddress = new Uri("http://localhost:5151"))
     .AddHttpMessageHandler<AuthHeaderHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));

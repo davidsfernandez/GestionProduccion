@@ -1,12 +1,12 @@
 namespace GestionProduccion.Domain.Enums;
 
 /// <summary>
-/// Define las posibles etapas en el flujo de producción.
+/// Defines the possible stages in the production workflow.
 /// </summary>
-public enum EtapaProducao
+public enum ProductionStage
 {
-    Corte,
-    Costura,
-    Revisao,
-    Embalagem
+    Cutting,
+    Sewing,
+    Review,
+    Packaging
 }

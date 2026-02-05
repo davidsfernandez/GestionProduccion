@@ -1,11 +1,11 @@
 namespace GestionProduccion.Domain.Enums;
 
 /// <summary>
-/// Define el estado de una orden de producción en un momento dado.
+/// Defines the current state of a production order at a given time.
 /// </summary>
-public enum StatusProducao
+public enum ProductionStatus
 {
-    EmProducao,
-    Parado,
-    Finalizado
+    InProduction,
+    Stopped,
+    Completed
 }

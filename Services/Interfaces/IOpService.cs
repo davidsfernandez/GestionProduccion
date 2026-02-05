@@ -4,11 +4,12 @@ using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Services.Interfaces;
 
-public interface IOpService
+public interface IProductionOrderService
 {
-    Task<OrdemProducao> CriarOP(OrdemProducao op);
-    Task<OrdemProducao> DelegarTarefa(int opId, int usuarioId);
-    Task<OrdemProducao> AtualizarStatus(int opId, StatusProducao novoStatus, string observacao);
-    Task<OrdemProducao> AvancarEtapa(int opId);
-    Task<DashboardDto> ObterDashboard();
+    Task<ProductionOrder> CreateProductionOrder(ProductionOrder order);
+    Task<ProductionOrder?> GetProductionOrderById(int orderId);
+    Task<ProductionOrder> AssignTask(int orderId, int userId);
+    Task<ProductionOrder> UpdateStatus(int orderId, ProductionStatus newStatus, string note);
+    Task<ProductionOrder> AdvanceStage(int orderId);
+    Task<DashboardDto> GetDashboard();
 }

@@ -5,43 +5,43 @@ using GestionProduccion.Domain.Enums;
 namespace GestionProduccion.Domain.Entities;
 
 /// <summary>
-/// Representa una Orden de Producción (OP).
+/// Represents a Production Order (PO).
 /// </summary>
-public class OrdemProducao
+public class ProductionOrder
 {
     [Key]
     public int Id { get; set; }
 
-    // NOTA: Para garantizar la unicidad de 'CodigoUnico' a nivel de base de datos,
-    // es recomendable configurar un índice único en su DbContext:
-    // modelBuilder.Entity<OrdemProducao>().HasIndex(op => op.CodigoUnico).IsUnique();
+    // NOTE: To ensure uniqueness of 'UniqueCode' at database level,
+    // it is recommended to configure a unique index in DbContext:
+    // modelBuilder.Entity<ProductionOrder>().HasIndex(po => po.UniqueCode).IsUnique();
     [Required]
     [StringLength(50)]
-    public string CodigoUnico { get; set; } = string.Empty;
+    public string UniqueCode { get; set; } = string.Empty;
 
     [Required]
     [StringLength(255)]
-    public string DescricaoProduto { get; set; } = string.Empty;
+    public string ProductDescription { get; set; } = string.Empty;
 
     [Required]
-    public int Quantidade { get; set; }
+    public int Quantity { get; set; }
 
     [Required]
-    public EtapaProducao EtapaAtual { get; set; }
+    public ProductionStage CurrentStage { get; set; }
 
     [Required]
-    public StatusProducao StatusAtual { get; set; }
+    public ProductionStatus CurrentStatus { get; set; }
 
     [Required]
-    public DateTime DataCriacao { get; set; }
+    public DateTime CreationDate { get; set; }
 
-    public DateTime DataEstimadaEntrega { get; set; }
+    public DateTime EstimatedDeliveryDate { get; set; }
 
-    // Relación con Usuario (puede ser nulo)
-    public int? UsuarioId { get; set; }
-    [ForeignKey("UsuarioId")]
-    public virtual Usuario? UsuarioAtribuido { get; set; }
+    // Relationship with User (can be null)
+    public int? UserId { get; set; }
+    [ForeignKey("UserId")]
+    public virtual User? AssignedUser { get; set; }
 
-    // Propiedad de navegación para el historial
-    public virtual ICollection<HistoricoProducao> Historico { get; set; } = new List<HistoricoProducao>();
+    // Navigation property for history
+    public virtual ICollection<ProductionHistory> History { get; set; } = new List<ProductionHistory>();
 }

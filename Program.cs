@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,10 +21,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// 3. Add Custom Services
-builder.Services.AddScoped<IOpService, OpService>();
+// 3. Add HttpContextAccessor for accessing current user in services
+builder.Services.AddHttpContextAccessor();
 
-// 4. Add SignalR
+// 4. Add Custom Services
+builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
+
+// 5. Add SignalR
 builder.Services.AddSignalR();
 
 // 5. Add Authentication
@@ -34,19 +38,25 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var jwtKey = builder.Configuration["Jwt:Key"] ?? "ClaveSecretaPorDefectoParaDesarrollo12345678";
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GestionProduccion",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GestionProduccionAPI",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
@@ -90,7 +100,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("BlazorApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5062")
+        policy.SetIsOriginAllowed(origin => true)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -117,6 +127,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Map Hubs
-app.MapHub<ProducaoHub>("/producaoHub");
+app.MapHub<ProductionHub>("/productionHub");
 
 app.Run();

@@ -5,35 +5,42 @@ using GestionProduccion.Domain.Enums;
 namespace GestionProduccion.Domain.Entities;
 
 /// <summary>
-/// Registra el historial de cambios de estado y etapa de una Orden de Producción.
+/// Records change history for production order stage and status.
 /// </summary>
-public class HistoricoProducao
+public class ProductionHistory
 {
     [Key]
     public int Id { get; set; }
 
     [Required]
-    public int OrdemProducaoId { get; set; }
-    [ForeignKey("OrdemProducaoId")]
-    public virtual OrdemProducao OrdemProducao { get; set; } = null!;
+    public int ProductionOrderId { get; set; }
+    [ForeignKey("ProductionOrderId")]
+    public virtual ProductionOrder ProductionOrder { get; set; } = null!;
 
-    // El estado anterior puede ser nulo para el primer registro del historial
-    public EtapaProducao? EtapaAnterior { get; set; }
+    // Previous stage can be null for the first history record
+    public ProductionStage? PreviousStage { get; set; }
     
     [Required]
-    public EtapaProducao EtapaNova { get; set; }
+    public ProductionStage NewStage { get; set; }
 
-    // El estado anterior puede ser nulo para el primer registro del historial
-    public StatusProducao? StatusAnterior { get; set; }
+    // Previous status can be null for the first history record
+    public ProductionStatus? PreviousStatus { get; set; }
     
     [Required]
-    public StatusProducao StatusNovo { get; set; }
+    public ProductionStatus NewStatus { get; set; }
 
     [Required]
-    public int UsuarioId { get; set; } // Usuario que realizó el cambio
-    [ForeignKey("UsuarioId")]
-    public virtual Usuario UsuarioResponsavel { get; set; } = null!;
+    public int UserId { get; set; } // User who made the change
+    [ForeignKey("UserId")]
+    public virtual User ResponsibleUser { get; set; } = null!;
 
     [Required]
-    public DateTime DataModificacao { get; set; }
+    public DateTime ModificationDate { get; set; }
+
+    /// <summary>
+    /// Field to record detailed observations about the change made.
+    /// Useful for auditing and troubleshooting.
+    /// </summary>
+    [StringLength(500)]
+    public string Note { get; set; } = string.Empty;
 }

@@ -37,6 +37,11 @@ namespace GestionProduccion.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("Observacao")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<int>("OrdemProducaoId")
                         .HasColumnType("int");
 
@@ -147,7 +152,7 @@ namespace GestionProduccion.Migrations
                             Id = 1,
                             Ativo = true,
                             Email = "admin@local.host",
-                            HashPassword = "$2a$11$pQ/exrK0i2CSUXyAID2ZqurDxpHYP1s6.H1MNELvp9AvjsTrYo2Bm",
+                            HashPassword = "$2a$11$kSeyEkpEtFOcgUE3Ra0JdeP2jI7lLYOx3MQybpSo4gD5VWUHYRI3u",
                             Nome = "Administrador",
                             Perfil = "Administrador"
                         });

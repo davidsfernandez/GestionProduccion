@@ -1,12 +1,12 @@
 namespace GestionProduccion.Domain.Enums;
 
 /// <summary>
-/// Define los roles de los usuarios en el sistema.
+/// Defines user roles in the system.
 /// </summary>
-public enum PerfilUsuario
+public enum UserRole
 {
-    Administrador, // Rol con todos los permisos
-    Lider,         // Rol de líder de equipo
-    Costureira,    // Rol de operario de costura
-    Oficina        // Rol que representa un taller o proveedor externo
+    Administrator, // Role with all permissions
+    Leader,        // Team leader role
+    Sewer,         // Sewing operator role
+    Workshop       // Role representing an external workshop or provider
 }

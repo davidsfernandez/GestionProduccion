@@ -43,17 +43,29 @@
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-                await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token);
-                NavigationManager.NavigateTo("/");
+                if (result != null && !string.IsNullOrEmpty(result.Token))
+                {
+                    await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token);
+                    NavigationManager.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = "Token inválido recibido del servidor.";
+                }
             }
             else
             {
-                errorMessage = "Invalid email or password.";
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error: {response.StatusCode} - {errorContent}";
             }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            errorMessage = $"Error de conexión: {httpEx.Message}. Verifica que el backend esté corriendo en https://localhost:7188";
         }
         catch (Exception ex)
         {
-            errorMessage = "An error occurred during login.";
+            errorMessage = $"Error inesperado: {ex.Message}";
         }
     }
 }

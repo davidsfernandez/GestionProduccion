@@ -1,9 +1,12 @@
+using System.ComponentModel.DataAnnotations;
 using GestionProduccion.Domain.Enums;
 
 namespace GestionProduccion.Models.DTOs;
 
-public class AtualizarStatusRequest
+public class UpdateStatusRequest
 {
-    public StatusProducao NovoStatus { get; set; }
-    public string Observacao { get; set; } = string.Empty;
+    [Required]
+    public ProductionStatus NewStatus { get; set; }
+    
+    public string Note { get; set; } = string.Empty;
 }

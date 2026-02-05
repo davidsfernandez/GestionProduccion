@@ -1,66 +1,75 @@
+using GestionProduccion.Data;
+using GestionProduccion.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
-using GestionProduccion.Data;
-using GestionProduccion.Domain.Entities;
-using GestionProduccion.Models.DTOs;
 
-namespace GestionProduccion.Controllers
+namespace GestionProduccion.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
+
+    public AuthController(AppDbContext context, IConfiguration configuration)
     {
-        private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration;
+        _context = context;
+        _configuration = configuration;
+    }
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDto login)
+    {
+        // 1. Search user by email
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == login.Email);
+
+        // 2. Verify user exists and password matches (using BCrypt)
+        if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
         {
-            _context = context;
-            _configuration = configuration;
+            return Unauthorized(new { message = "Invalid credentials." });
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
+        if (!user.IsActive)
         {
-            var user = await _context.Usuarios.SingleOrDefaultAsync(u => u.Email == loginRequest.Email && u.Ativo);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.HashPassword))
-            {
-                return Unauthorized("Credenciales inválidas.");
-            }
-
-            var token = GenerateJwtToken(user);
-
-            return Ok(new { Token = token });
+            return Unauthorized(new { message = "Inactive user." });
         }
 
-        private string GenerateJwtToken(Usuario user)
+        // 3. Generate Token
+        var token = GenerateJwtToken(user);
+
+        // 4. Return response
+        return Ok(new LoginResponse { Token = token, User = user });
+    }
+
+    private string GenerateJwtToken(Domain.Entities.User user)
+    {
+        var jwtKey = _configuration["Jwt:Key"] ?? "DefaultSecretKeyForDevelopment12345678";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Role, user.Role.ToString()) // Important for [Authorize(Roles=...)]
+        };
 
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Name, user.Nome),
-                new Claim(ClaimTypes.Role, user.Perfil.ToString())
-            };
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"] ?? "GestionProduccion",
+            audience: _configuration["Jwt:Audience"] ?? "GestionProduccionAPI",
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(8),
+            signingCredentials: creds
+        );
 
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(8),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

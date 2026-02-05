@@ -4,7 +4,7 @@ using GestionProduccion.Domain.Entities;
 namespace GestionProduccion.Data;
 
 /// <summary>
-/// Contexto de la base de datos para la aplicación de Gestión de Producción.
+/// Database context for the Production Management application.
 /// </summary>
 public class AppDbContext : DbContext
 {
@@ -13,102 +13,101 @@ public class AppDbContext : DbContext
     }
 
     // --- DBSETS ---
-    public DbSet<Usuario> Usuarios { get; set; }
-    public DbSet<OrdemProducao> OrdensProducao { get; set; }
-    public DbSet<HistoricoProducao> HistoricoProducoes { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<ProductionOrder> ProductionOrders { get; set; }
+    public DbSet<ProductionHistory> ProductionHistories { get; set; }
 
     /// <summary>
-    /// Configura el modelo de datos usando la Fluent API de EF Core.
+    /// Configures the data model using EF Core Fluent API.
     /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // --- CONFIGURACIÓN DE CONVERSIÓN DE ENUMS A STRING ---
+        // --- ENUM TO STRING CONVERSION ---
 
-        // Convierte el enum PerfilUsuario en la entidad Usuario
-        modelBuilder.Entity<Usuario>()
-            .Property(u => u.Perfil)
-            .HasConversion<string>()
-            .HasMaxLength(50); // Es una buena práctica definir una longitud máxima
-
-        // Convierte los enums en la entidad OrdemProducao
-        modelBuilder.Entity<OrdemProducao>()
-            .Property(op => op.EtapaAtual)
+        // Converts UserRole enum in User entity
+        modelBuilder.Entity<User>()
+            .Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        modelBuilder.Entity<OrdemProducao>()
-            .Property(op => op.StatusAtual)
+        // Converts enums in ProductionOrder entity
+        modelBuilder.Entity<ProductionOrder>()
+            .Property(po => po.CurrentStage)
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        // Convierte los enums en la entidad HistoricoProducao
-        modelBuilder.Entity<HistoricoProducao>()
-            .Property(h => h.EtapaAnterior)
+        modelBuilder.Entity<ProductionOrder>()
+            .Property(po => po.CurrentStatus)
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        modelBuilder.Entity<HistoricoProducao>()
-            .Property(h => h.EtapaNova)
+        // Converts enums in ProductionHistory entity
+        modelBuilder.Entity<ProductionHistory>()
+            .Property(h => h.PreviousStage)
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        modelBuilder.Entity<HistoricoProducao>()
-            .Property(h => h.StatusAnterior)
+        modelBuilder.Entity<ProductionHistory>()
+            .Property(h => h.NewStage)
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        modelBuilder.Entity<HistoricoProducao>()
-            .Property(h => h.StatusNovo)
+        modelBuilder.Entity<ProductionHistory>()
+            .Property(h => h.PreviousStatus)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<ProductionHistory>()
+            .Property(h => h.NewStatus)
             .HasConversion<string>()
             .HasMaxLength(50);
             
-        // --- CONFIGURACIÓN DE ÍNDICES Y RESTRICCIONES ---
+        // --- INDEX AND CONSTRAINT CONFIGURATION ---
 
-        // Asegura que el código de la orden de producción sea único
-        modelBuilder.Entity<OrdemProducao>()
-            .HasIndex(op => op.CodigoUnico)
+        // Ensures that the production order code is unique
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.UniqueCode)
             .IsUnique();
 
-        // --- CONFIGURACIÓN DE RELACIONES Y COMPORTAMIENTO DE BORRADO ---
+        // --- RELATIONSHIP AND DELETE BEHAVIOR CONFIGURATION ---
 
-        // Relación: Usuario -> OrdemProducao (1 a N)
-        // Evita que se pueda eliminar un Usuario si tiene órdenes de producción asignadas.
-        modelBuilder.Entity<OrdemProducao>()
-            .HasOne(op => op.UsuarioAtribuido)
-            .WithMany(u => u.OrdensAtribuidas)
-            .HasForeignKey(op => op.UsuarioId)
+        // Relationship: User -> ProductionOrder (1 to N)
+        // Prevents deleting a User if they have assigned production orders.
+        modelBuilder.Entity<ProductionOrder>()
+            .HasOne(po => po.AssignedUser)
+            .WithMany(u => u.AssignedOrders)
+            .HasForeignKey(po => po.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Relación: Usuario -> HistoricoProducao (1 a N)
-        // Evita que se pueda eliminar un Usuario si ha realizado cambios en el historial.
-        modelBuilder.Entity<HistoricoProducao>()
-            .HasOne(h => h.UsuarioResponsavel)
-            .WithMany(u => u.AlteracoesNoHistorico)
-            .HasForeignKey(h => h.UsuarioId)
+        // Relationship: User -> ProductionHistory (1 to N)
+        // Prevents deleting a User if they have made changes in history.
+        modelBuilder.Entity<ProductionHistory>()
+            .HasOne(h => h.ResponsibleUser)
+            .WithMany(u => u.HistoryChanges)
+            .HasForeignKey(h => h.UserId)
             .OnDelete(DeleteBehavior.Restrict);
             
-        // Relación: OrdemProducao -> HistoricoProducao (1 a N)
-        // Al eliminar una OrdemProducao, se eliminarán en cascada todos sus registros de historial.
-        // Este es el comportamiento por defecto para relaciones requeridas, pero se puede hacer explícito:
-        modelBuilder.Entity<HistoricoProducao>()
-            .HasOne(h => h.OrdemProducao)
-            .WithMany(op => op.Historico)
-            .HasForeignKey(h => h.OrdemProducaoId)
+        // Relationship: ProductionOrder -> ProductionHistory (1 to N)
+        // Deletes all history records when a ProductionOrder is deleted (cascade).
+        modelBuilder.Entity<ProductionHistory>()
+            .HasOne(h => h.ProductionOrder)
+            .WithMany(po => po.History)
+            .HasForeignKey(h => h.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- INSERCIÓN DE DATOS INICIALES (SEEDING) ---
-        modelBuilder.Entity<Usuario>().HasData(
-            new Usuario
+        // --- SEED DATA ---
+        modelBuilder.Entity<User>().HasData(
+            new User
             {
                 Id = 1,
-                Nome = "Administrador",
+                Name = "Administrator",
                 Email = "admin@local.host",
-                // La contraseña es "admin", hasheada con BCrypt
-                HashPassword = BCrypt.Net.BCrypt.HashPassword("admin"),
-                Perfil = Domain.Enums.PerfilUsuario.Administrador,
-                Ativo = true
+                // Password is "admin", hashed with BCrypt
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                Role = Domain.Enums.UserRole.Administrator,
+                IsActive = true
             }
         );
     }
