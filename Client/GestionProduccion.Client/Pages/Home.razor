@@ -92,14 +92,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboard();
-        
+        // Start SignalR connection with relative URL for the hub
+        var hubUrl = (Http.BaseAddress?.ToString() ?? "https://localhost:7188").TrimEnd('/') + "/productionHub";
+        await SignalR.StartConnection(hubUrl);
+
         SignalR.OnUpdateReceived += async (opId, novaEtapa, novoStatus) => {
             await LoadDashboard();
             await InvokeAsync(StateHasChanged);
         };
 
-        await SignalR.StartConnection(Http.BaseAddress?.ToString() ?? "https://localhost:5151/producaoHub");
+        await LoadDashboard();
     }
 
     private async Task LoadDashboard()

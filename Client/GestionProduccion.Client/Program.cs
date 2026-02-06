@@ -11,11 +11,15 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddTransient<AuthHeaderHandler>();
 
-builder.Services.AddHttpClient("API", client => client.BaseAddress = new Uri("http://localhost:5151"))
-    .AddHttpMessageHandler<AuthHeaderHandler>();
+// Use the current BaseAddress dynamically (will be the same origin as the Blazor app)
+builder.Services.AddHttpClient("API", client => 
+{
+    var baseAddress = builder.HostEnvironment.BaseAddress;
+    client.BaseAddress = new Uri(baseAddress);
+})
+.AddHttpMessageHandler<AuthHeaderHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));
-
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();

@@ -2,22 +2,22 @@ namespace GestionProduccion.Client.Models
 {
     public class DashboardDto
     {
-        public Dictionary<string, int> OpsPorEtapa { get; set; } = new();
-        public List<OpAlertaDto> OpsParadas { get; set; } = new();
-        public List<OpPorUsuarioDto> CargaTrabalhoPorUsuario { get; set; } = new();
+        public Dictionary<string, int>? OperationsByStage { get; set; } = new();
+        public List<StoppedOperationDto>? StoppedOperations { get; set; } = new();
+        public List<UserWorkloadDto>? WorkloadByUser { get; set; } = new();
     }
 
-    public class OpAlertaDto
+    public class StoppedOperationDto
     {
         public int Id { get; set; }
-        public string CodigoUnico { get; set; } = string.Empty;
-        public string DescricaoProduto { get; set; } = string.Empty;
-        public DateTime DataEstimadaEntrega { get; set; }
+        public string? UniqueCode { get; set; }
+        public string? ProductDescription { get; set; }
+        public DateTime EstimatedDeliveryDate { get; set; }
     }
 
-    public class OpPorUsuarioDto
+    public class UserWorkloadDto
     {
-        public string NomeUsuario { get; set; } = string.Empty;
-        public int QuantidadeOps { get; set; }
+        public string? UserName { get; set; }
+        public int OperationCount { get; set; }
     }
 }
