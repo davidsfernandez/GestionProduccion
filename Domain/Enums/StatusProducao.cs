@@ -7,5 +7,7 @@ public enum ProductionStatus
 {
     InProduction,
     Stopped,
-    Completed
+    Completed,
+    Paused,
+    Finished
 }
