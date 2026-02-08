@@ -1,0 +1,14 @@
+**/.git
+**/.github
+**/.vs
+**/bin
+**/obj
+**/*.user
+**/*.log
+.dockerignore
+Dockerfile
+docker-compose*
+node_modules
+wwwroot/_framework
+wwwroot/css
+wwwroot/lib

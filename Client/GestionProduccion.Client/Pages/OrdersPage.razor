@@ -24,6 +24,11 @@
             <button class="btn btn-outline-success" @onclick="ExportToCsv">
                 <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
             </button>
+            <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
+                <button class="btn btn-outline-danger" @onclick="DownloadDailyReport">
+                    <i class="bi bi-file-earmark-pdf"></i> Daily PDF
+                </button>
+            </AuthorizeView>
             <AuthorizeView Roles="Administrator,Leader" Context="createContext">
                 <button class="btn btn-primary" @onclick="CreateNewOrder">
                     <i class="bi bi-plus-circle"></i> New Order
@@ -78,9 +83,14 @@
                             <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
                             <td class="small">@(order.AssignedUserName ?? "Unassigned")</td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-primary" @onclick="() => ViewDetails(order.Id)">
-                                    Details
-                                </button>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-primary" @onclick="() => ViewDetails(order.Id)" title="Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DownloadOrderReport(order.Id)" title="PDF Report">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -151,6 +161,50 @@
         
         await JSRuntime.InvokeVoidAsync("downloadCsv", $"Orders_{DateTime.Now:yyyyMMdd}.csv", csv.ToString());
         ToastService.ShowToast("CSV exported successfully", ToastLevel.Info);
+    }
+
+    private async Task DownloadOrderReport(int id)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/ProductionOrders/{id}/report");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
+                ToastService.ShowToast("Order report downloaded", ToastLevel.Info);
+            }
+            else
+            {
+                ToastService.ShowToast("Error generating report", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Error: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task DownloadDailyReport()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/ProductionOrders/daily-report");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf", "application/pdf", content);
+                ToastService.ShowToast("Daily report downloaded", ToastLevel.Info);
+            }
+            else
+            {
+                ToastService.ShowToast("Error generating daily report", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Error: {ex.Message}", ToastLevel.Error);
+        }
     }
 
     private string GetStatusClass(string? status) => status?.ToLower() switch

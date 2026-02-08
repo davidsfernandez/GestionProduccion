@@ -27,6 +27,7 @@ public class UsersController : ControllerBase
             Id = u.Id,
             Name = u.Name,
             Email = u.Email,
+            PublicId = u.PublicId,
             Role = u.Role,
             IsActive = u.IsActive
         }).ToList();
@@ -43,6 +44,7 @@ public class UsersController : ControllerBase
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
+            PublicId = user.PublicId,
             Role = user.Role,
             IsActive = user.IsActive
         };
@@ -57,6 +59,7 @@ public class UsersController : ControllerBase
             Id = u.Id,
             Name = u.Name,
             Email = u.Email,
+            PublicId = u.PublicId,
             Role = u.Role,
             IsActive = u.IsActive
         }).ToList();
@@ -76,6 +79,7 @@ public class UsersController : ControllerBase
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
+                PublicId = request.PublicId,
                 IsActive = true
             };
 
@@ -86,6 +90,7 @@ public class UsersController : ControllerBase
                 Id = createdUser.Id,
                 Name = createdUser.Name,
                 Email = createdUser.Email,
+                PublicId = createdUser.PublicId,
                 Role = createdUser.Role,
                 IsActive = createdUser.IsActive
             });

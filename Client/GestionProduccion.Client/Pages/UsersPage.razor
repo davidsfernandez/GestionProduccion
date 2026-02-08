@@ -47,7 +47,10 @@
                     @foreach (var user in users)
                     {
                         <tr>
-                            <td>@user.Name</td>
+                            <td>
+                                <div>@user.Name</div>
+                                <small class="text-muted">ID: @user.PublicId</small>
+                            </td>
                             <td>@user.Email</td>
                             <td><span class="badge bg-info">@user.Role</span></td>
                             <td>
@@ -99,6 +102,13 @@
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <InputText class="form-control" @bind-Value="userModel.Email" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Public UUID (Required)</label>
+                            <div class="input-group">
+                                <InputText class="form-control" @bind-Value="userModel.PublicId" placeholder="Click Generate to create UUID" />
+                                <button type="button" class="btn btn-outline-secondary" @onclick="GenerateUuid">Generate</button>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Password @(isEditing ? "(Leave blank to keep current)" : "")</label>
@@ -180,6 +190,7 @@
         {
             Name = user.Name,
             Email = user.Email,
+            PublicId = user.PublicId,
             Role = user.Role
         };
         showModal = true;
@@ -187,10 +198,21 @@
 
     private string? errorMessage;
 
+    private void GenerateUuid()
+    {
+        userModel.PublicId = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
+    }
+
     private async Task HandleSubmit()
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(userModel.PublicId))
+            {
+                errorMessage = "Public UUID is required.";
+                return;
+            }
+
             errorMessage = null;
             HttpResponseMessage response;
 
@@ -212,6 +234,7 @@
                     Name = userModel.Name,
                     Email = userModel.Email,
                     Password = userModel.Password,
+                    PublicId = userModel.PublicId,
                     Role = userModel.Role
                 };
                 response = await Http.PostAsJsonAsync("api/Users", request);
@@ -252,6 +275,7 @@
     {
         public string Name { get; set; } = "";
         public string Email { get; set; } = "";
+        public string PublicId { get; set; } = "";
         public string Password { get; set; } = "";
         public UserRole Role { get; set; } = UserRole.Operator;
     }

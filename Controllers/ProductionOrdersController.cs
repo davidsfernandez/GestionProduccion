@@ -213,11 +213,43 @@ public class ProductionOrdersController : ControllerBase
             WorkloadByUser = dashboardData.WorkloadByUser.Select(w => new 
             { 
                 w.UserName, 
-                w.TotalOrders,
-                w.PendingOrders
-            }).ToList()
+                OperationCount = w.PendingOrders // Use PendingOrders as OperationCount for the dashboard
+            }).ToList(),
+            CompletionRate = dashboardData.CompletionRate,
+            AverageStageTime = dashboardData.AverageStageTime
         };
         
         return Ok(response);
+    }
+
+    [HttpGet("{id}/report")]
+    public async Task<IActionResult> GetOrderReport(int id, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
+            if (pdfBytes == null) return NotFound();
+            
+            return File(pdfBytes, "application/pdf", $"ProductionOrder_{id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating report", error = ex.Message });
+        }
+    }
+
+    [HttpGet("daily-report")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<IActionResult> GetDailyReport([FromServices] IReportService reportService)
+    {
+        try
+        {
+            var pdfBytes = await reportService.GenerateDailyProductionReportAsync();
+            return File(pdfBytes, "application/pdf", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating daily report", error = ex.Message });
+        }
     }
 }

@@ -22,6 +22,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddSignalR();
 
 builder.Services.AddAuthentication(options =>
@@ -82,6 +83,35 @@ app.UseRouting();
 app.UseCors("BlazorApp");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Automatically apply migrations on startup with retry logic
+for (int i = 0; i < 10; i++)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<AppDbContext>();
+            if (context.Database.GetPendingMigrations().Any())
+            {
+                context.Database.Migrate();
+            }
+            break; // Success, exit loop
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(ex, $"Database migration attempt {i + 1} failed. Retrying in 5 seconds...");
+            Thread.Sleep(5000);
+            if (i == 9)
+            {
+                logger.LogCritical(ex, "Final attempt to migrate database failed. Exiting.");
+                throw;
+            }
+        }
+    }
+}
 
 app.MapControllers();
 app.MapHub<ProductionHub>("/productionHub");

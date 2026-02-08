@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gestion-produccion-app
+    restart: always
+    ports:
+      - "7188:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=GestionProduccionDB;user=root;password=Cualquiera1
+      - Jwt__Key=SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#
+      - Jwt__Issuer=GestionProduccion
+      - Jwt__Audience=GestionProduccionAPI
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - prod_network
+
+  db:
+    image: mysql:8.0
+    container_name: gestion-produccion-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Cualquiera1
+      MYSQL_DATABASE: GestionProduccionDB
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pCualquiera1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - prod_network
+
+volumes:
+  mysql_data:
+
+networks:
+  prod_network:
+    driver: bridge

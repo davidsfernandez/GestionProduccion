@@ -11,6 +11,10 @@
     <Content Remove="Client\**" />
     <EmbeddedResource Remove="Client\**" />
     <None Remove="Client\**" />
+    <Compile Remove="GestionProduccion.Tests\**" />
+    <Content Remove="GestionProduccion.Tests\**" />
+    <EmbeddedResource Remove="GestionProduccion.Tests\**" />
+    <None Remove="GestionProduccion.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +31,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
+    <PackageReference Include="QuestPDF" Version="2025.12.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 

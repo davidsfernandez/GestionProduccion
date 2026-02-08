@@ -26,6 +26,10 @@ public class User
     [Required]
     public UserRole Role { get; set; }
 
+    [Required]
+    [StringLength(50)]
+    public string PublicId { get; set; } = string.Empty;
+
     public bool IsActive { get; set; } = true;
 
     // EF Core navigation properties
