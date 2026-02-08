@@ -20,5 +20,6 @@ public class StoppedOperationDto
 public class UserWorkloadDto
 {
     public string UserName { get; set; } = string.Empty;
+    public string PublicId { get; set; } = string.Empty;
     public int OperationCount { get; set; }
 }

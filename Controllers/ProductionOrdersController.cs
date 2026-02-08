@@ -213,6 +213,7 @@ public class ProductionOrdersController : ControllerBase
             WorkloadByUser = dashboardData.WorkloadByUser.Select(w => new 
             { 
                 w.UserName, 
+                w.PublicId,
                 OperationCount = w.PendingOrders // Use PendingOrders as OperationCount for the dashboard
             }).ToList(),
             CompletionRate = dashboardData.CompletionRate,

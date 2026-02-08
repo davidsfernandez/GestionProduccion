@@ -19,6 +19,7 @@ namespace GestionProduccion.Models.DTOs
     {
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public string PublicId { get; set; } = string.Empty;
         public int TotalOrders { get; set; }
         public int PendingOrders { get; set; }
     }

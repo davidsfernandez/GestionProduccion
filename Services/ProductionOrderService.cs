@@ -321,11 +321,12 @@ public class ProductionOrderService : IProductionOrderService
 
         var userWorkload = orders
             .Where(o => o.UserId.HasValue && o.AssignedUser != null)
-            .GroupBy(o => new { o.UserId, o.AssignedUser.Name })
+            .GroupBy(o => new { o.UserId, o.AssignedUser.Name, o.AssignedUser.PublicId })
             .Select(g => new UserWorkloadDto
             {
                 UserId = g.Key.UserId ?? 0,
                 UserName = g.Key.Name,
+                PublicId = g.Key.PublicId,
                 TotalOrders = g.Count(),
                 PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
             })
@@ -359,7 +360,7 @@ public class ProductionOrderService : IProductionOrderService
             WorkloadByUser = userWorkload,
             
             CompletionRate = orders.Any() 
-                ? (decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed) / orders.Count() * 100
+                ? Math.Round(((decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed) / (decimal)orders.Count()) * 100, 1)
                 : 0,
             
             AverageStageTime = CalculateAverageStageTime(orders)

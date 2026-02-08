@@ -5,7 +5,7 @@ param(
     [string]$BackupDir = "./backups",
     [string]$DatabaseName = "GestionProduccionDB",
     [string]$Username = "root",
-    [string]$Password = "Cualquiera1",
+    [string]$Password = "REPLACE_WITH_YOUR_PASSWORD",
     [string]$Host = "localhost"
 )
 
@@ -32,7 +32,7 @@ try {
     }
     
     if (-not $MysqldumpPath) {
-        throw "mysqldump no encontrado. Asegúrate de que MySQL esté instalado y en PATH."
+        throw "mysqldump no encontrado. Asegï¿½rate de que MySQL estï¿½ instalado y en PATH."
     }
     
     # Ejecutar mysqldump
@@ -43,7 +43,7 @@ try {
         $FileSize = (Get-Item $BackupFile).Length
         $FileSizeKB = [math]::Round($FileSize / 1KB, 2)
         Write-Host "? Backup creado exitosamente" -ForegroundColor Green
-        Write-Host "?? Tamaño: $FileSizeKB KB"
+        Write-Host "?? Tamaï¿½o: $FileSizeKB KB"
     } else {
         throw "Error al ejecutar mysqldump (exit code: $LASTEXITCODE)"
     }

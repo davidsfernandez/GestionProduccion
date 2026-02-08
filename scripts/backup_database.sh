@@ -14,11 +14,11 @@ echo "?? Creando backup de GestionProduccionDB..."
 echo "?? Archivo: $BACKUP_FILE"
 
 # Exportar BD
-mysqldump -u root -p'Cualquiera1' GestionProduccionDB > "$BACKUP_FILE"
+mysqldump -u root -p'REPLACE_WITH_YOUR_PASSWORD' GestionProduccionDB > "$BACKUP_FILE"
 
 if [ $? -eq 0 ]; then
     echo "? Backup creado exitosamente"
-    echo "?? Tamaño: $(ls -lh "$BACKUP_FILE" | awk '{print $5}')"
+    echo "?? Tamaï¿½o: $(ls -lh "$BACKUP_FILE" | awk '{print $5}')"
 else
     echo "? Error al crear backup"
     exit 1
