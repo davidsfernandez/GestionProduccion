@@ -105,3 +105,4 @@ appsettings.Development.json
 
 # Documentation files
 *.md
+docs/
