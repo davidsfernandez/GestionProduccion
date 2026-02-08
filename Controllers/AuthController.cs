@@ -25,11 +25,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        // 1. Search user by email
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == login.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
 
-        // 2. Verify user exists and password matches (using BCrypt)
         if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
         {
             return Unauthorized(new { message = "Invalid credentials." });
@@ -40,26 +37,24 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Inactive user." });
         }
 
-        // 3. Generate Token
         var token = GenerateJwtToken(user);
-
-        // 4. Return response
         return Ok(new LoginResponse { Token = token, User = user });
     }
 
     private string GenerateJwtToken(Domain.Entities.User user)
     {
-        var jwtKey = _configuration["Jwt:Key"] ?? "DefaultSecretKeyForDevelopment12345678";
+        var jwtKey = _configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // USE FULL URI CLAIM NAMES (Microsoft Default)
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, user.Role.ToString()) // Important for [Authorize(Roles=...)]
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(

@@ -1,0 +1,122 @@
+@page "/orders/create"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create Production Order</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title mb-0">🆕 Create New Production Order</h3>
+        </div>
+        <div class="card-body">
+            <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Unique Code (OP)</label>
+                        <InputText class="form-control" @bind-Value="createModel.UniqueCode" placeholder="e.g. OP-2024-001" />
+                        <ValidationMessage For="@(() => createModel.UniqueCode)" class="text-danger" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Quantity</label>
+                        <InputNumber class="form-control" @bind-Value="createModel.Quantity" />
+                        <ValidationMessage For="@(() => createModel.Quantity)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Product Description</label>
+                    <InputTextArea class="form-control" @bind-Value="createModel.ProductDescription" rows="3" placeholder="Describe the product and specifications..." />
+                    <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Estimated Delivery Date</label>
+                        <InputDate class="form-control" @bind-Value="createModel.EstimatedDeliveryDate" />
+                        <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">
+                        ❌ @errorMessage
+                    </div>
+                }
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span> Creating...</span>
+                        }
+                        else
+                        {
+                            <span>Create Order</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateProductionOrderRequest createModel = new() 
+    { 
+        EstimatedDeliveryDate = DateTime.Today.AddDays(7) 
+    };
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+            
+            var response = await Http.PostAsJsonAsync("api/ProductionOrders", createModel);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/orders");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/orders");
+    }
+
+    // Local class for the form if not in DTOs
+    public class CreateProductionOrderRequest
+    {
+        public string UniqueCode { get; set; } = string.Empty;
+        public string ProductDescription { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public DateTime EstimatedDeliveryDate { get; set; }
+    }
+}

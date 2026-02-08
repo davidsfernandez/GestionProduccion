@@ -91,6 +91,8 @@ public class ProductionOrderService : IProductionOrderService
         AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, "Creation of production order");
         await _context.SaveChangesAsync();
 
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
+
         return new ProductionOrderDto
         {
             Id = order.Id,
@@ -210,11 +212,10 @@ public class ProductionOrderService : IProductionOrderService
             return false;
         }
         
-        // Assuming UserRole.Sewer is now UserRole.Tailor based on DTOs for UI translation
-        if (user.Role != UserRole.Sewer && user.Role != UserRole.Workshop)
+        // Assuming UserRole.Sewer is now UserRole.Operator based on DTOs for UI translation
+        if (user.Role != UserRole.Operator && user.Role != UserRole.Workshop)
         {
-            // The action plan states Tailor or Workshop, but the existing code uses Sewer.
-            // I'll update it to Tailor to match the DTO in ACTION_PLAN.md.
+            // The action plan states Operator or Workshop.
             return false; 
         }
 
@@ -226,6 +227,9 @@ public class ProductionOrderService : IProductionOrderService
             currentUserId, $"Assigned to {user.Name}");
 
         await _context.SaveChangesAsync();
+
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
+
         return true;
     }
 
@@ -323,11 +327,10 @@ public class ProductionOrderService : IProductionOrderService
                 UserId = g.Key.UserId ?? 0,
                 UserName = g.Key.Name,
                 TotalOrders = g.Count(),
-                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Finished)
+                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
             })
             .ToList();
 
-        // Assuming PausedOrders are those with CurrentStatus == ProductionStatus.Paused
         var pausedOrders = orders
             .Where(o => o.CurrentStatus == ProductionStatus.Stopped)
             .Select(order => new ProductionOrderDto
@@ -356,10 +359,10 @@ public class ProductionOrderService : IProductionOrderService
             WorkloadByUser = userWorkload,
             
             CompletionRate = orders.Any() 
-                ? (decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished) / orders.Count() * 100
+                ? (decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed) / orders.Count() * 100
                 : 0,
             
-            AverageStageTime = CalculateAverageStageTime(orders) // This method needs to be implemented/defined
+            AverageStageTime = CalculateAverageStageTime(orders)
         };
 
         return dashboard;
@@ -367,10 +370,33 @@ public class ProductionOrderService : IProductionOrderService
 
     private Dictionary<string, double> CalculateAverageStageTime(List<ProductionOrder> orders)
     {
-        // This is a placeholder. Real implementation would require more detailed history tracking
-        // (e.g., entry/exit timestamps for each stage) which is not in the current entities.
-        // For now, return an empty dictionary or simple mock data.
-        return new Dictionary<string, double>();
+        var stageDurations = new Dictionary<string, List<double>>();
+
+        foreach (var order in orders)
+        {
+            var history = order.History.OrderBy(h => h.ModificationDate).ToList();
+            for (int i = 0; i < history.Count; i++)
+            {
+                var current = history[i];
+                DateTime? nextDate = (i + 1 < history.Count) ? history[i+1].ModificationDate : (order.CurrentStatus == ProductionStatus.Completed ? (DateTime?)null : DateTime.UtcNow);
+                
+                if (nextDate.HasValue)
+                {
+                    var duration = (nextDate.Value - current.ModificationDate).TotalHours;
+                    var stageName = current.NewStage.ToString();
+                    
+                    if (!stageDurations.ContainsKey(stageName))
+                        stageDurations[stageName] = new List<double>();
+                    
+                    stageDurations[stageName].Add(duration);
+                }
+            }
+        }
+
+        return stageDurations.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Any() ? Math.Round(kvp.Value.Average(), 1) : 0
+        );
     }
     
     public async Task<List<ProductionHistoryDto>> GetHistoryByProductionOrderIdAsync(int orderId)

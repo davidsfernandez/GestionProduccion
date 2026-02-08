@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @using GestionProduccion.Client.Auth
@@ -9,14 +9,18 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
+        <div class="top-row px-4 d-flex justify-content-end align-items-center">
              <AuthorizeView>
                 <Authorized>
-                    <span class="badge bg-success">✅ Autenticado: <strong>@context.User.Identity?.Name</strong></span>
-                    <button class="btn btn-sm btn-outline-danger ms-2" @onclick="Logout">🚪 Sair</button>
+                    <span class="me-2 text-muted">
+                        <i class="bi bi-person-circle"></i> Welcome, <strong>@context.User.Identity?.Name</strong>
+                    </span>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/login" class="btn btn-sm btn-primary">🔐 Autenticar</a>
+                    <a href="/login" class="btn btn-sm btn-primary">Login</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>

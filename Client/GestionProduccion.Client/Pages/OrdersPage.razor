@@ -1,0 +1,172 @@
+@page "/orders"
+@using GestionProduccion.Client.Models.DTOs
+@using GestionProduccion.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader,Operator")]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject SignalRService SignalR
+@implements IAsyncDisposable
+
+<PageTitle>Production Orders</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Production Orders</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-success" @onclick="ExportToCsv">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            </button>
+            <AuthorizeView Roles="Administrator,Leader" Context="createContext">
+                <button class="btn btn-primary" @onclick="CreateNewOrder">
+                    <i class="bi bi-plus-circle"></i> New Order
+                </button>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (orders == null || !orders.Any())
+    {
+        <div class="alert alert-info">
+            No production orders found.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Code</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Stage</th>
+                        <th>Status</th>
+                        <th>Delivery</th>
+                        <th>Assigned To</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in orders)
+                    {
+                        <tr>
+                            <td><strong>@order.UniqueCode</strong></td>
+                            <td>@order.ProductDescription</td>
+                            <td>@order.Quantity</td>
+                            <td>
+                                <span class="badge bg-secondary">@order.CurrentStage</span>
+                            </td>
+                            <td>
+                                <span class="badge @GetStatusClass(order.CurrentStatus)">@order.CurrentStatus</span>
+                            </td>
+                            <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
+                            <td>@(order.AssignedUserName ?? "Unassigned")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewDetails(order.Id)">
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductionOrderDto>? orders;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+            await SignalR.StartConnection(hubUrl);
+
+            SignalR.OnUpdateReceived += async (opId, stage, status) => {
+                await LoadOrders();
+                await InvokeAsync(StateHasChanged);
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR Error: {ex.Message}");
+        }
+
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        try
+        {
+            loading = true;
+            orders = await Http.GetFromJsonAsync<List<ProductionOrderDto>>("api/ProductionOrders");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading orders: {ex.Message}");
+            orders = new List<ProductionOrderDto>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void CreateNewOrder()
+    {
+        NavigationManager.NavigateTo("/orders/create");
+    }
+
+    private void ViewDetails(int id)
+    {
+        NavigationManager.NavigateTo($"/orders/{id}");
+    }
+
+    private async Task ExportToCsv()
+    {
+        if (orders == null || !orders.Any()) return;
+
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Code,Product,Quantity,Stage,Status,Delivery,AssignedTo");
+
+        foreach (var o in orders)
+        {
+            csv.AppendLine($"{o.UniqueCode},{o.ProductDescription.Replace(",", " ")},{o.Quantity},{o.CurrentStage},{o.CurrentStatus},{o.EstimatedDeliveryDate:yyyy-MM-dd},{o.AssignedUserName ?? "Unassigned"}");
+        }
+
+        await JSRuntime.InvokeVoidAsync("downloadCsv", $"Production_Orders_{DateTime.Now:yyyyMMdd}.csv", csv.ToString());
+    }
+
+    private string GetStatusClass(string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return "bg-secondary";
+
+        return status.ToLower() switch
+        {
+            "completed" => "bg-success",
+            "inproduction" => "bg-primary",
+            "pending" => "bg-warning text-dark",
+            "stopped" or "paused" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await SignalR.StopConnection(); } catch { }
+    }
+}

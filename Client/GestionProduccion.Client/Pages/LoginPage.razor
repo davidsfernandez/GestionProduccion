@@ -9,23 +9,23 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h2>🔐 Autenticação</h2>
-            <div class="card">
+            <h2 class="text-center mb-4">🔐 Authentication</h2>
+            <div class="card shadow">
                 <div class="card-body">
                     <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
                         <DataAnnotationsValidator />
                         <div class="form-group mb-3">
                             <label for="email" class="form-label">📧 Email</label>
-                            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="seu.email@exemplo.com" />
+                            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="your.email@example.com" />
                             <ValidationMessage For="@(() => loginModel.Email)" class="text-danger" />
                         </div>
                         <div class="form-group mb-3">
-                            <label for="password" class="form-label">🔑 Senha</label>
-                            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Digite sua senha" />
+                            <label for="password" class="form-label">🔑 Password</label>
+                            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Enter your password" />
                             <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            ➡️ Entrar
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            ➡️ Sign In
                         </button>
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
@@ -36,10 +36,10 @@
                     </EditForm>
                 </div>
             </div>
-            <div class="alert alert-info mt-3" role="alert">
-                <strong>Dados de Teste:</strong><br/>
-                📧 Email: admin@local.host<br/>
-                🔑 Senha: admin
+            <div class="alert alert-light border mt-4 text-center" role="alert">
+                <h6 class="alert-heading">Test Credentials</h6>
+                <hr>
+                <p class="mb-0">📧 admin@local.host / 🔑 admin</p>
             </div>
         </div>
     </div>
@@ -53,7 +53,8 @@
     {
         try
         {
-            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+            errorMessage = string.Empty;
+            var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
 
             if (response.IsSuccessStatusCode)
             {
@@ -65,22 +66,18 @@
                 }
                 else
                 {
-                    errorMessage = "Token inválido recibido del servidor.";
+                    errorMessage = "Invalid token received from server.";
                 }
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Erro: {response.StatusCode} - {errorContent}";
+                errorMessage = $"Login failed: {errorContent}";
             }
-        }
-        catch (HttpRequestException httpEx)
-        {
-            errorMessage = $"Erro de conexão: {httpEx.Message}. Verifique se o backend está rodando em http://localhost:5151";
         }
         catch (Exception ex)
         {
-            errorMessage = $"Erro inesperado: {ex.Message}";
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
         }
     }
 }

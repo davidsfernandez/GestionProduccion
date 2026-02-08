@@ -1,0 +1,255 @@
+@page "/users"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+
+<PageTitle>User Management</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>👥 User Management</h2>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <span class="bi bi-person-plus"></span> New User
+        </button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (users == null || !users.Any())
+    {
+        <div class="alert alert-info">No users found.</div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr>
+                            <td>@user.Name</td>
+                            <td>@user.Email</td>
+                            <td><span class="badge bg-info">@user.Role</span></td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditUser(user)">
+                                    Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUser(user.Id)">
+                                    Deactivate
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit User" : "Create User")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                    <EditForm Model="userModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="userModel.Name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="userModel.Email" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password @(isEditing ? "(Leave blank to keep current)" : "")</label>
+                            <InputText type="password" class="form-control" @bind-Value="userModel.Password" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <InputSelect class="form-select" @bind-Value="userModel.Role">
+                                @foreach (var role in Enum.GetValues<UserRole>())
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto>? users;
+    private bool loading = true;
+    private bool showModal = false;
+    private bool isEditing = false;
+    private UserFormModel userModel = new();
+    private int editingUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions 
+    { 
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() } 
+    };
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            loading = true;
+            var response = await Http.GetAsync("api/Users");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                users = JsonSerializer.Deserialize<List<UserDto>>(content, _jsonOptions);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        isEditing = false;
+        userModel = new UserFormModel();
+        showModal = true;
+    }
+
+    private void EditUser(UserDto user)
+    {
+        isEditing = true;
+        editingUserId = user.Id;
+        userModel = new UserFormModel
+        {
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role
+        };
+        showModal = true;
+    }
+
+    private string? errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            errorMessage = null;
+            HttpResponseMessage response;
+
+            if (isEditing)
+            {
+                var request = new UpdateUserRequest
+                {
+                    Name = userModel.Name,
+                    Email = userModel.Email,
+                    Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password,
+                    Role = userModel.Role
+                };
+                response = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", request);
+            }
+            else
+            {
+                var request = new CreateUserRequest
+                {
+                    Name = userModel.Name,
+                    Email = userModel.Email,
+                    Password = userModel.Password,
+                    Role = userModel.Role
+                };
+                response = await Http.PostAsJsonAsync("api/Users", request);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                showModal = false;
+                await LoadUsers();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected Error: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to deactivate this user?"))
+        {
+            await Http.DeleteAsync($"api/Users/{id}");
+            await LoadUsers();
+        }
+    }
+
+    private void CloseModal() => showModal = false;
+
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
+
+    public class UserFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public UserRole Role { get; set; } = UserRole.Operator;
+    }
+}

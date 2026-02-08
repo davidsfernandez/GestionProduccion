@@ -7,6 +7,6 @@ public enum UserRole
 {
     Administrator, // Role with all permissions
     Leader,        // Team leader role
-    Sewer,         // Sewing operator role
+    Operator,      // Production operator role (Sewer/Workshop)
     Workshop       // Role representing an external workshop or provider
 }

@@ -16,13 +16,7 @@ public class ProductionHub : Hub
     /// <param name="newStatus">New status (InProduction, Stopped, Completed)</param>
     public async Task NotifyUpdate(int orderId, string newStage, string newStatus)
     {
-        await Clients.All.SendAsync("ReceiveUpdate", new
-        {
-            orderId = orderId,
-            stage = newStage,
-            status = newStatus,
-            timestamp = DateTime.UtcNow
-        });
+        await Clients.All.SendAsync("ReceiveUpdate", orderId, newStage, newStatus);
     }
 
     /// <summary>

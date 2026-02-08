@@ -5,6 +5,7 @@ using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace GestionProduccion.Controllers;
 
@@ -14,10 +15,12 @@ namespace GestionProduccion.Controllers;
 public class ProductionOrdersController : ControllerBase
 {
     private readonly IProductionOrderService _productionOrderService;
+    private readonly IUserService _userService;
 
-    public ProductionOrdersController(IProductionOrderService productionOrderService)
+    public ProductionOrdersController(IProductionOrderService productionOrderService, IUserService userService)
     {
         _productionOrderService = productionOrderService;
+        _userService = userService;
     }
 
     [HttpPost]
@@ -50,6 +53,20 @@ public class ProductionOrdersController : ControllerBase
         }
     }
     
+    [HttpGet]
+    public async Task<ActionResult<List<ProductionOrderDto>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter)
+    {
+        try
+        {
+            var orders = await _productionOrderService.ListProductionOrdersAsync(filter);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving production orders", error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductionOrderById(int id)
     {
@@ -65,6 +82,41 @@ public class ProductionOrdersController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error retrieving production order", error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/history")]
+    public async Task<ActionResult<List<ProductionHistoryDto>>> GetOrderHistory(int id)
+    {
+        try
+        {
+            var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(id);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving order history", error = ex.Message });
+        }
+    }
+
+    [HttpGet("assignable")]
+    public async Task<ActionResult<List<UserDto>>> GetAssignableUsers()
+    {
+        try
+        {
+            var users = await _userService.GetActiveUsersAsync();
+            return Ok(users.Select(u => new UserDto
+            {
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                Role = u.Role,
+                IsActive = u.IsActive
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving assignable users", error = ex.Message });
         }
     }
 
@@ -97,7 +149,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPatch("{orderId}/status")]
-    [Authorize(Roles = "Administrator,Leader")]
+    [Authorize(Roles = "Administrator,Leader,Operator")]
     public async Task<IActionResult> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
     {
         try
@@ -118,7 +170,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPost("{orderId}/advance-stage")]
-    [Authorize(Roles = "Administrator,Leader")]
+    [Authorize(Roles = "Administrator,Leader,Operator")]
     public async Task<IActionResult> AdvanceStage(int orderId)
     {
         try
