@@ -9,10 +9,10 @@ services:
       - "7188:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=GestionProduccionDB;user=root;password=${DB_PASSWORD:-Cualquiera1}
+      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=${DB_DATABASE:-GestionProduccionDB};user=${DB_USER:-gp_admin};password=${DB_PASSWORD:-gp_pass}
       - Jwt__Key=${JWT_KEY:-REPLACE_WITH_SECURE_KEY}
-      - Jwt__Issuer=GestionProduccion
-      - Jwt__Audience=GestionProduccionAPI
+      - Jwt__Issuer=${JWT_ISSUER:-GestionProduccion}
+      - Jwt__Audience=${JWT_AUDIENCE:-GestionProduccionAPI}
     depends_on:
       db:
         condition: service_healthy
@@ -24,14 +24,16 @@ services:
     container_name: gestion-produccion-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Cualquiera1}
-      MYSQL_DATABASE: GestionProduccionDB
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_pass}
+      MYSQL_DATABASE: ${DB_DATABASE:-GestionProduccionDB}
+      MYSQL_USER: ${DB_USER:-gp_admin}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-gp_pass}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${DB_PASSWORD:-Cualquiera1}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_pass}"]
       interval: 10s
       timeout: 5s
       retries: 5

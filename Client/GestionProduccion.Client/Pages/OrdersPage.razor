@@ -10,28 +10,30 @@
 @inject ToastService ToastService
 @implements IAsyncDisposable
 
-<PageTitle>Production Orders</PageTitle>
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.OP_Title</PageTitle>
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📋 Production Orders</h2>
+        <h2>📋 @Portuguese.OP_Title</h2>
         <div class="d-flex gap-2">
             <div class="input-group" style="max-width: 300px;">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-start-0" placeholder="Search orders..." 
+                <input type="text" class="form-control border-start-0" placeholder="@Portuguese.Search" 
                        @bind="searchTerm" @bind:event="oninput" />
             </div>
             <button class="btn btn-outline-success" @onclick="ExportToCsv">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+                <i class="bi bi-file-earmark-spreadsheet"></i> @Portuguese.OP_ExportCSV
             </button>
             <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
                 <button class="btn btn-outline-danger" @onclick="DownloadDailyReport">
-                    <i class="bi bi-file-earmark-pdf"></i> Daily PDF
+                    <i class="bi bi-file-earmark-pdf"></i> @Portuguese.OP_DailyPDF
                 </button>
             </AuthorizeView>
             <AuthorizeView Roles="Administrator,Leader" Context="createContext">
                 <button class="btn btn-primary" @onclick="CreateNewOrder">
-                    <i class="bi bi-plus-circle"></i> New Order
+                    <i class="bi bi-plus-circle"></i> @Portuguese.OP_NewOrder
                 </button>
             </AuthorizeView>
         </div>
@@ -41,14 +43,14 @@
     {
         <div class="d-flex justify-content-center mt-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">@Portuguese.Loading</span>
             </div>
         </div>
     }
     else if (FilteredOrders == null || !FilteredOrders.Any())
     {
         <div class="alert alert-info shadow-sm">
-            @(string.IsNullOrEmpty(searchTerm) ? "No production orders found." : "No orders match your search criteria.")
+            @(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)
         </div>
     }
     else
@@ -57,14 +59,14 @@
             <table class="table table-hover align-middle bg-white mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Code</th>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Stage</th>
-                        <th>Status</th>
-                        <th>Delivery</th>
-                        <th>Assigned To</th>
-                        <th class="text-center">Actions</th>
+                        <th>@Portuguese.OP_Code</th>
+                        <th>@Portuguese.OP_Product</th>
+                        <th>@Portuguese.OP_Qty</th>
+                        <th>@Portuguese.OP_Stage</th>
+                        <th>@Portuguese.OP_Status</th>
+                        <th>@Portuguese.OP_Delivery</th>
+                        <th>@Portuguese.OP_AssignedTo</th>
+                        <th class="text-center">@Portuguese.Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,19 +77,19 @@
                             <td>@order.ProductDescription</td>
                             <td>@order.Quantity</td>
                             <td>
-                                <span class="badge bg-secondary">@order.CurrentStage</span>
+                                <span class="badge bg-secondary">@TranslateStage(order.CurrentStage)</span>
                             </td>
                             <td>
-                                <span class="badge @GetStatusClass(order.CurrentStatus)">@order.CurrentStatus</span>
+                                <span class="badge @GetStatusClass(order.CurrentStatus)">@TranslateStatus(order.CurrentStatus)</span>
                             </td>
                             <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
-                            <td class="small">@(order.AssignedUserName ?? "Unassigned")</td>
+                            <td class="small">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</td>
                             <td class="text-center">
                                 <div class="btn-group">
-                                    <button class="btn btn-sm btn-primary" @onclick="() => ViewDetails(order.Id)" title="Details">
+                                    <button class="btn btn-sm btn-primary" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DownloadOrderReport(order.Id)" title="PDF Report">
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
                                         <i class="bi bi-file-earmark-pdf"></i>
                                     </button>
                                 </div>
@@ -151,16 +153,35 @@
     private void CreateNewOrder() => NavigationManager.NavigateTo("/orders/create");
     private void ViewDetails(int id) => NavigationManager.NavigateTo($"/orders/{id}");
 
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
+    {
+        "cutting" => Portuguese.Stage_Cutting,
+        "sewing" => Portuguese.Stage_Sewing,
+        "review" => Portuguese.Stage_Review,
+        "packaging" => Portuguese.Stage_Packaging,
+        _ => stage ?? ""
+    };
+
+    private string TranslateStatus(string? status) => status?.ToLower() switch
+    {
+        "inproduction" => Portuguese.Status_InProduction,
+        "stopped" => Portuguese.Status_Stopped,
+        "completed" => Portuguese.Status_Completed,
+        "paused" => Portuguese.Status_Paused,
+        "finished" => Portuguese.Status_Finished,
+        _ => status ?? ""
+    };
+
     private async Task ExportToCsv()
     {
         if (orders == null || !orders.Any()) return;
         var csv = new System.Text.StringBuilder();
-        csv.AppendLine("Code,Product,Quantity,Stage,Status,Delivery,AssignedTo");
+        csv.AppendLine($"{Portuguese.OP_Code},{Portuguese.OP_Product},{Portuguese.OP_Qty},{Portuguese.OP_Stage},{Portuguese.OP_Status},{Portuguese.OP_Delivery},{Portuguese.OP_AssignedTo}");
         foreach (var o in orders)
-            csv.AppendLine($"{o.UniqueCode},{o.ProductDescription.Replace(",", " ")},{o.Quantity},{o.CurrentStage},{o.CurrentStatus},{o.EstimatedDeliveryDate:yyyy-MM-dd},{o.AssignedUserName ?? "Unassigned"}");
+            csv.AppendLine($"{o.UniqueCode},{o.ProductDescription.Replace(",", " ")},{o.Quantity},{TranslateStage(o.CurrentStage)},{TranslateStatus(o.CurrentStatus)},{o.EstimatedDeliveryDate:yyyy-MM-dd},{o.AssignedUserName ?? Portuguese.OP_Unassigned}");
         
         await JSRuntime.InvokeVoidAsync("downloadCsv", $"Orders_{DateTime.Now:yyyyMMdd}.csv", csv.ToString());
-        ToastService.ShowToast("CSV exported successfully", ToastLevel.Info);
+        ToastService.ShowToast("CSV exportado com sucesso", ToastLevel.Info);
     }
 
     private async Task DownloadOrderReport(int id)
@@ -172,16 +193,16 @@
             {
                 var content = await response.Content.ReadAsByteArrayAsync();
                 await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
-                ToastService.ShowToast("Order report downloaded", ToastLevel.Info);
+                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Info);
             }
             else
             {
-                ToastService.ShowToast("Error generating report", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Error: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -194,16 +215,16 @@
             {
                 var content = await response.Content.ReadAsByteArrayAsync();
                 await JSRuntime.InvokeVoidAsync("downloadFile", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf", "application/pdf", content);
-                ToastService.ShowToast("Daily report downloaded", ToastLevel.Info);
+                ToastService.ShowToast(Portuguese.Success, ToastLevel.Info);
             }
             else
             {
-                ToastService.ShowToast("Error generating daily report", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Error: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
     }
 

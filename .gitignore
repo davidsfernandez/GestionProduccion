@@ -103,6 +103,9 @@ appsettings.Development.json
 # Gemini CLI temp files
 .gemini/tmp/
 
+# Environment files
+.env
+
 # Documentation files
 *.md
 docs/

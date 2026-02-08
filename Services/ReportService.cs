@@ -42,13 +42,13 @@ public class ReportService : IReportService
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().Text("Production Order Report").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
+                        col.Item().Text("Relatório de Ordem de Produção").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
                         col.Item().Text($"{order.UniqueCode}").FontSize(14);
                     });
 
                     row.RelativeItem().AlignRight().Column(col =>
                     {
-                        col.Item().Text("GestionProduccion System").FontSize(12).SemiBold();
+                        col.Item().Text("Sistema Gestão Produção").FontSize(12).SemiBold();
                         col.Item().Text(DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
                     });
                 });
@@ -58,7 +58,7 @@ public class ReportService : IReportService
                     x.Spacing(10);
 
                     // Order Details Section
-                    x.Item().BorderBottom(1).PaddingBottom(5).Text("Order Details").SemiBold().FontSize(12);
+                    x.Item().BorderBottom(1).PaddingBottom(5).Text("Detalhes da Ordem").SemiBold().FontSize(12);
                     
                     x.Item().Grid(grid =>
                     {
@@ -66,16 +66,16 @@ public class ReportService : IReportService
                         grid.HorizontalSpacing(10);
                         grid.Columns(2);
 
-                        grid.Item().Text(t => { t.Span("Product: ").SemiBold(); t.Span(order.ProductDescription); });
-                        grid.Item().Text(t => { t.Span("Quantity: ").SemiBold(); t.Span(order.Quantity.ToString()); });
-                        grid.Item().Text(t => { t.Span("Current Stage: ").SemiBold(); t.Span(order.CurrentStage); });
-                        grid.Item().Text(t => { t.Span("Status: ").SemiBold(); t.Span(order.CurrentStatus); });
-                        grid.Item().Text(t => { t.Span("Assigned To: ").SemiBold(); t.Span(order.AssignedUserName ?? "Unassigned"); });
-                        grid.Item().Text(t => { t.Span("Due Date: ").SemiBold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
+                        grid.Item().Text(t => { t.Span("Produto: ").SemiBold(); t.Span(order.ProductDescription); });
+                        grid.Item().Text(t => { t.Span("Quantidade: ").SemiBold(); t.Span(order.Quantity.ToString()); });
+                        grid.Item().Text(t => { t.Span("Etapa Atual: ").SemiBold(); t.Span(TranslateStage(order.CurrentStage)); });
+                        grid.Item().Text(t => { t.Span("Status: ").SemiBold(); t.Span(TranslateStatus(order.CurrentStatus)); });
+                        grid.Item().Text(t => { t.Span("Atribuído a: ").SemiBold(); t.Span(order.AssignedUserName ?? "Não atribuído"); });
+                        grid.Item().Text(t => { t.Span("Prazo Entrega: ").SemiBold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
                     });
 
                     // History Section
-                    x.Item().PaddingTop(20).BorderBottom(1).PaddingBottom(5).Text("Production History").SemiBold().FontSize(12);
+                    x.Item().PaddingTop(20).BorderBottom(1).PaddingBottom(5).Text("Histórico de Produção").SemiBold().FontSize(12);
 
                     x.Item().Table(table =>
                     {
@@ -90,11 +90,11 @@ public class ReportService : IReportService
 
                         table.Header(header =>
                         {
-                            header.Cell().Element(CellStyle).Text("Date");
-                            header.Cell().Element(CellStyle).Text("Stage");
+                            header.Cell().Element(CellStyle).Text("Data");
+                            header.Cell().Element(CellStyle).Text("Etapa");
                             header.Cell().Element(CellStyle).Text("Status");
-                            header.Cell().Element(CellStyle).Text("User");
-                            header.Cell().Element(CellStyle).Text("Note");
+                            header.Cell().Element(CellStyle).Text("Usuário");
+                            header.Cell().Element(CellStyle).Text("Observação");
 
                             static IContainer CellStyle(IContainer container) => container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Black);
                         });
@@ -102,8 +102,8 @@ public class ReportService : IReportService
                         foreach (var item in history.OrderBy(h => h.ModificationDate))
                         {
                             table.Cell().Element(CellStyle).Text(item.ModificationDate.ToString("dd/MM/yyyy HH:mm"));
-                            table.Cell().Element(CellStyle).Text(item.NewStage);
-                            table.Cell().Element(CellStyle).Text(item.NewStatus);
+                            table.Cell().Element(CellStyle).Text(TranslateStage(item.NewStage));
+                            table.Cell().Element(CellStyle).Text(TranslateStatus(item.NewStatus));
                             table.Cell().Element(CellStyle).Text(item.UserName);
                             table.Cell().Element(CellStyle).Text(item.Note ?? "-");
 
@@ -114,7 +114,7 @@ public class ReportService : IReportService
 
                 page.Footer().AlignCenter().Text(x =>
                 {
-                    x.Span("Page ");
+                    x.Span("Página ");
                     x.CurrentPageNumber();
                 });
             });
@@ -144,13 +144,13 @@ public class ReportService : IReportService
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().Text("Daily Production Summary").FontSize(20).SemiBold().FontColor(Colors.Green.Medium);
-                        col.Item().Text($"Date: {today:dd/MM/yyyy}").FontSize(14);
+                        col.Item().Text("Resumo Diário de Produção").FontSize(20).SemiBold().FontColor(Colors.Green.Medium);
+                        col.Item().Text($"Data: {today:dd/MM/yyyy}").FontSize(14);
                     });
 
                     row.RelativeItem().AlignRight().Column(col =>
                     {
-                        col.Item().Text("GestionProduccion System").FontSize(12).SemiBold();
+                        col.Item().Text("Sistema Gestão Produção").FontSize(12).SemiBold();
                     });
                 });
 
@@ -167,25 +167,25 @@ public class ReportService : IReportService
 
                         grid.Item().Border(1).Padding(10).Column(c =>
                         {
-                            c.Item().AlignCenter().Text("Total Active OPs").SemiBold();
+                            c.Item().AlignCenter().Text("Total OPs Ativas").SemiBold();
                             c.Item().AlignCenter().Text(orders.Count(o => o.CurrentStatus != "Completed").ToString()).FontSize(18).Medium();
                         });
 
                         grid.Item().Border(1).Padding(10).Column(c =>
                         {
-                            c.Item().AlignCenter().Text("Created Today").SemiBold();
+                            c.Item().AlignCenter().Text("Criadas Hoje").SemiBold();
                             c.Item().AlignCenter().Text(ordersCreatedToday.Count.ToString()).FontSize(18).Medium();
                         });
 
                         grid.Item().Border(1).Padding(10).Column(c =>
                         {
-                            c.Item().AlignCenter().Text("Completion Rate").SemiBold();
+                            c.Item().AlignCenter().Text("Taxa de Conclusão").SemiBold();
                             c.Item().AlignCenter().Text($"{dashboard.CompletionRate:F1}%").FontSize(18).Medium();
                         });
                     });
 
                     // Summary Table
-                    x.Item().Text("Active Production Orders").SemiBold().FontSize(12);
+                    x.Item().Text("Ordens de Produção Ativas").SemiBold().FontSize(12);
 
                     x.Item().Table(table =>
                     {
@@ -200,11 +200,11 @@ public class ReportService : IReportService
 
                         table.Header(header =>
                         {
-                            header.Cell().Element(CellStyle).Text("Code");
-                            header.Cell().Element(CellStyle).Text("Product");
-                            header.Cell().Element(CellStyle).Text("Stage");
+                            header.Cell().Element(CellStyle).Text("Código");
+                            header.Cell().Element(CellStyle).Text("Produto");
+                            header.Cell().Element(CellStyle).Text("Etapa");
                             header.Cell().Element(CellStyle).Text("Status");
-                            header.Cell().Element(CellStyle).Text("Assigned");
+                            header.Cell().Element(CellStyle).Text("Atribuído");
 
                             static IContainer CellStyle(IContainer container) => container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1);
                         });
@@ -213,8 +213,8 @@ public class ReportService : IReportService
                         {
                             table.Cell().Element(CellStyle).Text(item.UniqueCode);
                             table.Cell().Element(CellStyle).Text(item.ProductDescription);
-                            table.Cell().Element(CellStyle).Text(item.CurrentStage);
-                            table.Cell().Element(CellStyle).Text(item.CurrentStatus);
+                            table.Cell().Element(CellStyle).Text(TranslateStage(item.CurrentStage));
+                            table.Cell().Element(CellStyle).Text(TranslateStatus(item.CurrentStatus));
                             table.Cell().Element(CellStyle).Text(item.AssignedUserName ?? "-");
 
                             static IContainer CellStyle(IContainer container) => container.PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
@@ -224,7 +224,7 @@ public class ReportService : IReportService
 
                 page.Footer().AlignCenter().Text(x =>
                 {
-                    x.Span("Daily Report Generated on ");
+                    x.Span("Relatório Diário Gerado em ");
                     x.Span(DateTime.Now.ToString("f"));
                 });
             });
@@ -232,4 +232,23 @@ public class ReportService : IReportService
 
         return document.GeneratePdf();
     }
+
+    private string TranslateStage(string stage) => stage?.ToLower() switch
+    {
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
+        _ => stage ?? ""
+    };
+
+    private string TranslateStatus(string status) => status?.ToLower() switch
+    {
+        "inproduction" => "Em Produção",
+        "stopped" => "Parado",
+        "completed" => "Finalizado",
+        "paused" => "Pausado",
+        "finished" => "Concluído",
+        _ => status ?? ""
+    };
 }

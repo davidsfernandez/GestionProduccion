@@ -1,7 +1,9 @@
+@using GestionProduccion.Client.Resources
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Production Manager</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+        <a class="navbar-brand" href="">Gestão Produção</a>
+        <button title="Menu de navegação" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
@@ -11,23 +13,23 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-speedometer2" aria-hidden="true"></span> Dashboard
+                <span class="bi bi-speedometer2" aria-hidden="true"></span> @Portuguese.Nav_Dashboard
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="orders">
-                <span class="bi bi-list-task" aria-hidden="true"></span> Production Orders
+                <span class="bi bi-list-task" aria-hidden="true"></span> @Portuguese.Nav_Orders
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="profile">
-                <span class="bi bi-person-gear" aria-hidden="true"></span> My Profile
+                <span class="bi bi-person-gear" aria-hidden="true"></span> @Portuguese.Nav_Profile
             </NavLink>
         </div>
         <AuthorizeView Roles="Administrator">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="users">
-                    <span class="bi bi-people" aria-hidden="true"></span> Users
+                    <span class="bi bi-people" aria-hidden="true"></span> @Portuguese.Nav_Users
                 </NavLink>
             </div>
         </AuthorizeView>

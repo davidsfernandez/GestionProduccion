@@ -9,13 +9,15 @@
 @inject SignalRService SignalR
 @implements IAsyncDisposable
 
-<PageTitle>Production Dashboard</PageTitle>
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.Dash_Title</PageTitle>
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>📊 Production Dashboard</h1>
+        <h1>📊 @Portuguese.Dash_Title</h1>
         <button class="btn btn-outline-secondary btn-sm" @onclick="LoadDashboard">
-            <span class="bi bi-arrow-clockwise"></span> Refresh
+            <span class="bi bi-arrow-clockwise"></span> @Portuguese.Refresh
         </button>
     </div>
 
@@ -23,7 +25,7 @@
     {
         <div class="d-flex justify-content-center mt-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">@Portuguese.Loading</span>
             </div>
         </div>
     }
@@ -34,7 +36,7 @@
             <div class="col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 bg-primary text-white">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Completion Rate</h6>
+                        <h6 class="text-uppercase small fw-bold">@Portuguese.Dash_CompletionRate</h6>
                         <h2 class="mb-0">@dashboard.CompletionRate.ToString("N1")%</h2>
                         <div class="progress mt-2" style="height: 5px; background-color: rgba(255,255,255,0.2);">
                             <div class="progress-bar bg-white" style="width: @dashboard.CompletionRate.ToString("N0")%"></div>
@@ -45,9 +47,9 @@
             <div class="col-md-6 col-xl-3">
                 <div class="card shadow-sm border-0 bg-success text-white">
                     <div class="card-body">
-                        <h6 class="text-uppercase small fw-bold">Active Orders</h6>
+                        <h6 class="text-uppercase small fw-bold">@Portuguese.Dash_ActiveOrders</h6>
                         <h2 class="mb-0">@dashboard.OperationsByStage.Values.Sum()</h2>
-                        <p class="small mb-0 mt-2 opacity-75">In the factory floor</p>
+                        <p class="small mb-0 mt-2 opacity-75">@Portuguese.Dash_FactoryFloor</p>
                     </div>
                 </div>
             </div>
@@ -58,17 +60,17 @@
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="card-title mb-0 fw-bold">📦 Orders by Stage</h5>
+                        <h5 class="card-title mb-0 fw-bold">📦 @Portuguese.Dash_OrdersByStage</h5>
                     </div>
                     <ul class="list-group list-group-flush">
                         @foreach (var item in dashboard.OperationsByStage)
                         {
                             <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                 <div>
-                                    <span class="fw-bold">@item.Key</span>
+                                    <span class="fw-bold">@TranslateStage(item.Key)</span>
                                     @if (dashboard.AverageStageTime.TryGetValue(item.Key, out var avgTime))
                                     {
-                                        <div class="small text-muted">Avg. @avgTime hours</div>
+                                        <div class="small text-muted">@Portuguese.Dash_AvgHours: @avgTime</div>
                                     }
                                 </div>
                                 <span class="badge bg-primary rounded-pill">@item.Value</span>
@@ -82,7 +84,7 @@
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm border-danger">
                     <div class="card-header bg-danger text-white">
-                        <h5 class="card-title mb-0">⚠️ Alerts (Stopped Orders)</h5>
+                        <h5 class="card-title mb-0">⚠️ @Portuguese.Dash_Alerts</h5>
                     </div>
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
@@ -95,13 +97,13 @@
                                             <h6 class="mb-1 text-danger">@op.UniqueCode</h6>
                                         </div>
                                         <p class="mb-1 small">@op.ProductDescription</p>
-                                        <small class="text-muted">Delivery: @op.EstimatedDeliveryDate.ToShortDateString()</small>
+                                        <small class="text-muted">@Portuguese.OP_Delivery: @op.EstimatedDeliveryDate.ToShortDateString()</small>
                                     </li>
                                 }
                             }
                             else
                             {
-                                <li class="list-group-item text-muted">✅ No stopped orders found</li>
+                                <li class="list-group-item text-muted">✅ @Portuguese.Dash_NoStopped</li>
                             }
                         </ul>
                     </div>
@@ -112,7 +114,7 @@
             <div class="col-md-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-header bg-info text-white">
-                        <h5 class="card-title mb-0">👥 Workload by User</h5>
+                        <h5 class="card-title mb-0">👥 @Portuguese.Dash_Workload</h5>
                     </div>
                     <ul class="list-group list-group-flush">
                         @if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any())
@@ -124,13 +126,13 @@
                                         <div class="fw-bold">@user.UserName</div>
                                         <small class="text-muted">ID: @user.PublicId</small>
                                     </div>
-                                    <span class="badge bg-info rounded-pill">@user.OperationCount Orders</span>
+                                    <span class="badge bg-info rounded-pill">@user.OperationCount @Portuguese.OP_Title</span>
                                 </li>
                             }
                         }
                         else
                         {
-                            <li class="list-group-item text-muted">No users with active orders</li>
+                            <li class="list-group-item text-muted">@Portuguese.Dash_NoActiveWork</li>
                         }
                     </ul>
                 </div>
@@ -155,6 +157,15 @@
 
         await LoadDashboard();
     }
+
+    private string TranslateStage(string stage) => stage.ToLower() switch
+    {
+        "cutting" => Portuguese.Stage_Cutting,
+        "sewing" => Portuguese.Stage_Sewing,
+        "review" => Portuguese.Stage_Review,
+        "packaging" => Portuguese.Stage_Packaging,
+        _ => stage
+    };
 
     private async Task LoadDashboard()
     {

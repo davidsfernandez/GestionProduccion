@@ -6,27 +6,29 @@
 @inject HttpClient Http
 @inject ToastService ToastService
 
-<PageTitle>My Profile</PageTitle>
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.Prof_Title</PageTitle>
 
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-6">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">👤 My Profile</h4>
+                    <h4 class="mb-0">👤 @Portuguese.Prof_Title</h4>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="text-muted small d-block">Full Name</label>
+                        <label class="text-muted small d-block">@Portuguese.User_Name</label>
                         <p class="fs-5">@userName</p>
                     </div>
                     <div class="mb-3">
-                        <label class="text-muted small d-block">Email Address</label>
+                        <label class="text-muted small d-block">@Portuguese.User_Email</label>
                         <p class="fs-5">@userEmail</p>
                     </div>
                     <div class="mb-0">
-                        <label class="text-muted small d-block">User Role</label>
-                        <span class="badge bg-info fs-6">@userRole</span>
+                        <label class="text-muted small d-block">@Portuguese.User_Role</label>
+                        <span class="badge bg-info fs-6">@TranslateRole(userRole)</span>
                     </div>
                 </div>
             </div>
@@ -35,14 +37,14 @@
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white">
-                    <h4 class="mb-0">🔑 Change Password</h4>
+                    <h4 class="mb-0">🔑 @Portuguese.Prof_ChangePass</h4>
                 </div>
                 <div class="card-body">
                     <EditForm Model="passwordModel" OnValidSubmit="HandleChangePassword">
                         <DataAnnotationsValidator />
                         
                         <div class="mb-3">
-                            <label class="form-label">Current Password</label>
+                            <label class="form-label">@Portuguese.Prof_CurrentPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.CurrentPassword" />
                             <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger" />
                         </div>
@@ -50,13 +52,13 @@
                         <hr />
 
                         <div class="mb-3">
-                            <label class="form-label">New Password</label>
+                            <label class="form-label">@Portuguese.Prof_NewPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
                             <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Confirm New Password</label>
+                            <label class="form-label">@Portuguese.Prof_ConfirmPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
                             <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger" />
                         </div>
@@ -70,11 +72,11 @@
                             @if (isSubmitting)
                             {
                                 <span class="spinner-border spinner-border-sm"></span>
-                                <span> Updating...</span>
+                                <span> @Portuguese.Loading</span>
                             }
                             else
                             {
-                                <span>Update Password</span>
+                                <span>@Portuguese.Save</span>
                             }
                         </button>
                     </EditForm>
@@ -107,6 +109,15 @@
         }
     }
 
+    private string TranslateRole(string? role) => role?.ToLower() switch
+    {
+        "administrator" => Portuguese.Role_Admin,
+        "leader" => Portuguese.Role_Leader,
+        "operator" => Portuguese.Role_Operator,
+        "workshop" => Portuguese.Role_Workshop,
+        _ => role ?? ""
+    };
+
     private async Task HandleChangePassword()
     {
         try
@@ -118,18 +129,17 @@
 
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Password updated successfully!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Msg_PassChanged, ToastLevel.Success);
                 passwordModel = new(); // Reset form
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                errorMessage = "Error updating password. Please check your current password.";
+                errorMessage = "Erro ao atualizar senha. Verifique sua senha atual.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Unexpected Error: {ex.Message}";
+            errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
         }
         finally
         {

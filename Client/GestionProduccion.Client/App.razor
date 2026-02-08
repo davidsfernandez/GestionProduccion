@@ -9,7 +9,7 @@
                     }
                     else
                     {
-                        <p>You are not authorized to access this resource.</p>
+                        <p role="alert">Você não tem permissão para acessar este recurso.</p>
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
@@ -17,7 +17,7 @@
         </Found>
         <NotFound>
             <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <p>Sorry, there's nothing at this address.</p>
+                <p role="alert">Desculpe, não há nada neste endereço.</p>
             </LayoutView>
         </NotFound>
     </Router>

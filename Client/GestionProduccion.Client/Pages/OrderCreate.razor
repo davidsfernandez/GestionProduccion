@@ -7,12 +7,14 @@
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
 
-<PageTitle>Create Production Order</PageTitle>
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.OP_Create_Title</PageTitle>
 
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h3 class="card-title mb-0">🆕 Create New Production Order</h3>
+            <h3 class="card-title mb-0">🆕 @Portuguese.OP_Create_Title</h3>
         </div>
         <div class="card-body">
             <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
@@ -20,26 +22,26 @@
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Unique Code (OP)</label>
-                        <InputText class="form-control" @bind-Value="createModel.UniqueCode" placeholder="e.g. OP-2024-001" />
+                        <label class="form-label">@Portuguese.OP_Code (OP)</label>
+                        <InputText class="form-control" @bind-Value="createModel.UniqueCode" placeholder="Ex: OP-2024-001" />
                         <ValidationMessage For="@(() => createModel.UniqueCode)" class="text-danger" />
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Quantity</label>
+                        <label class="form-label">@Portuguese.OP_Qty</label>
                         <InputNumber class="form-control" @bind-Value="createModel.Quantity" />
                         <ValidationMessage For="@(() => createModel.Quantity)" class="text-danger" />
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Product Description</label>
-                    <InputTextArea class="form-control" @bind-Value="createModel.ProductDescription" rows="3" placeholder="Describe the product and specifications..." />
+                    <label class="form-label">@Portuguese.OP_ProductDesc</label>
+                    <InputTextArea class="form-control" @bind-Value="createModel.ProductDescription" rows="3" placeholder="Descreva o produto e especificações..." />
                     <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger" />
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Estimated Delivery Date</label>
+                        <label class="form-label">@Portuguese.OP_EstimatedDelivery</label>
                         <InputDate class="form-control" @bind-Value="createModel.EstimatedDeliveryDate" />
                         <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger" />
                     </div>
@@ -53,16 +55,16 @@
                 }
 
                 <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">@Portuguese.Cancel</button>
                     <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
                         @if (isSubmitting)
                         {
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span> Creating...</span>
+                            <span> @Portuguese.Loading</span>
                         }
                         else
                         {
-                            <span>Create Order</span>
+                            <span>@Portuguese.Create @Portuguese.OP_Title</span>
                         }
                     </button>
                 </div>
@@ -90,18 +92,18 @@
             
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Production Order created successfully!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Msg_OrderCreated, ToastLevel.Success);
                 NavigationManager.NavigateTo("/orders");
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error: {error}";
+                errorMessage = $"{Portuguese.Msg_Error}: {error}";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An unexpected error occurred: {ex.Message}";
+            errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
         }
         finally
         {

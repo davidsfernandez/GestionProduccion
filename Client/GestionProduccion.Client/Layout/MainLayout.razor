@@ -4,6 +4,8 @@
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Client.Components
 
+@using GestionProduccion.Client.Resources
+
 <div class="page">
     <ToastContainer />
     <div class="sidebar">
@@ -15,14 +17,14 @@
              <AuthorizeView>
                 <Authorized>
                     <span class="me-2 text-muted">
-                        <i class="bi bi-person-circle"></i> Welcome, <strong>@context.User.Identity?.Name</strong>
+                        <i class="bi bi-person-circle"></i> @Portuguese.Welcome, <strong>@context.User.Identity?.Name</strong>
                     </span>
                     <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
-                        <i class="bi bi-box-arrow-right"></i> Logout
+                        <i class="bi bi-box-arrow-right"></i> @Portuguese.Logout
                     </button>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/login" class="btn btn-sm btn-primary">Login</a>
+                    <a href="/login" class="btn btn-sm btn-primary">@Portuguese.Login</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>

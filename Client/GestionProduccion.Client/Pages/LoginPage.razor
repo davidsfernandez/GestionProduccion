@@ -5,27 +5,28 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@using GestionProduccion.Client.Resources
 
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h2 class="text-center mb-4">🔐 Authentication</h2>
+            <h2 class="text-center mb-4">🔐 Autenticação</h2>
             <div class="card shadow">
                 <div class="card-body">
                     <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
                         <DataAnnotationsValidator />
                         <div class="form-group mb-3">
-                            <label for="email" class="form-label">📧 Email</label>
-                            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="your.email@example.com" />
+                            <label for="email" class="form-label">📧 @Portuguese.User_Email</label>
+                            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" placeholder="seu.email@exemplo.com" />
                             <ValidationMessage For="@(() => loginModel.Email)" class="text-danger" />
                         </div>
                         <div class="form-group mb-3">
-                            <label for="password" class="form-label">🔑 Password</label>
-                            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Enter your password" />
+                            <label for="password" class="form-label">🔑 @Portuguese.User_Password</label>
+                            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Digite sua senha" />
                             <ValidationMessage For="@(() => loginModel.Password)" class="text-danger" />
                         </div>
                         <button type="submit" class="btn btn-primary w-100 py-2">
-                            ➡️ Sign In
+                            ➡️ @Portuguese.Login
                         </button>
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
@@ -37,7 +38,7 @@
                 </div>
             </div>
             <div class="alert alert-light border mt-4 text-center" role="alert">
-                <h6 class="alert-heading">Test Credentials</h6>
+                <h6 class="alert-heading">Credenciais de Teste</h6>
                 <hr>
                 <p class="mb-0">📧 admin@local.host / 🔑 admin</p>
             </div>
@@ -66,18 +67,17 @@
                 }
                 else
                 {
-                    errorMessage = "Invalid token received from server.";
+                    errorMessage = "Token inválido recebido do servidor.";
                 }
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Login failed: {errorContent}";
+                errorMessage = Portuguese.Msg_LoginFailed;
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An unexpected error occurred: {ex.Message}";
+            errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
         }
     }
 }
