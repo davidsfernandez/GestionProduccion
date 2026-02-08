@@ -20,6 +20,7 @@
  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
       <PrivateAssets>all</PrivateAssets>
@@ -29,12 +30,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
-  <!-- Copy Blazor client wwwroot files to server wwwroot -->
-  <Target Name="CopyBlazorToServer" AfterTargets="Build">
-    <ItemGroup>
-      <BlazorWwwroot Include="Client\GestionProduccion.Client\bin\Debug\net10.0\wwwroot\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(BlazorWwwroot)" DestinationFiles="@(BlazorWwwroot->'wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-  </Target>
+ <ItemGroup>
+   <ProjectReference Include="Client\GestionProduccion.Client\GestionProduccion.Client.csproj" />
+ </ItemGroup>
 
 </Project>

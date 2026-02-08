@@ -116,12 +116,15 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1"));
+    app.UseWebAssemblyDebugging();
 }
 
 app.UseHttpsRedirection();
 
-// Serve static files from the Blazor client
+app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
+
+app.UseRouting();
 
 app.UseCors("BlazorApp"); // Add CORS middleware
 
@@ -133,7 +136,7 @@ app.MapControllers();
 // Map Hubs
 app.MapHub<ProductionHub>("/productionHub");
 
-// Fallback to serve the Blazor app
+// Fallback to serve the Blazor app from the client project
 app.MapFallbackToFile("index.html");
 
 app.Run();
