@@ -1,0 +1,139 @@
+@page "/profile"
+@using GestionProduccion.Client.Models.DTOs
+@using GestionProduccion.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ToastService ToastService
+
+<PageTitle>My Profile</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">👤 My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">Full Name</label>
+                        <p class="fs-5">@userName</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">Email Address</label>
+                        <p class="fs-5">@userEmail</p>
+                    </div>
+                    <div class="mb-0">
+                        <label class="text-muted small d-block">User Role</label>
+                        <span class="badge bg-info fs-6">@userRole</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">🔑 Change Password</h4>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="passwordModel" OnValidSubmit="HandleChangePassword">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <InputText type="password" class="form-control" @bind-Value="passwordModel.CurrentPassword" />
+                            <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger" />
+                        </div>
+
+                        <hr />
+
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
+                            <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password</label>
+                            <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
+                            <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">@errorMessage</div>
+                        }
+
+                        <button type="submit" class="btn btn-dark w-100" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm"></span>
+                                <span> Updating...</span>
+                            }
+                            else
+                            {
+                                <span>Update Password</span>
+                            }
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ChangePasswordRequest passwordModel = new();
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? userName;
+    private string? userEmail;
+    private string? userRole;
+
+    [CascadingParameter] private Task<AuthenticationState> authStateTask { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userName = user.Identity.Name;
+            userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        }
+    }
+
+    private async Task HandleChangePassword()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = null;
+
+            var response = await Http.PostAsJsonAsync("api/Auth/change-password", passwordModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Password updated successfully!", ToastLevel.Success);
+                passwordModel = new(); // Reset form
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = "Error updating password. Please check your current password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected Error: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

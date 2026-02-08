@@ -1,0 +1,39 @@
+@using GestionProduccion.Client.Services
+@inject ToastService ToastService
+@implements IDisposable
+
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    @foreach (var toast in ToastService.Toasts)
+    {
+        <div class="toast show mb-2 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header @GetHeaderClass(toast.Level) text-white">
+                <strong class="me-auto">System Notification</strong>
+                <small>@toast.Timestamp.ToShortTimeString()</small>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                @toast.Message
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += StateHasChanged;
+    }
+
+    private string GetHeaderClass(ToastLevel level) => level switch
+    {
+        ToastLevel.Success => "bg-success",
+        ToastLevel.Error => "bg-danger",
+        ToastLevel.Warning => "bg-warning",
+        _ => "bg-info"
+    };
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= StateHasChanged;
+    }
+}

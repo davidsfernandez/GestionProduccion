@@ -29,5 +29,6 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddSingleton<SignalRService>();
+builder.Services.AddSingleton<ToastService>();
 
 await builder.Build().RunAsync();

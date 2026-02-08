@@ -2,8 +2,10 @@
 @using GestionProduccion.Client.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator,Leader")]
+@using GestionProduccion.Client.Services
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject ToastService ToastService
 
 <PageTitle>Create Production Order</PageTitle>
 
@@ -88,6 +90,7 @@
             
             if (response.IsSuccessStatusCode)
             {
+                ToastService.ShowToast("Production Order created successfully!", ToastLevel.Success);
                 NavigationManager.NavigateTo("/orders");
             }
             else

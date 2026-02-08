@@ -50,6 +50,11 @@ public interface IUserService
     Task<bool> DeactivateUserAsync(int userId);
 
     /// <summary>
+    /// Updates the password for a specific user.
+    /// </summary>
+    Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
+
+    /// <summary>
     /// Counts total active users in the system.
     /// </summary>
     Task<int> CountActiveUsersAsync();

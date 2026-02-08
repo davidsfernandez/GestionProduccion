@@ -179,6 +179,22 @@ public class UserService : IUserService
         return true;
     }
 
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+        {
+            return false;
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        _context.Entry(user).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     /// <summary>
     /// Counts total active users in the system.
     /// </summary>
