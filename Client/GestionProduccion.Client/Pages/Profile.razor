@@ -36,17 +36,28 @@
                             </label>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-1">@userName</h4>
-                    <div class="text-muted mb-3"><span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(userRole)</span></div>
+                    <h4 class="fw-bold mb-1 text-dark">@(string.IsNullOrEmpty(userName) ? "Usuário" : userName)</h4>
+                    @if (!string.IsNullOrEmpty(userRole))
+                    {
+                        <div class="text-muted mb-3"><span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(userRole)</span></div>
+                    }
                 </div>
-                <div class="card-body border-top py-3">
-                    <h5 class="h6 card-title mb-3">Informações</h5>
+                <div class="card-body border-top py-4">
+                    <h5 class="card-title mb-4">Informações de Conta</h5>
                     <ul class="list-unstyled mb-0">
                         <li class="mb-3 d-flex align-items-center text-muted">
-                            <i class="fa-solid fa-envelope me-3 text-primary opacity-50"></i> @userEmail
+                            <i class="fa-solid fa-envelope me-3 text-primary opacity-50" style="width: 20px;"></i> 
+                            <div>
+                                <small class="d-block xsmall fw-bold uppercase">Email</small>
+                                <span class="text-dark">@userEmail</span>
+                            </div>
                         </li>
                         <li class="mb-0 d-flex align-items-center text-muted">
-                            <i class="fa-solid fa-id-card me-3 text-primary opacity-50"></i> ID: @userId
+                            <i class="fa-solid fa-id-card me-3 text-primary opacity-50" style="width: 20px;"></i>
+                            <div>
+                                <small class="d-block xsmall fw-bold uppercase">ID do Usuário</small>
+                                <span class="text-dark">#@userId</span>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -170,6 +181,9 @@
                  if (userDto != null)
                  {
                      avatarUrl = userDto.AvatarUrl;
+                     userName = userDto.Name; // Ensure name is populated from DB
+                     userRole = userDto.Role.ToString(); // Ensure role is populated from DB
+                     StateHasChanged();
                  }
             }
         }

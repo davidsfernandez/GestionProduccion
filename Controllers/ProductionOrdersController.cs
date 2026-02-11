@@ -195,37 +195,10 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> GetDashboard()
+    public async Task<ActionResult<DashboardDto>> GetDashboard()
     {
         var dashboardData = await _productionOrderService.GetDashboardAsync();
-        
-        // Map to match client expectations
-        var response = new
-        {
-            OperationsByStage = dashboardData.OperationsByStage,
-            StoppedOperations = dashboardData.StoppedOperations.Select(po => new
-            {
-                po.Id,
-                po.UniqueCode,
-                po.ProductDescription,
-                po.EstimatedDeliveryDate
-            }).ToList(),
-            WorkloadByUser = dashboardData.WorkloadByUser.Select(w => new 
-            { 
-                w.UserName, 
-                w.PublicId,
-                OperationCount = w.PendingOrders // Use PendingOrders as OperationCount for the dashboard
-            }).ToList(),
-            CompletionRate = dashboardData.CompletionRate,
-            AverageStageTime = dashboardData.AverageStageTime,
-            TotalProducedUnits = dashboardData.TotalProducedUnits,
-            EfficiencyTrend = dashboardData.EfficiencyTrend,
-            ProductionVolumeHistory = dashboardData.ProductionVolumeHistory,
-            RecentActivities = dashboardData.RecentActivities,
-            UrgentOrders = dashboardData.UrgentOrders
-        };
-        
-        return Ok(response);
+        return Ok(dashboardData);
     }
 
     [HttpGet("{id}/report")]

@@ -348,6 +348,7 @@
         {
             loading = true;
             dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard");
+            StateHasChanged();
         }
         catch (Exception ex)
         {

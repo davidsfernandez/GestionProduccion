@@ -18,7 +18,7 @@
                         <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
                              style="width: 14px; height: 14px; border-width: 2px !important;"></div>
                     </div>
-                    <span class="profile-name">@context.User.Identity?.Name</span>
+                    <span class="profile-name">@(context.User.Identity?.Name ?? "Usuário")</span>
                     <span class="profile-role">
                         @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
                     </span>
