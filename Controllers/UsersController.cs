@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GestionProduccion.Controllers;
 
-[Authorize(Roles = "Administrator,Leader")] // Allow Leader too
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -21,6 +21,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<List<UserDto>>> GetUsers()
     {
         var users = await _userService.GetActiveUsersAsync();
@@ -39,6 +40,14 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
+        // Any user can see their own profile or admin/leader can see anyone
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var currentUserId))
+            return Unauthorized();
+
+        if (currentUserId != id && !User.IsInRole("Administrator") && !User.IsInRole("Leader"))
+            return Forbid();
+
         var user = await _userService.GetUserByIdAsync(id);
         if (user == null) return NotFound();
 
@@ -54,7 +63,8 @@ public class UsersController : ControllerBase
         };
     }
 
-    [HttpGet("assignable")] // Ensure this endpoint is here too
+    [HttpGet("assignable")]
+    [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<List<UserDto>>> GetAssignableUsers()
     {
         var users = await _userService.GetActiveUsersAsync();
