@@ -217,7 +217,10 @@ public class ProductionOrdersController : ControllerBase
                 OperationCount = w.PendingOrders // Use PendingOrders as OperationCount for the dashboard
             }).ToList(),
             CompletionRate = dashboardData.CompletionRate,
-            AverageStageTime = dashboardData.AverageStageTime
+            AverageStageTime = dashboardData.AverageStageTime,
+            TotalProducedUnits = dashboardData.TotalProducedUnits,
+            EfficiencyTrend = dashboardData.EfficiencyTrend,
+            ProductionVolumeHistory = dashboardData.ProductionVolumeHistory
         };
         
         return Ok(response);

@@ -1,13 +1,19 @@
 window.seronaCharts = {
+    charts: {},
     renderRevenueChart: function (canvasId, dataPoints, labels) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         
         // Gradient Fill
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(0, 200, 153, 0.5)'); // Serona Green
         gradient.addColorStop(1, 'rgba(0, 200, 153, 0.0)');
 
-        new Chart(ctx, {
+        this.charts[canvasId] = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -70,9 +76,14 @@ window.seronaCharts = {
     },
 
     renderDoughnutChart: function (canvasId, data, labels) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         
-        new Chart(ctx, {
+        this.charts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: labels,
@@ -106,9 +117,14 @@ window.seronaCharts = {
     },
 
     renderBarChart: function (canvasId, data, labels) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         
-        new Chart(ctx, {
+        this.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,

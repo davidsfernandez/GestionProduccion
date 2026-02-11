@@ -13,34 +13,40 @@
 <PageTitle>@Portuguese.Prof_Title</PageTitle>
 
 <div class="container-fluid p-0">
-    <h1 class="h3 mb-3">@Portuguese.Prof_Title</h1>
+    <div class="row mb-2 mb-xl-3">
+        <div class="col-auto d-none d-sm-block">
+            <h3 class="d-inline-block align-middle text-dark">@Portuguese.Prof_Title</h3>
+        </div>
+    </div>
 
     <div class="row">
         <div class="col-md-4 col-xl-3">
             <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">@Portuguese.Prof_Title</h5>
+                <div class="card-header bg-white border-0 pt-4">
+                    <h5 class="card-title mb-0 text-muted">@Portuguese.Prof_Title</h5>
                 </div>
-                <div class="card-body text-center">
-                    <div class="position-relative d-inline-block mb-2">
-                        <img src="@(GetAvatarUrl())" alt="@userName" class="img-fluid rounded-circle mb-2" width="128" height="128" style="object-fit: cover; border: 4px solid var(--bs-body-bg);" />
-                        <label class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" style="width: 32px; height: 32px; padding: 4px; cursor: pointer;" title="Alterar foto">
-                            <i class="align-middle" data-feather="camera"></i>
-                            <InputFile OnChange="HandleFileSelected" class="d-none" accept="image/*" />
-                        </label>
+                <div class="card-body text-center pt-0">
+                    <div class="position-relative d-inline-block mb-3">
+                        <div class="profile-img-container shadow-sm" style="width: 120px; height: 120px; margin: 0 auto;">
+                            <img src="@(GetAvatarUrl())" alt="@userName" class="profile-img border-0" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
+                            <label class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center shadow" 
+                                   style="width: 36px; height: 36px; padding: 0; cursor: pointer; border: 3px solid #fff !important;" title="Alterar foto">
+                                <i class="fa-solid fa-camera" style="font-size: 14px;"></i>
+                                <InputFile OnChange="HandleFileSelected" class="d-none" accept="image/*" />
+                            </label>
+                        </div>
                     </div>
-                    <h5 class="card-title mb-0">@userName</h5>
-                    <div class="text-muted mb-2">@TranslateRole(userRole)</div>
+                    <h4 class="fw-bold mb-1">@userName</h4>
+                    <div class="text-muted mb-3"><span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(userRole)</span></div>
                 </div>
-                <hr class="my-0" />
-                <div class="card-body">
-                    <h5 class="h6 card-title">Sobre</h5>
+                <div class="card-body border-top py-3">
+                    <h5 class="h6 card-title mb-3">Informações</h5>
                     <ul class="list-unstyled mb-0">
-                        <li class="mb-1">
-                            <i class="align-middle me-1" data-feather="mail"></i> @userEmail
+                        <li class="mb-3 d-flex align-items-center text-muted">
+                            <i class="fa-solid fa-envelope me-3 text-primary opacity-50"></i> @userEmail
                         </li>
-                        <li class="mb-1">
-                            <i class="align-middle me-1" data-feather="briefcase"></i> <span class="badge bg-primary">@TranslateRole(userRole)</span>
+                        <li class="mb-0 d-flex align-items-center text-muted">
+                            <i class="fa-solid fa-id-card me-3 text-primary opacity-50"></i> ID: @userId
                         </li>
                     </ul>
                 </div>
@@ -49,46 +55,53 @@
 
         <div class="col-md-8 col-xl-9">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header bg-white border-0 pt-4">
                     <h5 class="card-title mb-0">@Portuguese.Prof_ChangePass</h5>
                 </div>
                 <div class="card-body">
                     <EditForm Model="passwordModel" OnValidSubmit="HandleChangePassword">
                         <DataAnnotationsValidator />
                         
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.Prof_CurrentPass</label>
-                            <InputText type="password" class="form-control" @bind-Value="passwordModel.CurrentPassword" />
-                            <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger small" />
-                        </div>
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_CurrentPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.CurrentPassword" />
+                                <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger small mt-1" />
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.Prof_NewPass</label>
-                            <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
-                            <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger small" />
-                        </div>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_NewPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.NewPassword" />
+                                <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger small mt-1" />
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.Prof_ConfirmPass</label>
-                            <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
-                            <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger small" />
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_ConfirmPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.ConfirmPassword" />
+                                <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger small mt-1" />
+                            </div>
                         </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <div class="alert alert-danger">@errorMessage</div>
+                            <div class="alert alert-danger d-flex align-items-center rounded-3">
+                                <i class="fa-solid fa-circle-exclamation me-2"></i>
+                                <div>@errorMessage</div>
+                            </div>
                         }
 
-                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
-                            @if (isSubmitting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1"></span> @Portuguese.Loading
-                            }
-                            else
-                            {
-                                @Portuguese.Save
-                            }
-                        </button>
+                        <div class="text-end mt-2">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span> @Portuguese.Loading
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-save me-2"></i> @Portuguese.Save
+                                }
+                            </button>
+                        </div>
                     </EditForm>
                 </div>
             </div>
@@ -103,6 +116,7 @@
     private string? userName;
     private string? userEmail;
     private string? userRole;
+    private int? userId;
     private string? avatarUrl;
 
     [CascadingParameter] private Task<AuthenticationState> authStateTask { get; set; } = default!;
@@ -119,8 +133,12 @@
             userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             
-            // Try to load current user details to get the avatar
-            // In a real app, we might store this in a state service or claims
+            var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out var id))
+            {
+                userId = id;
+            }
+
             await LoadUserProfile();
         }
     }
@@ -137,32 +155,25 @@
     {
         if (string.IsNullOrEmpty(avatarUrl))
         {
-            return "img/avatars/avatar.jpg"; // Client side asset
+            return "img/avatars/avatar.jpg";
         }
-        return $"{avatarUrl}?t={DateTime.Now.Ticks}"; // Server side asset (starts with /)
+        return $"{avatarUrl}?t={DateTime.Now.Ticks}";
     }
 
     private async Task LoadUserProfile()
     {
         try 
         {
-            // We need an endpoint to get "My Profile" or reuse GetUser with current ID
-            // For now, let's assume we can fetch it if we had the ID, but claims don't have ID by default config in simple setups.
-            // Let's rely on the user knowing their ID or add a "me" endpoint.
-            // Simplified: we will just wait for the upload to update the local var for now.
-            // To do this properly, we should fetch 'api/Users/{id}' using the ID from claims.
-            
-            var userIdClaim = (await authStateTask).User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            if (userId.HasValue)
             {
-                 var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
+                 var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId.Value}");
                  if (userDto != null)
                  {
                      avatarUrl = userDto.AvatarUrl;
                  }
             }
         }
-        catch (Exception) { /* Ignore load errors for avatar preview init */ }
+        catch (Exception) { }
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -170,7 +181,6 @@
         var file = e.File;
         if (file == null) return;
 
-        // Max 5MB
         if (file.Size > 5120000)
         {
             ToastService.ShowToast("A imagem deve ter menos de 5MB", ToastLevel.Error);
@@ -189,7 +199,7 @@
             if (response.IsSuccessStatusCode)
             {
                 ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
-                // Force reload to update sidebar image (simple solution)
+                // Force a reload to refresh all avatar instances (sidebar, etc)
                 NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
             }
             else
@@ -229,7 +239,7 @@
             }
             else
             {
-                errorMessage = "Erro ao atualizar senha. Verifique sua senha atual.";
+                errorMessage = "Erro ao actualizar senha. Verifique sua senha atual.";
             }
         }
         catch (Exception ex)

@@ -6,6 +6,7 @@
 @using System.Net.Http.Json
 @inject AuthenticationStateProvider AuthStateProvider
 @inject HttpClient Http
+@implements IDisposable
 
 <nav id="sidebar" class="sidebar js-sidebar">
     <div class="sidebar-content js-simplebar">
@@ -84,6 +85,18 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadUserData();
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await LoadUserData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadUserData()
+    {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -106,5 +119,14 @@
                 }
             }
         }
+        else
+        {
+            avatarUrl = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }
