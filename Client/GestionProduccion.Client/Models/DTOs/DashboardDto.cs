@@ -7,6 +7,17 @@ public class DashboardDto
     public List<UserWorkloadDto> WorkloadByUser { get; set; } = new();
     public decimal CompletionRate { get; set; }
     public Dictionary<string, double> AverageStageTime { get; set; } = new();
+
+    // Serona Metrics
+    public int TotalProducedUnits { get; set; }
+    public double EfficiencyTrend { get; set; }
+    public List<ChartPointDto> ProductionVolumeHistory { get; set; } = new();
+}
+
+public class ChartPointDto
+{
+    public string Label { get; set; } = string.Empty;
+    public double Value { get; set; }
 }
 
 public class StoppedOperationDto

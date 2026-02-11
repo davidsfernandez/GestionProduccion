@@ -2,42 +2,55 @@
 @using GestionProduccion.Client.Models.DTOs
 @using GestionProduccion.Client.Services
 @using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Headers
 @attribute [Authorize]
 @inject HttpClient Http
 @inject ToastService ToastService
+@inject NavigationManager NavigationManager
 
 @using GestionProduccion.Client.Resources
 
 <PageTitle>@Portuguese.Prof_Title</PageTitle>
 
-<div class="container mt-4">
+<div class="container-fluid p-0">
+    <h1 class="h3 mb-3">@Portuguese.Prof_Title</h1>
+
     <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">👤 @Portuguese.Prof_Title</h4>
+        <div class="col-md-4 col-xl-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">@Portuguese.Prof_Title</h5>
                 </div>
+                <div class="card-body text-center">
+                    <div class="position-relative d-inline-block mb-2">
+                        <img src="@(GetAvatarUrl())" alt="@userName" class="img-fluid rounded-circle mb-2" width="128" height="128" style="object-fit: cover; border: 4px solid var(--bs-body-bg);" />
+                        <label class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" style="width: 32px; height: 32px; padding: 4px; cursor: pointer;" title="Alterar foto">
+                            <i class="align-middle" data-feather="camera"></i>
+                            <InputFile OnChange="HandleFileSelected" class="d-none" accept="image/*" />
+                        </label>
+                    </div>
+                    <h5 class="card-title mb-0">@userName</h5>
+                    <div class="text-muted mb-2">@TranslateRole(userRole)</div>
+                </div>
+                <hr class="my-0" />
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="text-muted small d-block">@Portuguese.User_Name</label>
-                        <p class="fs-5">@userName</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small d-block">@Portuguese.User_Email</label>
-                        <p class="fs-5">@userEmail</p>
-                    </div>
-                    <div class="mb-0">
-                        <label class="text-muted small d-block">@Portuguese.User_Role</label>
-                        <span class="badge bg-info fs-6">@TranslateRole(userRole)</span>
-                    </div>
+                    <h5 class="h6 card-title">Sobre</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-1">
+                            <i class="align-middle me-1" data-feather="mail"></i> @userEmail
+                        </li>
+                        <li class="mb-1">
+                            <i class="align-middle me-1" data-feather="briefcase"></i> <span class="badge bg-primary">@TranslateRole(userRole)</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white">
-                    <h4 class="mb-0">🔑 @Portuguese.Prof_ChangePass</h4>
+        <div class="col-md-8 col-xl-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">@Portuguese.Prof_ChangePass</h5>
                 </div>
                 <div class="card-body">
                     <EditForm Model="passwordModel" OnValidSubmit="HandleChangePassword">
@@ -46,21 +59,19 @@
                         <div class="mb-3">
                             <label class="form-label">@Portuguese.Prof_CurrentPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.CurrentPassword" />
-                            <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger" />
+                            <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger small" />
                         </div>
-
-                        <hr />
 
                         <div class="mb-3">
                             <label class="form-label">@Portuguese.Prof_NewPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
-                            <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger" />
+                            <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger small" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">@Portuguese.Prof_ConfirmPass</label>
                             <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
-                            <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger" />
+                            <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger small" />
                         </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
@@ -68,15 +79,14 @@
                             <div class="alert alert-danger">@errorMessage</div>
                         }
 
-                        <button type="submit" class="btn btn-dark w-100" disabled="@isSubmitting">
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
                             @if (isSubmitting)
                             {
-                                <span class="spinner-border spinner-border-sm"></span>
-                                <span> @Portuguese.Loading</span>
+                                <span class="spinner-border spinner-border-sm me-1"></span> @Portuguese.Loading
                             }
                             else
                             {
-                                <span>@Portuguese.Save</span>
+                                @Portuguese.Save
                             }
                         </button>
                     </EditForm>
@@ -93,8 +103,10 @@
     private string? userName;
     private string? userEmail;
     private string? userRole;
+    private string? avatarUrl;
 
     [CascadingParameter] private Task<AuthenticationState> authStateTask { get; set; } = default!;
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,6 +118,89 @@
             userName = user.Identity.Name;
             userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            
+            // Try to load current user details to get the avatar
+            // In a real app, we might store this in a state service or claims
+            await LoadUserProfile();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+             await JSRuntime.InvokeVoidAsync("feather.replace");
+        }
+    }
+
+    private string GetAvatarUrl()
+    {
+        if (string.IsNullOrEmpty(avatarUrl))
+        {
+            return "img/avatars/avatar.jpg"; // Client side asset
+        }
+        return $"{avatarUrl}?t={DateTime.Now.Ticks}"; // Server side asset (starts with /)
+    }
+
+    private async Task LoadUserProfile()
+    {
+        try 
+        {
+            // We need an endpoint to get "My Profile" or reuse GetUser with current ID
+            // For now, let's assume we can fetch it if we had the ID, but claims don't have ID by default config in simple setups.
+            // Let's rely on the user knowing their ID or add a "me" endpoint.
+            // Simplified: we will just wait for the upload to update the local var for now.
+            // To do this properly, we should fetch 'api/Users/{id}' using the ID from claims.
+            
+            var userIdClaim = (await authStateTask).User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                 var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
+                 if (userDto != null)
+                 {
+                     avatarUrl = userDto.AvatarUrl;
+                 }
+            }
+        }
+        catch (Exception) { /* Ignore load errors for avatar preview init */ }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        // Max 5MB
+        if (file.Size > 5120000)
+        {
+            ToastService.ShowToast("A imagem deve ter menos de 5MB", ToastLevel.Error);
+            return;
+        }
+
+        try 
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 5120000));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/Users/upload-avatar", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
+                // Force reload to update sidebar image (simple solution)
+                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastService.ShowToast($"Erro: {error}", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro no upload: {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -130,7 +225,7 @@
             if (response.IsSuccessStatusCode)
             {
                 ToastService.ShowToast(Portuguese.Msg_PassChanged, ToastLevel.Success);
-                passwordModel = new(); // Reset form
+                passwordModel = new();
             }
             else
             {

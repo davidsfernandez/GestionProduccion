@@ -30,6 +30,9 @@ public class User
     [StringLength(50)]
     public string PublicId { get; set; } = string.Empty;
 
+    [StringLength(250)]
+    public string? AvatarUrl { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     // EF Core navigation properties

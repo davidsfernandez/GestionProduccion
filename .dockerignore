@@ -10,5 +10,3 @@ Dockerfile
 docker-compose*
 node_modules
 wwwroot/_framework
-wwwroot/css
-wwwroot/lib

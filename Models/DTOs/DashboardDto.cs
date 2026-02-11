@@ -13,6 +13,17 @@ namespace GestionProduccion.Models.DTOs
         public decimal CompletionRate { get; set; }
 
         public Dictionary<string, double> AverageStageTime { get; set; } = new();
+
+        // Serona / Financial Style Metrics
+        public int TotalProducedUnits { get; set; }
+        public double EfficiencyTrend { get; set; } // e.g. 2.5 for +2.5%
+        public List<ChartPointDto> ProductionVolumeHistory { get; set; } = new();
+    }
+
+    public class ChartPointDto
+    {
+        public string Label { get; set; } = string.Empty; // Date or Category
+        public double Value { get; set; }
     }
 
     public class UserWorkloadDto

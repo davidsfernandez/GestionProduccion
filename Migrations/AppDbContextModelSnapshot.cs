@@ -120,6 +120,10 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)

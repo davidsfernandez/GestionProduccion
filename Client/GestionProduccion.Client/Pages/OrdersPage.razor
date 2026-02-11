@@ -14,92 +14,107 @@
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📋 @Portuguese.OP_Title</h2>
-        <div class="d-flex gap-2">
-            <div class="input-group" style="max-width: 300px;">
-                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-start-0" placeholder="@Portuguese.Search" 
-                       @bind="searchTerm" @bind:event="oninput" />
-            </div>
-            <button class="btn btn-outline-success" @onclick="ExportToCsv">
-                <i class="bi bi-file-earmark-spreadsheet"></i> @Portuguese.OP_ExportCSV
-            </button>
-            <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
-                <button class="btn btn-outline-danger" @onclick="DownloadDailyReport">
-                    <i class="bi bi-file-earmark-pdf"></i> @Portuguese.OP_DailyPDF
-                </button>
-            </AuthorizeView>
+<div class="container-fluid p-0">
+    <div class="mb-3">
+        <h1 class="h3 d-inline align-middle">@Portuguese.OP_Title</h1>
+        <div class="float-end">
             <AuthorizeView Roles="Administrator,Leader" Context="createContext">
                 <button class="btn btn-primary" @onclick="CreateNewOrder">
-                    <i class="bi bi-plus-circle"></i> @Portuguese.OP_NewOrder
+                    <i class="align-middle" data-feather="plus"></i> <span class="align-middle">@Portuguese.OP_NewOrder</span>
                 </button>
             </AuthorizeView>
         </div>
     </div>
 
-    @if (loading)
-    {
-        <div class="d-flex justify-content-center mt-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">@Portuguese.Loading</span>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="align-middle" data-feather="search"></i></span>
+                                <input type="text" class="form-control border-start-0" placeholder="@Portuguese.Search" 
+                                       @bind="searchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-8 text-md-end mt-2 mt-md-0">
+                            <button class="btn btn-light me-2" @onclick="ExportToCsv">
+                                <i class="align-middle" data-feather="download"></i> @Portuguese.OP_ExportCSV
+                            </button>
+                            <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
+                                <button class="btn btn-light" @onclick="DownloadDailyReport">
+                                    <i class="align-middle" data-feather="printer"></i> @Portuguese.OP_DailyPDF
+                                </button>
+                            </AuthorizeView>
+                        </div>
+                    </div>
+                </div>
+                
+                @if (loading)
+                {
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">@Portuguese.Loading</span>
+                        </div>
+                    </div>
+                }
+                else if (FilteredOrders == null || !FilteredOrders.Any())
+                {
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0">
+                            @(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover my-0">
+                            <thead>
+                                <tr>
+                                    <th>@Portuguese.OP_Code</th>
+                                    <th>@Portuguese.OP_Product</th>
+                                    <th>@Portuguese.OP_Qty</th>
+                                    <th>@Portuguese.OP_Stage</th>
+                                    <th>@Portuguese.OP_Status</th>
+                                    <th>@Portuguese.OP_Delivery</th>
+                                    <th class="d-none d-md-table-cell">@Portuguese.OP_AssignedTo</th>
+                                    <th class="text-end">@Portuguese.Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in FilteredOrders)
+                                {
+                                    <tr>
+                                        <td><strong>@order.UniqueCode</strong></td>
+                                        <td>@order.ProductDescription</td>
+                                        <td>@order.Quantity</td>
+                                        <td>
+                                            <span class="badge bg-secondary">@TranslateStage(order.CurrentStage)</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetStatusClass(order.CurrentStatus)">@TranslateStatus(order.CurrentStatus)</span>
+                                        </td>
+                                        <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
+                                        <td class="d-none d-md-table-cell text-muted">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-light" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                                <i class="align-middle" data-feather="eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light text-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
+                                                <i class="align-middle" data-feather="file-text"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
-    }
-    else if (FilteredOrders == null || !FilteredOrders.Any())
-    {
-        <div class="alert alert-info shadow-sm">
-            @(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover align-middle bg-white mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>@Portuguese.OP_Code</th>
-                        <th>@Portuguese.OP_Product</th>
-                        <th>@Portuguese.OP_Qty</th>
-                        <th>@Portuguese.OP_Stage</th>
-                        <th>@Portuguese.OP_Status</th>
-                        <th>@Portuguese.OP_Delivery</th>
-                        <th>@Portuguese.OP_AssignedTo</th>
-                        <th class="text-center">@Portuguese.Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var order in FilteredOrders)
-                    {
-                        <tr>
-                            <td><strong>@order.UniqueCode</strong></td>
-                            <td>@order.ProductDescription</td>
-                            <td>@order.Quantity</td>
-                            <td>
-                                <span class="badge bg-secondary">@TranslateStage(order.CurrentStage)</span>
-                            </td>
-                            <td>
-                                <span class="badge @GetStatusClass(order.CurrentStatus)">@TranslateStatus(order.CurrentStatus)</span>
-                            </td>
-                            <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
-                            <td class="small">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-primary" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
-                                        <i class="bi bi-file-earmark-pdf"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+    </div>
 </div>
 
 @code {
@@ -130,6 +145,15 @@
         }
 
         await LoadOrders();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || !loading)
+        {
+            // Re-initialize Feather icons after render
+            await JSRuntime.InvokeVoidAsync("feather.replace");
+        }
     }
 
     private async Task LoadOrders()

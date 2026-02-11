@@ -3,37 +3,46 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Client.Components
-
 @using GestionProduccion.Client.Resources
 
-<div class="page">
-    <ToastContainer />
-    <div class="sidebar">
-        <NavMenu />
+<div class="wrapper">
+    <NavMenu />
+
+    <div class="main">
+        <nav class="navbar navbar-expand navbar-light navbar-bg">
+            <a class="sidebar-toggle js-sidebar-toggle">
+                <i class="hamburger align-self-center"></i>
+            </a>
+
+            <div class="navbar-collapse collapse">
+                <ul class="navbar-nav navbar-align ms-auto">
+                    <AuthorizeView>
+                        <Authorized>
+                            <li class="nav-item">
+                                <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
+                                    <i class="align-middle me-1" data-feather="log-out"></i> @Portuguese.Logout
+                                </button>
+                            </li>
+                        </Authorized>
+                        <NotAuthorized>
+                            <li class="nav-item">
+                                <a href="/login" class="btn btn-primary">@Portuguese.Login</a>
+                            </li>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="content">
+            <div class="container-fluid p-0">
+                <ToastContainer />
+                @Body
+            </div>
+        </main>
     </div>
-
-    <main>
-        <div class="top-row px-4 d-flex justify-content-end align-items-center">
-             <AuthorizeView>
-                <Authorized>
-                    <span class="me-2 text-muted">
-                        <i class="bi bi-person-circle"></i> @Portuguese.Welcome, <strong>@context.User.Identity?.Name</strong>
-                    </span>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
-                        <i class="bi bi-box-arrow-right"></i> @Portuguese.Logout
-                    </button>
-                </Authorized>
-                <NotAuthorized>
-                    <a href="/login" class="btn btn-sm btn-primary">@Portuguese.Login</a>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
 </div>
+
 @code {
     private async Task Logout()
     {

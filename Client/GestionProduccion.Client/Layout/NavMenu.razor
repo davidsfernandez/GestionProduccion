@@ -1,48 +1,101 @@
 @using GestionProduccion.Client.Resources
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Gestão Produção</a>
-        <button title="Menu de navegação" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+@using GestionProduccion.Client.Resources
+@using Microsoft.AspNetCore.Components.Authorization
+@using GestionProduccion.Client.Models.DTOs
+@using System.Net.Http.Json
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-speedometer2" aria-hidden="true"></span> @Portuguese.Nav_Dashboard
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="orders">
-                <span class="bi bi-list-task" aria-hidden="true"></span> @Portuguese.Nav_Orders
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="profile">
-                <span class="bi bi-person-gear" aria-hidden="true"></span> @Portuguese.Nav_Profile
-            </NavLink>
-        </div>
-        <AuthorizeView Roles="Administrator">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="users">
-                    <span class="bi bi-people" aria-hidden="true"></span> @Portuguese.Nav_Users
-                </NavLink>
-            </div>
+<nav id="sidebar" class="sidebar js-sidebar">
+    <div class="sidebar-content js-simplebar">
+        
+        <!-- PERFIL EN SIDEBAR (V2 Design) -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="sidebar-profile">
+                    <div class="profile-img-container">
+                        <img src="@(avatarUrl ?? "img/avatars/avatar.jpg")" class="profile-img" alt="Avatar" />
+                        <div class="profile-badge"></div>
+                    </div>
+                    <span class="profile-name">@context.User.Identity?.Name</span>
+                    <span class="profile-role">
+                        @(context.User.IsInRole("Administrator") ? "Administrador" : "Usuario")
+                    </span>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="sidebar-profile">
+                    <div class="profile-img-container">
+                        <img src="img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
+                    </div>
+                    <span class="profile-name">Invitado</span>
+                    <span class="profile-role">Por favor inicie sessão</span>
+                </div>
+            </NotAuthorized>
         </AuthorizeView>
-    </nav>
-</div>
+
+        <ul class="sidebar-nav">
+            <li class="menu-label">Principal</li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All">
+                    <i class="fa-solid fa-gauge-high"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
+                </NavLink>
+            </li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="orders">
+                    <i class="fa-solid fa-clipboard-list"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                </NavLink>
+            </li>
+
+            <li class="menu-label">Conta</li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="profile">
+                    <i class="fa-solid fa-user-gear"></i> <span class="align-middle">@Portuguese.Nav_Profile</span>
+                </NavLink>
+            </li>
+
+            <AuthorizeView Roles="Administrator">
+                <li class="menu-label">Admin</li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="users">
+                        <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+        </ul>
+    </div>
+</nav>
 
 @code {
-    private bool collapseNavMenu = true;
+    private string? avatarUrl;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    protected override async Task OnInitializedAsync()
     {
-        collapseNavMenu = !collapseNavMenu;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                try
+                {
+                    var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
+                    if (userDto != null)
+                    {
+                        avatarUrl = userDto.AvatarUrl;
+                    }
+                }
+                catch
+                {
+                    // Ignore errors, keep default avatar
+                }
+            }
+        }
     }
 }

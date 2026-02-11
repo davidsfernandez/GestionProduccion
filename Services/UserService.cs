@@ -155,6 +155,8 @@ public class UserService : IUserService
         existingUser.Name = user.Name;
         existingUser.Email = user.Email;
         existingUser.Role = user.Role;
+        existingUser.PublicId = user.PublicId;
+        existingUser.AvatarUrl = user.AvatarUrl;
         existingUser.IsActive = user.IsActive;
 
         _context.Entry(existingUser).State = EntityState.Modified;

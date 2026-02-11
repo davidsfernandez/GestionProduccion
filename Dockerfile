@@ -28,6 +28,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Ensure upload directory exists and has permissions
+RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot
+
 # Environment variables for Docker
 ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80

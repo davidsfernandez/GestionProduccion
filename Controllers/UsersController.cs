@@ -12,10 +12,12 @@ namespace GestionProduccion.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IWebHostEnvironment _environment;
 
-    public UsersController(IUserService userService)
+    public UsersController(IUserService userService, IWebHostEnvironment environment)
     {
         _userService = userService;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -29,6 +31,7 @@ public class UsersController : ControllerBase
             Email = u.Email,
             PublicId = u.PublicId,
             Role = u.Role,
+            AvatarUrl = u.AvatarUrl,
             IsActive = u.IsActive
         }).ToList();
     }
@@ -46,6 +49,7 @@ public class UsersController : ControllerBase
             Email = user.Email,
             PublicId = user.PublicId,
             Role = user.Role,
+            AvatarUrl = user.AvatarUrl,
             IsActive = user.IsActive
         };
     }
@@ -63,6 +67,54 @@ public class UsersController : ControllerBase
             Role = u.Role,
             IsActive = u.IsActive
         }).ToList();
+    }
+
+    [HttpPost("upload-avatar")]
+    [Authorize] // Allow any authenticated user
+    public async Task<IActionResult> UploadAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        // Get user ID from claims
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized();
+
+        var user = await _userService.GetUserByIdAsync(userId);
+        if (user == null) return NotFound("User not found.");
+
+        // Validate image
+        if (!file.ContentType.StartsWith("image/"))
+            return BadRequest("Only image files are allowed.");
+
+        try
+        {
+            var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
+            
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            // Create unique filename
+            var fileName = $"{userId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Update user URL (root relative path)
+            user.AvatarUrl = $"/img/avatars/{fileName}";
+            await _userService.UpdateUserAsync(user);
+
+            return Ok(new { avatarUrl = user.AvatarUrl });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error uploading avatar", error = ex.Message });
+        }
     }
 
     [HttpPost]
