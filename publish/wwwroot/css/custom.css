@@ -1,0 +1,237 @@
+/* SERONA PRODUCTION SYSTEM - Visual Standard Implementation */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --serona-primary: #00C899;
+    --serona-dark: #151628;
+    --serona-bg: #F5F6FA;
+    --input-bg: #F4F5F7;
+    --card-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    --card-radius: 20px;
+    
+    /* Bootstrap Overrides */
+    --bs-primary: #00C899;
+    --bs-body-bg: #F5F6FA;
+    --bs-font-sans-serif: 'Inter', sans-serif;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--serona-bg) !important;
+    color: #334155;
+}
+
+/* --- CARDS & CONTAINERS --- */
+.card, .modal-content {
+    background-color: #fff !important;
+    border: none !important;
+    border-radius: var(--card-radius) !important;
+    box-shadow: var(--card-shadow) !important;
+    margin-bottom: 24px;
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.03) !important;
+    padding: 20px 25px !important;
+}
+
+.card-title {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- FORMS & INPUTS --- */
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #fff !important;
+    box-shadow: 0 0 0 4px rgba(0, 200, 153, 0.15) !important;
+    outline: none !important;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+/* --- BUTTONS --- */
+.btn-primary, .btn-success {
+    background-color: var(--serona-primary) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: #00b388 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 200, 153, 0.3) !important;
+}
+
+.btn-secondary {
+    background-color: #f1f5f9 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    background-color: var(--serona-dark) !important;
+    min-width: 280px;
+    max-width: 280px;
+}
+
+.sidebar-content {
+    background-color: transparent !important;
+}
+
+.sidebar-link, a.sidebar-link {
+    padding: 12px 20px !important;
+    color: #8A94A6 !important;
+    border-radius: 12px !important;
+    margin: 4px 15px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link i, 
+.sidebar-item.active .sidebar-link svg {
+    color: var(--serona-primary) !important;
+}
+
+/* --- SIDEBAR PROFILE --- */
+.sidebar-profile {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50% !important;
+    border: 3px solid rgba(255, 255, 255, 0.1) !important;
+    object-fit: cover;
+}
+
+.profile-name {
+    color: #fff !important;
+    font-weight: 700 !important;
+    margin-top: 15px;
+    display: block;
+}
+
+.profile-role {
+    color: #8A94A6;
+    font-size: 0.8rem;
+    display: block;
+}
+
+/* --- TABLES --- */
+.table-container {
+    background: #fff;
+    border-radius: var(--card-radius);
+    padding: 10px;
+    box-shadow: var(--card-shadow);
+}
+
+.table {
+    background-color: #fff !important;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: transparent !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #94a3b8 !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    padding: 15px 20px !important;
+}
+
+.table tbody td {
+    padding: 15px 20px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f8fafc !important;
+    color: #475569;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* --- UTILITIES --- */
+.badge {
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+}
+
+.text-primary { color: var(--serona-primary) !important; }
+.bg-primary { 
+    --bs-bg-opacity: 1;
+    background-color: rgba(0, 200, 153, var(--bs-bg-opacity)) !important; 
+}
+
+/* --- ANIMATIONS (Phase 4.1) --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Staggered delays for a professional feel */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* Apply fadeInUp to all cards by default for a cohesive entry */
+.card {
+    animation: fadeInUp 0.6s ease-out both;
+}
+
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }

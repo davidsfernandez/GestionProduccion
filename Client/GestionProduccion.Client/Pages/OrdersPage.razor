@@ -99,7 +99,7 @@
                                             <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
                                         </td>
                                         <td>
-                                            <span class="badge @GetStatusClass(order.CurrentStatus) bg-opacity-10 @GetStatusTextClass(order.CurrentStatus)">
+                                            <span class="badge @GetStatusSoftClass(order.CurrentStatus)">
                                                 @TranslateStatus(order.CurrentStatus)
                                             </span>
                                         </td>
@@ -257,22 +257,13 @@
         }
     }
 
-    private string GetStatusClass(string? status) => status?.ToLower() switch
+    private string GetStatusSoftClass(string? status) => status?.ToLower() switch
     {
-        "completed" => "bg-success",
-        "inproduction" => "bg-primary",
-        "pending" => "bg-warning",
-        "stopped" or "paused" => "bg-danger",
+        "completed" => "bg-success-soft",
+        "inproduction" => "bg-primary-soft",
+        "pending" => "bg-warning-soft",
+        "stopped" or "paused" => "bg-danger-soft",
         _ => "bg-secondary"
-    };
-
-    private string GetStatusTextClass(string? status) => status?.ToLower() switch
-    {
-        "completed" => "text-success",
-        "inproduction" => "text-primary",
-        "pending" => "text-warning",
-        "stopped" or "paused" => "text-danger",
-        _ => "text-secondary"
     };
 
     public async ValueTask DisposeAsync()

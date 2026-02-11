@@ -31,17 +31,16 @@
     {
         <div class="row mb-2 mb-xl-3 align-items-center">
             <div class="col-auto">
-                <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <h3 class="d-inline-block align-middle text-dark mb-0">Ordem: @order.UniqueCode</h3>
-            </div>
-            <div class="col-auto ms-auto">
-                <span class="badge @GetStatusClass(order.CurrentStatus) bg-opacity-10 @GetStatusTextClass(order.CurrentStatus) fs-sm px-3 py-2">
-                    @TranslateStatus(order.CurrentStatus)
-                </span>
-            </div>
-        </div>
+                            <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <h3 class="d-inline-block align-middle text-dark mb-0">Ordem: @order.UniqueCode</h3>
+                        </div>
+                        <div class="col-auto ms-auto">
+                            <span class="badge @GetStatusSoftClass(order.CurrentStatus) fs-sm px-3 py-2">
+                                @TranslateStatus(order.CurrentStatus)
+                            </span>
+                        </div>        </div>
 
         <div class="row">
             <!-- Order Info -->
@@ -62,7 +61,7 @@
                             </div>
                             <div class="col-sm-3 mb-4">
                                 <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Etapa Atual</label>
-                                <span class="badge bg-primary bg-opacity-10 text-primary">@TranslateStage(order.CurrentStage)</span>
+                                <span class="badge bg-primary-soft">@TranslateStage(order.CurrentStage)</span>
                             </div>
                             <div class="col-sm-6 mb-4">
                                 <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Data de Criação</label>
@@ -177,7 +176,7 @@
                                                 <div class="d-flex align-items-center">
                                                     <span class="badge bg-light text-muted border me-2 xsmall">@TranslateStage(log.PreviousStage)</span>
                                                     <i class="fa-solid fa-arrow-right text-primary opacity-25 me-2 xsmall"></i>
-                                                    <span class="badge bg-primary bg-opacity-10 text-primary xsmall">@TranslateStage(log.NewStage)</span>
+                                                    <span class="badge bg-primary-soft xsmall">@TranslateStage(log.NewStage)</span>
                                                 </div>
                                             </td>
                                             <td class="small">@log.UserName</td>
@@ -193,7 +192,7 @@
 
             <!-- Right Sidebar -->
             <div class="col-md-4">
-                <div class="alert alert-primary bg-opacity-10 border-0 rounded-4 p-4 shadow-sm mb-4">
+                <div class="alert bg-primary-soft border-0 rounded-4 p-4 shadow-sm mb-4">
                     <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-circle-info me-2"></i> @Portuguese.OP_WorkflowTip</h6>
                     <p class="small mb-0 text-muted" style="line-height: 1.6;">@Portuguese.OP_WorkflowDesc</p>
                 </div>
@@ -407,22 +406,13 @@
 
     private void GoBack() => NavigationManager.NavigateTo("/orders");
 
-    private string GetStatusClass(string? status) => status?.ToLower() switch
+    private string GetStatusSoftClass(string? status) => status?.ToLower() switch
     {
-        "completed" => "bg-success",
-        "inproduction" => "bg-primary",
-        "pending" => "bg-warning",
-        "stopped" or "paused" => "bg-danger",
+        "completed" => "bg-success-soft",
+        "inproduction" => "bg-primary-soft",
+        "pending" => "bg-warning-soft",
+        "stopped" or "paused" => "bg-danger-soft",
         _ => "bg-secondary"
-    };
-
-    private string GetStatusTextClass(string? status) => status?.ToLower() switch
-    {
-        "completed" => "text-success",
-        "inproduction" => "text-primary",
-        "pending" => "text-warning",
-        "stopped" or "paused" => "text-danger",
-        _ => "text-secondary"
     };
 
     [Inject] IJSRuntime JSRuntime { get; set; } = default!;

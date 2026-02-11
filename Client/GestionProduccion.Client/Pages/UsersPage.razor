@@ -75,16 +75,16 @@
                                         </td>
                                         <td>@user.Email</td>
                                         <td>
-                                            <span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(user.Role)</span>
+                                            <span class="badge bg-primary-soft">@TranslateRole(user.Role)</span>
                                         </td>
                                         <td>
                                             @if (user.IsActive)
                                             {
-                                                <span class="badge bg-success bg-opacity-10 text-success">@Portuguese.User_Active</span>
+                                                <span class="badge bg-success-soft">@Portuguese.User_Active</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-danger bg-opacity-10 text-danger">@Portuguese.User_Inactive</span>
+                                                <span class="badge bg-danger-soft">@Portuguese.User_Inactive</span>
                                             }
                                         </td>
                                         <td class="text-end">

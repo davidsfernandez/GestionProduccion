@@ -39,7 +39,7 @@
                     <h4 class="fw-bold mb-1 text-dark">@(string.IsNullOrEmpty(userName) ? "Usuário" : userName)</h4>
                     @if (!string.IsNullOrEmpty(userRole))
                     {
-                        <div class="text-muted mb-3"><span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(userRole)</span></div>
+                        <div class="text-muted mb-3"><span class="badge bg-primary-soft">@TranslateRole(userRole)</span></div>
                     }
                 </div>
                 <div class="card-body border-top py-4">

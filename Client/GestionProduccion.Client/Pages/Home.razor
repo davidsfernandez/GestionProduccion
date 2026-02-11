@@ -50,13 +50,13 @@
                                         <h3 class="mb-1 fw-bold text-dark">@dashboard.TotalProducedUnits</h3>
                                         <p class="mb-0 text-muted small fw-bold uppercase">Unidades Produzidas</p>
                                         <div class="mt-2">
-                                            <span class="badge bg-success bg-opacity-10 text-success me-2"> 
+                                            <span class="badge bg-success-soft me-2"> 
                                                 <i class="fa-solid fa-arrow-trend-up me-1"></i> +@dashboard.EfficiencyTrend% 
                                             </span>
                                         </div>
                                     </div>
                                     <div class="ms-3">
-                                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                        <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                             <i class="fa-solid fa-box text-primary fs-4"></i>
                                         </div>
                                     </div>
@@ -73,11 +73,11 @@
                                         <h3 class="mb-1 fw-bold text-dark">@dashboard.CompletionRate.ToString("N1")%</h3>
                                         <p class="mb-0 text-muted small fw-bold uppercase">Taxa de Conclusão</p>
                                         <div class="mt-2">
-                                            <span class="badge bg-primary bg-opacity-10 text-primary me-2">Meta: 90%</span>
+                                            <span class="badge bg-primary-soft me-2">Meta: 90%</span>
                                         </div>
                                     </div>
                                     <div class="ms-3">
-                                        <div class="bg-dark bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                        <div class="bg-dark-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                             <i class="fa-solid fa-circle-check text-dark fs-4"></i>
                                         </div>
                                     </div>
@@ -154,7 +154,7 @@
                                         <td class="text-muted small">
                                             @(dashboard.AverageStageTime.TryGetValue(item.Key, out var avg) ? avg + "h" : "-")
                                         </td>
-                                        <td><span class="badge bg-primary bg-opacity-10 text-primary">@item.Value</span></td>
+                                        <td><span class="badge bg-primary-soft">@item.Value</span></td>
                                         <td class="text-end">
                                             <div class="progress float-end" style="height: 6px; width: 100px; background-color: #f1f5f9;">
                                                 <div class="progress-bar bg-primary" role="progressbar" style="width: @(Math.Min(item.Value * 10, 100))%; border-radius: 10px;"></div>
@@ -185,7 +185,7 @@
                                     <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(op.Id)">
                                         <div class="d-flex align-items-center">
                                             <div class="flex-shrink-0">
-                                                <div class="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
                                                     <i class="fa-solid fa-triangle-exclamation text-danger"></i>
                                                 </div>
                                             </div>
@@ -204,7 +204,7 @@
                         else
                         {
                             <div class="p-4 text-center text-muted">
-                                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                <div class="bg-success-soft rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
                                     <i class="fa-solid fa-check text-success fs-4"></i>
                                 </div>
                                 <p class="mb-0 small fw-bold uppercase">Tudo operando normalmente</p>
@@ -229,7 +229,7 @@
                                 {
                                     <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(order.Id)">
                                         <div class="d-flex align-items-center">
-                                            <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                            <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
                                                 <i class="fa-solid fa-clock text-warning"></i>
                                             </div>
                                             <div class="flex-grow-1">
