@@ -153,5 +153,51 @@ window.seronaCharts = {
                 }
             }
         });
+    },
+
+    renderRadarChart: function (canvasId, data, labels) {
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        this.charts[canvasId] = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Carga',
+                    data: data,
+                    backgroundColor: 'rgba(0, 200, 153, 0.2)',
+                    borderColor: '#00C899',
+                    pointBackgroundColor: '#00C899',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#00C899'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: false
+                        },
+                        suggestedMin: 0
+                    }
+                }
+            }
+        });
     }
 };

@@ -112,7 +112,7 @@
                             </div>
                             <div class="card-body d-flex w-100">
                                 <div class="align-self-center chart chart-sm">
-                                    <canvas id="doughnutChart" style="height: 250px; width: 100%;"></canvas>
+                                    <canvas id="radarChart" style="height: 250px; width: 100%;"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -324,12 +324,12 @@
                 await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "revenueChart", data, labels);
             }
 
-            // Doughnut Chart (Workload)
+            // Radar Chart (Workload)
             if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any())
             {
                 var labels = dashboard.WorkloadByUser.Select(u => u.UserName).ToArray();
                 var data = dashboard.WorkloadByUser.Select(u => u.OperationCount).ToArray();
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderDoughnutChart", "doughnutChart", data, labels);
+                await JSRuntime.InvokeVoidAsync("seronaCharts.renderRadarChart", "radarChart", data, labels);
             }
 
             // Bar Chart (Stages)
