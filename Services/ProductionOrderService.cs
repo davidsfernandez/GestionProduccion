@@ -387,6 +387,44 @@ public class ProductionOrderService : IProductionOrderService
             };
         }
 
+        // 3. Recent Activity (Last 10 history records)
+        var recentHistory = await _context.ProductionHistories
+            .Include(h => h.ResponsibleUser)
+            .Include(h => h.ProductionOrder)
+            .OrderByDescending(h => h.ModificationDate)
+            .Take(10)
+            .ToListAsync();
+
+        var recentActivities = recentHistory.Select(h => new RecentActivityDto
+        {
+            OrderId = h.ProductionOrderId,
+            UniqueCode = h.ProductionOrder?.UniqueCode ?? "N/A",
+            UserName = h.ResponsibleUser?.Name ?? "System",
+            Action = h.Note,
+            Date = h.ModificationDate
+        }).ToList();
+
+        // 4. Urgent Orders (Due in less than 3 days, not completed)
+        var threeDaysFromNow = DateTime.UtcNow.AddDays(3);
+        var urgentOrders = orders
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.EstimatedDeliveryDate <= threeDaysFromNow)
+            .OrderBy(o => o.EstimatedDeliveryDate)
+            .Select(order => new ProductionOrderDto
+            {
+                Id = order.Id,
+                UniqueCode = order.UniqueCode,
+                ProductDescription = order.ProductDescription,
+                Quantity = order.Quantity,
+                CurrentStage = order.CurrentStage.ToString(),
+                CurrentStatus = order.CurrentStatus.ToString(),
+                CreationDate = order.CreationDate,
+                EstimatedDeliveryDate = order.EstimatedDeliveryDate,
+                UserId = order.UserId,
+                AssignedUserName = order.AssignedUser?.Name
+            })
+            .Take(5)
+            .ToList();
+
         var dashboard = new DashboardDto
         {
             OperationsByStage = orders
@@ -406,7 +444,9 @@ public class ProductionOrderService : IProductionOrderService
             // New Metrics
             TotalProducedUnits = totalProducedUnits,
             EfficiencyTrend = 2.5, // Mocked for now (Positive trend)
-            ProductionVolumeHistory = volumeHistory
+            ProductionVolumeHistory = volumeHistory,
+            RecentActivities = recentActivities,
+            UrgentOrders = urgentOrders
         };
 
         return dashboard;

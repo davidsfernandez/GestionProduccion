@@ -12,6 +12,17 @@ public class DashboardDto
     public int TotalProducedUnits { get; set; }
     public double EfficiencyTrend { get; set; }
     public List<ChartPointDto> ProductionVolumeHistory { get; set; } = new();
+    public List<RecentActivityDto> RecentActivities { get; set; } = new();
+    public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
+}
+
+public class RecentActivityDto
+{
+    public int OrderId { get; set; }
+    public string UniqueCode { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
 }
 
 public class ChartPointDto

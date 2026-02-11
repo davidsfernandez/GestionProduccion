@@ -220,7 +220,9 @@ public class ProductionOrdersController : ControllerBase
             AverageStageTime = dashboardData.AverageStageTime,
             TotalProducedUnits = dashboardData.TotalProducedUnits,
             EfficiencyTrend = dashboardData.EfficiencyTrend,
-            ProductionVolumeHistory = dashboardData.ProductionVolumeHistory
+            ProductionVolumeHistory = dashboardData.ProductionVolumeHistory,
+            RecentActivities = dashboardData.RecentActivities,
+            UrgentOrders = dashboardData.UrgentOrders
         };
         
         return Ok(response);

@@ -215,33 +215,78 @@
                     </div>
                 </div>
 
-                <!-- USERS WIDGET (Contract Expires Style) -->
+                <!-- URGENT ORDERS WIDGET (Serona Style) -->
                 <div class="card flex-fill">
                     <div class="card-header">
                          <div class="card-actions float-end">
-                            <a href="users" class="text-decoration-none text-muted"><i class="align-middle" data-feather="more-horizontal"></i></a>
+                            <a href="orders" class="text-decoration-none text-muted"><i class="align-middle" data-feather="external-link"></i></a>
                         </div>
-                        <h5 class="card-title mb-0">Equipe Ativa</h5>
+                        <h5 class="card-title mb-0">Ordens Urgentes</h5>
                     </div>
                     <div class="card-body p-0">
                          <ul class="list-group list-group-flush">
-                            @if (dashboard.WorkloadByUser != null)
+                            @if (dashboard.UrgentOrders != null && dashboard.UrgentOrders.Any())
                             {
-                                @foreach (var user in dashboard.WorkloadByUser.Take(5))
+                                @foreach (var order in dashboard.UrgentOrders)
                                 {
-                                    <li class="list-group-item border-0 px-4 py-3">
+                                    <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(order.Id)">
                                         <div class="d-flex align-items-center">
-                                            <img src="img/avatars/avatar.jpg" class="rounded-circle me-3" width="40" height="40" alt="@user.UserName">
+                                            <div class="bg-warning bg-opacity-10 rounded-circle p-2 text-warning me-3">
+                                                <i class="fa-solid fa-clock"></i>
+                                            </div>
                                             <div class="flex-grow-1">
-                                                <strong>@user.UserName</strong>
-                                                <div class="text-muted small">@user.PublicId</div>
+                                                <strong class="text-dark d-block">@order.UniqueCode</strong>
+                                                <small class="text-muted">@order.ProductDescription</small>
                                             </div>
                                             <div class="text-end">
-                                                <span class="badge bg-light text-dark border">@user.OperationCount orders</span>
+                                                <div class="fw-bold text-danger small">@order.EstimatedDeliveryDate.ToString("dd/MM")</div>
+                                                <span class="badge bg-light text-muted border xsmall" style="font-size: 0.65rem;">@TranslateStage(order.CurrentStage)</span>
                                             </div>
                                         </div>
                                     </li>
                                 }
+                            }
+                            else
+                            {
+                                <li class="p-4 text-center text-muted small">Nenhuma ordem urgente</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- RECENT ACTIVITY (Transaction Style) -->
+                <div class="card flex-fill">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Atividade Recente</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @if (dashboard.RecentActivities != null && dashboard.RecentActivities.Any())
+                            {
+                                @foreach (var act in dashboard.RecentActivities.Take(6))
+                                {
+                                    <li class="list-group-item border-0 px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                                    <i class="fa-solid fa-bolt text-primary small"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong class="d-block">@act.UniqueCode</strong>
+                                                <small class="text-muted">@act.Action</small>
+                                            </div>
+                                            <div class="text-end ms-2">
+                                                <div class="fw-bold text-dark small">@act.UserName</div>
+                                                <div class="text-muted xsmall" style="font-size: 0.7rem;">@act.Date.ToString("HH:mm")</div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="p-4 text-center text-muted small">Sem atividades recentes</li>
                             }
                         </ul>
                     </div>
