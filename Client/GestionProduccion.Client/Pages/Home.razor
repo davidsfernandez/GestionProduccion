@@ -324,11 +324,12 @@
                 await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "revenueChart", data, labels);
             }
 
-            // Radar Chart (Workload)
+            // Radar Chart (Workload) - Top 5 busiest users only
             if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any())
             {
-                var labels = dashboard.WorkloadByUser.Select(u => u.UserName).ToArray();
-                var data = dashboard.WorkloadByUser.Select(u => u.OperationCount).ToArray();
+                var topUsers = dashboard.WorkloadByUser.OrderByDescending(u => u.OperationCount).Take(5).ToList();
+                var labels = topUsers.Select(u => u.UserName).ToArray();
+                var data = topUsers.Select(u => u.OperationCount).ToArray();
                 await JSRuntime.InvokeVoidAsync("seronaCharts.renderRadarChart", "radarChart", data, labels);
             }
 

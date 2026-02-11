@@ -168,31 +168,54 @@ window.seronaCharts = {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Carga',
+                    label: 'Ordens Ativas',
                     data: data,
-                    backgroundColor: 'rgba(0, 200, 153, 0.2)',
+                    backgroundColor: 'rgba(0, 200, 153, 0.2)', // Transparent Green
                     borderColor: '#00C899',
-                    pointBackgroundColor: '#00C899',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#151628', // Dark theme contrast
                     pointBorderColor: '#fff',
                     pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: '#00C899'
+                    pointHoverBorderColor: '#00C899',
+                    pointRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 elements: {
-                    line: {
-                        borderWidth: 3
-                    }
+                    line: { tension: 0.3 } // Smooth lines
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#151628',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
                 },
                 scales: {
                     r: {
                         angleLines: {
-                            display: false
+                            color: 'rgba(0, 0, 0, 0.05)' // Subtle lines
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)' // Subtle grid
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 11,
+                                family: "'Inter', sans-serif",
+                                weight: '600'
+                            },
+                            color: '#64748b' // Slate 500
+                        },
+                        ticks: {
+                            display: false, // Hide numeric ticks to reduce clutter
+                            backdropColor: 'transparent'
                         },
                         suggestedMin: 0
                     }
