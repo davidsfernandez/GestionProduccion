@@ -13,7 +13,7 @@
 
 <PageTitle>@Portuguese.OP_Details_Title - @order?.UniqueCode</PageTitle>
 
-<div class="container mt-4">
+<div class="container-fluid p-0">
     @if (loading)
     {
         <div class="d-flex justify-content-center mt-5">
@@ -24,59 +24,67 @@
     }
     else if (order == null)
     {
-        <div class="alert alert-danger">@Portuguese.OP_OrderNotFound</div>
-        <button class="btn btn-secondary" @onclick="GoBack">@Portuguese.OP_BackToList</button>
+        <div class="alert alert-danger rounded-4 shadow-sm">@Portuguese.OP_OrderNotFound</div>
+        <button class="btn btn-secondary shadow-sm" @onclick="GoBack">@Portuguese.OP_BackToList</button>
     }
     else
     {
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <button class="btn btn-outline-secondary" @onclick="GoBack">
-                <i class="bi bi-arrow-left"></i> @Portuguese.Back
-            </button>
-            <h2>Ordem: @order.UniqueCode</h2>
-            <span class="badge @GetStatusClass(order.CurrentStatus) fs-5">@TranslateStatus(order.CurrentStatus)</span>
+        <div class="row mb-2 mb-xl-3 align-items-center">
+            <div class="col-auto">
+                <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h3 class="d-inline-block align-middle text-dark mb-0">Ordem: @order.UniqueCode</h3>
+            </div>
+            <div class="col-auto ms-auto">
+                <span class="badge @GetStatusClass(order.CurrentStatus) bg-opacity-10 @GetStatusTextClass(order.CurrentStatus) fs-sm px-3 py-2">
+                    @TranslateStatus(order.CurrentStatus)
+                </span>
+            </div>
         </div>
 
         <div class="row">
             <!-- Order Info -->
             <div class="col-md-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">@Portuguese.Details</h5>
+                <div class="card mb-4">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">Informações Detalhadas</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <div class="row">
-                            <div class="col-sm-6 mb-3">
-                                <label class="text-muted small d-block">@Portuguese.OP_Product</label>
-                                <strong>@order.ProductDescription</strong>
+                            <div class="col-sm-6 mb-4">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Produto</label>
+                                <div class="text-dark fw-bold">@order.ProductDescription</div>
                             </div>
-                            <div class="col-sm-3 mb-3">
-                                <label class="text-muted small d-block">@Portuguese.OP_Qty</label>
-                                <strong>@order.Quantity unidades</strong>
+                            <div class="col-sm-3 mb-4">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Quantidade</label>
+                                <div class="text-dark fw-bold">@order.Quantity unidades</div>
                             </div>
-                            <div class="col-sm-3 mb-3">
-                                <label class="text-muted small d-block">@Portuguese.OP_Stage</label>
-                                <span class="badge bg-secondary">@TranslateStage(order.CurrentStage)</span>
+                            <div class="col-sm-3 mb-4">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Etapa Atual</label>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">@TranslateStage(order.CurrentStage)</span>
                             </div>
-                            <div class="col-sm-6 mb-3">
-                                <label class="text-muted small d-block">@Portuguese.OP_CreationDate</label>
-                                <span>@order.CreationDate.ToString("f")</span>
+                            <div class="col-sm-6 mb-4">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Data de Criação</label>
+                                <div class="text-muted small">@order.CreationDate.ToString("f")</div>
                             </div>
-                            <div class="col-sm-6 mb-3">
-                                <label class="text-muted small d-block">@Portuguese.OP_EstimatedDelivery</label>
-                                <span class="text-primary fw-bold">@order.EstimatedDeliveryDate.ToLongDateString()</span>
+                            <div class="col-sm-6 mb-4">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Entrega Estimada</label>
+                                <div class="text-primary fw-bold">@order.EstimatedDeliveryDate.ToLongDateString()</div>
                             </div>
-                            <div class="col-sm-12">
-                                <label class="text-muted small d-block">@Portuguese.OP_AssignedTo</label>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-person-circle fs-4"></i>
-                                        <span>@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</span>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Responsável</label>
+                                <div class="d-flex align-items-center flex-wrap gap-3 mt-2">
+                                    <div class="d-flex align-items-center bg-light px-3 py-2 rounded-3">
+                                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 32px; height: 32px;">
+                                            <i class="fa-solid fa-user text-primary small"></i>
+                                        </div>
+                                        <span class="text-dark small fw-bold">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</span>
                                     </div>
-                                    
+
                                     <AuthorizeView Roles="Administrator,Leader" Context="authContext">
-                                        <div class="input-group input-group-sm w-auto">
-                                            <select class="form-select" @onchange="OnUserSelected">
+                                        <div class="input-group input-group-sm w-auto shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                                            <select class="form-select border-0 bg-white" @onchange="OnUserSelected" style="min-width: 200px;">
                                                 <option value="">@Portuguese.OP_ChangeAssignment</option>
                                                 @if (assignableUsers != null)
                                                 {
@@ -86,14 +94,14 @@
                                                     }
                                                 }
                                             </select>
-                                            <button class="btn btn-primary" @onclick="AssignUser" disabled="@(selectedUserId == 0 || isAssigning)">
+                                            <button class="btn btn-primary px-3" @onclick="AssignUser" disabled="@(selectedUserId == 0 || isAssigning)">
                                                 @if (isAssigning)
                                                 {
                                                     <span class="spinner-border spinner-border-sm"></span>
                                                 }
                                                 else
                                                 {
-                                                    <span>@Portuguese.Save</span>
+                                                    <i class="fa-solid fa-check"></i>
                                                 }
                                             </button>
                                         </div>
@@ -106,35 +114,35 @@
 
                 <!-- Actions Card -->
                 <AuthorizeView Roles="Administrator,Leader,Operator" Context="actionContext">
-                    <div class="card shadow-sm border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">Controles de Produção</h5>
+                    <div class="card mb-4 overflow-hidden">
+                        <div class="card-header border-0 pt-4 px-4 bg-light bg-opacity-50">
+                            <h5 class="card-title mb-0">Controles de Produção</h5>
                         </div>
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap gap-2">
-                                <button class="btn btn-success" @onclick="AdvanceStage" 
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-wrap gap-3">
+                                <button class="btn btn-primary px-4 shadow-sm" @onclick="AdvanceStage"
                                         disabled="@(order.CurrentStage == "Packaging" || order.CurrentStatus == "Completed")">
-                                    <i class="bi bi-arrow-right-circle"></i> @Portuguese.OP_AdvanceStage
+                                    <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
                                 </button>
-                                
+
                                 @if (order.CurrentStatus == "Stopped")
                                 {
-                                    <button class="btn btn-warning" @onclick="ResumeOrder">
-                                        <i class="bi bi-play-fill"></i> @Portuguese.OP_ResumeProduction
+                                    <button class="btn btn-success px-4 shadow-sm" @onclick="ResumeOrder">
+                                        <i class="fa-solid fa-play me-2"></i> @Portuguese.OP_ResumeProduction
                                     </button>
                                 }
                                 else if (order.CurrentStatus != "Completed")
                                 {
-                                    <button class="btn btn-danger" @onclick="StopOrder">
-                                        <i class="bi bi-pause-fill"></i> @Portuguese.OP_StopProduction
+                                    <button class="btn btn-danger px-4 shadow-sm" @onclick="StopOrder">
+                                        <i class="fa-solid fa-pause me-2"></i> @Portuguese.OP_StopProduction
                                     </button>
                                 }
 
                                 @if (order.CurrentStage == "Packaging" && order.CurrentStatus != "Completed")
                                 {
                                     <AuthorizeView Roles="Administrator,Leader" Context="completeContext">
-                                        <button class="btn btn-dark" @onclick="CompleteOrder">
-                                            <i class="bi bi-check-all"></i> @Portuguese.OP_MarkCompleted
+                                        <button class="btn btn-dark px-4 shadow-sm" @onclick="CompleteOrder">
+                                            <i class="fa-solid fa-check-double me-2"></i> @Portuguese.OP_MarkCompleted
                                         </button>
                                     </AuthorizeView>
                                 }
@@ -144,49 +152,61 @@
                 </AuthorizeView>
 
                 <!-- History -->
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">@Portuguese.OP_History</h5>
+                <div class="card">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">@Portuguese.OP_History</h5>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>@Portuguese.Hist_Date</th>
-                                        <th>Ação</th>
-                                        <th>Por</th>
-                                        <th>@Portuguese.Hist_Note</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (history != null)
+                    <div class="table-responsive">
+                        <table class="table table-hover my-0">
+                            <thead>
+                                <tr>
+                                    <th>@Portuguese.Hist_Date</th>
+                                    <th>Ação</th>
+                                    <th>Responsável</th>
+                                    <th>Nota</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (history != null)
+                                {
+                                    @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
                                     {
-                                        @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
-                                        {
-                                            <tr>
-                                                <td class="small">@log.ModificationDate.ToString("g")</td>
-                                                <td>
-                                                    <span class="small text-muted">@TranslateStage(log.PreviousStage) -> </span>
-                                                    <strong>@TranslateStage(log.NewStage)</strong>
-                                                </td>
-                                                <td>@log.UserName</td>
-                                                <td class="small">@log.Note</td>
-                                            </tr>
-                                        }
+                                        <tr>
+                                            <td class="small text-muted">@log.ModificationDate.ToString("g")</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-light text-muted border me-2 xsmall">@TranslateStage(log.PreviousStage)</span>
+                                                    <i class="fa-solid fa-arrow-right text-primary opacity-25 me-2 xsmall"></i>
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary xsmall">@TranslateStage(log.NewStage)</span>
+                                                </div>
+                                            </td>
+                                            <td class="small">@log.UserName</td>
+                                            <td class="small text-muted">@log.Note</td>
+                                        </tr>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
             <!-- Right Sidebar -->
             <div class="col-md-4">
-                <div class="alert alert-info shadow-sm">
-                    <h6><i class="bi bi-info-circle"></i> @Portuguese.OP_WorkflowTip</h6>
-                    <p class="small mb-0">@Portuguese.OP_WorkflowDesc</p>
+                <div class="alert alert-primary bg-opacity-10 border-0 rounded-4 p-4 shadow-sm mb-4">
+                    <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-circle-info me-2"></i> @Portuguese.OP_WorkflowTip</h6>
+                    <p class="small mb-0 text-muted" style="line-height: 1.6;">@Portuguese.OP_WorkflowDesc</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">Atalhos Rápidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-light w-100 mb-2 text-start px-3 py-2 border shadow-none" @onclick="() => DownloadOrderReport(order.Id)">
+                            <i class="fa-solid fa-file-pdf text-danger me-2"></i> Gerar Relatório PDF
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -202,10 +222,10 @@
     private bool isAssigning = false;
     private int selectedUserId;
 
-    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions 
-    { 
+    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
         PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() } 
+        Converters = { new JsonStringEnumConverter() }
     };
 
     protected override async Task OnInitializedAsync()
@@ -307,8 +327,8 @@
         try
         {
             isAssigning = true;
-            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/assign", new { UserId = selectedUserId });
-            
+            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/assign", new { UserId = selectedUserId });  
+
             if (response.IsSuccessStatusCode)
             {
                 ToastService.ShowToast(Portuguese.Msg_TaskAssigned, ToastLevel.Success);
@@ -328,7 +348,7 @@
     private async Task AdvanceStage()
     {
         var response = await Http.PostAsync($"api/ProductionOrders/{Id}/advance-stage", null);
-        if (response.IsSuccessStatusCode) 
+        if (response.IsSuccessStatusCode)
         {
             ToastService.ShowToast(Portuguese.Msg_StageAdvanced, ToastLevel.Success);
             await LoadData();
@@ -337,7 +357,7 @@
 
     private async Task StopOrder()
     {
-        var request = new { NewStatus = "Stopped", Note = "Ordem parada manualmente" }; 
+        var request = new { NewStatus = "Stopped", Note = "Ordem parada manualmente" };
         var response = await Http.PatchAsJsonAsync($"api/ProductionOrders/{Id}/status", request);
         if (response.IsSuccessStatusCode)
         {
@@ -368,14 +388,42 @@
         }
     }
 
+    private async Task DownloadOrderReport(int id)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/ProductionOrders/{id}/report");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
     private void GoBack() => NavigationManager.NavigateTo("/orders");
 
     private string GetStatusClass(string? status) => status?.ToLower() switch
     {
         "completed" => "bg-success",
         "inproduction" => "bg-primary",
-        "pending" => "bg-warning text-dark",
+        "pending" => "bg-warning",
         "stopped" or "paused" => "bg-danger",
         _ => "bg-secondary"
     };
+
+    private string GetStatusTextClass(string? status) => status?.ToLower() switch
+    {
+        "completed" => "text-success",
+        "inproduction" => "text-primary",
+        "pending" => "text-warning",
+        "stopped" or "paused" => "text-danger",
+        _ => "text-secondary"
+    };
+
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
 }

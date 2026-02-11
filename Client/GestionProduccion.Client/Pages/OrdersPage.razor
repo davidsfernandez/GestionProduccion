@@ -15,12 +15,14 @@
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
 <div class="container-fluid p-0">
-    <div class="mb-3">
-        <h1 class="h3 d-inline align-middle">@Portuguese.OP_Title</h1>
-        <div class="float-end">
+    <div class="row mb-2 mb-xl-3">
+        <div class="col-auto d-none d-sm-block">
+            <h3 class="d-inline-block align-middle text-dark">@Portuguese.OP_Title</h3>
+        </div>
+        <div class="col-auto ms-auto text-end mt-n1">
             <AuthorizeView Roles="Administrator,Leader" Context="createContext">
-                <button class="btn btn-primary" @onclick="CreateNewOrder">
-                    <i class="align-middle" data-feather="plus"></i> <span class="align-middle">@Portuguese.OP_NewOrder</span>
+                <button class="btn btn-primary shadow-sm" @onclick="CreateNewOrder">
+                    <i class="fa-solid fa-plus me-2"></i> @Portuguese.OP_NewOrder
                 </button>
             </AuthorizeView>
         </div>
@@ -29,28 +31,30 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="align-middle" data-feather="search"></i></span>
-                                <input type="text" class="form-control border-start-0" placeholder="@Portuguese.Search" 
-                                       @bind="searchTerm" @bind:event="oninput" />
+                <div class="card-header border-0 pb-0">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="input-group input-group-navbar shadow-none">
+                                <input type="text" class="form-control bg-light border-0" placeholder="@Portuguese.Search"
+                                       @bind="searchTerm" @bind:event="oninput" style="border-radius: 10px 0 0 10px !important;" />
+                                <button class="btn btn-light border-0" style="border-radius: 0 10px 10px 0 !important;">
+                                    <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="col-md-8 text-md-end mt-2 mt-md-0">
-                            <button class="btn btn-light me-2" @onclick="ExportToCsv">
-                                <i class="align-middle" data-feather="download"></i> @Portuguese.OP_ExportCSV
+                        <div class="col-md-8 text-md-end">
+                            <button class="btn btn-light shadow-none border me-2" @onclick="ExportToCsv">
+                                <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
                             </button>
                             <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
-                                <button class="btn btn-light" @onclick="DownloadDailyReport">
-                                    <i class="align-middle" data-feather="printer"></i> @Portuguese.OP_DailyPDF
+                                <button class="btn btn-light shadow-none border" @onclick="DownloadDailyReport">
+                                    <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
                                 </button>
                             </AuthorizeView>
                         </div>
                     </div>
                 </div>
-                
+
                 @if (loading)
                 {
                     <div class="card-body text-center py-5">
@@ -62,8 +66,9 @@
                 else if (FilteredOrders == null || !FilteredOrders.Any())
                 {
                     <div class="card-body">
-                        <div class="alert alert-info mb-0">
-                            @(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)
+                        <div class="alert alert-info mb-0 d-flex align-items-center">
+                            <i class="fa-solid fa-circle-info me-2"></i>
+                            <div>@(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)</div>
                         </div>
                     </div>
                 }
@@ -87,23 +92,32 @@
                                 @foreach (var order in FilteredOrders)
                                 {
                                     <tr>
-                                        <td><strong>@order.UniqueCode</strong></td>
-                                        <td>@order.ProductDescription</td>
-                                        <td>@order.Quantity</td>
+                                        <td><strong class="text-dark">@order.UniqueCode</strong></td>
+                                        <td class="text-muted">@order.ProductDescription</td>
+                                        <td><span class="fw-bold">@order.Quantity</span></td>
                                         <td>
-                                            <span class="badge bg-secondary">@TranslateStage(order.CurrentStage)</span>
+                                            <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
                                         </td>
                                         <td>
-                                            <span class="badge @GetStatusClass(order.CurrentStatus)">@TranslateStatus(order.CurrentStatus)</span>
+                                            <span class="badge @GetStatusClass(order.CurrentStatus) bg-opacity-10 @GetStatusTextClass(order.CurrentStatus)">
+                                                @TranslateStatus(order.CurrentStatus)
+                                            </span>
                                         </td>
-                                        <td>@order.EstimatedDeliveryDate.ToShortDateString()</td>
-                                        <td class="d-none d-md-table-cell text-muted">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</td>
+                                        <td>@order.EstimatedDeliveryDate.ToString("dd/MM/yyyy")</td>
+                                        <td class="d-none d-md-table-cell">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                                    <i class="fa-solid fa-user text-muted opacity-50" style="font-size: 0.7rem;"></i>
+                                                </div>
+                                                <span class="small text-muted">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</span>
+                                            </div>
+                                        </td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-light" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
-                                                <i class="align-middle" data-feather="eye"></i>
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                                <i class="fa-solid fa-eye"></i>
                                             </button>
                                             <button class="btn btn-sm btn-light text-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
-                                                <i class="align-middle" data-feather="file-text"></i>
+                                                <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -122,14 +136,14 @@
     private bool loading = true;
     private string searchTerm = "";
 
-    private List<ProductionOrderDto>? FilteredOrders => string.IsNullOrWhiteSpace(searchTerm) 
-        ? orders 
-        : orders?.Where(o => o.UniqueCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+    private List<ProductionOrderDto>? FilteredOrders => string.IsNullOrWhiteSpace(searchTerm)
+        ? orders
+        : orders?.Where(o => o.UniqueCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                             o.ProductDescription.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        try 
+        try
         {
             var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
             await SignalR.StartConnection(hubUrl);
@@ -145,15 +159,6 @@
         }
 
         await LoadOrders();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender || !loading)
-        {
-            // Re-initialize Feather icons after render
-            await JSRuntime.InvokeVoidAsync("feather.replace");
-        }
     }
 
     private async Task LoadOrders()
@@ -203,7 +208,7 @@
         csv.AppendLine($"{Portuguese.OP_Code},{Portuguese.OP_Product},{Portuguese.OP_Qty},{Portuguese.OP_Stage},{Portuguese.OP_Status},{Portuguese.OP_Delivery},{Portuguese.OP_AssignedTo}");
         foreach (var o in orders)
             csv.AppendLine($"{o.UniqueCode},{o.ProductDescription.Replace(",", " ")},{o.Quantity},{TranslateStage(o.CurrentStage)},{TranslateStatus(o.CurrentStatus)},{o.EstimatedDeliveryDate:yyyy-MM-dd},{o.AssignedUserName ?? Portuguese.OP_Unassigned}");
-        
+
         await JSRuntime.InvokeVoidAsync("downloadCsv", $"Orders_{DateTime.Now:yyyyMMdd}.csv", csv.ToString());
         ToastService.ShowToast("CSV exportado com sucesso", ToastLevel.Info);
     }
@@ -256,9 +261,18 @@
     {
         "completed" => "bg-success",
         "inproduction" => "bg-primary",
-        "pending" => "bg-warning text-dark",
+        "pending" => "bg-warning",
         "stopped" or "paused" => "bg-danger",
         _ => "bg-secondary"
+    };
+
+    private string GetStatusTextClass(string? status) => status?.ToLower() switch
+    {
+        "completed" => "text-success",
+        "inproduction" => "text-primary",
+        "pending" => "text-warning",
+        "stopped" or "paused" => "text-danger",
+        _ => "text-secondary"
     };
 
     public async ValueTask DisposeAsync()

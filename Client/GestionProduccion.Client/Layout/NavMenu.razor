@@ -1,6 +1,4 @@
 @using GestionProduccion.Client.Resources
-
-@using GestionProduccion.Client.Resources
 @using Microsoft.AspNetCore.Components.Authorization
 @using GestionProduccion.Client.Models.DTOs
 @using System.Net.Http.Json
@@ -11,27 +9,28 @@
 <nav id="sidebar" class="sidebar js-sidebar">
     <div class="sidebar-content js-simplebar">
         
-        <!-- PERFIL EN SIDEBAR (V2 Design) -->
+        <!-- PERFIL EN SIDEBAR (Serona Standard) -->
         <AuthorizeView>
             <Authorized>
                 <div class="sidebar-profile">
-                    <div class="profile-img-container">
+                    <div class="position-relative d-inline-block">
                         <img src="@(GetAvatarUrl())" class="profile-img" alt="Avatar" />
-                        <div class="profile-badge"></div>
+                        <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
+                             style="width: 14px; height: 14px; border-width: 2px !important;"></div>
                     </div>
                     <span class="profile-name">@context.User.Identity?.Name</span>
                     <span class="profile-role">
-                        @(context.User.IsInRole("Administrator") ? "Administrador" : "Usuario")
+                        @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
                     </span>
                 </div>
             </Authorized>
             <NotAuthorized>
                 <div class="sidebar-profile">
-                    <div class="profile-img-container">
+                    <div class="position-relative d-inline-block">
                         <img src="img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
                     </div>
-                    <span class="profile-name">Invitado</span>
-                    <span class="profile-role">Por favor inicie sessão</span>
+                    <span class="profile-name">Convidado</span>
+                    <span class="profile-role">Inicie sessão</span>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
@@ -41,13 +40,13 @@
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All">
-                    <i class="fa-solid fa-gauge-high"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
+                    <i class="fa-solid fa-house"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
                 </NavLink>
             </li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="orders">
-                    <i class="fa-solid fa-clipboard-list"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                    <i class="fa-solid fa-list-check"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
                 </NavLink>
             </li>
 
@@ -60,10 +59,10 @@
             </li>
 
             <AuthorizeView Roles="Administrator">
-                <li class="menu-label">Admin</li>
+                <li class="menu-label">Configurações</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="users">
-                        <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
+                        <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
                     </NavLink>
                 </li>
             </AuthorizeView>
@@ -124,6 +123,15 @@
             avatarUrl = null;
         }
     }
+
+    private string TranslateRole(string? role) => role?.ToLower() switch
+    {
+        "administrator" => Portuguese.Role_Admin,
+        "leader" => Portuguese.Role_Leader,
+        "operator" => Portuguese.Role_Operator,
+        "workshop" => Portuguese.Role_Workshop,
+        _ => role ?? ""
+    };
 
     public void Dispose()
     {

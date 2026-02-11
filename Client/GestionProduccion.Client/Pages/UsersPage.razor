@@ -12,122 +12,167 @@
 
 <PageTitle>@Portuguese.User_Title</PageTitle>
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>👥 @Portuguese.User_Title</h2>
-        <button class="btn btn-primary" @onclick="ShowCreateModal">
-            <span class="bi bi-person-plus"></span> @Portuguese.User_NewUser
-        </button>
+<div class="container-fluid p-0">
+    <div class="row mb-2 mb-xl-3">
+        <div class="col-auto d-none d-sm-block">
+            <h3 class="d-inline-block align-middle text-dark">@Portuguese.User_Title</h3>
+        </div>
+        <div class="col-auto ms-auto text-end mt-n1">
+            <button class="btn btn-primary shadow-sm" @onclick="ShowCreateModal">
+                <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.User_NewUser
+            </button>
+        </div>
     </div>
 
-    @if (loading)
-    {
-        <div class="d-flex justify-content-center mt-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">@Portuguese.Loading</span>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-0 pb-0">
+                    <h5 class="card-title mb-0">Lista de Usuários</h5>
+                </div>
+                
+                @if (loading)
+                {
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">@Portuguese.Loading</span>
+                        </div>
+                    </div>
+                }
+                else if (users == null || !users.Any())
+                {
+                    <div class="card-body">
+                        <div class="alert alert-info">Nenhum usuário encontrado.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover my-0">
+                            <thead>
+                                <tr>
+                                    <th>@Portuguese.User_Name</th>
+                                    <th>@Portuguese.User_Email</th>
+                                    <th>@Portuguese.User_Role</th>
+                                    <th>@Portuguese.User_Status</th>
+                                    <th class="text-end">@Portuguese.Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in users)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                                    <i class="fa-solid fa-user text-primary opacity-50"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">@user.Name</div>
+                                                    <small class="text-muted xsmall">ID: @user.PublicId</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@user.Email</td>
+                                        <td>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary">@TranslateRole(user.Role)</span>
+                                        </td>
+                                        <td>
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="badge bg-success bg-opacity-10 text-success">@Portuguese.User_Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger bg-opacity-10 text-danger">@Portuguese.User_Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
-    }
-    else if (users == null || !users.Any())
-    {
-        <div class="alert alert-info">Nenhum usuário encontrado.</div>
-    }
-    else
-    {
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>@Portuguese.User_Name</th>
-                        <th>@Portuguese.User_Email</th>
-                        <th>@Portuguese.User_Role</th>
-                        <th>@Portuguese.User_Status</th>
-                        <th>@Portuguese.Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in users)
-                    {
-                        <tr>
-                            <td>
-                                <div>@user.Name</div>
-                                <small class="text-muted">ID: @user.PublicId</small>
-                            </td>
-                            <td>@user.Email</td>
-                            <td><span class="badge bg-info">@TranslateRole(user.Role)</span></td>
-                            <td>
-                                @if (user.IsActive)
-                                {
-                                    <span class="badge bg-success">@Portuguese.User_Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">@Portuguese.User_Inactive</span>
-                                }
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditUser(user)">
-                                    @Portuguese.Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUser(user.Id)">
-                                    @Portuguese.Deactivate
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+    </div>
 </div>
 
 @if (showModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@(isEditing ? Portuguese.Edit : Portuguese.Create) @Portuguese.User_User</h5>
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(21, 22, 40, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="fa-solid @(isEditing ? "fa-user-pen" : "fa-user-plus") text-primary me-2"></i>
+                        @(isEditing ? Portuguese.Edit : Portuguese.Create) @Portuguese.User_User
+                    </h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
-                        <div class="alert alert-danger">@errorMessage</div>
+                        <div class="alert alert-danger d-flex align-items-center">
+                            <i class="fa-solid fa-circle-exclamation me-2"></i>
+                            <div>@errorMessage</div>
+                        </div>
                     }
                     <EditForm Model="userModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.User_Name</label>
-                            <InputText class="form-control" @bind-Value="userModel.Name" />
+                        
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">@Portuguese.User_Name</label>
+                            <InputText class="form-control form-control-lg bg-light" @bind-Value="userModel.Name" placeholder="Nome completo" />
+                            <ValidationMessage For="@(() => userModel.Name)" class="text-danger small mt-1" />
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.User_Email</label>
-                            <InputText class="form-control" @bind-Value="userModel.Email" />
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">@Portuguese.User_Email</label>
+                            <InputText class="form-control form-control-lg bg-light" @bind-Value="userModel.Email" placeholder="email@exemplo.com" />
+                            <ValidationMessage For="@(() => userModel.Email)" class="text-danger small mt-1" />
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.User_PublicId (@Portuguese.User_Active)</label>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">@Portuguese.User_PublicId (@Portuguese.User_Active)</label>
                             <div class="input-group">
-                                <InputText class="form-control" @bind-Value="userModel.PublicId" placeholder="Clique em Gerar para criar UUID" />
-                                <button type="button" class="btn btn-outline-secondary" @onclick="GenerateUuid">@Portuguese.Generate</button>
+                                <InputText class="form-control form-control-lg bg-light" @bind-Value="userModel.PublicId" placeholder="ID de acesso" />
+                                <button type="button" class="btn btn-secondary px-3" @onclick="GenerateUuid">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </button>
                             </div>
+                            <ValidationMessage For="@(() => userModel.PublicId)" class="text-danger small mt-1" />
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.User_Password @(isEditing ? Portuguese.User_PassHint : "")</label>
-                            <InputText type="password" class="form-control" @bind-Value="userModel.Password" />
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? Portuguese.User_PassHint : "")</label>
+                            <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="userModel.Password" />
+                            <ValidationMessage For="@(() => userModel.Password)" class="text-danger small mt-1" />
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Portuguese.User_Role</label>
-                            <InputSelect class="form-select" @bind-Value="userModel.Role">
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">@Portuguese.User_Role</label>
+                            <InputSelect class="form-select form-select-lg bg-light" @bind-Value="userModel.Role">
                                 @foreach (var role in Enum.GetValues<UserRole>())
                                 {
                                     <option value="@role">@TranslateRole(role)</option>
                                 }
                             </InputSelect>
                         </div>
-                        <div class="modal-footer px-0 pb-0">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">@Portuguese.Cancel</button>
-                            <button type="submit" class="btn btn-primary">@Portuguese.Save</button>
+
+                        <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button type="button" class="btn btn-secondary px-4" @onclick="CloseModal">@Portuguese.Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                <i class="fa-solid fa-save me-2"></i> @Portuguese.Save
+                            </button>
                         </div>
                     </EditForm>
                 </div>
@@ -149,8 +194,8 @@
         await LoadUsers();
     }
 
-    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions 
-    { 
+    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() } 
     };

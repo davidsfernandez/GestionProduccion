@@ -1,193 +1,203 @@
-/* SERONA DASHBOARD V2 - Custom Design System */
+/* SERONA PRODUCTION SYSTEM - Visual Standard Implementation */
 
-/* Import Google Fonts: Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --serona-green: #00c899;
-    --serona-dark-sidebar: #151628;
-    --serona-body-bg: #F5F6FA;
-    --serona-text-muted: #8A94A6;
+    --serona-primary: #00C899;
+    --serona-dark: #151628;
+    --serona-bg: #F5F6FA;
+    --input-bg: #F4F5F7;
+    --card-shadow: 0 10px 40px rgba(0,0,0,0.08);
     --card-radius: 20px;
     
-    /* Bootstrap overrides */
-    --bs-primary: #00c899;
-    --bs-primary-rgb: 0, 200, 153;
+    /* Bootstrap Overrides */
+    --bs-primary: #00C899;
     --bs-body-bg: #F5F6FA;
     --bs-font-sans-serif: 'Inter', sans-serif;
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--serona-body-bg);
-    margin: 0;
-    color: #495057;
+    background-color: var(--serona-bg) !important;
+    color: #334155;
 }
 
-/* --- SIDEBAR CON PERFIL --- */
-/* Ocultamos la sidebar por defecto de AdminKit y usamos nuestra propia estructura en NavMenu */
-nav.sidebar {
-    background-color: var(--serona-dark-sidebar) !important;
+/* --- CARDS & CONTAINERS --- */
+.card, .modal-content {
+    background-color: #fff !important;
+    border: none !important;
+    border-radius: var(--card-radius) !important;
+    box-shadow: var(--card-shadow) !important;
+    margin-bottom: 24px;
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.03) !important;
+    padding: 20px 25px !important;
+}
+
+.card-title {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- FORMS & INPUTS --- */
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #fff !important;
+    box-shadow: 0 0 0 4px rgba(0, 200, 153, 0.15) !important;
+    outline: none !important;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+/* --- BUTTONS --- */
+.btn-primary, .btn-success {
+    background-color: var(--serona-primary) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: #00b388 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 200, 153, 0.3) !important;
+}
+
+.btn-secondary {
+    background-color: #f1f5f9 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    background-color: var(--serona-dark) !important;
     min-width: 280px;
     max-width: 280px;
-    padding: 30px 20px;
 }
 
 .sidebar-content {
-    background: transparent !important;
+    background-color: transparent !important;
 }
 
-/* PERFIL EN SIDEBAR */
+.sidebar-link, a.sidebar-link {
+    padding: 12px 20px !important;
+    color: #8A94A6 !important;
+    border-radius: 12px !important;
+    margin: 4px 15px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link i, 
+.sidebar-item.active .sidebar-link svg {
+    color: var(--serona-primary) !important;
+}
+
+/* --- SIDEBAR PROFILE --- */
 .sidebar-profile {
     text-align: center;
-    margin-bottom: 40px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.profile-img-container {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 15px auto;
+    padding: 30px 20px;
 }
 
 .profile-img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.1); /* Anillo sutil */
+    width: 80px;
+    height: 80px;
+    border-radius: 50% !important;
+    border: 3px solid rgba(255, 255, 255, 0.1) !important;
     object-fit: cover;
 }
 
-.profile-badge {
-    position: absolute;
-    bottom: 5px;
-    right: 0;
-    width: 18px;
-    height: 18px;
-    background: var(--serona-green);
-    border: 3px solid var(--serona-dark-sidebar);
-    border-radius: 50%;
-}
-
 .profile-name {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 2px;
-    color: white;
+    color: #fff !important;
+    font-weight: 700 !important;
+    margin-top: 15px;
     display: block;
 }
 
 .profile-role {
-    font-size: 0.85rem;
-    color: var(--serona-text-muted);
+    color: #8A94A6;
+    font-size: 0.8rem;
     display: block;
 }
 
-/* MENÚ */
-.sidebar-nav {
-    padding: 0;
-    list-style: none;
+/* --- TABLES --- */
+.table-container {
+    background: #fff;
+    border-radius: var(--card-radius);
+    padding: 10px;
+    box-shadow: var(--card-shadow);
 }
 
-.menu-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--serona-text-muted);
-    margin: 20px 10px 10px;
-    opacity: 0.7;
-    font-weight: 600;
-}
-
-.sidebar-item {
-    margin-bottom: 5px;
-}
-
-.sidebar-link, a.sidebar-link {
-    display: flex !important;
-    align-items: center;
-    text-decoration: none;
-    color: var(--serona-text-muted) !important;
-    padding: 12px 15px;
-    border-radius: 12px;
-    transition: all 0.3s;
-    font-weight: 500;
-    background: transparent;
-    border-left: none !important; /* Reset del estilo anterior */
-}
-
-.sidebar-link i, .sidebar-link svg {
-    margin-right: 15px;
-    width: 20px;
-    text-align: center;
-    color: inherit !important;
-}
-
-.sidebar-link:hover, .sidebar-item.active .sidebar-link {
-    background-color: rgba(255,255,255, 0.08) !important;
-    color: white !important;
-}
-
-.sidebar-item.active .sidebar-link i,
-.sidebar-item.active .sidebar-link svg {
-    color: var(--serona-green) !important;
-}
-
-/* CONTENIDO PRINCIPAL */
-.main {
-    background-color: var(--serona-body-bg);
-    min-height: 100vh;
-}
-
-/* Navbar superior - Hacerla minimalista o invisible si el sidebar lleva el peso */
-.navbar {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-/* TARJETAS */
-.card {
-    background: white !important;
-    border-radius: var(--card-radius) !important;
-    border: none !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.03) !important;
-    margin-bottom: 24px;
-}
-
-.card-body {
-    padding: 25px;
-}
-
-/* UTILIDADES */
-.text-primary { color: var(--serona-green) !important; }
-.bg-primary { background-color: var(--serona-green) !important; }
-
-.btn-primary {
-    background: var(--serona-green) !important;
-    color: white !important;
-    border: none !important;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-weight: 600;
-}
-
-.btn-primary:hover {
-    background: #00b388 !important;
-}
-
-/* Inputs form style V2 */
-.form-control {
-    background-color: #F9FAFB !important;
-    border: 1px solid transparent !important;
-    border-radius: 10px !important;
-    padding: 0.6rem 1rem;
-}
-
-.form-control:focus {
+.table {
     background-color: #fff !important;
-    border-color: rgba(0, 200, 153, 0.3) !important;
-    box-shadow: 0 0 0 3px rgba(0, 200, 153, 0.1) !important;
+    margin-bottom: 0;
 }
+
+.table thead th {
+    background-color: transparent !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #94a3b8 !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    padding: 15px 20px !important;
+}
+
+.table tbody td {
+    padding: 15px 20px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f8fafc !important;
+    color: #475569;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* --- UTILITIES --- */
+.badge {
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+}
+
+.text-primary { color: var(--serona-primary) !important; }
+.bg-primary { background-color: var(--serona-primary) !important; }

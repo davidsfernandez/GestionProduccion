@@ -21,7 +21,7 @@
         </div>
         <div class="col-auto ms-auto text-end mt-n1">
              <button class="btn btn-primary shadow-sm" @onclick="LoadDashboard">
-                 <i class="align-middle" data-feather="refresh-cw"></i>
+                 <i class="fa-solid fa-arrows-rotate"></i>
              </button>
         </div>
     </div>
@@ -43,22 +43,21 @@
                 <!-- KPI ROW -->
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="card flex-fill">
+                        <div class="card flex-fill border-0 shadow-sm">
                             <div class="card-body py-4">
-                                <div class="d-flex align-items-start">
+                                <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
-                                        <h3 class="mb-2">@dashboard.TotalProducedUnits</h3>
-                                        <p class="mb-2 text-muted">Unidades Produzidas</p>
-                                        <div class="mb-0">
+                                        <h3 class="mb-1 fw-bold text-dark">@dashboard.TotalProducedUnits</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Unidades Produzidas</p>
+                                        <div class="mt-2">
                                             <span class="badge bg-success bg-opacity-10 text-success me-2"> 
-                                                <i class="mdi mdi-arrow-bottom-right"></i> +@dashboard.EfficiencyTrend% 
+                                                <i class="fa-solid fa-arrow-trend-up me-1"></i> +@dashboard.EfficiencyTrend% 
                                             </span>
-                                            <span class="text-muted small">Desde o mês passado</span>
                                         </div>
                                     </div>
-                                    <div class="d-inline-block ms-3">
-                                        <div class="stat" style="background: rgba(0, 200, 153, 0.1); border-radius: 10px; padding: 10px;">
-                                            <i class="align-middle text-primary" data-feather="package"></i>
+                                    <div class="ms-3">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-box text-primary fs-4"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -67,19 +66,19 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <div class="card flex-fill">
+                        <div class="card flex-fill border-0 shadow-sm">
                             <div class="card-body py-4">
-                                <div class="d-flex align-items-start">
+                                <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
-                                        <h3 class="mb-2">@dashboard.CompletionRate.ToString("N1")%</h3>
-                                        <p class="mb-2 text-muted">@Portuguese.Dash_CompletionRate</p>
-                                        <div class="mb-0">
+                                        <h3 class="mb-1 fw-bold text-dark">@dashboard.CompletionRate.ToString("N1")%</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Taxa de Conclusão</p>
+                                        <div class="mt-2">
                                             <span class="badge bg-primary bg-opacity-10 text-primary me-2">Meta: 90%</span>
                                         </div>
                                     </div>
-                                    <div class="d-inline-block ms-3">
-                                        <div class="stat" style="background: rgba(21, 22, 40, 0.1); border-radius: 10px; padding: 10px;">
-                                            <i class="align-middle text-dark" data-feather="check-circle"></i>
+                                    <div class="ms-3">
+                                        <div class="bg-dark bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-circle-check text-dark fs-4"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -90,15 +89,12 @@
 
                 <!-- MAIN CHART -->
                 <div class="card flex-fill w-100">
-                    <div class="card-header">
-                        <div class="float-end">
-                            <select class="form-select form-select-sm bg-light border-0" style="width: auto; display: inline-block;">
-                                <option>Hoje</option>
-                                <option selected>Este Mês</option>
-                                <option>Este Ano</option>
-                            </select>
-                        </div>
+                    <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Volume de Produção</h5>
+                        <select class="form-select form-select-sm bg-light border-0 w-auto shadow-none">
+                            <option selected>Últimos 7 dias</option>
+                            <option>Este Mês</option>
+                        </select>
                     </div>
                     <div class="card-body py-3">
                         <div class="chart chart-sm">
@@ -111,7 +107,7 @@
                 <div class="row">
                     <div class="col-12 col-lg-6 d-flex">
                         <div class="card flex-fill w-100">
-                            <div class="card-header">
+                            <div class="card-header border-0 pt-4 px-4">
                                 <h5 class="card-title mb-0">Distribuição de Carga</h5>
                             </div>
                             <div class="card-body d-flex w-100">
@@ -123,7 +119,7 @@
                     </div>
                     <div class="col-12 col-lg-6 d-flex">
                         <div class="card flex-fill w-100">
-                            <div class="card-header">
+                            <div class="card-header border-0 pt-4 px-4">
                                 <h5 class="card-title mb-0">Ordens por Etapa</h5>
                             </div>
                             <div class="card-body d-flex w-100">
@@ -137,7 +133,7 @@
 
                 <!-- ORDERS TABLE (Bottom) -->
                 <div class="card flex-fill">
-                    <div class="card-header">
+                    <div class="card-header border-0 pt-4 px-4">
                         <h5 class="card-title mb-0">@Portuguese.Dash_OrdersByStage</h5>
                     </div>
                     <div class="table-responsive">
@@ -147,21 +143,21 @@
                                     <th>Etapa</th>
                                     <th>Tempo Médio</th>
                                     <th>Qtd</th>
-                                    <th>Status</th>
+                                    <th class="text-end">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var item in dashboard.OperationsByStage)
                                 {
                                     <tr>
-                                        <td>@TranslateStage(item.Key)</td>
-                                        <td class="text-muted">
+                                        <td><span class="fw-bold">@TranslateStage(item.Key)</span></td>
+                                        <td class="text-muted small">
                                             @(dashboard.AverageStageTime.TryGetValue(item.Key, out var avg) ? avg + "h" : "-")
                                         </td>
-                                        <td><span class="fw-bold">@item.Value</span></td>
-                                        <td>
-                                            <div class="progress" style="height: 5px; width: 80px;">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(item.Value * 10)%"></div>
+                                        <td><span class="badge bg-primary bg-opacity-10 text-primary">@item.Value</span></td>
+                                        <td class="text-end">
+                                            <div class="progress float-end" style="height: 6px; width: 100px; background-color: #f1f5f9;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(Math.Min(item.Value * 10, 100))%; border-radius: 10px;"></div>
                                             </div>
                                         </td>
                                     </tr>
@@ -177,7 +173,7 @@
                 
                 <!-- ALERTS WIDGET -->
                 <div class="card flex-fill">
-                    <div class="card-header">
+                    <div class="card-header border-0 pt-4 px-4">
                         <h5 class="card-title mb-0">@Portuguese.Dash_Alerts</h5>
                     </div>
                     <div class="card-body p-0">
@@ -189,12 +185,12 @@
                                     <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(op.Id)">
                                         <div class="d-flex align-items-center">
                                             <div class="flex-shrink-0">
-                                                <div class="bg-danger bg-opacity-10 rounded-circle p-2 text-danger">
-                                                    <i class="align-middle" data-feather="alert-triangle"></i>
+                                                <div class="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
                                                 </div>
                                             </div>
                                             <div class="flex-grow-1 ms-3">
-                                                <strong class="text-danger d-block">@op.UniqueCode</strong>
+                                                <strong class="text-danger d-block small fw-bold">@op.UniqueCode</strong>
                                                 <small class="text-muted">@op.ProductDescription</small>
                                             </div>
                                             <div class="text-end">
@@ -208,8 +204,10 @@
                         else
                         {
                             <div class="p-4 text-center text-muted">
-                                <i class="align-middle mb-2 text-success" data-feather="check-circle" style="width: 32px; height: 32px;"></i>
-                                <p class="mb-0">Tudo operando normalmente</p>
+                                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                    <i class="fa-solid fa-check text-success fs-4"></i>
+                                </div>
+                                <p class="mb-0 small fw-bold uppercase">Tudo operando normalmente</p>
                             </div>
                         }
                     </div>
@@ -217,9 +215,9 @@
 
                 <!-- URGENT ORDERS WIDGET (Serona Style) -->
                 <div class="card flex-fill">
-                    <div class="card-header">
+                    <div class="card-header border-0 pt-4 px-4">
                          <div class="card-actions float-end">
-                            <a href="orders" class="text-decoration-none text-muted"><i class="align-middle" data-feather="external-link"></i></a>
+                            <a href="orders" class="text-decoration-none text-muted"><i class="fa-solid fa-arrow-up-right-from-square small"></i></a>
                         </div>
                         <h5 class="card-title mb-0">Ordens Urgentes</h5>
                     </div>
@@ -231,16 +229,16 @@
                                 {
                                     <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(order.Id)">
                                         <div class="d-flex align-items-center">
-                                            <div class="bg-warning bg-opacity-10 rounded-circle p-2 text-warning me-3">
-                                                <i class="fa-solid fa-clock"></i>
+                                            <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                                <i class="fa-solid fa-clock text-warning"></i>
                                             </div>
                                             <div class="flex-grow-1">
-                                                <strong class="text-dark d-block">@order.UniqueCode</strong>
+                                                <strong class="text-dark d-block small fw-bold">@order.UniqueCode</strong>
                                                 <small class="text-muted">@order.ProductDescription</small>
                                             </div>
                                             <div class="text-end">
                                                 <div class="fw-bold text-danger small">@order.EstimatedDeliveryDate.ToString("dd/MM")</div>
-                                                <span class="badge bg-light text-muted border xsmall" style="font-size: 0.65rem;">@TranslateStage(order.CurrentStage)</span>
+                                                <span class="badge bg-light text-muted border xsmall" style="font-size: 0.6rem;">@TranslateStage(order.CurrentStage)</span>
                                             </div>
                                         </div>
                                     </li>
@@ -248,7 +246,7 @@
                             }
                             else
                             {
-                                <li class="p-4 text-center text-muted small">Nenhuma ordem urgente</li>
+                                <li class="p-4 text-center text-muted small fw-bold uppercase">Nenhuma ordem urgente</li>
                             }
                         </ul>
                     </div>
@@ -256,7 +254,7 @@
 
                 <!-- RECENT ACTIVITY (Transaction Style) -->
                 <div class="card flex-fill">
-                    <div class="card-header">
+                    <div class="card-header border-0 pt-4 px-4">
                         <h5 class="card-title mb-0">Atividade Recente</h5>
                     </div>
                     <div class="card-body p-0">
@@ -268,17 +266,17 @@
                                     <li class="list-group-item border-0 px-4 py-3">
                                         <div class="d-flex align-items-center">
                                             <div class="flex-shrink-0 me-3">
-                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center shadow-none" style="width: 36px; height: 36px;">
                                                     <i class="fa-solid fa-bolt text-primary small"></i>
                                                 </div>
                                             </div>
                                             <div class="flex-grow-1">
-                                                <strong class="d-block">@act.UniqueCode</strong>
+                                                <strong class="d-block small fw-bold">@act.UniqueCode</strong>
                                                 <small class="text-muted">@act.Action</small>
                                             </div>
                                             <div class="text-end ms-2">
                                                 <div class="fw-bold text-dark small">@act.UserName</div>
-                                                <div class="text-muted xsmall" style="font-size: 0.7rem;">@act.Date.ToString("HH:mm")</div>
+                                                <div class="text-muted xsmall" style="font-size: 0.65rem;">@act.Date.ToString("HH:mm")</div>
                                             </div>
                                         </div>
                                     </li>
@@ -286,7 +284,7 @@
                             }
                             else
                             {
-                                <li class="p-4 text-center text-muted small">Sem atividades recentes</li>
+                                <li class="p-4 text-center text-muted small fw-bold uppercase">Sem atividades recentes</li>
                             }
                         </ul>
                     </div>
@@ -318,8 +316,6 @@
     {
         if (!loading && dashboard != null)
         {
-            await JSRuntime.InvokeVoidAsync("feather.replace");
-            
             // Initialize Charts if data exists
             if (dashboard.ProductionVolumeHistory != null && dashboard.ProductionVolumeHistory.Any())
             {
