@@ -15,7 +15,7 @@
             <Authorized>
                 <div class="sidebar-profile">
                     <div class="profile-img-container">
-                        <img src="@(avatarUrl ?? "img/avatars/avatar.jpg")" class="profile-img" alt="Avatar" />
+                        <img src="@(GetAvatarUrl())" class="profile-img" alt="Avatar" />
                         <div class="profile-badge"></div>
                     </div>
                     <span class="profile-name">@context.User.Identity?.Name</span>
@@ -72,6 +72,15 @@
 
 @code {
     private string? avatarUrl;
+
+    private string GetAvatarUrl()
+    {
+        if (string.IsNullOrEmpty(avatarUrl))
+        {
+            return "img/avatars/avatar.jpg";
+        }
+        return $"{avatarUrl}?t={DateTime.Now.Ticks}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
