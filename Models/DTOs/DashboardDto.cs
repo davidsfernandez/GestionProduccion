@@ -44,5 +44,6 @@ namespace GestionProduccion.Models.DTOs
         public string PublicId { get; set; } = string.Empty;
         public int TotalOrders { get; set; }
         public int PendingOrders { get; set; }
+        public int OperationCount { get; set; } // Consumed by Client as 'Active Load'
     }
 }
