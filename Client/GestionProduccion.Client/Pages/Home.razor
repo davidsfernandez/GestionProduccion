@@ -110,20 +110,43 @@
                             <div class="card-header border-0 pt-4 px-4">
                                 <h5 class="card-title mb-0">Distribuição de Carga</h5>
                             </div>
-                            <div class="card-body d-flex w-100 justify-content-center align-items-center">
-                                @if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any() && dashboard.WorkloadByUser.Sum(u => u.OperationCount) > 0)
-                                {
-                                    <div class="chart chart-sm w-100">
-                                        <canvas id="workloadChart" style="height: 250px; width: 100%;"></canvas>
+                            <div class="card-body d-flex w-100 align-items-center">
+                                <div class="row w-100">
+                                    <div class="col-6 d-flex justify-content-center">
+                                         @if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any() && dashboard.WorkloadByUser.Sum(u => u.OperationCount) > 0)
+                                         {
+                                             <div class="chart chart-sm">
+                                                 <canvas id="workloadChart" style="height: 200px; width: 200px;"></canvas>
+                                             </div>
+                                         }
+                                         else
+                                         {
+                                             <div class="text-center text-muted align-self-center">
+                                                 <i class="fa-solid fa-chart-pie fs-1 mb-2 opacity-25"></i>
+                                                 <p class="xsmall mb-0">Sem dados</p>
+                                             </div>
+                                         }
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="text-center text-muted">
-                                        <i class="fa-solid fa-chart-pie fs-1 mb-2 opacity-50"></i>
-                                        <p class="small mb-0">Sem dados de carga</p>
+                                    <div class="col-6 align-self-center">
+                                        <ul class="list-unstyled mb-0 small">
+                                            @if (dashboard.WorkloadByUser != null)
+                                            {
+                                                var colors = new[] { "#00C899", "#151628", "#8A94A6", "#3B7DDD", "#fcb92c", "#dc3545" };
+                                                var i = 0;
+                                                @foreach (var user in dashboard.WorkloadByUser.OrderByDescending(u => u.OperationCount).Take(5))
+                                                {
+                                                    <li class="mb-2 d-flex justify-content-between">
+                                                        <span>
+                                                            <span class="d-inline-block rounded-circle me-2" style="width: 8px; height: 8px; background-color: @(colors[i++ % colors.Length]);"></span>
+                                                            @user.UserName
+                                                        </span>
+                                                        <span class="fw-bold">@user.OperationCount</span>
+                                                    </li>
+                                                }
+                                            }
+                                        </ul>
                                     </div>
-                                }
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -167,7 +190,7 @@
                                         <td><span class="badge bg-primary-soft">@item.Value</span></td>
                                         <td class="text-end">
                                             <div class="progress float-end" style="height: 6px; width: 100px; background-color: #f1f5f9;">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(Math.Min(item.Value * 10, 100))%; border-radius: 10px;"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(Math.Max(item.Value * 10, 5))%; border-radius: 10px;"></div>
                                             </div>
                                         </td>
                                     </tr>
