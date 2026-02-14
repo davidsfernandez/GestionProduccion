@@ -40,6 +40,11 @@ public interface IUserService
     Task<User> CreateUserAsync(User user);
 
     /// <summary>
+    /// Updates the avatar URL for a specific user.
+    /// </summary>
+    Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl);
+
+    /// <summary>
     /// Updates an existing user.
     /// </summary>
     Task<User> UpdateUserAsync(User user);

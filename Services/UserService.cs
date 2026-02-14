@@ -136,6 +136,17 @@ public class UserService : IUserService
         return user;
     }
 
+    public async Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        user.AvatarUrl = avatarUrl;
+        _context.Entry(user).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     /// <summary>
     /// Updates an existing user.
     /// </summary>

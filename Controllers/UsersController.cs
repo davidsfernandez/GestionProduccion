@@ -116,10 +116,13 @@ public class UsersController : ControllerBase
             }
 
             // Update user URL (root relative path)
-            user.AvatarUrl = $"/img/avatars/{fileName}";
-            await _userService.UpdateUserAsync(user);
+            var newAvatarUrl = $"/img/avatars/{fileName}";
+            
+            // EXPLICIT PERSISTENCE STEP (Fixes Bug)
+            var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
+            if (!success) return StatusCode(500, "Failed to update user record.");
 
-            return Ok(new { avatarUrl = user.AvatarUrl });
+            return Ok(new { avatarUrl = newAvatarUrl });
         }
         catch (Exception ex)
         {
