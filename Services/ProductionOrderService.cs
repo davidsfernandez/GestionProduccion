@@ -425,7 +425,7 @@ public class ProductionOrderService : IProductionOrderService
             .ToListAsync();
 
         // Recent Activity
-        var recentActivities = await _context.ProductionHistories
+        var recentHistory = await _context.ProductionHistories
             .Include(h => h.ResponsibleUser)
             .Include(h => h.ProductionOrder)
             .OrderByDescending(h => h.ModificationDate)
@@ -458,7 +458,7 @@ public class ProductionOrderService : IProductionOrderService
             { 
                 Id = o.Id, UniqueCode = o.UniqueCode, ProductDescription = o.ProductDescription, EstimatedDeliveryDate = o.EstimatedDeliveryDate 
             }).ToList(),
-            RecentActivities = recentActivities,
+            RecentActivities = recentHistory,
             CompletionRate = Math.Round(rate, 1),
             LastUpdated = DateTime.Now
         };
@@ -519,14 +519,14 @@ public class ProductionOrderService : IProductionOrderService
             {
                 Id = h.Id,
                 ProductionOrderId = h.ProductionOrderId,
-                PreviousStage = h.PreviousStage.ToString(),
+                PreviousStage = h.PreviousStage != null ? h.PreviousStage.ToString() : string.Empty,
                 NewStage = h.NewStage.ToString(),
-                PreviousStatus = h.PreviousStatus.ToString(),
+                PreviousStatus = h.PreviousStatus != null ? h.PreviousStatus.ToString() : string.Empty,
                 NewStatus = h.NewStatus.ToString(),
                 UserId = h.UserId,
                 UserName = h.ResponsibleUser != null ? h.ResponsibleUser.Name : "Unknown",
                 ModificationDate = h.ModificationDate,
-                Note = h.Note
+                Note = h.Note ?? string.Empty
             })
             .ToListAsync();
 

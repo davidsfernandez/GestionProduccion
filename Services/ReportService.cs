@@ -28,7 +28,7 @@ public class ReportService : IReportService
         // but mapped to the existing interface method name to avoid breaking changes unless strictly necessary.
         
         var order = await _productionOrderService.GetProductionOrderByIdAsync(orderId);
-        if (order == null) return null;
+        if (order == null) return Array.Empty<byte>();
 
         var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(orderId);
 
@@ -71,20 +71,22 @@ public class ReportService : IReportService
                 {
                     x.Spacing(15);
 
-                    // INFO PRINCIPAL GRID
-                    x.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Grid(grid =>
+                    // INFO PRINCIPAL TABLE (Replacing obsolete Grid)
+                    x.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Table(table =>
                     {
-                        grid.Columns(2);
-                        grid.VerticalSpacing(10);
-                        grid.HorizontalSpacing(10);
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
 
                         // Row 1
-                        grid.Item().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.UniqueCode).FontSize(14); });
-                        grid.Item().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
+                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.UniqueCode).FontSize(14); });
+                        table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
 
                         // Row 2
-                        grid.Item().Text(t => { t.Span("Produto: ").Bold(); t.Span(order.ProductDescription); });
-                        grid.Item().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
+                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span(order.ProductDescription); });
+                        table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
                     });
 
                     // HISTORY / DETAILS TABLE

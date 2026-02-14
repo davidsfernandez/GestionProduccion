@@ -18,11 +18,19 @@ public class DashboardDto
 
     // --- LISTS & ALERTS ---
     public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
-    public List<ProductionOrderDto> StoppedOperations { get; set; } = new();
+    public List<StoppedOperationDto> StoppedOperations { get; set; } = new();
     public List<RecentActivityDto> RecentActivities { get; set; } = new();
 
     // --- CONTROL ---
     public DateTime LastUpdated { get; set; }
+}
+
+public class StoppedOperationDto
+{
+    public int Id { get; set; }
+    public string UniqueCode { get; set; } = string.Empty;
+    public string ProductDescription { get; set; } = string.Empty;
+    public DateTime EstimatedDeliveryDate { get; set; }
 }
 
 public class WorkerStatsDto
