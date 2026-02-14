@@ -205,6 +205,9 @@
                         <button class="btn btn-light w-100 mb-2 text-start px-3 py-2 border shadow-none" @onclick="() => DownloadOrderReport(order.Id)">
                             <i class="fa-solid fa-file-pdf text-danger me-2"></i> Gerar Relatório PDF
                         </button>
+                        <button class="btn btn-primary w-100 text-start px-3 py-2 border shadow-none" @onclick="DownloadPdf">
+                            <i class="fa-solid fa-print me-2"></i> Imprimir Ficha
+                        </button>
                     </div>
                 </div>
             </div>
@@ -220,6 +223,34 @@
     private bool loading = true;
     private bool isAssigning = false;
     private int selectedUserId;
+
+    private async Task DownloadPdf()
+    {
+        if (order == null) return;
+
+        try
+        {
+            ToastService.ShowToast("Gerando PDF...", ToastLevel.Info);
+            
+            var response = await Http.GetAsync($"api/ProductionOrders/{Id}/pdf");
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orden_{order.UniqueCode}.pdf", streamRef);
+                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao gerar PDF", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+    }
 
     private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {

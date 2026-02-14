@@ -21,4 +21,10 @@ public class CreateProductionOrderRequest
 
     [Required(ErrorMessage = "Estimated delivery date is required.")]
     public DateTime EstimatedDeliveryDate { get; set; }
+
+    [StringLength(100)]
+    public string? ClientName { get; set; }
+
+    [StringLength(20)]
+    public string? Size { get; set; }
 }

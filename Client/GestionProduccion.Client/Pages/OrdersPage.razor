@@ -33,16 +33,14 @@
             <div class="card">
                 <div class="card-header border-0 pb-0">
                     <div class="row align-items-center">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <div class="input-group input-group-navbar shadow-none">
-                                <input type="text" class="form-control bg-light border-0" placeholder="@Portuguese.Search"
-                                       @bind="searchTerm" @bind:event="oninput" style="border-radius: 10px 0 0 10px !important;" />
-                                <button class="btn btn-light border-0" style="border-radius: 0 10px 10px 0 !important;">
-                                    <i class="fa-solid fa-magnifying-glass text-muted"></i>
-                                </button>
+                        <div class="col-md-12 mb-3">
+                            <div class="input-group input-group-lg shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                <input type="search" class="form-control border-0 px-2" placeholder="Pesquisar por lote ou produto..."
+                                       @bind="searchTerm" @bind:event="oninput" />
                             </div>
                         </div>
-                        <div class="col-md-8 text-md-end">
+                        <div class="col-md-12 text-md-end mb-3 d-none d-md-block">
                             <button class="btn btn-light shadow-none border me-2" @onclick="ExportToCsv">
                                 <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
                             </button>
@@ -74,17 +72,17 @@
                 }
                 else
                 {
-                    <div class="table-responsive">
+                    <div class="table-mobile-responsive">
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
                                     <th>@Portuguese.OP_Code</th>
-                                    <th>@Portuguese.OP_Product</th>
-                                    <th>@Portuguese.OP_Qty</th>
+                                    <th class="d-none d-md-table-cell">@Portuguese.OP_Product</th>
+                                    <th class="d-none d-sm-table-cell">@Portuguese.OP_Qty</th>
                                     <th>@Portuguese.OP_Stage</th>
                                     <th>@Portuguese.OP_Status</th>
-                                    <th>@Portuguese.OP_Delivery</th>
-                                    <th class="d-none d-md-table-cell">@Portuguese.OP_AssignedTo</th>
+                                    <th class="d-none d-lg-table-cell">@Portuguese.OP_Delivery</th>
+                                    <th class="d-none d-xl-table-cell">@Portuguese.OP_AssignedTo</th>
                                     <th class="text-end">@Portuguese.Actions</th>
                                 </tr>
                             </thead>
@@ -93,8 +91,8 @@
                                 {
                                     <tr>
                                         <td><strong class="text-dark">@order.UniqueCode</strong></td>
-                                        <td class="text-muted">@order.ProductDescription</td>
-                                        <td><span class="fw-bold">@order.Quantity</span></td>
+                                        <td class="text-muted d-none d-md-table-cell">@order.ProductDescription</td>
+                                        <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
                                         <td>
                                             <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
                                         </td>
@@ -103,8 +101,8 @@
                                                 @TranslateStatus(order.CurrentStatus)
                                             </span>
                                         </td>
-                                        <td>@order.EstimatedDeliveryDate.ToString("dd/MM/yyyy")</td>
-                                        <td class="d-none d-md-table-cell">
+                                        <td class="d-none d-lg-table-cell">@order.EstimatedDeliveryDate.ToString("dd/MM")</td>
+                                        <td class="d-none d-xl-table-cell">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
                                                     <i class="fa-solid fa-user text-muted opacity-50" style="font-size: 0.7rem;"></i>
@@ -113,10 +111,10 @@
                                             </div>
                                         </td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                            <button class="btn btn-lg btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
+                                            <button class="btn btn-lg btn-light text-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                         </td>
@@ -130,6 +128,12 @@
         </div>
     </div>
 </div>
+
+<AuthorizeView Roles="Administrator,Leader">
+    <button class="btn btn-primary btn-fab d-md-none" @onclick="CreateNewOrder">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+</AuthorizeView>
 
 @code {
     private List<ProductionOrderDto>? orders;

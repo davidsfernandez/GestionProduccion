@@ -266,12 +266,18 @@ body {
         margin-left: 0 !important;
     }
 
+    .sidebar-open .sidebar {
+        margin-left: 0 !important;
+    }
+
     /* Responsive Tables */
+    .table-mobile-responsive,
     .table-responsive-mobile {
         display: block;
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
     }
     
     /* Card Adjustment */
@@ -280,16 +286,45 @@ body {
     }
     
     /* Overlay effect when sidebar is open */
-    .sidebar.toggled + .main::before {
-        content: '';
+    .sidebar-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         background: rgba(0,0,0,0.5);
-        z-index: 999;
+        z-index: 99;
     }
+
+    /* Touch UX Improvements */
+    .form-control, .form-select {
+        padding: 12px 15px !important;
+    }
+
+    .btn {
+        padding: 10px 20px;
+    }
+
+    .chart-container {
+        max-height: 250px;
+    }
+}
+
+/* Floating Action Button (FAB) */
+.btn-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50% !important;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    padding: 0 !important;
 }
 
 /* --- TV MODE / FACTORY KIOSK --- */
