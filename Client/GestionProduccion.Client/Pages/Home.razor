@@ -111,42 +111,46 @@
                                 <h5 class="card-title mb-0">Distribuição de Carga</h5>
                             </div>
                             <div class="card-body d-flex w-100 align-items-center">
-                                <div class="row w-100">
-                                    <div class="col-6 d-flex justify-content-center">
-                                         @if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any() && dashboard.WorkloadByUser.Sum(u => u.OperationCount) > 0)
-                                         {
-                                             <div class="chart chart-sm">
+                                @if (dashboard.UserWorkloads != null && dashboard.UserWorkloads.Any())
+                                {
+                                    <div class="row w-100">
+                                        <!-- CHART SECTION -->
+                                        <div class="col-6 d-flex justify-content-center">
+                                             <div class="chart chart-sm w-100">
                                                  <canvas id="workloadChart" style="height: 200px; width: 200px;"></canvas>
                                              </div>
-                                         }
-                                         else
-                                         {
-                                             <div class="text-center text-muted align-self-center">
-                                                 <i class="fa-solid fa-chart-pie fs-1 mb-2 opacity-25"></i>
-                                                 <p class="xsmall mb-0">Sem dados</p>
-                                             </div>
-                                         }
-                                    </div>
-                                    <div class="col-6 align-self-center">
-                                        <ul class="list-unstyled mb-0 small">
-                                            @if (dashboard.WorkloadByUser != null)
-                                            {
-                                                var colors = new[] { "#00C899", "#151628", "#8A94A6", "#3B7DDD", "#fcb92c", "#dc3545" };
-                                                var i = 0;
-                                                @foreach (var user in dashboard.WorkloadByUser.OrderByDescending(u => u.OperationCount).Take(5))
+                                        </div>
+                                        
+                                        <!-- LIST SECTION -->
+                                        <div class="col-6 align-self-center ps-0">
+                                            <ul class="list-unstyled mb-0 small">
+                                                @foreach (var user in dashboard.UserWorkloads.Take(5))
                                                 {
-                                                    <li class="mb-2 d-flex justify-content-between">
-                                                        <span>
-                                                            <span class="d-inline-block rounded-circle me-2" style="width: 8px; height: 8px; background-color: @(colors[i++ % colors.Length]);"></span>
-                                                            @user.UserName
-                                                        </span>
-                                                        <span class="fw-bold">@user.OperationCount</span>
+                                                    <li class="mb-3 d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center text-truncate">
+                                                            <div class="position-relative me-2">
+                                                                <img src="@(string.IsNullOrEmpty(user.AvatarUrl) ? "img/avatars/avatar.jpg" : user.AvatarUrl)" 
+                                                                     class="rounded-circle border border-white shadow-sm" 
+                                                                     style="width: 28px; height: 28px; object-fit: cover;" alt="@user.UserName">
+                                                                <span class="position-absolute bottom-0 end-0 rounded-circle" 
+                                                                      style="width: 8px; height: 8px; background-color: @user.Color; border: 1px solid #fff;"></span>
+                                                            </div>
+                                                            <span class="text-dark fw-bold text-truncate" style="max-width: 80px;" title="@user.UserName">@user.UserName</span>
+                                                        </div>
+                                                        <span class="badge bg-light text-dark border">@user.TaskCount</span>
                                                     </li>
                                                 }
-                                            }
-                                        </ul>
+                                            </ul>
+                                        </div>
                                     </div>
-                                </div>
+                                }
+                                else
+                                {
+                                    <div class="w-100 text-center text-muted">
+                                        <i class="fa-solid fa-chart-pie fs-1 mb-2 opacity-25"></i>
+                                        <p class="xsmall mb-0">Sem dados de carga</p>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
@@ -199,6 +203,222 @@
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- COLUMNA LATERAL (RIGHT WIDGETS) -->
+            <div class="col-xl-4 col-xxl-4">
+                
+                <!-- ALERTS WIDGET -->
+                <div class="card flex-fill delay-1">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">@Portuguese.Dash_Alerts</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (dashboard.StoppedOperations != null && dashboard.StoppedOperations.Any())
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var op in dashboard.StoppedOperations.Take(5))
+                                {
+                                    <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(op.Id)">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0">
+                                                <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <strong class="text-danger d-block small fw-bold">@op.UniqueCode</strong>
+                                                <small class="text-muted">@op.ProductDescription</small>
+                                            </div>
+                                            <div class="text-end">
+                                                 <small class="text-muted fw-bold">@op.EstimatedDeliveryDate.ToString("dd/MM")</small>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="p-4 text-center text-muted">
+                                <div class="bg-success-soft rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                    <i class="fa-solid fa-check text-success fs-4"></i>
+                                </div>
+                                <p class="mb-0 small fw-bold uppercase">Tudo operando normalmente</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- URGENT ORDERS WIDGET (Serona Style) -->
+                <div class="card flex-fill delay-2">
+                    <div class="card-header border-0 pt-4 px-4">
+                         <div class="card-actions float-end">
+                            <a href="orders" class="text-decoration-none text-muted"><i class="fa-solid fa-arrow-up-right-from-square small"></i></a>
+                        </div>
+                        <h5 class="card-title mb-0">Ordens Urgentes</h5>
+                    </div>
+                    <div class="card-body p-0">
+                         <ul class="list-group list-group-flush">
+                            @if (dashboard.UrgentOrders != null && dashboard.UrgentOrders.Any())
+                            {
+                                @foreach (var order in dashboard.UrgentOrders)
+                                {
+                                    <li class="list-group-item border-0 px-4 py-3" style="cursor: pointer;" @onclick="() => ViewOrder(order.Id)">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                                <i class="fa-solid fa-clock text-warning"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong class="text-dark d-block small fw-bold">@order.UniqueCode</strong>
+                                                <small class="text-muted">@order.ProductDescription</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="fw-bold text-danger small">@order.EstimatedDeliveryDate.ToString("dd/MM")</div>
+                                                <span class="badge bg-light text-muted border xsmall" style="font-size: 0.6rem;">@TranslateStage(order.CurrentStage)</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="p-4 text-center text-muted small fw-bold uppercase">Nenhuma ordem urgente</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- RECENT ACTIVITY (Transaction Style) -->
+                <div class="card flex-fill delay-3">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">Atividade Recente</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @if (dashboard.RecentActivities != null && dashboard.RecentActivities.Any())
+                            {
+                                @foreach (var act in dashboard.RecentActivities.Take(6))
+                                {
+                                    <li class="list-group-item border-0 px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center shadow-none" style="width: 36px; height: 36px;">
+                                                    <i class="fa-solid fa-bolt text-primary small"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <strong class="d-block small fw-bold">@act.UniqueCode</strong>
+                                                <small class="text-muted">@act.Action</small>
+                                            </div>
+                                            <div class="text-end ms-2">
+                                                <div class="fw-bold text-dark small">@act.UserName</div>
+                                                <div class="text-muted xsmall" style="font-size: 0.65rem;">@act.Date.ToString("HH:mm")</div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="p-4 text-center text-muted small fw-bold uppercase">Sem atividades recentes</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardDto? dashboard;
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+        await SignalR.StartConnection(hubUrl);
+
+        SignalR.OnUpdateReceived += async (opId, stage, status) => {
+            await LoadDashboard();
+            await InvokeAsync(StateHasChanged);
+        };
+
+        await LoadDashboard();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!loading && dashboard != null)
+        {
+            // Initialize Charts if data exists
+            if (dashboard.ProductionVolumeHistory != null && dashboard.ProductionVolumeHistory.Any())
+            {
+                var labels = dashboard.ProductionVolumeHistory.Select(p => p.Label).ToArray();
+                var data = dashboard.ProductionVolumeHistory.Select(p => p.Value).ToArray();
+                await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "revenueChart", data, labels);
+            }
+
+            // Workload Doughnut Chart - Now using UserWorkloads from DTO
+            if (dashboard.UserWorkloads != null && dashboard.UserWorkloads.Any())
+            {
+                var topUsers = dashboard.UserWorkloads.Take(5).ToList();
+                var labels = topUsers.Select(u => u.UserName).ToArray();
+                var data = topUsers.Select(u => u.TaskCount).ToArray();
+                var colors = topUsers.Select(u => u.Color).ToArray();
+                
+                await JSRuntime.InvokeVoidAsync("seronaCharts.renderDoughnutChart", "workloadChart", data, labels, colors);
+            }
+
+            // Bar Chart (Stages)
+            if (dashboard.OperationsByStage != null && dashboard.OperationsByStage.Any())
+            {
+                var labels = dashboard.OperationsByStage.Keys.Select(TranslateStage).ToArray();
+                var data = dashboard.OperationsByStage.Values.ToArray();
+                await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "barChart", data, labels);
+            }
+        }
+    }
+
+    private async Task LoadDashboard()
+    {
+        try
+        {
+            loading = true;
+            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally 
+        {
+            loading = false;
+        }
+    }
+    
+    private string TranslateStage(string stage) => stage.ToLower() switch
+    {
+        "cutting" => Portuguese.Stage_Cutting,
+        "sewing" => Portuguese.Stage_Sewing,
+        "review" => Portuguese.Stage_Review,
+        "packaging" => Portuguese.Stage_Packaging,
+        _ => stage
+    };
+
+    private void ViewOrder(int id)
+    {
+        NavigationManager.NavigateTo($"/orders/{id}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SignalR.StopConnection();
+    }
+}
             </div>
 
             <!-- COLUMNA LATERAL (RIGHT WIDGETS) -->

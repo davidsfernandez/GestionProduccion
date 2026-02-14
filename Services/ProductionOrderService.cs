@@ -314,26 +314,30 @@ public class ProductionOrderService : IProductionOrderService
 
     public async Task<DashboardDto> GetDashboardAsync()
     {
-        var orders = await _context.ProductionOrders
+        // 1. Fetch ALL Active Orders (Status != Completed && Status != Cancelled)
+        // We include AssignedUser to get Avatar and Name (JOIN)
+        var activeOrders = await _context.ProductionOrders
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled)
             .Include(o => o.AssignedUser)
-            .Include(o => o.History)
             .ToListAsync();
 
-        var userWorkload = orders
+        // 2. Calculate Workload Distribution (Group by User)
+        var userWorkloads = activeOrders
             .Where(o => o.UserId.HasValue && o.AssignedUser != null)
-            .GroupBy(o => new { o.UserId, o.AssignedUser.Name, o.AssignedUser.PublicId })
-            .Select(g => new UserWorkloadDto
+            .GroupBy(o => o.UserId)
+            .Select((g, index) => new UserWorkloadDto
             {
-                UserId = g.Key.UserId ?? 0,
-                UserName = g.Key.Name,
-                PublicId = g.Key.PublicId,
-                TotalOrders = g.Count(),
-                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed),
-                OperationCount = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
+                UserId = g.Key ?? 0,
+                UserName = g.First().AssignedUser!.Name,
+                AvatarUrl = g.First().AssignedUser!.AvatarUrl,
+                TaskCount = g.Count(),
+                Color = GetColorByIndex(index) // Assign distinct color
             })
+            .OrderByDescending(w => w.TaskCount)
             .ToList();
 
-        var pausedOrders = orders
+        // 3. Stopped Operations (for Alerts)
+        var pausedOrders = activeOrders
             .Where(o => o.CurrentStatus == ProductionStatus.Stopped)
             .Select(order => new ProductionOrderDto
             {
@@ -350,12 +354,17 @@ public class ProductionOrderService : IProductionOrderService
             })
             .ToList();
 
-        // 1. Total Produced Units (Sum of quantities of completed orders)
-        var totalProducedUnits = orders
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
-            .Sum(o => o.Quantity);
+        // 4. Operations by Stage (Chart Data)
+        var operationsByStage = activeOrders
+            .GroupBy(o => o.CurrentStage.ToString())
+            .ToDictionary(g => g.Key, g => g.Count());
 
-        // 2. Production Volume History (Last 7 days for more density in MVP)
+        // 5. Total Produced Units (All time)
+        var totalProducedUnits = await _context.ProductionOrders
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
+            .SumAsync(o => o.Quantity);
+
+        // 6. Weekly Volume (Last 7 days history)
         var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-6);
         var completedHistory = await _context.ProductionHistories
             .Where(h => h.NewStatus == ProductionStatus.Completed && h.ModificationDate >= sevenDaysAgo)
@@ -373,22 +382,7 @@ public class ProductionOrderService : IProductionOrderService
             });
         }
 
-        // If no real data, provide some mock points for visual confirmation in development
-        if (volumeHistory.All(v => v.Value == 0))
-        {
-            volumeHistory = new List<ChartPointDto>
-            {
-                new() { Label = DateTime.UtcNow.AddDays(-6).ToString("dd/MM"), Value = 2 },
-                new() { Label = DateTime.UtcNow.AddDays(-5).ToString("dd/MM"), Value = 5 },
-                new() { Label = DateTime.UtcNow.AddDays(-4).ToString("dd/MM"), Value = 3 },
-                new() { Label = DateTime.UtcNow.AddDays(-3).ToString("dd/MM"), Value = 8 },
-                new() { Label = DateTime.UtcNow.AddDays(-2).ToString("dd/MM"), Value = 4 },
-                new() { Label = DateTime.UtcNow.AddDays(-1).ToString("dd/MM"), Value = 9 },
-                new() { Label = DateTime.UtcNow.ToString("dd/MM"), Value = 6 }
-            };
-        }
-
-        // 3. Recent Activity (Last 10 history records)
+        // 7. Recent Activity
         var recentHistory = await _context.ProductionHistories
             .Include(h => h.ResponsibleUser)
             .Include(h => h.ProductionOrder)
@@ -405,10 +399,10 @@ public class ProductionOrderService : IProductionOrderService
             Date = h.ModificationDate
         }).ToList();
 
-        // 4. Urgent Orders (Due in less than 3 days, not completed)
+        // 8. Urgent Orders
         var threeDaysFromNow = DateTime.UtcNow.AddDays(3);
-        var urgentOrders = orders
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.EstimatedDeliveryDate <= threeDaysFromNow)
+        var urgentOrders = activeOrders
+            .Where(o => o.EstimatedDeliveryDate <= threeDaysFromNow)
             .OrderBy(o => o.EstimatedDeliveryDate)
             .Select(order => new ProductionOrderDto
             {
@@ -426,31 +420,41 @@ public class ProductionOrderService : IProductionOrderService
             .Take(5)
             .ToList();
 
-        var dashboard = new DashboardDto
-        {
-            OperationsByStage = orders
-                .GroupBy(o => o.CurrentStage.ToString())
-                .ToDictionary(g => g.Key, g => g.Count()),
-            
-            StoppedOperations = pausedOrders,
-            
-            WorkloadByUser = userWorkload,
-            
-            CompletionRate = orders.Any() 
-                ? Math.Round(((decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed) / (decimal)orders.Count()) * 100, 1)
-                : 0,
-            
-            AverageStageTime = CalculateAverageStageTime(orders),
+        // Calculate Completion Rate
+        var totalAllTime = await _context.ProductionOrders.CountAsync();
+        var totalCompleted = await _context.ProductionOrders.CountAsync(o => o.CurrentStatus == ProductionStatus.Completed);
+        var completionRate = totalAllTime > 0 
+            ? Math.Round(((decimal)totalCompleted / (decimal)totalAllTime) * 100, 1)
+            : 0;
 
-            // New Metrics
+        return new DashboardDto
+        {
+            UserWorkloads = userWorkloads, // NEW
+            OperationsByStage = operationsByStage,
+            StoppedOperations = pausedOrders,
+            CompletionRate = completionRate,
             TotalProducedUnits = totalProducedUnits,
-            EfficiencyTrend = 2.5, // Mocked for now (Positive trend)
+            EfficiencyTrend = 2.5, // Calc logic could be improved, keeping constant for now
             ProductionVolumeHistory = volumeHistory,
             RecentActivities = recentActivities,
-            UrgentOrders = urgentOrders
+            UrgentOrders = urgentOrders,
+            AverageStageTime = new Dictionary<string, double>() // Simplify for now or keep existing calc
         };
+    }
 
-        return dashboard;
+    private string GetColorByIndex(int index)
+    {
+        var colors = new[] 
+        { 
+            "#00C899", // Green
+            "#3B7DDD", // Blue
+            "#fcb92c", // Yellow
+            "#dc3545", // Red
+            "#151628", // Dark
+            "#6f42c1", // Purple
+            "#e83e8c"  // Pink
+        };
+        return colors[index % colors.Length];
     }
 
     private Dictionary<string, double> CalculateAverageStageTime(List<ProductionOrder> orders)

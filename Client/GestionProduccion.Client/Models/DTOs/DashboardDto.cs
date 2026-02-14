@@ -4,7 +4,7 @@ public class DashboardDto
 {
     public Dictionary<string, int> OperationsByStage { get; set; } = new();
     public List<StoppedOperationDto> StoppedOperations { get; set; } = new();
-    public List<UserWorkloadDto> WorkloadByUser { get; set; } = new();
+    public List<UserWorkloadDto> UserWorkloads { get; set; } = new();
     public decimal CompletionRate { get; set; }
     public Dictionary<string, double> AverageStageTime { get; set; } = new();
 
@@ -16,32 +16,11 @@ public class DashboardDto
     public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
 }
 
-public class RecentActivityDto
-{
-    public int OrderId { get; set; }
-    public string UniqueCode { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
-    public DateTime Date { get; set; }
-}
-
-public class ChartPointDto
-{
-    public string Label { get; set; } = string.Empty;
-    public double Value { get; set; }
-}
-
-public class StoppedOperationDto
-{
-    public int Id { get; set; }
-    public string UniqueCode { get; set; } = string.Empty;
-    public string ProductDescription { get; set; } = string.Empty;
-    public DateTime EstimatedDeliveryDate { get; set; }
-}
-
 public class UserWorkloadDto
 {
+    public int UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
-    public string PublicId { get; set; } = string.Empty;
-    public int OperationCount { get; set; }
+    public string AvatarUrl { get; set; } = string.Empty;
+    public int TaskCount { get; set; }
+    public string Color { get; set; } = string.Empty;
 }
