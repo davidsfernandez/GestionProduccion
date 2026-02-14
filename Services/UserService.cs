@@ -48,6 +48,7 @@ public class UserService : IUserService
     public async Task<List<User>> GetActiveUsersAsync()
     {
         return await _context.Users
+            .AsNoTracking()
             .Where(u => u.IsActive)
             .Include(u => u.AssignedOrders)
             .OrderBy(u => u.Name)
@@ -65,6 +66,7 @@ public class UserService : IUserService
         }
 
         return await _context.Users
+            .AsNoTracking()
             .Where(u => u.IsActive && u.Role.ToString() == role)
             .Include(u => u.AssignedOrders)
             .OrderBy(u => u.Name)

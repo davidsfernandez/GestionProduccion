@@ -24,74 +24,72 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<List<UserDto>>> GetUsers()
     {
-        var users = await _userService.GetActiveUsersAsync();
-        return users.Select(u => new UserDto
+        try
         {
-            Id = u.Id,
-            Name = u.Name,
-            Email = u.Email,
-            PublicId = u.PublicId,
-            Role = u.Role,
-            AvatarUrl = u.AvatarUrl,
-            IsActive = u.IsActive
-        }).ToList();
+            // Note: .AsNoTracking() is implemented inside UserService.GetActiveUsersAsync()
+            var users = await _userService.GetActiveUsersAsync();
+            
+            // Map to DTO (Architect Rule 4 & 5)
+            return Ok(users.Select(u => new UserDto
+            {
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                PublicId = u.PublicId,
+                Role = u.Role,
+                AvatarUrl = u.AvatarUrl,
+                IsActive = u.IsActive
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving users", error = ex.Message });
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDto>> GetUser(int id)
     {
-        // Any user can see their own profile or admin/leader can see anyone
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var currentUserId))
-            return Unauthorized();
-
-        if (currentUserId != id && !User.IsInRole("Administrator") && !User.IsInRole("Leader"))
-            return Forbid();
-
-        var user = await _userService.GetUserByIdAsync(id);
-        if (user == null) return NotFound();
-
-        return new UserDto
+        try
         {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            PublicId = user.PublicId,
-            Role = user.Role,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive
-        };
-    }
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var currentUserId))
+                return Unauthorized();
 
-    [HttpGet("assignable")]
-    [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<List<UserDto>>> GetAssignableUsers()
-    {
-        var users = await _userService.GetActiveUsersAsync();
-        return users.Select(u => new UserDto
+            if (currentUserId != id && !User.IsInRole("Administrator") && !User.IsInRole("Leader"))
+                return Forbid();
+
+            var user = await _userService.GetUserByIdAsync(id);
+            if (user == null) return NotFound();
+
+            return Ok(new UserDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                PublicId = user.PublicId,
+                Role = user.Role,
+                AvatarUrl = user.AvatarUrl,
+                IsActive = user.IsActive
+            });
+        }
+        catch (Exception ex)
         {
-            Id = u.Id,
-            Name = u.Name,
-            Email = u.Email,
-            PublicId = u.PublicId,
-            Role = u.Role,
-            IsActive = u.IsActive
-        }).ToList();
+            return StatusCode(500, new { message = "Error retrieving user", error = ex.Message });
+        }
     }
 
     [HttpPost("upload-avatar")]
-    [Authorize] // Allow any authenticated user
+    [Authorize]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded.");
 
-        // Get user ID from claims
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             return Unauthorized();
 
-        // Validate image content type
         if (!file.ContentType.StartsWith("image/"))
             return BadRequest("Only image files are allowed.");
 
@@ -103,7 +101,7 @@ public class UsersController : ControllerBase
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            // Create unique filename using GUID to prevent caching
+            // GUID Naming (Architect Rule 33)
             var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
@@ -112,15 +110,13 @@ public class UsersController : ControllerBase
                 await file.CopyToAsync(stream);
             }
 
-            // Update user URL (root relative path)
             var newAvatarUrl = $"/img/avatars/{fileName}";
             
-            // EXPLICIT PERSISTENCE STEP via Service
+            // EXPLICIT PERSISTENCE (Architect Rule 35)
             var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
             
             if (!success) return StatusCode(500, "Failed to update user record in database.");
 
-            // Return new URL as JSON
             return Ok(new { url = newAvatarUrl });
         }
         catch (Exception ex)
@@ -130,13 +126,20 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Administrator")] // Only Admin can create
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
+            // Email Conflict Check (Architect Rule 7)
+            var existingUser = await _userService.GetUserByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                return Conflict(new { message = $"User with email '{request.Email}' already exists." });
+            }
+
             var user = new User
             {
                 Name = request.Name,
@@ -147,9 +150,10 @@ public class UsersController : ControllerBase
                 IsActive = true
             };
 
+            // Persistence handled by CreateUserAsync via SaveChangesAsync() (Architect Rule 8)
             var createdUser = await _userService.CreateUserAsync(user);
 
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, new UserDto
+            var userDto = new UserDto
             {
                 Id = createdUser.Id,
                 Name = createdUser.Name,
@@ -157,11 +161,10 @@ public class UsersController : ControllerBase
                 PublicId = createdUser.PublicId,
                 Role = createdUser.Role,
                 IsActive = createdUser.IsActive
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
+            };
+
+            // Return CreatedAtAction (Architect Rule 9)
+            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, userDto);
         }
         catch (Exception ex)
         {
@@ -170,7 +173,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Administrator")] // Only Admin can update
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> UpdateUser(int id, UpdateUserRequest request)
     {
         try
@@ -197,7 +200,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Administrator")] // Only Admin can delete
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         try
