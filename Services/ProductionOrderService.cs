@@ -79,6 +79,8 @@ public class ProductionOrderService : IProductionOrderService
             ProductDescription = request.ProductDescription,
             Quantity = request.Quantity,
             EstimatedDeliveryDate = request.EstimatedDeliveryDate,
+            ClientName = request.ClientName,
+            Size = request.Size,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
             CreationDate = DateTime.UtcNow,
@@ -126,6 +128,8 @@ public class ProductionOrderService : IProductionOrderService
             UniqueCode = order.UniqueCode,
             ProductDescription = order.ProductDescription,
             Quantity = order.Quantity,
+            ClientName = order.ClientName,
+            Size = order.Size,
             CurrentStage = order.CurrentStage.ToString(),
             CurrentStatus = order.CurrentStatus.ToString(),
             CreationDate = order.CreationDate,
@@ -186,6 +190,8 @@ public class ProductionOrderService : IProductionOrderService
                 UniqueCode = po.UniqueCode,
                 ProductDescription = po.ProductDescription,
                 Quantity = po.Quantity,
+                ClientName = po.ClientName,
+                Size = po.Size,
                 CurrentStage = po.CurrentStage.ToString(),
                 CurrentStatus = po.CurrentStatus.ToString(),
                 CreationDate = po.CreationDate,
@@ -314,101 +320,84 @@ public class ProductionOrderService : IProductionOrderService
 
     public async Task<DashboardDto> GetDashboardAsync()
     {
-        var orders = await _context.ProductionOrders
+        var now = DateTime.UtcNow;
+        var today = now.Date;
+
+        // QUERY 1: Total Active Orders
+        var activeOrdersQuery = _context.ProductionOrders
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
+        
+        var totalActiveOrders = await activeOrdersQuery.CountAsync();
+
+        // QUERY 2: Completed Today
+        var completedToday = await _context.ProductionHistories
+            .Where(h => h.NewStatus == ProductionStatus.Completed && h.ModificationDate >= today)
+            .Select(h => h.ProductionOrderId)
+            .Distinct()
+            .CountAsync();
+
+        // QUERY 3: Average Lead Time (Last 30 Days)
+        var thirtyDaysAgo = now.AddDays(-30);
+        var completedOrders30Days = await _context.ProductionOrders
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.ModificationDate >= thirtyDaysAgo)
+            .Select(o => new { o.CreationDate, o.ModificationDate })
+            .ToListAsync();
+
+        double avgLeadTime = 0;
+        if (completedOrders30Days.Any())
+        {
+            avgLeadTime = completedOrders30Days.Average(o => (o.ModificationDate - o.CreationDate).TotalHours);
+        }
+
+        // QUERY 4: Weekly Volume (Last 7 Days - Exact Array)
+        var weeklyVolume = new List<int>();
+        for (int i = 6; i >= 0; i--)
+        {
+            var day = today.AddDays(-i);
+            var nextDay = day.AddDays(1);
+            
+            var count = await _context.ProductionOrders
+                .CountAsync(o => o.CreationDate >= day && o.CreationDate < nextDay);
+            
+            weeklyVolume.Add(count);
+        }
+
+        // QUERY 5: Workload Distribution
+        var workloadData = await activeOrdersQuery
             .Include(o => o.AssignedUser)
-            .Include(o => o.History)
-            .ToListAsync();
-
-        var userWorkload = orders
             .Where(o => o.UserId.HasValue && o.AssignedUser != null)
-            .GroupBy(o => new { o.UserId, o.AssignedUser.Name, o.AssignedUser.PublicId })
-            .Select(g => new UserWorkloadDto
+            .GroupBy(o => o.UserId)
+            .Select(g => new
             {
-                UserId = g.Key.UserId ?? 0,
-                UserName = g.Key.Name,
-                PublicId = g.Key.PublicId,
-                TotalOrders = g.Count(),
-                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed),
-                OperationCount = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
+                UserId = g.Key,
+                Name = g.First().AssignedUser!.Name,
+                AvatarUrl = g.First().AssignedUser!.AvatarUrl,
+                Count = g.Count()
             })
-            .ToList();
-
-        var pausedOrders = orders
-            .Where(o => o.CurrentStatus == ProductionStatus.Stopped)
-            .Select(order => new ProductionOrderDto
-            {
-                Id = order.Id,
-                UniqueCode = order.UniqueCode,
-                ProductDescription = order.ProductDescription,
-                Quantity = order.Quantity,
-                CurrentStage = order.CurrentStage.ToString(),
-                CurrentStatus = order.CurrentStatus.ToString(),
-                CreationDate = order.CreationDate,
-                EstimatedDeliveryDate = order.EstimatedDeliveryDate,
-                UserId = order.UserId,
-                AssignedUserName = order.AssignedUser?.Name
-            })
-            .ToList();
-
-        // 1. Total Produced Units (Sum of quantities of completed orders)
-        var totalProducedUnits = orders
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
-            .Sum(o => o.Quantity);
-
-        // 2. Production Volume History (Last 7 days for more density in MVP)
-        var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-6);
-        var completedHistory = await _context.ProductionHistories
-            .Where(h => h.NewStatus == ProductionStatus.Completed && h.ModificationDate >= sevenDaysAgo)
             .ToListAsync();
 
-        var volumeHistory = new List<ChartPointDto>();
-        for (int i = 0; i < 7; i++)
-        {
-            var date = sevenDaysAgo.AddDays(i);
-            var count = completedHistory.Count(h => h.ModificationDate.Date == date);
-            volumeHistory.Add(new ChartPointDto
+        var workloadDistribution = workloadData
+            .Select((w, index) => new WorkerStatsDto
             {
-                Label = date.ToString("dd/MM"),
-                Value = count
-            });
-        }
+                Name = w.Name,
+                AvatarUrl = string.IsNullOrEmpty(w.AvatarUrl) ? "/img/avatars/avatar.jpg" : w.AvatarUrl,
+                ActiveCount = w.Count,
+                EfficiencyScore = 95.0,
+                Color = GetColorByIndex(index)
+            })
+            .OrderByDescending(w => w.ActiveCount)
+            .ToList();
 
-        // If no real data, provide some mock points for visual confirmation in development
-        if (volumeHistory.All(v => v.Value == 0))
-        {
-            volumeHistory = new List<ChartPointDto>
-            {
-                new() { Label = DateTime.UtcNow.AddDays(-6).ToString("dd/MM"), Value = 2 },
-                new() { Label = DateTime.UtcNow.AddDays(-5).ToString("dd/MM"), Value = 5 },
-                new() { Label = DateTime.UtcNow.AddDays(-4).ToString("dd/MM"), Value = 3 },
-                new() { Label = DateTime.UtcNow.AddDays(-3).ToString("dd/MM"), Value = 8 },
-                new() { Label = DateTime.UtcNow.AddDays(-2).ToString("dd/MM"), Value = 4 },
-                new() { Label = DateTime.UtcNow.AddDays(-1).ToString("dd/MM"), Value = 9 },
-                new() { Label = DateTime.UtcNow.ToString("dd/MM"), Value = 6 }
-            };
-        }
+        // QUERY 6: Orders By Stage
+        var ordersByStage = await activeOrdersQuery
+            .GroupBy(o => o.CurrentStage)
+            .Select(g => new { Stage = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.Stage.ToString(), g => g.Count);
 
-        // 3. Recent Activity (Last 10 history records)
-        var recentHistory = await _context.ProductionHistories
-            .Include(h => h.ResponsibleUser)
-            .Include(h => h.ProductionOrder)
-            .OrderByDescending(h => h.ModificationDate)
-            .Take(10)
-            .ToListAsync();
-
-        var recentActivities = recentHistory.Select(h => new RecentActivityDto
-        {
-            OrderId = h.ProductionOrderId,
-            UniqueCode = h.ProductionOrder?.UniqueCode ?? "N/A",
-            UserName = h.ResponsibleUser?.Name ?? "System",
-            Action = h.Note,
-            Date = h.ModificationDate
-        }).ToList();
-
-        // 4. Urgent Orders (Due in less than 3 days, not completed)
-        var threeDaysFromNow = DateTime.UtcNow.AddDays(3);
-        var urgentOrders = orders
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.EstimatedDeliveryDate <= threeDaysFromNow)
+        // EXTRA: Urgent & Stopped
+        var threeDaysFromNow = now.AddDays(3);
+        var urgentOrders = await activeOrdersQuery
+            .Where(o => o.EstimatedDeliveryDate <= threeDaysFromNow)
             .OrderBy(o => o.EstimatedDeliveryDate)
             .Select(order => new ProductionOrderDto
             {
@@ -418,39 +407,76 @@ public class ProductionOrderService : IProductionOrderService
                 Quantity = order.Quantity,
                 CurrentStage = order.CurrentStage.ToString(),
                 CurrentStatus = order.CurrentStatus.ToString(),
-                CreationDate = order.CreationDate,
-                EstimatedDeliveryDate = order.EstimatedDeliveryDate,
-                UserId = order.UserId,
-                AssignedUserName = order.AssignedUser?.Name
+                EstimatedDeliveryDate = order.EstimatedDeliveryDate
             })
             .Take(5)
-            .ToList();
+            .ToListAsync();
 
-        var dashboard = new DashboardDto
+        var stoppedOrders = await activeOrdersQuery
+            .Where(o => o.CurrentStatus == ProductionStatus.Stopped)
+            .Select(order => new ProductionOrderDto
+            {
+                Id = order.Id,
+                UniqueCode = order.UniqueCode,
+                ProductDescription = order.ProductDescription,
+                EstimatedDeliveryDate = order.EstimatedDeliveryDate
+            })
+            .Take(5)
+            .ToListAsync();
+
+        // Recent Activity
+        var recentHistory = await _context.ProductionHistories
+            .Include(h => h.ResponsibleUser)
+            .Include(h => h.ProductionOrder)
+            .OrderByDescending(h => h.ModificationDate)
+            .Take(10)
+            .Select(h => new RecentActivityDto
+            {
+                OrderId = h.ProductionOrderId,
+                UniqueCode = h.ProductionOrder != null ? h.ProductionOrder.UniqueCode : "N/A",
+                UserName = h.ResponsibleUser != null ? h.ResponsibleUser.Name : "System",
+                Action = h.Note ?? h.NewStatus.ToString(),
+                Date = h.ModificationDate
+            })
+            .ToListAsync();
+
+        // Calc Completion Rate (All Time)
+        var totalAll = await _context.ProductionOrders.CountAsync();
+        var totalComp = await _context.ProductionOrders.CountAsync(o => o.CurrentStatus == ProductionStatus.Completed);
+        var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
+
+        return new DashboardDto
         {
-            OperationsByStage = orders
-                .GroupBy(o => o.CurrentStage.ToString())
-                .ToDictionary(g => g.Key, g => g.Count()),
-            
-            StoppedOperations = pausedOrders,
-            
-            WorkloadByUser = userWorkload,
-            
-            CompletionRate = orders.Any() 
-                ? Math.Round(((decimal)orders.Count(o => o.CurrentStatus == ProductionStatus.Completed) / (decimal)orders.Count()) * 100, 1)
-                : 0,
-            
-            AverageStageTime = CalculateAverageStageTime(orders),
-
-            // New Metrics
-            TotalProducedUnits = totalProducedUnits,
-            EfficiencyTrend = 2.5, // Mocked for now (Positive trend)
-            ProductionVolumeHistory = volumeHistory,
-            RecentActivities = recentActivities,
-            UrgentOrders = urgentOrders
+            TotalActiveOrders = totalActiveOrders,
+            CompletedToday = completedToday,
+            AverageLeadTimeHours = Math.Round(avgLeadTime, 1),
+            WeeklyVolumeData = weeklyVolume,
+            WorkloadDistribution = workloadDistribution,
+            OrdersByStage = ordersByStage,
+            UrgentOrders = urgentOrders,
+            StoppedOperations = stoppedOrders.Select(o => new StoppedOperationDto 
+            { 
+                Id = o.Id, UniqueCode = o.UniqueCode, ProductDescription = o.ProductDescription, EstimatedDeliveryDate = o.EstimatedDeliveryDate 
+            }).ToList(),
+            RecentActivities = recentHistory,
+            CompletionRate = Math.Round(rate, 1),
+            LastUpdated = DateTime.Now
         };
+    }
 
-        return dashboard;
+    private string GetColorByIndex(int index)
+    {
+        var colors = new[] 
+        { 
+            "#00C899", // Green
+            "#3B7DDD", // Blue
+            "#fcb92c", // Yellow
+            "#dc3545", // Red
+            "#151628", // Dark
+            "#6f42c1", // Purple
+            "#e83e8c"  // Pink
+        };
+        return colors[index % colors.Length];
     }
 
     private Dictionary<string, double> CalculateAverageStageTime(List<ProductionOrder> orders)
@@ -493,14 +519,14 @@ public class ProductionOrderService : IProductionOrderService
             {
                 Id = h.Id,
                 ProductionOrderId = h.ProductionOrderId,
-                PreviousStage = h.PreviousStage.ToString(),
+                PreviousStage = h.PreviousStage != null ? h.PreviousStage.ToString() : string.Empty,
                 NewStage = h.NewStage.ToString(),
-                PreviousStatus = h.PreviousStatus.ToString(),
+                PreviousStatus = h.PreviousStatus != null ? h.PreviousStatus.ToString() : string.Empty,
                 NewStatus = h.NewStatus.ToString(),
                 UserId = h.UserId,
                 UserName = h.ResponsibleUser != null ? h.ResponsibleUser.Name : "Unknown",
                 ModificationDate = h.ModificationDate,
-                Note = h.Note
+                Note = h.Note ?? string.Empty
             })
             .ToListAsync();
 

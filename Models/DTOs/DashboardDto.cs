@@ -1,49 +1,60 @@
+using System;
 using System.Collections.Generic;
 
-namespace GestionProduccion.Models.DTOs
+namespace GestionProduccion.Models.DTOs;
+
+public class DashboardDto
 {
-    public class DashboardDto
-    {
-        public Dictionary<string, int> OperationsByStage { get; set; } = new();
+    // --- KEY METRICS ---
+    public int TotalActiveOrders { get; set; }
+    public int CompletedToday { get; set; }
+    public double AverageLeadTimeHours { get; set; } // Efficiency Metric
+    public decimal CompletionRate { get; set; }
 
-        public List<ProductionOrderDto> StoppedOperations { get; set; } = new();
+    // --- CHARTS DATA ---
+    public List<int> WeeklyVolumeData { get; set; } = new(); // Exact 7 days array
+    public Dictionary<string, int> OrdersByStage { get; set; } = new();
+    public List<WorkerStatsDto> WorkloadDistribution { get; set; } = new();
 
-        public List<UserWorkloadDto> WorkloadByUser { get; set; } = new();
+    // --- LISTS & ALERTS ---
+    public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
+    public List<StoppedOperationDto> StoppedOperations { get; set; } = new();
+    public List<RecentActivityDto> RecentActivities { get; set; } = new();
 
-        public decimal CompletionRate { get; set; }
+    // --- CONTROL ---
+    public DateTime LastUpdated { get; set; }
+}
 
-        public Dictionary<string, double> AverageStageTime { get; set; } = new();
+public class StoppedOperationDto
+{
+    public int Id { get; set; }
+    public string UniqueCode { get; set; } = string.Empty;
+    public string ProductDescription { get; set; } = string.Empty;
+    public DateTime EstimatedDeliveryDate { get; set; }
+}
 
-        // Serona / Financial Style Metrics
-        public int TotalProducedUnits { get; set; }
-        public double EfficiencyTrend { get; set; } // e.g. 2.5 for +2.5%
-        public List<ChartPointDto> ProductionVolumeHistory { get; set; } = new();
-        public List<RecentActivityDto> RecentActivities { get; set; } = new();
-        public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
-    }
+public class WorkerStatsDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string AvatarUrl { get; set; } = string.Empty;
+    public int ActiveCount { get; set; }
+    public double EfficiencyScore { get; set; } // Mocked or Calc
+    public string Color { get; set; } = "#00C899"; // Helper for UI
+}
 
-    public class RecentActivityDto
-    {
-        public int OrderId { get; set; }
-        public string UniqueCode { get; set; } = string.Empty;
-        public string UserName { get; set; } = string.Empty;
-        public string Action { get; set; } = string.Empty; // e.g. "Moved to Sewing"
-        public DateTime Date { get; set; }
-    }
+// Keeping these for compatibility with ProductionOrderService internal references if needed, 
+// or for the lists above.
+public class RecentActivityDto
+{
+    public int OrderId { get; set; }
+    public string UniqueCode { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
+}
 
-    public class ChartPointDto
-    {
-        public string Label { get; set; } = string.Empty; // Date or Category
-        public double Value { get; set; }
-    }
-
-    public class UserWorkloadDto
-    {
-        public int UserId { get; set; }
-        public string UserName { get; set; } = string.Empty;
-        public string PublicId { get; set; } = string.Empty;
-        public int TotalOrders { get; set; }
-        public int PendingOrders { get; set; }
-        public int OperationCount { get; set; } // Consumed by Client as 'Active Load'
-    }
+public class ChartPointDto
+{
+    public string Label { get; set; } = string.Empty;
+    public double Value { get; set; }
 }

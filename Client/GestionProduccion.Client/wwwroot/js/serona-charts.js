@@ -75,7 +75,7 @@ window.seronaCharts = {
         });
     },
 
-    renderDoughnutChart: function (canvasId, data, labels) {
+    renderDoughnutChart: function (canvasId, data, labels, colors) {
         if (this.charts[canvasId]) {
             this.charts[canvasId].destroy();
         }
@@ -83,20 +83,18 @@ window.seronaCharts = {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         
+        // Use provided colors or fallback defaults
+        const bgColors = colors || [
+            '#00C899', '#151628', '#8A94A6', '#3B7DDD', '#fcb92c', '#dc3545'
+        ];
+
         this.charts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: [
-                        '#00C899', // Serona Green
-                        '#151628', // Dark
-                        '#8A94A6', // Gray
-                        '#3B7DDD', // Blue
-                        '#fcb92c', // Warning (Yellow)
-                        '#dc3545'  // Danger (Red)
-                    ],
+                    backgroundColor: bgColors,
                     borderWidth: 0,
                     hoverOffset: 4
                 }]

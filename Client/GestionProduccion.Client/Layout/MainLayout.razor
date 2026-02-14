@@ -4,9 +4,10 @@
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Client.Components
 @using GestionProduccion.Client.Resources
+@implements IDisposable
 
-<div class="wrapper">
-    <NavMenu IsOpen="_isSidebarOpen" />
+<div class="wrapper @(_sidebarOpen ? "sidebar-open" : "sidebar-closed")">
+    <NavMenu IsOpen="_sidebarOpen" />
 
     <div class="main">
         <nav class="navbar navbar-expand navbar-light navbar-bg">
@@ -41,14 +42,34 @@
             </div>
         </main>
     </div>
+
+    @if (_sidebarOpen)
+    {
+        <div class="sidebar-overlay" @onclick="ToggleSidebar"></div>
+    }
 </div>
 
 @code {
-    private bool _isSidebarOpen = false;
+    private bool _sidebarOpen = false;
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Close sidebar on navigation (Mobile UX)
+        if (_sidebarOpen)
+        {
+            _sidebarOpen = false;
+            StateHasChanged();
+        }
+    }
 
     private void ToggleSidebar()
     {
-        _isSidebarOpen = !_isSidebarOpen;
+        _sidebarOpen = !_sidebarOpen;
     }
 
     private async Task Logout()
@@ -56,5 +77,10 @@
         var customAuthStateProvider = (CustomAuthStateProvider)AuthStateProvider;
         await customAuthStateProvider.MarkUserAsLoggedOut();
         NavigationManager.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

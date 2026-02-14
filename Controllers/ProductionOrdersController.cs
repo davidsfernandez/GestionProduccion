@@ -201,6 +201,25 @@ public class ProductionOrdersController : ControllerBase
         return Ok(dashboardData);
     }
 
+    [HttpGet("{id}/pdf")]
+    public async Task<IActionResult> GetOrderPdf(int id, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var order = await _productionOrderService.GetProductionOrderByIdAsync(id);
+            if (order == null) return NotFound(new { message = "Order not found." });
+
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
+            if (pdfBytes == null) return NotFound(new { message = "Could not generate PDF." });
+            
+            return File(pdfBytes, "application/pdf", $"Orden_{order.UniqueCode}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating PDF", error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}/report")]
     public async Task<IActionResult> GetOrderReport(int id, [FromServices] IReportService reportService)
     {

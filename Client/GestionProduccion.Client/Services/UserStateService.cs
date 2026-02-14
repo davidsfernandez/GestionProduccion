@@ -16,7 +16,7 @@ public class UserStateService
         NotifyStateChanged();
     }
 
-    public void UpdateAvatar(string newUrl)
+    public void UpdateAvatar(string? newUrl)
     {
         AvatarUrl = newUrl;
         NotifyStateChanged();

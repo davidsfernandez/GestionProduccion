@@ -91,23 +91,20 @@ public class UsersController : ControllerBase
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             return Unauthorized();
 
-        var user = await _userService.GetUserByIdAsync(userId);
-        if (user == null) return NotFound("User not found.");
-
-        // Validate image
+        // Validate image content type
         if (!file.ContentType.StartsWith("image/"))
             return BadRequest("Only image files are allowed.");
 
         try
         {
             var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-            var uploadsFolder = Path.Combine(webRootPath, "uploads");
+            var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
             
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            // Create unique filename
-            var fileName = $"{userId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            // Create unique filename using GUID to prevent caching
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -116,17 +113,15 @@ public class UsersController : ControllerBase
             }
 
             // Update user URL (root relative path)
-            var newAvatarUrl = $"/uploads/{fileName}";
+            var newAvatarUrl = $"/img/avatars/{fileName}";
             
-            // EXPLICIT PERSISTENCE STEP (Fixes Bug)
+            // EXPLICIT PERSISTENCE STEP via Service
             var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
             
-            // NOTE: RefreshSignInAsync is not applicable here as we use Stateless JWT Authentication.
-            // The Client (Blazor WASM) updates its local state via UserStateService immediately upon success.
-            
-            if (!success) return StatusCode(500, "Failed to update user record.");
+            if (!success) return StatusCode(500, "Failed to update user record in database.");
 
-            return Ok(new { avatarUrl = newAvatarUrl });
+            // Return new URL as JSON
+            return Ok(new { url = newAvatarUrl });
         }
         catch (Exception ex)
         {
