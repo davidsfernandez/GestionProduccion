@@ -16,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - avatars_data:/app/wwwroot/uploads
     networks:
       - prod_network
 
@@ -42,6 +44,7 @@ services:
 
 volumes:
   mysql_data:
+  avatars_data:
 
 networks:
   prod_network:

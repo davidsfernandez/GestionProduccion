@@ -328,7 +328,8 @@ public class ProductionOrderService : IProductionOrderService
                 UserName = g.Key.Name,
                 PublicId = g.Key.PublicId,
                 TotalOrders = g.Count(),
-                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
+                PendingOrders = g.Count(o => o.CurrentStatus != ProductionStatus.Completed),
+                OperationCount = g.Count(o => o.CurrentStatus != ProductionStatus.Completed)
             })
             .ToList();
 

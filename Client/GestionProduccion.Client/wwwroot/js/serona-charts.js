@@ -93,7 +93,9 @@ window.seronaCharts = {
                         '#00C899', // Serona Green
                         '#151628', // Dark
                         '#8A94A6', // Gray
-                        '#3B7DDD'  // Blue
+                        '#3B7DDD', // Blue
+                        '#fcb92c', // Warning (Yellow)
+                        '#dc3545'  // Danger (Red)
                     ],
                     borderWidth: 0,
                     hoverOffset: 4

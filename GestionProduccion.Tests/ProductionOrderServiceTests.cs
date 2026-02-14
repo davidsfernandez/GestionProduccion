@@ -194,4 +194,124 @@ public class ProductionOrderServiceTests : IDisposable
         var updatedOrder = await _context.ProductionOrders.FindAsync(order.Id);
         Assert.Equal(user.Id, updatedOrder.UserId);
     }
+
+    [Fact]
+    public async Task GetDashboardAsync_ShouldReturnCorrectMetrics()
+    {
+        // Arrange
+        var orders = new List<ProductionOrder>
+        {
+            new() { Id = 101, UniqueCode = "OP-DB-1", Quantity = 100, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.Completed, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(1) },
+            new() { Id = 102, UniqueCode = "OP-DB-2", Quantity = 50, CurrentStage = ProductionStage.Sewing, CurrentStatus = ProductionStatus.InProduction, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(2) },
+            new() { Id = 103, UniqueCode = "OP-DB-3", Quantity = 50, CurrentStage = ProductionStage.Sewing, CurrentStatus = ProductionStatus.InProduction, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(3) },
+            new() { Id = 104, UniqueCode = "OP-DB-4", Quantity = 200, CurrentStage = ProductionStage.Packaging, CurrentStatus = ProductionStatus.Stopped, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(4) }
+        };
+        
+        // Add mocked history for volume calculation (Last 7 days)
+        var history = new ProductionHistory 
+        { 
+            ProductionOrderId = 101, 
+            NewStatus = ProductionStatus.Completed, 
+            ModificationDate = DateTime.UtcNow.AddDays(-1),
+            UserId = 1
+        };
+
+        _context.ProductionOrders.AddRange(orders);
+        _context.ProductionHistories.Add(history);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetDashboardAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(100, result.TotalProducedUnits); // Only OP-DB-1 is completed
+        Assert.Equal(25.0m, (decimal)result.CompletionRate); // 1 out of 4 is completed
+        
+        Assert.Contains("Sewing", result.OperationsByStage.Keys);
+        Assert.Equal(2, result.OperationsByStage["Sewing"]); // OP-DB-2 and OP-DB-3
+        
+        Assert.Single(result.StoppedOperations); // OP-DB-4
+        Assert.Equal("OP-DB-4", result.StoppedOperations[0].UniqueCode);
+    }
+
+    [Fact]
+    public async Task AssignTaskAsync_ShouldLogHistoryWithCorrectUserId()
+    {
+        // Arrange
+        var order = new ProductionOrder
+        {
+            Id = 5,
+            UniqueCode = "OP-LOG-001",
+            ProductDescription = "Log Test",
+            Quantity = 10,
+            CurrentStage = ProductionStage.Cutting,
+            CurrentStatus = ProductionStatus.InProduction,
+            CreationDate = DateTime.UtcNow
+        };
+        var targetUser = new User { Id = 20, Name = "Operator 2", Role = UserRole.Operator };
+        
+        _context.ProductionOrders.Add(order);
+        _context.Users.Add(targetUser);
+        await _context.SaveChangesAsync();
+
+        // Mock HttpContext to return UserId = 99 (Admin/Manager who assigns)
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, "99"),
+            new Claim(ClaimTypes.Name, "Manager User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(c => c.User).Returns(claimsPrincipal);
+        _mockHttpContextAccessor.Setup(a => a.HttpContext).Returns(mockHttpContext.Object);
+
+        // Act
+        await _service.AssignTaskAsync(order.Id, targetUser.Id);
+
+        // Assert
+        var history = await _context.ProductionHistories
+            .Where(h => h.ProductionOrderId == order.Id && h.Note.Contains($"Assigned to {targetUser.Name}"))
+            .FirstOrDefaultAsync();
+            
+        Assert.NotNull(history);
+        Assert.Equal(99, history.UserId); // Verify the history was logged by user 99
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ShouldUpdateStatus_WhenValidTransition()
+    {
+        // Arrange
+        var order = new ProductionOrder
+        {
+            Id = 6,
+            UniqueCode = "OP-STATUS-002",
+            ProductDescription = "Status Change Test",
+            Quantity = 10,
+            CurrentStage = ProductionStage.Sewing,
+            CurrentStatus = ProductionStatus.InProduction,
+            CreationDate = DateTime.UtcNow
+        };
+        _context.ProductionOrders.Add(order);
+        await _context.SaveChangesAsync();
+
+        int modifierUserId = 55;
+
+        // Act
+        var result = await _service.UpdateStatusAsync(order.Id, ProductionStatus.Stopped, "Machine broke", modifierUserId);
+
+        // Assert
+        Assert.True(result);
+        
+        var dbOrder = await _context.ProductionOrders.FindAsync(order.Id);
+        Assert.Equal(ProductionStatus.Stopped, dbOrder.CurrentStatus);
+        
+        var history = await _context.ProductionHistories
+            .FirstOrDefaultAsync(h => h.ProductionOrderId == order.Id && h.NewStatus == ProductionStatus.Stopped);
+        Assert.NotNull(history);
+        Assert.Equal(modifierUserId, history.UserId);
+        Assert.Equal("Machine broke", history.Note);
+    }
 }

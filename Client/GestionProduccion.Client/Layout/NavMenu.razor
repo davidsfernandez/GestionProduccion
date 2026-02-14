@@ -4,9 +4,10 @@
 @using System.Net.Http.Json
 @inject AuthenticationStateProvider AuthStateProvider
 @inject HttpClient Http
+@inject GestionProduccion.Client.Services.UserStateService UserState
 @implements IDisposable
 
-<nav id="sidebar" class="sidebar js-sidebar">
+<nav id="sidebar" class="sidebar js-sidebar @(IsOpen ? "collapsed" : "")">
     <div class="sidebar-content js-simplebar">
         
         <!-- PERFIL EN SIDEBAR (Serona Standard) -->
@@ -71,19 +72,19 @@
 </nav>
 
 @code {
-    private string? avatarUrl;
-
     private string GetAvatarUrl()
     {
-        if (string.IsNullOrEmpty(avatarUrl))
+        var url = UserState.AvatarUrl;
+        if (string.IsNullOrEmpty(url))
         {
             return "img/avatars/avatar.jpg";
         }
-        return $"{avatarUrl}?t={DateTime.Now.Ticks}";
+        return $"{url}?t={DateTime.Now.Ticks}";
     }
 
     protected override async Task OnInitializedAsync()
     {
+        UserState.OnChange += StateHasChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         await LoadUserData();
     }
@@ -109,7 +110,7 @@
                     var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
                     if (userDto != null)
                     {
-                        avatarUrl = userDto.AvatarUrl;
+                        UserState.UpdateAvatar(userDto.AvatarUrl);
                     }
                 }
                 catch
@@ -120,7 +121,7 @@
         }
         else
         {
-            avatarUrl = null;
+            UserState.UpdateAvatar(null);
         }
     }
 
@@ -135,6 +136,10 @@
 
     public void Dispose()
     {
+        UserState.OnChange -= StateHasChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
+
+    [Parameter]
+    public bool IsOpen { get; set; }
 }

@@ -32,7 +32,17 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtKey = builder.Configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
+    var jwtKey = builder.Configuration["Jwt:Key"];
+    var isProduction = builder.Environment.IsProduction();
+
+    if (string.IsNullOrEmpty(jwtKey))
+    {
+        if (isProduction)
+            throw new InvalidOperationException("JWT Key is missing in Production configuration!");
+        
+        jwtKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#"; // Dev fallback
+    }
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

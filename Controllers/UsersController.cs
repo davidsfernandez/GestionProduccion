@@ -101,7 +101,7 @@ public class UsersController : ControllerBase
         try
         {
             var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-            var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
+            var uploadsFolder = Path.Combine(webRootPath, "uploads");
             
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
@@ -116,10 +116,17 @@ public class UsersController : ControllerBase
             }
 
             // Update user URL (root relative path)
-            user.AvatarUrl = $"/img/avatars/{fileName}";
-            await _userService.UpdateUserAsync(user);
+            var newAvatarUrl = $"/uploads/{fileName}";
+            
+            // EXPLICIT PERSISTENCE STEP (Fixes Bug)
+            var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
+            
+            // NOTE: RefreshSignInAsync is not applicable here as we use Stateless JWT Authentication.
+            // The Client (Blazor WASM) updates its local state via UserStateService immediately upon success.
+            
+            if (!success) return StatusCode(500, "Failed to update user record.");
 
-            return Ok(new { avatarUrl = user.AvatarUrl });
+            return Ok(new { avatarUrl = newAvatarUrl });
         }
         catch (Exception ex)
         {
