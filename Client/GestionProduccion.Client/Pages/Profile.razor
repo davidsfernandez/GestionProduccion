@@ -215,14 +215,15 @@
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-                if (jsonResponse.TryGetProperty("avatarUrl", out var urlProperty))
+                // Prompt specified return object property as 'url'
+                if (jsonResponse.TryGetProperty("url", out var urlProperty))
                 {
                     var newAvatarUrl = urlProperty.GetString();
                     if (!string.IsNullOrEmpty(newAvatarUrl))
                     {
                         // Update local state
                         avatarUrl = newAvatarUrl;
-                        // Update global state
+                        // Update global state (Service)
                         UserState.UpdateAvatar(newAvatarUrl);
                         
                         ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);

@@ -17,7 +17,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - avatars_data:/app/wwwroot/uploads
+      - avatars_data:/app/wwwroot/img/avatars
     networks:
       - prod_network
 
