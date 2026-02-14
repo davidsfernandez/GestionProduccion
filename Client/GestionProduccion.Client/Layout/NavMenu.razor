@@ -6,7 +6,7 @@
 @inject HttpClient Http
 @implements IDisposable
 
-<nav id="sidebar" class="sidebar js-sidebar">
+<nav id="sidebar" class="sidebar js-sidebar @(IsOpen ? "collapsed" : "")">
     <div class="sidebar-content js-simplebar">
         
         <!-- PERFIL EN SIDEBAR (Serona Standard) -->
@@ -137,4 +137,7 @@
     {
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
+
+    [Parameter]
+    public bool IsOpen { get; set; }
 }
