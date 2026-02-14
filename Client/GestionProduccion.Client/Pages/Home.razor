@@ -30,17 +30,15 @@
             </div>
         </div>
 
-        @if (dashboard == null)
-        {
-            <div class="d-flex justify-content-center mt-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">@Portuguese.Loading</span>
+            @if (loading && dashboard == null)
+            {
+                <div class="d-flex justify-content-center mt-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">@Portuguese.Loading</span>
+                    </div>
                 </div>
-            </div>
-        }
-        else
-        {
-            <div class="row">
+            }
+            else if (dashboard != null)            <div class="row">
                 <!-- ROW 1: KEY METRICS -->
                 <div class="col-12 col-sm-6 col-xxl-3 d-flex">
                     <div class="card flex-fill border-0 shadow-sm delay-1">

@@ -340,7 +340,7 @@ public class ProductionOrderService : IProductionOrderService
         var thirtyDaysAgo = now.AddDays(-30);
         var completedOrders30Days = await _context.ProductionOrders
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.ModificationDate >= thirtyDaysAgo)
-            .Select(o => new { o.CreationDate, o.ModificationDate }) // Project only needed fields
+            .Select(o => new { o.CreationDate, o.ModificationDate })
             .ToListAsync();
 
         double avgLeadTime = 0;
@@ -356,8 +356,6 @@ public class ProductionOrderService : IProductionOrderService
             var day = today.AddDays(-i);
             var nextDay = day.AddDays(1);
             
-            // Count orders CREATED on that day (Volume usually implies input, or output? 
-            // Prompt says "cuenta órdenes creadas". Standard volume metrics usually track creation.)
             var count = await _context.ProductionOrders
                 .CountAsync(o => o.CreationDate >= day && o.CreationDate < nextDay);
             
@@ -365,7 +363,6 @@ public class ProductionOrderService : IProductionOrderService
         }
 
         // QUERY 5: Workload Distribution
-        // Must Include User for Avatar
         var workloadData = await activeOrdersQuery
             .Include(o => o.AssignedUser)
             .Where(o => o.UserId.HasValue && o.AssignedUser != null)
@@ -377,7 +374,7 @@ public class ProductionOrderService : IProductionOrderService
                 AvatarUrl = g.First().AssignedUser!.AvatarUrl,
                 Count = g.Count()
             })
-            .ToListAsync(); // Materialize before mapping to DTO with color logic
+            .ToListAsync();
 
         var workloadDistribution = workloadData
             .Select((w, index) => new WorkerStatsDto
@@ -385,7 +382,7 @@ public class ProductionOrderService : IProductionOrderService
                 Name = w.Name,
                 AvatarUrl = string.IsNullOrEmpty(w.AvatarUrl) ? "/img/avatars/avatar.jpg" : w.AvatarUrl,
                 ActiveCount = w.Count,
-                EfficiencyScore = 95.0, // Placeholder/Mock for now
+                EfficiencyScore = 95.0,
                 Color = GetColorByIndex(index)
             })
             .OrderByDescending(w => w.ActiveCount)
@@ -397,7 +394,7 @@ public class ProductionOrderService : IProductionOrderService
             .Select(g => new { Stage = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.Stage.ToString(), g => g.Count);
 
-        // EXTRA: Urgent & Stopped (Keeping existing logic for lists)
+        // EXTRA: Urgent & Stopped
         var threeDaysFromNow = now.AddDays(3);
         var urgentOrders = await activeOrdersQuery
             .Where(o => o.EstimatedDeliveryDate <= threeDaysFromNow)
@@ -428,7 +425,7 @@ public class ProductionOrderService : IProductionOrderService
             .ToListAsync();
 
         // Recent Activity
-        var recentHistory = await _context.ProductionHistories
+        var recentActivities = await _context.ProductionHistories
             .Include(h => h.ResponsibleUser)
             .Include(h => h.ProductionOrder)
             .OrderByDescending(h => h.ModificationDate)
@@ -457,7 +454,7 @@ public class ProductionOrderService : IProductionOrderService
             WorkloadDistribution = workloadDistribution,
             OrdersByStage = ordersByStage,
             UrgentOrders = urgentOrders,
-            StoppedOperations = stoppedOrders.Select(o => new ProductionOrderDto // Mapping to match new DTO if needed, or simple cast
+            StoppedOperations = stoppedOrders.Select(o => new StoppedOperationDto 
             { 
                 Id = o.Id, UniqueCode = o.UniqueCode, ProductDescription = o.ProductDescription, EstimatedDeliveryDate = o.EstimatedDeliveryDate 
             }).ToList(),

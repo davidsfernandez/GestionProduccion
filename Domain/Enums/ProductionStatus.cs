@@ -9,5 +9,6 @@ public enum ProductionStatus
     Stopped,
     Completed,
     Paused,
-    Finished
+    Finished,
+    Cancelled
 }
