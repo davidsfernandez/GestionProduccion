@@ -32,13 +32,20 @@ namespace GestionProduccion.Client.Resources
         public const string Dash_Title = "Dashboard de Produção";
         public const string Dash_CompletionRate = "Taxa de Conclusão";
         public const string Dash_ActiveOrders = "Ordens Ativas";
+        public const string Dash_CompletedToday = "Concluídas Hoje";
+        public const string Dash_AvgLeadTime = "Tempo Médio (Lead)";
+        public const string Dash_Efficiency = "Eficiência";
+        public const string Dash_WeeklyVolume = "Volume Semanal (Últimos 7 Dias)";
+        public const string Dash_WorkloadByOp = "Carga por Operador";
+        public const string Dash_NormalOperation = "Operação Normal";
         public const string Dash_FactoryFloor = "No chão de fábrica";
         public const string Dash_OrdersByStage = "Ordens por Etapa";
         public const string Dash_AvgHours = "Média de horas";
-        public const string Dash_Alerts = "Alertas (Ordens Paradas)";
+        public const string Dash_Alerts = "Alertas / Paradas";
         public const string Dash_NoStopped = "Nenhuma ordem parada encontrada";
         public const string Dash_Workload = "Carga de Trabalho por Usuário";
-        public const string Dash_NoActiveWork = "Nenhum usuário com ordens ativas";
+        public const string Dash_NoActiveWork = "Sem atividade ativa";
+        public const string Dash_TvMode = "Modo TV";
         
         // Production Orders
         public const string OP_Title = "Ordens de Produção";
@@ -56,6 +63,9 @@ namespace GestionProduccion.Client.Resources
         public const string OP_Report = "Relatório PDF";
         public const string OP_NoOrdersFound = "Nenhuma ordem de produção encontrada.";
         public const string OP_NoOrdersMatch = "Nenhuma ordem corresponde aos seus critérios de busca.";
+        public const string OP_Urgent = "Prioridade Alta (Urgente)";
+        public const string OP_NoUrgentFound = "Nenhuma ordem urgente";
+        public const string OP_BatchCount = "Lotes";
         
         // Order Create / Details
         public const string OP_Create_Title = "Criar Nova Ordem de Produção";
@@ -71,7 +81,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_StopProduction = "Parar Produção";
         public const string OP_MarkCompleted = "Marcar como Finalizado";
         public const string OP_AssignTask = "Delegar Tarefa";
-        public const string OP_Note = "Observação / Nota";
+        public const string OP_Note = "Observación / Nota";
         public const string OP_WorkflowTip = "Dica de Fluxo";
         public const string OP_WorkflowDesc = "As ordens devem seguir o fluxo: Corte -> Costura -> Revisão -> Embalagem.";
         public const string OP_BackToList = "Voltar para Lista";
@@ -91,7 +101,7 @@ namespace GestionProduccion.Client.Resources
         public const string User_User = "Usuário";
         public const string User_Name = "Nome";
         public const string User_Email = "E-mail";
-        public const string User_Role = "Perfil / Função";
+        public const string User_Role = "Perfil / Función";
         public const string User_Status = "Status";
         public const string User_Active = "Ativo";
         public const string User_Inactive = "Inativo";

@@ -297,7 +297,7 @@
     {
         try
         {
-            var response = await Http.GetAsync("api/Users/assignable");
+            var response = await Http.GetAsync("api/ProductionOrders/assignable");
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();

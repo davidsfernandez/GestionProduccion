@@ -28,8 +28,19 @@ namespace GestionProduccion.Client.Services
         {
             if (_hubConnection != null)
             {
-                await _hubConnection.StopAsync();
-                await _hubConnection.DisposeAsync();
+                try
+                {
+                    if (_hubConnection.State != HubConnectionState.Disconnected)
+                    {
+                        await _hubConnection.StopAsync();
+                    }
+                }
+                catch (ObjectDisposedException) { /* Already gone */ }
+                finally
+                {
+                    await _hubConnection.DisposeAsync();
+                    _hubConnection = null;
+                }
             }
         }
     }
