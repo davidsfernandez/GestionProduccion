@@ -110,10 +110,20 @@
                             <div class="card-header border-0 pt-4 px-4">
                                 <h5 class="card-title mb-0">Distribuição de Carga</h5>
                             </div>
-                            <div class="card-body d-flex w-100">
-                                <div class="align-self-center chart chart-sm">
-                                    <canvas id="workloadChart" style="height: 250px; width: 100%;"></canvas>
-                                </div>
+                            <div class="card-body d-flex w-100 justify-content-center align-items-center">
+                                @if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any() && dashboard.WorkloadByUser.Sum(u => u.OperationCount) > 0)
+                                {
+                                    <div class="chart chart-sm w-100">
+                                        <canvas id="workloadChart" style="height: 250px; width: 100%;"></canvas>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted">
+                                        <i class="fa-solid fa-chart-pie fs-1 mb-2 opacity-50"></i>
+                                        <p class="small mb-0">Sem dados de carga</p>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
@@ -325,7 +335,7 @@
             }
 
             // Radar Chart (Workload) - Top 5 busiest users only
-            if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any())
+            if (dashboard.WorkloadByUser != null && dashboard.WorkloadByUser.Any() && dashboard.WorkloadByUser.Sum(u => u.OperationCount) > 0)
             {
                 var topUsers = dashboard.WorkloadByUser.OrderByDescending(u => u.OperationCount).Take(5).ToList();
                 var labels = topUsers.Select(u => u.UserName).ToArray();
