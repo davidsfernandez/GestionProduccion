@@ -7,6 +7,8 @@
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
+@inject UserStateService UserState
+@using System.Text.Json
 
 @using GestionProduccion.Client.Resources
 
@@ -212,9 +214,21 @@
 
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
-                // Force a reload to refresh all avatar instances (sidebar, etc)
-                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (jsonResponse.TryGetProperty("avatarUrl", out var urlProperty))
+                {
+                    var newAvatarUrl = urlProperty.GetString();
+                    if (!string.IsNullOrEmpty(newAvatarUrl))
+                    {
+                        // Update local state
+                        avatarUrl = newAvatarUrl;
+                        // Update global state
+                        UserState.UpdateAvatar(newAvatarUrl);
+                        
+                        ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
+                        StateHasChanged();
+                    }
+                }
             }
             else
             {
