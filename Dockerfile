@@ -29,7 +29,7 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Ensure upload directory exists and has permissions
-RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot
+RUN mkdir -p /app/wwwroot/uploads && chmod -R 755 /app/wwwroot
 
 # Environment variables for Docker
 ENV ASPNETCORE_URLS=http://+:80
