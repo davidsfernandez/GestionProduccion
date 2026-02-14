@@ -104,9 +104,10 @@ public class AppDbContext : DbContext
                 Id = 1,
                 Name = "Administrator",
                 Email = "admin@local.host",
-                // Password is "admin", hashed with BCrypt
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                // Password is "admin"
+                PasswordHash = "$2a$11$w68A2Yh3jmu/hvmx3NoJ2OJnSyJDWEg86/schjmvd.x4b098FvblC", 
                 Role = Domain.Enums.UserRole.Administrator,
+                PublicId = "ADMIN-001",
                 IsActive = true
             }
         );

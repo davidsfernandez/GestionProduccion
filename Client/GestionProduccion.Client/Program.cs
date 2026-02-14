@@ -11,9 +11,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// --- 1. HTTP CLIENT CONFIGURATION (Dynamic BaseAddress) ---
 builder.Services.AddTransient<AuthHeaderHandler>();
 
-// Configure HttpClient with JSON options
 builder.Services.AddScoped(sp => 
 {
     var handler = sp.GetRequiredService<AuthHeaderHandler>();
@@ -21,13 +21,17 @@ builder.Services.AddScoped(sp =>
     
     var client = new HttpClient(handler)
     {
+        // Architect Rule 24: Dynamic assignment
         BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
     };
     return client;
 });
 
+// --- 2. AUTHENTICATION (Armored) ---
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
+// --- 3. FRONTEND SERVICES (Scoped) ---
 builder.Services.AddSingleton<SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<UserStateService>();

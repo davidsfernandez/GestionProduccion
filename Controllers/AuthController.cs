@@ -48,20 +48,38 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
-
-        if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
+        try
         {
-            return Unauthorized(new { message = "Invalid credentials." });
-        }
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
 
-        if (!user.IsActive)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
+            {
+                return Unauthorized(new { message = "Invalid credentials." });
+            }
+
+            if (!user.IsActive)
+            {
+                return Unauthorized(new { message = "Inactive user." });
+            }
+
+            var token = GenerateJwtToken(user);
+            return Ok(new LoginResponse { Token = token, User = user });
+        }
+        catch (Exception ex)
         {
-            return Unauthorized(new { message = "Inactive user." });
-        }
+            // Log the error for the developer to see in the console
+            Console.WriteLine($"LOGIN ERROR: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
+            }
 
-        var token = GenerateJwtToken(user);
-        return Ok(new LoginResponse { Token = token, User = user });
+            return StatusCode(500, new { 
+                message = "An error occurred during login.", 
+                error = ex.Message,
+                detail = ex.InnerException?.Message 
+            });
+        }
     }
 
     private string GenerateJwtToken(Domain.Entities.User user)

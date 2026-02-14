@@ -3,6 +3,7 @@ using System;
 using GestionProduccion.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionProduccion.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214084454_AddMissingOrderFields")]
+    partial class AddMissingOrderFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -173,8 +176,8 @@ namespace GestionProduccion.Migrations
                             Email = "admin@local.host",
                             IsActive = true,
                             Name = "Administrator",
-                            PasswordHash = "$2a$11$w68A2Yh3jmu/hvmx3NoJ2OJnSyJDWEg86/schjmvd.x4b098FvblC",
-                            PublicId = "ADMIN-001",
+                            PasswordHash = "$2a$11$u6KtHoo4cnQScZivLwRwH.eUBdFKbjTeIx60H3j9/19nxtagmQTiK",
+                            PublicId = "",
                             Role = "Administrator"
                         });
                 });

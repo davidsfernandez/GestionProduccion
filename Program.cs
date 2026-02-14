@@ -12,19 +12,25 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// NO CLEARING MAPS - Use defaults for maximum compatibility
+// --- 1. DATABASE CONFIGURATION ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)))
 );
 
+// --- 2. DEPENDENCY INJECTION (Armored) ---
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddSignalR();
 
+// --- 3. AUTHENTICACION & JWT ---
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -38,7 +44,7 @@ builder.Services.AddAuthentication(options =>
     if (string.IsNullOrEmpty(jwtKey))
     {
         if (isProduction)
-            throw new InvalidOperationException("JWT Key is missing in Production configuration!");
+            throw new InvalidOperationException("CRITICAL: JWT Key is missing in Production environment!");
         
         jwtKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#"; // Dev fallback
     }
@@ -52,75 +58,74 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GestionProduccion",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GestionProduccionAPI",
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        // Using defaults for RoleClaimType and NameClaimType
     };
 });
 
+// --- 4. CONTROLLERS & JSON REPAIR ---
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
+        // Fix for circular references (Architect Rule 7)
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        // Fix for Enums as strings (Architect Rule 9)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Maintain PascalCase
+        // Maintain PascalCase for consistency
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+        // Safeguard against nulls (Architect Rule 48)
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// --- 5. CORS REPAIR (Architect Rule 11) ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("BlazorApp", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)
+        policy.AllowAnyOrigin()
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
 
+// --- 6. MIDDLEWARE PIPELINE (Correct Order) ---
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage(); // Architect Rule 18
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseWebAssemblyDebugging();
 }
 
 app.UseHttpsRedirection();
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+app.UseBlazorFrameworkFiles(); // Architect Rule 19
+app.UseStaticFiles();          // Architect Rule 19
 app.UseRouting();
-app.UseCors("BlazorApp");
+
+app.UseCors("AllowAll"); // Must be before Auth
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Automatically apply migrations on startup with retry logic
-for (int i = 0; i < 10; i++)
+// --- 7. AUTOMATIC MIGRATIONS (Architect Rule 5) ---
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var services = scope.ServiceProvider;
+    try
     {
-        var services = scope.ServiceProvider;
-        try
+        var context = services.GetRequiredService<AppDbContext>();
+        if (context.Database.GetPendingMigrations().Any())
         {
-            var context = services.GetRequiredService<AppDbContext>();
-            if (context.Database.GetPendingMigrations().Any())
-            {
-                context.Database.Migrate();
-            }
-            break; // Success, exit loop
+            context.Database.Migrate();
         }
-        catch (Exception ex)
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning(ex, $"Database migration attempt {i + 1} failed. Retrying in 5 seconds...");
-            Thread.Sleep(5000);
-            if (i == 9)
-            {
-                logger.LogCritical(ex, "Final attempt to migrate database failed. Exiting.");
-                throw;
-            }
-        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogCritical(ex, "FATAL: Database migration failed at startup.");
     }
 }
 
