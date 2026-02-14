@@ -291,3 +291,32 @@ body {
         z-index: 999;
     }
 }
+
+/* --- TV MODE / FACTORY KIOSK --- */
+.tv-mode-active .sidebar,
+.tv-mode-active .navbar {
+    display: none !important;
+}
+
+.tv-mode-active .main, 
+.tv-mode-active .content {
+    margin-left: 0 !important;
+    padding: 2rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.tv-mode-active .card {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,0.15) !important; /* Stronger shadow for TV */
+    border: 1px solid #e2e8f0;
+}
+
+.tv-mode-active h1, 
+.tv-mode-active h3 {
+    font-size: 2.5rem !important; /* Larger text for distance viewing */
+}
+
+.tv-mode-active .badge {
+    font-size: 1.2rem !important;
+    padding: 0.5em 1em !important;
+}
