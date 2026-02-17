@@ -84,16 +84,33 @@ public class ProductionOrderService : IProductionOrderService
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
             CreationDate = DateTime.UtcNow,
-            UserId = createdByUserId // Set createdByUserId
+            ModificationDate = DateTime.UtcNow,
+            UserId = request.UserId // Set optional assigned user
         };
         
         _context.ProductionOrders.Add(order);
         await _context.SaveChangesAsync(); // Save to get the order.Id
 
-        AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, "Creation of production order");
+        var historyNote = "Criação da ordem de produção";
+        if (request.UserId.HasValue)
+        {
+            // If assigned immediately, fetch user name for history log
+            var assignedUser = await _context.Users.FindAsync(request.UserId.Value);
+            if (assignedUser != null)
+            {
+                historyNote += $" e atribuído a {assignedUser.Name}";
+            }
+        }
+
+        AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
         await _context.SaveChangesAsync();
 
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
+
+        // Re-fetch to get AssignedUser name for DTO
+        var createdOrder = await _context.ProductionOrders
+            .Include(o => o.AssignedUser)
+            .FirstOrDefaultAsync(o => o.Id == order.Id);
 
         return new ProductionOrderDto
         {
@@ -101,12 +118,14 @@ public class ProductionOrderService : IProductionOrderService
             UniqueCode = order.UniqueCode,
             ProductDescription = order.ProductDescription,
             Quantity = order.Quantity,
+            ClientName = order.ClientName,
+            Size = order.Size,
             CurrentStage = order.CurrentStage.ToString(),
             CurrentStatus = order.CurrentStatus.ToString(),
             CreationDate = order.CreationDate,
             EstimatedDeliveryDate = order.EstimatedDeliveryDate,
             UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.Name
+            AssignedUserName = createdOrder?.AssignedUser?.Name
         };
     }
 
@@ -230,7 +249,7 @@ public class ProductionOrderService : IProductionOrderService
         
         var currentUserId = GetCurrentUserId();
         AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, 
-            currentUserId, $"Assigned to {user.Name}");
+            currentUserId, $"Atribuído a {user.Name}");
 
         await _context.SaveChangesAsync();
 
@@ -265,7 +284,7 @@ public class ProductionOrderService : IProductionOrderService
         _context.Entry(order).State = EntityState.Modified;
         
         var completeNote = string.IsNullOrWhiteSpace(note) 
-            ? $"Status changed from {previousStatus} to {newStatus}" 
+            ? $"Status alterado de {previousStatus} para {newStatus}" 
             : note;
         
         AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, completeNote);
@@ -309,7 +328,7 @@ public class ProductionOrderService : IProductionOrderService
         _context.Entry(order).State = EntityState.Modified;
         
         AddHistory(order.Id, previousStage, newStage, previousStatus, order.CurrentStatus, modifiedByUserId, 
-            $"Advanced to {newStage}");
+            $"Avançou para {newStage}");
 
         await _context.SaveChangesAsync();
         

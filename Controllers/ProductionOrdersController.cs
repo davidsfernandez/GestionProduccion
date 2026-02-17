@@ -67,6 +67,30 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpGet("assignable")]
+    public async Task<ActionResult<List<UserDto>>> GetAssignableUsers()
+    {
+        try
+        {
+            var users = await _userService.GetActiveUsersAsync();
+            var assignable = users
+                .Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop || u.Role == UserRole.Leader)
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    Role = u.Role,
+                    IsActive = u.IsActive
+                }).ToList();
+            return Ok(assignable);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving assignable users", error = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductionOrderById(int id)
     {
@@ -105,14 +129,18 @@ public class ProductionOrdersController : ControllerBase
         try
         {
             var users = await _userService.GetActiveUsersAsync();
-            return Ok(users.Select(u => new UserDto
-            {
-                Id = u.Id,
-                Name = u.Name,
-                Email = u.Email,
-                Role = u.Role,
-                IsActive = u.IsActive
-            }).ToList());
+            // Filter only roles that can work on orders if needed, or return all active users
+            var assignable = users
+                .Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop || u.Role == UserRole.Leader)
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    Role = u.Role,
+                    IsActive = u.IsActive
+                }).ToList();
+            return Ok(assignable);
         }
         catch (Exception ex)
         {

@@ -19,12 +19,12 @@
     </div>
 
     <div class="row">
-        <div class="col-12 col-lg-8 col-xl-6">
-            <div class="card">
-                <div class="card-header border-0 pt-4">
+        <div class="col-12 col-lg-8 col-xl-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header border-0 pt-4 px-4 bg-white">
                     <h5 class="card-title mb-0">Nova Ordem de Produção</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
 
@@ -41,18 +41,42 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted">@Portuguese.OP_ProductDesc</label>
-                            <InputTextArea class="form-control bg-light" @bind-Value="createModel.ProductDescription" rows="3" placeholder="Descreva o produto e especificações..." />
-                            <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger small mt-1" />
+                        <div class="row">
+                            <div class="col-md-8 mb-4">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.OP_ProductDesc</label>
+                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ProductDescription" placeholder="Descreva o produto..." />
+                                <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger small mt-1" />
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label class="form-label small fw-bold text-muted">Tamanho / Grade</label>
+                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.Size" placeholder="Ex: M, G, 42..." />
+                            </div>
                         </div>
 
                         <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label small fw-bold text-muted">Cliente / Destino (Opcional)</label>
+                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ClientName" placeholder="Nome do cliente..." />
+                            </div>
                             <div class="col-md-6 mb-4">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.OP_EstimatedDelivery</label>
                                 <InputDate class="form-control form-control-lg bg-light" @bind-Value="createModel.EstimatedDeliveryDate" />
                                 <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger small mt-1" />
                             </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Responsável / Atribuir a (Opcional)</label>
+                            <InputSelect class="form-select form-select-lg bg-light" @bind-Value="createModel.UserId">
+                                <option value="">Não atribuído</option>
+                                @if (assignableUsers != null)
+                                {
+                                    @foreach (var user in assignableUsers)
+                                    {
+                                        <option value="@user.Id">@user.Name (@TranslateRole(user.Role))</option>
+                                    }
+                                }
+                            </InputSelect>
                         </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
@@ -83,10 +107,12 @@
         
         <div class="col-12 col-lg-4">
             <div class="alert bg-primary-soft border-0 rounded-4 p-4 shadow-sm">
-                <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info me-2"></i> Ajuda</h5>
+                <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-circle-info me-2"></i> Ajuda</h5>
                 <p class="small mb-0 text-muted" style="line-height: 1.6;">
                     As Ordens de Produção (OP) são o coração do sistema. Certifique-se de que o código seja único para evitar duplicidade. 
                     A data de entrega estimada ajudará o sistema a alertar sobre prioridades no dashboard.
+                    <br/><br/>
+                    <b>Dica:</b> Você pode atribuir um responsável agora o fazer isso depois nos detalhes da ordem.
                 </p>
             </div>
         </div>
@@ -94,12 +120,31 @@
 </div>
 
 @code {
-    private CreateProductionOrderRequest createModel = new()
+    private CreateOrderModel createModel = new()
     {
         EstimatedDeliveryDate = DateTime.Today.AddDays(7)
     };
+    
+    private List<UserDto>? assignableUsers;
     private bool isSubmitting = false;
     private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAssignableUsers();
+    }
+
+    private async Task LoadAssignableUsers()
+    {
+        try
+        {
+            assignableUsers = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading users: {ex.Message}");
+        }
+    }
 
     private async Task HandleSubmit()
     {
@@ -131,16 +176,25 @@
         }
     }
 
-    private void Cancel()
-    {
-        NavigationManager.NavigateTo("/orders");
-    }
+    private void Cancel() => NavigationManager.NavigateTo("/orders");
 
-    public class CreateProductionOrderRequest
+    private string TranslateRole(UserRole role) => role switch
+    {
+        UserRole.Administrator => Portuguese.Role_Admin,
+        UserRole.Leader => Portuguese.Role_Leader,
+        UserRole.Operator => Portuguese.Role_Operator,
+        UserRole.Workshop => Portuguese.Role_Workshop,
+        _ => role.ToString()
+    };
+
+    public class CreateOrderModel
     {
         public string UniqueCode { get; set; } = string.Empty;
         public string ProductDescription { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public DateTime EstimatedDeliveryDate { get; set; }
+        public string? ClientName { get; set; }
+        public string? Size { get; set; }
+        public int? UserId { get; set; }
     }
 }

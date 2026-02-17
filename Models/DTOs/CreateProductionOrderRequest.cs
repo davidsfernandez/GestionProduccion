@@ -27,4 +27,6 @@ public class CreateProductionOrderRequest
 
     [StringLength(20)]
     public string? Size { get; set; }
+
+    public int? UserId { get; set; }
 }
