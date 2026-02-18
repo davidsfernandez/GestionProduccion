@@ -6,8 +6,8 @@
 @using GestionProduccion.Client.Resources
 @implements IDisposable
 
-<div class="wrapper @(_sidebarOpen ? "sidebar-open" : "sidebar-closed")">
-    <NavMenu IsOpen="_sidebarOpen" />
+<div class="wrapper @(_isSidebarCollapsed ? "sidebar-closed" : "sidebar-open")">
+    <NavMenu IsOpen="!_isSidebarCollapsed" />
 
     <div class="main">
         <nav class="navbar navbar-expand navbar-light navbar-bg">
@@ -43,14 +43,11 @@
         </main>
     </div>
 
-    @if (_sidebarOpen)
-    {
-        <div class="sidebar-overlay" @onclick="ToggleSidebar"></div>
-    }
+    <div class="sidebar-overlay @(_isSidebarCollapsed ? "" : "active")" @onclick="ToggleSidebar"></div>
 </div>
 
 @code {
-    private bool _sidebarOpen = false;
+    private bool _isSidebarCollapsed = true;
 
     protected override void OnInitialized()
     {
@@ -60,16 +57,16 @@
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         // Close sidebar on navigation (Mobile UX)
-        if (_sidebarOpen)
+        if (!_isSidebarCollapsed)
         {
-            _sidebarOpen = false;
+            _isSidebarCollapsed = true;
             StateHasChanged();
         }
     }
 
     private void ToggleSidebar()
     {
-        _sidebarOpen = !_sidebarOpen;
+        _isSidebarCollapsed = !_isSidebarCollapsed;
     }
 
     private async Task Logout()

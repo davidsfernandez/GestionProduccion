@@ -251,7 +251,25 @@ body {
 .card:nth-child(3) { animation-delay: 0.15s; }
 
 /* --- MOBILE RESPONSIVENESS (Prompt Implementation) --- */
-@media (max-width: 768px) {
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+@media (max-width: 992px) {
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
     /* Hide Sidebar by default on mobile */
     .sidebar {
         margin-left: -280px !important; /* Force override with correct width */
@@ -274,6 +292,17 @@ body {
     /* Fix for the main content when sidebar is open on mobile */
     .wrapper.sidebar-open .main {
         overflow: hidden;
+    }
+}
+
+/* Desktop Toggled (Collapsed) */
+@media (min-width: 993px) {
+    .sidebar {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .sidebar.collapsed {
+        margin-left: -280px !important;
     }
 }
 
