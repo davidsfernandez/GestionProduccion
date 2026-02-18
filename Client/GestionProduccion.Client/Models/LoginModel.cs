@@ -6,9 +6,9 @@ namespace GestionProduccion.Client.Models
     {
         [Required]
         [EmailAddress]
-        public string Email { get; set; } = "admin@local.host";
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        public string Password { get; set; } = "admin";
+        public string Password { get; set; } = string.Empty;
     }
 }
