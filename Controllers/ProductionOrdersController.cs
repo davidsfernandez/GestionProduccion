@@ -253,4 +253,19 @@ public class ProductionOrdersController : ControllerBase
             return StatusCode(500, new { message = "Error generating daily report", error = ex.Message });
         }
     }
+
+    [HttpGet("export-csv")]
+    public async Task<IActionResult> ExportCsv([FromQuery] FilterProductionOrderDto? filter, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var orders = await _productionOrderService.ListProductionOrdersAsync(filter);
+            var csvBytes = await reportService.GenerateOrdersCsvAsync(orders);
+            return File(csvBytes, "text/csv", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating CSV", error = ex.Message });
+        }
+    }
 }

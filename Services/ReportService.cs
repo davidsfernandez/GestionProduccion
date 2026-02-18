@@ -166,6 +166,31 @@ public class ReportService : IReportService
         return document.GeneratePdf();
     }
 
+    public Task<byte[]> GenerateOrdersCsvAsync(List<ProductionOrderDto> orders)
+    {
+        var sb = new System.Text.StringBuilder();
+        // Header
+        sb.AppendLine("Codigo;Produto;Quantidade;Etapa;Status;Entrega;Responsavel");
+
+        foreach (var order in orders)
+        {
+            var user = order.AssignedUserName ?? "N/A";
+            // Sanitize CSV fields
+            var prod = order.ProductDescription.Replace(";", ",");
+            
+            sb.AppendLine($"{order.UniqueCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedDeliveryDate:dd/MM/yyyy};{user}");
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        // Add BOM for Excel compatibility
+        var bom = System.Text.Encoding.UTF8.GetPreamble();
+        var result = new byte[bom.Length + bytes.Length];
+        System.Buffer.BlockCopy(bom, 0, result, 0, bom.Length);
+        System.Buffer.BlockCopy(bytes, 0, result, bom.Length, bytes.Length);
+
+        return Task.FromResult(result);
+    }
+
     private string TranslateStage(string stage) => stage?.ToLower() switch
     {
         "cutting" => "Corte",

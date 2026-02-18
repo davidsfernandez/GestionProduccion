@@ -207,14 +207,27 @@
 
     private async Task ExportToCsv()
     {
-        if (orders == null || !orders.Any()) return;
-        var csv = new System.Text.StringBuilder();
-        csv.AppendLine($"{Portuguese.OP_Code},{Portuguese.OP_Product},{Portuguese.OP_Qty},{Portuguese.OP_Stage},{Portuguese.OP_Status},{Portuguese.OP_Delivery},{Portuguese.OP_AssignedTo}");
-        foreach (var o in orders)
-            csv.AppendLine($"{o.UniqueCode},{o.ProductDescription.Replace(",", " ")},{o.Quantity},{TranslateStage(o.CurrentStage)},{TranslateStatus(o.CurrentStatus)},{o.EstimatedDeliveryDate:yyyy-MM-dd},{o.AssignedUserName ?? Portuguese.OP_Unassigned}");
-
-        await JSRuntime.InvokeVoidAsync("downloadCsv", $"Orders_{DateTime.Now:yyyyMMdd}.csv", csv.ToString());
-        ToastService.ShowToast("CSV exportado com sucesso", ToastLevel.Info);
+        try 
+        {
+            ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
+            var response = await Http.GetAsync("api/ProductionOrders/export-csv" + (string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?productDescription={searchTerm}"));
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_{DateTime.Now:yyyyMMdd}.csv", streamRef);
+                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao exportar CSV", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
     }
 
     private async Task DownloadOrderReport(int id)
