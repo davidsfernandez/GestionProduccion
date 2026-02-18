@@ -271,10 +271,18 @@ public class ProductionOrderServiceTests : IDisposable
         await _service.AssignTaskAsync(order.Id, targetUser.Id);
 
         // Assert
-        var history = await _context.ProductionHistories
-            .Where(h => h.ProductionOrderId == order.Id && h.Note.Contains($"Assigned to {targetUser.Name}"))
-            .FirstOrDefaultAsync();
+        var histories = await _context.ProductionHistories
+            .Where(h => h.ProductionOrderId == order.Id)
+            .ToListAsync();
+
+        var history = histories.FirstOrDefault(h => h.Note.Contains($"Atribuído a {targetUser.Name}"));
             
+        if (history == null)
+        {
+            var actualNotes = string.Join(", ", histories.Select(h => $"'{h.Note}'"));
+            Assert.True(false, $"Expected note containing 'Atribuído a {targetUser.Name}' not found. Actual notes: {actualNotes}");
+        }
+
         Assert.NotNull(history);
         Assert.Equal(99, history.UserId); // Verify the history was logged by user 99
     }
