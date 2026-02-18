@@ -4,48 +4,49 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: gestion-produccion-app
-    restart: always
+    restart: unless-stopped
     ports:
-      - "7188:80"
+      - "8080:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=${DB_DATABASE:-GestionProduccionDB};user=${DB_USER:-gp_admin};password=${DB_PASSWORD:-gp_pass}
-      - Jwt__Key=${JWT_KEY:-REPLACE_WITH_SECURE_KEY}
-      - Jwt__Issuer=${JWT_ISSUER:-GestionProduccion}
-      - Jwt__Audience=${JWT_AUDIENCE:-GestionProduccionAPI}
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=${DB_DATABASE};user=${DB_USER};password=${DB_PASSWORD};AllowUserVariables=true;ConvertZeroDateTime=true;
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - avatars_data:/app/wwwroot/img/avatars
     networks:
-      - prod_network
+      - app-network
 
   db:
     image: mysql:8.0
     container_name: gestion-produccion-db
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_pass}
-      MYSQL_DATABASE: ${DB_DATABASE:-GestionProduccionDB}
-      MYSQL_USER: ${DB_USER:-gp_admin}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-gp_pass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_pass}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_password_2026"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - prod_network
+      - app-network
 
 volumes:
   mysql_data:
   avatars_data:
 
 networks:
-  prod_network:
+  app-network:
     driver: bridge
