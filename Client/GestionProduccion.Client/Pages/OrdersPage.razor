@@ -72,10 +72,32 @@
                 }
                 else
                 {
+                    @if (selectedOrderIds.Count > 0)
+                    {
+                        <div class="card-body bg-light border-bottom py-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="fw-bold text-primary">@selectedOrderIds.Count selecionado(s)</span>
+                                <div>
+                                    <button class="btn btn-sm btn-warning me-2 shadow-sm" @onclick="() => BulkUpdate(3)"> <!-- Paused -->
+                                        <i class="fa-solid fa-pause me-1"></i> Pausar
+                                    </button>
+                                    <button class="btn btn-sm btn-success me-2 shadow-sm" @onclick="() => BulkUpdate(0)"> <!-- InProduction -->
+                                        <i class="fa-solid fa-play me-1"></i> Retomar
+                                    </button>
+                                    <button class="btn btn-sm btn-danger shadow-sm" @onclick="() => BulkUpdate(1)"> <!-- Stopped -->
+                                        <i class="fa-solid fa-stop me-1"></i> Parar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
                     <div class="table-mobile-responsive">
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll" checked="@AllSelected" />
+                                    </th>
                                     <th>@Portuguese.OP_Code</th>
                                     <th class="d-none d-md-table-cell">@Portuguese.OP_Product</th>
                                     <th class="d-none d-sm-table-cell">@Portuguese.OP_Qty</th>
@@ -90,6 +112,9 @@
                                 @foreach (var order in FilteredOrders)
                                 {
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" checked="@selectedOrderIds.Contains(order.Id)" @onchange="@(() => ToggleSelection(order.Id))" @onclick:stopPropagation="true" />
+                                        </td>
                                         <td><strong class="text-dark">@order.UniqueCode</strong></td>
                                         <td class="text-muted d-none d-md-table-cell">@order.ProductDescription</td>
                                         <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
@@ -136,6 +161,7 @@
 </AuthorizeView>
 
 @code {
+    private HashSet<int> selectedOrderIds = new();
     private List<ProductionOrderDto>? orders;
     private bool loading = true;
     private string searchTerm = "";
@@ -204,6 +230,65 @@
         "finished" => Portuguese.Status_Finished,
         _ => status ?? ""
     };
+
+    private bool AllSelected => FilteredOrders != null && FilteredOrders.Any() && FilteredOrders.All(o => selectedOrderIds.Contains(o.Id));
+
+    private void ToggleSelection(int id)
+    {
+        if (selectedOrderIds.Contains(id))
+            selectedOrderIds.Remove(id);
+        else
+            selectedOrderIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (FilteredOrders == null) return;
+        
+        var isChecked = (bool)(e.Value ?? false);
+        if (isChecked)
+        {
+            foreach (var order in FilteredOrders)
+            {
+                selectedOrderIds.Add(order.Id);
+            }
+        }
+        else
+        {
+            selectedOrderIds.Clear();
+        }
+    }
+
+    private async Task BulkUpdate(int status)
+    {
+        if (selectedOrderIds.Count == 0) return;
+        
+        try
+        {
+            loading = true;
+            // Send request to backend
+            var request = new { OrderIds = selectedOrderIds.ToList(), NewStatus = status, Note = "Atualização em massa via lista" };
+            
+            var response = await Http.PostAsJsonAsync("api/ProductionOrders/bulk-status", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas!", ToastLevel.Success);
+                selectedOrderIds.Clear();
+                await LoadOrders();
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao atualizar ordens.", ToastLevel.Error);
+                loading = false; // Reset loading if not reloading
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            loading = false;
+        }
+    }
 
     private async Task ExportToCsv()
     {

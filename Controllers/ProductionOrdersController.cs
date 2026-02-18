@@ -172,6 +172,27 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpPost("bulk-status")]
+    [Authorize(Roles = "Administrator,Leader,Operator")]
+    public async Task<ActionResult<BulkUpdateResult>> BulkUpdateStatus([FromBody] BulkUpdateStatusRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var result = await _productionOrderService.BulkUpdateStatusAsync(request.OrderIds, request.NewStatus, request.Note, modifiedByUserId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error processing bulk update", error = ex.Message });
+        }
+    }
+
     [HttpPost("{orderId}/change-stage")]
     [Authorize(Roles = "Administrator,Leader,Operator")]
     public async Task<IActionResult> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)

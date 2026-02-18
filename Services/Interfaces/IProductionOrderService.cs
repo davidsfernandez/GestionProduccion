@@ -25,6 +25,9 @@ public interface IProductionOrderService
     
     // UPDATE STATUS
     Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId);
+
+    // BULK UPDATE
+    Task<BulkUpdateResult> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, int modifiedByUserId);
     
     // DASHBOARD
     Task<DashboardDto> GetDashboardAsync();

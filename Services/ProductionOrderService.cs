@@ -307,6 +307,33 @@ public class ProductionOrderService : IProductionOrderService
         return true;
     }
 
+    public async Task<BulkUpdateResult> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, int modifiedByUserId)
+    {
+        var result = new BulkUpdateResult();
+        foreach (var id in orderIds)
+        {
+            try
+            {
+                var success = await UpdateStatusAsync(id, newStatus, note, modifiedByUserId);
+                if (success)
+                {
+                    result.SuccessCount++;
+                }
+                else
+                {
+                    result.FailureCount++;
+                    result.Errors.Add($"Order {id}: Update failed (business rule violation or not found).");
+                }
+            }
+            catch (Exception ex)
+            {
+                result.FailureCount++;
+                result.Errors.Add($"Order {id}: Error - {ex.Message}");
+            }
+        }
+        return result;
+    }
+
     public async Task<bool> AdvanceStageAsync(int orderId, int modifiedByUserId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
