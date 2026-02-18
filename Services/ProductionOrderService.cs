@@ -421,7 +421,7 @@ public class ProductionOrderService : IProductionOrderService
         {
             TotalActiveOrders = totalActiveOrders,
             CompletedToday = completedToday,
-            AverageLeadTimeHours = 0,
+            AverageLeadTimeHours = Math.Round(avgLeadTime, 1),
             WeeklyVolumeData = weeklyVolume,
             WorkloadDistribution = workloadDistribution,
             OrdersByStage = ordersByStage,

@@ -68,4 +68,9 @@ public interface IUserService
     /// Gets the workload (count of assigned orders) for a specific user.
     /// </summary>
     Task<int> GetUserWorkloadAsync(int userId);
+
+    /// <summary>
+    /// Checks if the system needs initial setup (no users exist).
+    /// </summary>
+    Task<bool> IsSetupRequiredAsync();
 }

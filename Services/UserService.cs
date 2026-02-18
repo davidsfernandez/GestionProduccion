@@ -214,4 +214,13 @@ public class UserService : IUserService
         var orders = await _orderRepository.GetAssignedToUserAsync(userId);
         return orders.Count(po => po.CurrentStatus != Domain.Enums.ProductionStatus.Completed);
     }
+
+    public async Task<bool> IsSetupRequiredAsync()
+    {
+        var count = await _userRepository.CountActiveAsync(); // Or CountAllAsync if soft deleted ones matter, but usually Active is what we care about for logging in.
+        // Actually, if we have inactive users but no active ones, we are locked out. So we should check if ANY user exists (even inactive) or strictly active admins.
+        // For simplicity, let's assume if countActive == 0, we need setup. 
+        // Better: repository.AnyAsync() if available. CountActiveAsync is fine.
+        return count == 0;
+    }
 }

@@ -46,6 +46,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("LoginPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {
+        // ... existing login logic ...
         try
         {
             if (login == null || string.IsNullOrEmpty(login.Email) || string.IsNullOrEmpty(login.Password))
@@ -90,6 +91,43 @@ public class AuthController : ControllerBase
                 error = ex.Message,
                 detail = ex.InnerException?.Message 
             });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("setup-required")]
+    public async Task<ActionResult<bool>> IsSetupRequired()
+    {
+        return await _userService.IsSetupRequiredAsync();
+    }
+
+    [AllowAnonymous]
+    [HttpPost("setup")]
+    public async Task<IActionResult> FirstTimeSetup([FromBody] RegisterUserDto request)
+    {
+        if (await _userService.IsSetupRequiredAsync() == false)
+        {
+            return BadRequest(new { message = "Setup is not required. Users already exist." });
+        }
+
+        try
+        {
+            var user = new Domain.Entities.User
+            {
+                Name = request.Name,
+                Email = request.Email,
+                Role = Domain.Enums.UserRole.Administrator, // Force Admin
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                IsActive = true,
+                AvatarUrl = "/img/avatars/avatar.jpg"
+            };
+
+            await _userService.CreateUserAsync(user);
+            return Ok(new { message = "Administrator created successfully. You can now login." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error during setup", error = ex.Message });
         }
     }
 

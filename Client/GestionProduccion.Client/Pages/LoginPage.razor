@@ -67,6 +67,22 @@
     private LoginModel loginModel = new();
     private string errorMessage = string.Empty;
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/Auth/setup-required");
+            if (setupRequired)
+            {
+                NavigationManager.NavigateTo("/setup");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking setup status: {ex.Message}");
+        }
+    }
+
     private async Task HandleLogin()
     {
         try
