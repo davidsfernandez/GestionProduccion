@@ -78,9 +78,9 @@
                 NavigationManager.NavigateTo("/setup");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error checking setup status: {ex.Message}");
+            // Silent check for setup
         }
     }
 

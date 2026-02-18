@@ -140,9 +140,9 @@
         {
             assignableUsers = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading users: {ex.Message}");
+            // Error handling already done via assignableUsers being null or empty
         }
     }
 

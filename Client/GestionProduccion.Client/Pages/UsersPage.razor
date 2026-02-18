@@ -205,10 +205,9 @@
             // Use GetFromJsonAsync which uses default web options (camelCase, case-insensitive)
             users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading users: {ex.Message}");
-            ToastService.ShowToast("Erro ao carregar usuários. Verifique a console.", ToastLevel.Error);
+            ToastService.ShowToast("Erro ao carregar usuários.", ToastLevel.Error);
         }
         finally
         {

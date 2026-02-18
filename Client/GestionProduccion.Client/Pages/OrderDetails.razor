@@ -336,9 +336,9 @@
                 history = JsonSerializer.Deserialize<List<ProductionHistoryDto>>(content, _jsonOptions);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            // Error handling handled via loading state and order being null
         }
         finally
         {
@@ -357,9 +357,9 @@
                 assignableUsers = JsonSerializer.Deserialize<List<UserDto>>(content, _jsonOptions);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading users: {ex.Message}");
+            // Silent failure
         }
     }
 
@@ -419,9 +419,9 @@
                 await LoadData();
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Exception: {ex.Message}");
+            // Silent error
         }
         finally
         {

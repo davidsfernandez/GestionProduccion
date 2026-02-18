@@ -16,11 +16,13 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly IUserService _userService;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IConfiguration configuration, IUserService userService)
+    public AuthController(IConfiguration configuration, IUserService userService, ILogger<AuthController> logger)
     {
         _configuration = configuration;
         _userService = userService;
+        _logger = logger;
     }
 
     [Authorize]
@@ -59,24 +61,24 @@ public class AuthController : ControllerBase
 
             if (user == null)
             {
-                Console.WriteLine($"LOGIN FAILED: User not found with email {login.Email}");
+                _logger.LogWarning("LOGIN FAILED: User not found with email {Email}", login.Email);
                 return Unauthorized(new { message = "Invalid credentials." });
             }
 
             if (!BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
             {
-                Console.WriteLine($"LOGIN FAILED: Password mismatch for user {login.Email}");
+                _logger.LogWarning("LOGIN FAILED: Password mismatch for user {Email}", login.Email);
                 return Unauthorized(new { message = "Invalid credentials." });
             }
 
             if (!user.IsActive)
             {
-                Console.WriteLine($"LOGIN FAILED: User {login.Email} is inactive");
+                _logger.LogWarning("LOGIN FAILED: User {Email} is inactive", login.Email);
                 return Unauthorized(new { message = "Inactive user." });
             }
 
             var token = GenerateJwtToken(user);
-            Console.WriteLine($"LOGIN SUCCESS: User {login.Email} logged in successfully");
+            _logger.LogInformation("LOGIN SUCCESS: User {Email} logged in successfully", login.Email);
             return Ok(new LoginResponse 
             { 
                 Token = token, 
@@ -86,12 +88,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"LOGIN CRITICAL ERROR: {ex.Message}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
-            }
-
+            _logger.LogError(ex, "LOGIN CRITICAL ERROR: {Message}", ex.Message);
             return StatusCode(500, new { 
                 message = "An error occurred during login.", 
                 error = ex.Message,

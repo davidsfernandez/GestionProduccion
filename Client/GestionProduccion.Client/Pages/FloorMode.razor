@@ -135,9 +135,9 @@
 
             SignalR.OnUpdateReceived += HandleUpdate;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"SignalR Error: {ex.Message}");
+            // Silent error
         }
 
         await LoadOrders();
@@ -162,9 +162,8 @@
                 .Where(o => o.CurrentStatus != "Completed" && o.CurrentStatus != "Cancelled")
                 .ToList();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading orders: {ex.Message}");
             orders = new List<ProductionOrderDto>();
         }
         finally

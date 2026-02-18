@@ -387,15 +387,14 @@
             dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard");
             StateHasChanged();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading dashboard: {ex.Message}");
-        }
-        finally 
-        {
-            loading = false;
-        }
-    }
+                catch (Exception)
+                {
+                    // Silent error handling
+                }
+                finally
+                {
+                    loading = false;
+                }    }
 
     private string GetAvatarUrl(string? url)
     {

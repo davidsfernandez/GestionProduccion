@@ -44,9 +44,9 @@ namespace GestionProduccion.Client.Services
             {
                 // Expected when navigating away
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"SignalR Connection Error: {ex.Message}");
+                // Silent connection error
             }
         }
 
@@ -65,9 +65,9 @@ namespace GestionProduccion.Client.Services
                 {
                     // Safe to ignore
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"SignalR Stop Error: {ex.Message}");
+                    // Silent stop error
                 }
                 finally
                 {

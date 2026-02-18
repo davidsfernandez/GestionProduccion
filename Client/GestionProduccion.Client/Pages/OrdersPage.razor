@@ -200,9 +200,9 @@
                 await InvokeAsync(StateHasChanged);
             };
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"SignalR Error: {ex.Message}");
+            // Silent error for SignalR
         }
 
         await LoadOrders();
@@ -223,9 +223,8 @@
 
             orders = await Http.GetFromJsonAsync<List<ProductionOrderDto>>(url);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading orders: {ex.Message}");
             orders = new List<ProductionOrderDto>();
         }
         finally
