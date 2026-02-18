@@ -10,18 +10,44 @@ namespace GestionProduccion.Client.Services
 
         public event Action<int, string, string>? OnUpdateReceived;
 
+        private Task? _startTask;
+
         public async Task StartConnection(string hubUrl)
         {
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
-                .Build();
-
-            _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>
+            try
             {
-                OnUpdateReceived?.Invoke(opId, novaEtapa, novoStatus);
-            });
+                if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
+                {
+                    return;
+                }
 
-            await _hubConnection.StartAsync();
+                if (_startTask != null && !_startTask.IsCompleted)
+                {
+                    await _startTask;
+                    return;
+                }
+
+                _hubConnection = new HubConnectionBuilder()
+                    .WithUrl(hubUrl)
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>
+                {
+                    OnUpdateReceived?.Invoke(opId, novaEtapa, novoStatus);
+                });
+
+                _startTask = _hubConnection.StartAsync();
+                await _startTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when navigating away
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR Connection Error: {ex.Message}");
+            }
         }
 
         public async Task StopConnection()
@@ -35,11 +61,19 @@ namespace GestionProduccion.Client.Services
                         await _hubConnection.StopAsync();
                     }
                 }
-                catch (ObjectDisposedException) { /* Already gone */ }
+                catch (OperationCanceledException)
+                {
+                    // Safe to ignore
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SignalR Stop Error: {ex.Message}");
+                }
                 finally
                 {
                     await _hubConnection.DisposeAsync();
                     _hubConnection = null;
+                    _startTask = null;
                 }
             }
         }

@@ -254,11 +254,12 @@ body {
 @media (max-width: 768px) {
     /* Hide Sidebar by default on mobile */
     .sidebar {
-        margin-left: -260px !important; /* Force override */
+        margin-left: -280px !important; /* Force override with correct width */
         transition: margin-left 0.3s ease-in-out;
         position: fixed;
         z-index: 1000;
         height: 100vh;
+        width: 280px;
     }
 
     /* Show Sidebar when active */
@@ -266,48 +267,54 @@ body {
         margin-left: 0 !important;
     }
 
-    .sidebar-open .sidebar {
+    .wrapper.sidebar-open .sidebar {
         margin-left: 0 !important;
     }
 
-    /* Responsive Tables */
-    .table-mobile-responsive,
-    .table-responsive-mobile {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        white-space: nowrap;
+    /* Fix for the main content when sidebar is open on mobile */
+    .wrapper.sidebar-open .main {
+        overflow: hidden;
     }
-    
-    /* Card Adjustment */
-    .card {
-        margin-bottom: 1rem;
-    }
-    
-    /* Overlay effect when sidebar is open */
-    .sidebar-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 99;
-    }
+}
 
-    /* Touch UX Improvements */
-    .form-control, .form-select {
-        padding: 12px 15px !important;
-    }
+/* Hamburger Icon Styling (AdminKit style) */
+.hamburger, .hamburger:after, .hamburger:before {
+    cursor: pointer;
+    border-radius: 1px;
+    height: 3px;
+    width: 24px;
+    background: #495057;
+    display: block;
+    content: "";
+    transition: all .1s ease-in-out;
+    position: relative;
+}
 
-    .btn {
-        padding: 10px 20px;
-    }
+.hamburger:before {
+    top: -7px;
+}
 
-    .chart-container {
-        max-height: 250px;
-    }
+.hamburger:after {
+    bottom: -10px;
+}
+
+.sidebar-toggle {
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+/* Ensure icons are visible and have enough contrast */
+.sidebar-link i, .sidebar-link svg {
+    margin-right: 12px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+    color: #8A94A6;
 }
 
 /* Floating Action Button (FAB) */

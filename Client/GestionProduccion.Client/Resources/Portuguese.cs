@@ -46,6 +46,9 @@ namespace GestionProduccion.Client.Resources
         public const string Dash_Workload = "Carga de Trabalho por Usuário";
         public const string Dash_NoActiveWork = "Sem atividade ativa";
         public const string Dash_TvMode = "Modo TV";
+        public const string Dash_RecentActivity = "Atividades Recentes";
+        public const string Dash_RealTime = "Tempo Real";
+        public const string Dash_NoRecentActivity = "Nenhuma atividade recente.";
         
         // Production Orders
         public const string OP_Title = "Ordens de Produção";

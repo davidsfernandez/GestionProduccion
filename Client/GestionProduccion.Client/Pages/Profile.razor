@@ -166,11 +166,14 @@
 
     private string GetAvatarUrl()
     {
-        if (string.IsNullOrEmpty(avatarUrl))
+        var url = UserState.AvatarUrl;
+        if (string.IsNullOrEmpty(url))
         {
-            return "img/avatars/avatar.jpg";
+            return "/img/avatars/avatar.jpg";
         }
-        return $"{avatarUrl}?t={DateTime.Now.Ticks}";
+        // Ensure leading slash for consistency
+        var finalUrl = url.StartsWith("/") ? url : "/" + url;
+        return $"{finalUrl}?t={DateTime.Now.Ticks}";
     }
 
     private async Task LoadUserProfile()
@@ -185,6 +188,10 @@
                      avatarUrl = userDto.AvatarUrl;
                      userName = userDto.Name; // Ensure name is populated from DB
                      userRole = userDto.Role.ToString(); // Ensure role is populated from DB
+                     
+                     // Synchronize global state
+                     UserState.SetUser(userDto.Name, userDto.AvatarUrl);
+                     
                      StateHasChanged();
                  }
             }

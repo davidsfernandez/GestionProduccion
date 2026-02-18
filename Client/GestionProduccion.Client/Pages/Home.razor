@@ -156,7 +156,7 @@
                                                     {
                                                         <li class="mb-3 d-flex align-items-center justify-content-between">
                                                             <div class="d-flex align-items-center text-truncate">
-                                                                <img src="@(string.IsNullOrEmpty(user.AvatarUrl) ? "img/avatars/avatar.jpg" : user.AvatarUrl)" 
+                                                                <img src="@(GetAvatarUrl(user.AvatarUrl))" 
                                                                      class="rounded-circle border border-white shadow-sm me-2" 
                                                                      style="width: 32px; height: 32px; object-fit: cover;">
                                                                 <div>
@@ -235,7 +235,7 @@
                     </div>
 
                     <!-- STOPPED / ALERTS -->
-                    <div class="card flex-fill delay-1">
+                    <div class="card flex-fill delay-1 mb-4">
                         <div class="card-header border-0 pt-4 px-4">
                             <h5 class="card-title mb-0 text-danger">@Portuguese.Dash_Alerts</h5>
                         </div>
@@ -266,6 +266,41 @@
                                     <p class="mb-0 small fw-bold">@Portuguese.Dash_NormalOperation</p>
                                 </div>
                             }
+                        </div>
+                    </div>
+
+                    <!-- RECENT ACTIVITY (Real-time) -->
+                    <div class="card flex-fill delay-3">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">@Portuguese.Dash_RecentActivity</h5>
+                            <span class="badge bg-primary-soft text-primary">@Portuguese.Dash_RealTime</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @if (dashboard.RecentActivities != null && dashboard.RecentActivities.Any())
+                                {
+                                    @foreach (var activity in dashboard.RecentActivities)
+                                    {
+                                        <div class="list-group-item border-0 px-4 py-3">
+                                            <div class="d-flex align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <strong class="text-dark small">@activity.UniqueCode</strong>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">@GetTimeAgo(activity.Date)</small>
+                                                    </div>
+                                                    <p class="mb-0 text-muted small">
+                                                        <span class="fw-bold text-primary">@activity.UserName</span>: @activity.Action
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="p-4 text-center text-muted small">@Portuguese.Dash_NoRecentActivity</div>
+                                }
+                            </div>
                         </div>
                     </div>
 
@@ -333,6 +368,15 @@
         }
     }
 
+    private string GetTimeAgo(DateTime dateTime)
+    {
+        var span = DateTime.UtcNow - dateTime;
+        if (span.TotalMinutes < 1) return "Agora mesmo";
+        if (span.TotalMinutes < 60) return $"há {Math.Floor(span.TotalMinutes)} min";
+        if (span.TotalHours < 24) return $"há {Math.Floor(span.TotalHours)} h";
+        return dateTime.ToString("dd/MM HH:mm");
+    }
+
     private async Task LoadDashboard()
     {
         try
@@ -351,6 +395,14 @@
         {
             loading = false;
         }
+    }
+
+    private string GetAvatarUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "/img/avatars/avatar.jpg";
+        // Ensure leading slash for consistency
+        var finalUrl = url.StartsWith("/") ? url : "/" + url;
+        return $"{finalUrl}?t={DateTime.Now.Ticks}";
     }
 
     private void ToggleTvMode()

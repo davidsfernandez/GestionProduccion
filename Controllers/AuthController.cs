@@ -50,25 +50,38 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
+            if (login == null || string.IsNullOrEmpty(login.Email) || string.IsNullOrEmpty(login.Password))
             {
+                return BadRequest(new { message = "Email and password are required." });
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.Trim() == login.Email.Trim());
+
+            if (user == null)
+            {
+                Console.WriteLine($"LOGIN FAILED: User not found with email {login.Email}");
+                return Unauthorized(new { message = "Invalid credentials." });
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
+            {
+                Console.WriteLine($"LOGIN FAILED: Password mismatch for user {login.Email}");
                 return Unauthorized(new { message = "Invalid credentials." });
             }
 
             if (!user.IsActive)
             {
+                Console.WriteLine($"LOGIN FAILED: User {login.Email} is inactive");
                 return Unauthorized(new { message = "Inactive user." });
             }
 
             var token = GenerateJwtToken(user);
+            Console.WriteLine($"LOGIN SUCCESS: User {login.Email} logged in successfully");
             return Ok(new LoginResponse { Token = token, User = user });
         }
         catch (Exception ex)
         {
-            // Log the error for the developer to see in the console
-            Console.WriteLine($"LOGIN ERROR: {ex.Message}");
+            Console.WriteLine($"LOGIN CRITICAL ERROR: {ex.Message}");
             if (ex.InnerException != null)
             {
                 Console.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
@@ -84,7 +97,12 @@ public class AuthController : ControllerBase
 
     private string GenerateJwtToken(Domain.Entities.User user)
     {
-        var jwtKey = _configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
+        var jwtKey = _configuration["Jwt:Key"];
+        if (string.IsNullOrEmpty(jwtKey) || jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
+        {
+            jwtKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

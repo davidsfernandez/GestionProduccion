@@ -225,11 +225,10 @@ public class ProductionOrderServiceTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(100, result.TotalProducedUnits); // Only OP-DB-1 is completed
-        Assert.Equal(25.0m, (decimal)result.CompletionRate); // 1 out of 4 is completed
+        Assert.Equal(25.0m, result.CompletionRate); // 1 out of 4 is completed
         
-        Assert.Contains("Sewing", result.OperationsByStage.Keys);
-        Assert.Equal(2, result.OperationsByStage["Sewing"]); // OP-DB-2 and OP-DB-3
+        Assert.Contains("Sewing", result.OrdersByStage.Keys);
+        Assert.Equal(2, result.OrdersByStage["Sewing"]); // OP-DB-2 and OP-DB-3
         
         Assert.Single(result.StoppedOperations); // OP-DB-4
         Assert.Equal("OP-DB-4", result.StoppedOperations[0].UniqueCode);

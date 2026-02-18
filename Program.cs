@@ -41,7 +41,7 @@ builder.Services.AddAuthentication(options =>
     var jwtKey = builder.Configuration["Jwt:Key"];
     var isProduction = builder.Environment.IsProduction();
 
-    if (string.IsNullOrEmpty(jwtKey))
+    if (string.IsNullOrEmpty(jwtKey) || jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
     {
         if (isProduction)
             throw new InvalidOperationException("CRITICAL: JWT Key is missing in Production environment!");
@@ -69,8 +69,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         // Fix for Enums as strings (Architect Rule 9)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        // Maintain PascalCase for consistency
+        // Maintain PascalCase for consistency but allow case-insensitivity for incoming data
         options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         // Safeguard against nulls (Architect Rule 48)
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });

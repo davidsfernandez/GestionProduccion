@@ -28,7 +28,7 @@
             <NotAuthorized>
                 <div class="sidebar-profile">
                     <div class="position-relative d-inline-block">
-                        <img src="img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
+                        <img src="/img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
                     </div>
                     <span class="profile-name">Convidado</span>
                     <span class="profile-role">Inicie sessão</span>
@@ -77,17 +77,21 @@
         var url = UserState.AvatarUrl;
         if (string.IsNullOrEmpty(url))
         {
-            return "img/avatars/avatar.jpg";
+            return "/img/avatars/avatar.jpg";
         }
-        return $"{url}?t={DateTime.Now.Ticks}";
+        // Ensure leading slash for consistency
+        var finalUrl = url.StartsWith("/") ? url : "/" + url;
+        return $"{finalUrl}?t={DateTime.Now.Ticks}";
     }
 
     protected override async Task OnInitializedAsync()
     {
-        UserState.OnChange += StateHasChanged;
+        UserState.OnChange += NotifyStateChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         await LoadUserData();
     }
+
+    private async void NotifyStateChanged() => await InvokeAsync(StateHasChanged);
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
     {
@@ -130,13 +134,14 @@
         "administrator" => Portuguese.Role_Admin,
         "leader" => Portuguese.Role_Leader,
         "operator" => Portuguese.Role_Operator,
+        "sewer" => Portuguese.Role_Operator, // Map legacy role to current terminology
         "workshop" => Portuguese.Role_Workshop,
         _ => role ?? ""
     };
 
     public void Dispose()
     {
-        UserState.OnChange -= StateHasChanged;
+        UserState.OnChange -= NotifyStateChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 

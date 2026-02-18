@@ -197,27 +197,18 @@
         await LoadUsers();
     }
 
-    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() } 
-    };
-
     private async Task LoadUsers()
     {
         try
         {
             loading = true;
-            var response = await Http.GetAsync("api/Users");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                users = JsonSerializer.Deserialize<List<UserDto>>(content, _jsonOptions);
-            }
+            // Use GetFromJsonAsync which uses default web options (camelCase, case-insensitive)
+            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Error loading users: {ex.Message}");
+            ToastService.ShowToast("Erro ao carregar usuários. Verifique a console.", ToastLevel.Error);
         }
         finally
         {
@@ -253,6 +244,7 @@
         UserRole.Administrator => Portuguese.Role_Admin,
         UserRole.Leader => Portuguese.Role_Leader,
         UserRole.Operator => Portuguese.Role_Operator,
+        UserRole.Sewer => Portuguese.Role_Operator, // Legacy mapping
         UserRole.Workshop => Portuguese.Role_Workshop,
         _ => role.ToString()
     };

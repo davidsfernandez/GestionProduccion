@@ -105,7 +105,7 @@ public class AppDbContext : DbContext
                 Name = "Administrator",
                 Email = "admin@local.host",
                 // Password is "admin"
-                PasswordHash = "$2a$11$w68A2Yh3jmu/hvmx3NoJ2OJnSyJDWEg86/schjmvd.x4b098FvblC", 
+                PasswordHash = "$2a$11$SiQ7dTsxEyIkkZgM83lzDuWMUSxBUesGCZwHBkRSYw292e7cdpn4y", 
                 Role = Domain.Enums.UserRole.Administrator,
                 PublicId = "ADMIN-001",
                 IsActive = true
