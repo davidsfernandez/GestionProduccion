@@ -9,6 +9,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,7 +67,45 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// --- 4. CONTROLLERS & JSON REPAIR ---
+// --- 4. RATE LIMITING (Security) ---
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
+    };
+
+    // Global Policy: 100 requests per minute per IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Login Policy: 5 requests per minute per IP (Brute-force protection)
+    options.AddPolicy("LoginPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
+
+// --- 5. VALIDATION ---
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// --- 6. CONTROLLERS & JSON REPAIR ---
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -81,7 +123,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- 5. CORS REPAIR (Architect Rule 11) ---
+// --- 7. CORS REPAIR (Architect Rule 11) ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -94,7 +136,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- 6. MIDDLEWARE PIPELINE (Correct Order) ---
+// --- 8. MIDDLEWARE PIPELINE (Correct Order) ---
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage(); // Architect Rule 18
@@ -103,6 +145,15 @@ if (app.Environment.IsDevelopment())
     app.UseWebAssemblyDebugging();
 }
 
+// Security Headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    await next();
+});
+
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles(); // Architect Rule 19
 app.UseStaticFiles();          // Architect Rule 19
@@ -110,10 +161,12 @@ app.UseRouting();
 
 app.UseCors("AllowAll"); // Must be before Auth
 
+app.UseRateLimiter(); // Apply Rate Limiting
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 7. AUTOMATIC MIGRATIONS (Architect Rule 5) ---
+// --- 9. AUTOMATIC MIGRATIONS (Architect Rule 5) ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
