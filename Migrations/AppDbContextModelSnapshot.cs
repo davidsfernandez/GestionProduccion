@@ -165,18 +165,6 @@ namespace GestionProduccion.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Email = "admin@local.host",
-                            IsActive = true,
-                            Name = "Administrator",
-                            PasswordHash = "$2a$11$SiQ7dTsxEyIkkZgM83lzDuWMUSxBUesGCZwHBkRSYw292e7cdpn4y",
-                            PublicId = "ADMIN-001",
-                            Role = "Administrator"
-                        });
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionHistory", b =>

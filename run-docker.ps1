@@ -41,13 +41,23 @@ JWT_AUDIENCE=GestionProduccionAPI
 }
 
 # 2. Check Docker
-if (!(Get-Process docker -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Error: Docker is not running. Please start Docker Desktop." -ForegroundColor Red
+Write-Host "🐳 Checking Docker status..." -ForegroundColor Cyan
+docker info > $null 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Error: Docker is not running or not accessible." -ForegroundColor Red
+    Write-Host "Please start Docker Desktop and try again." -ForegroundColor Gray
     exit 1
 }
 
-# 3. Build and Start
-Write-Host "🐳 Building and starting containers..." -ForegroundColor Cyan
+# 3. Ask for Clean Reset (Critical for Setup Wizard)
+$doReset = Read-Host "⚠️ Do you want to factory reset the database to trigger Setup Wizard? (y/n)"
+if ($doReset -eq 'y') {
+    Write-Host "🔥 Removing old containers and volumes..." -ForegroundColor Yellow
+    docker-compose down -v
+}
+
+# 4. Build and Start
+Write-Host "🚀 Building and starting containers..." -ForegroundColor Cyan
 docker-compose up -d --build
 
 if ($LASTEXITCODE -eq 0) {
