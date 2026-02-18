@@ -43,6 +43,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous] // FIX: Allow unauthenticated users to attempt login
     [EnableRateLimiting("LoginPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginDto login)
     {

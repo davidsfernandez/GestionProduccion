@@ -97,19 +97,8 @@ public class AppDbContext : DbContext
             .HasForeignKey(h => h.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- SEED DATA ---
-        modelBuilder.Entity<User>().HasData(
-            new User
-            {
-                Id = 1,
-                Name = "Administrator",
-                Email = "admin@local.host",
-                // Password is "admin"
-                PasswordHash = "$2a$11$SiQ7dTsxEyIkkZgM83lzDuWMUSxBUesGCZwHBkRSYw292e7cdpn4y", 
-                Role = Domain.Enums.UserRole.Administrator,
-                PublicId = "ADMIN-001",
-                IsActive = true
-            }
-        );
+        // --- SEED DATA REMOVED FOR PRODUCTION READINESS ---
+        // The system now uses a Setup Wizard flow. If no users exist,
+        // the frontend will redirect to /setup to create the first admin.
     }
 }
