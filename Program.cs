@@ -24,12 +24,13 @@ if (string.IsNullOrEmpty(connectionString))
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)), 
         mysqlOptions => mysqlOptions.EnableRetryOnFailure(
             maxRetryCount: 10,
             maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null))
+            errorNumbersToAdd: null)),
+    poolSize: 128
 );
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
