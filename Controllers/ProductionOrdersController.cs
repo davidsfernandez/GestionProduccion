@@ -16,11 +16,13 @@ public class ProductionOrdersController : ControllerBase
 {
     private readonly IProductionOrderService _productionOrderService;
     private readonly IUserService _userService;
+    private readonly IExcelExportService _excelExportService;
 
-    public ProductionOrdersController(IProductionOrderService productionOrderService, IUserService userService)
+    public ProductionOrdersController(IProductionOrderService productionOrderService, IUserService userService, IExcelExportService excelExportService)
     {
         _productionOrderService = productionOrderService;
         _userService = userService;
+        _excelExportService = excelExportService;
     }
 
     [HttpPost]
@@ -321,6 +323,20 @@ public class ProductionOrdersController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error generating CSV", error = ex.Message });
+        }
+    }
+
+    [HttpGet("export-excel")]
+    public async Task<IActionResult> ExportExcel([FromQuery] FilterProductionOrderDto? filter)
+    {
+        try
+        {
+            var excelBytes = await _excelExportService.ExportProductionOrdersToExcelAsync(filter);
+            return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating Excel", error = ex.Message });
         }
     }
 }

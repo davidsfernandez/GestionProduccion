@@ -62,6 +62,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_AssignedTo = "Atribuído a";
         public const string OP_Unassigned = "Não atribuído";
         public const string OP_ExportCSV = "Exportar CSV";
+        public const string OP_ExportExcel = "Exportar Excel";
         public const string OP_DailyPDF = "PDF Diário";
         public const string OP_Report = "Relatório PDF";
         public const string OP_NoOrdersFound = "Nenhuma ordem de produção encontrada.";

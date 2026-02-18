@@ -24,7 +24,11 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)))
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)), 
+        mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 10,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorNumbersToAdd: null))
 );
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
@@ -32,6 +36,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRepository, GestionProduccion.Data.Repositories.UserRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderRepository, GestionProduccion.Data.Repositories.ProductionOrderRepository>();
 builder.Services.AddSignalR();
@@ -170,18 +175,33 @@ app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    try
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<AppDbContext>();
+
+    int retries = 6; // Total 30 seconds wait
+    while (retries > 0)
     {
-        var context = services.GetRequiredService<AppDbContext>();
-        if (context.Database.GetPendingMigrations().Any())
+        try
         {
-            context.Database.Migrate();
+            if (context.Database.GetPendingMigrations().Any())
+            {
+                logger.LogInformation("Applying pending migrations...");
+                context.Database.Migrate();
+                logger.LogInformation("Database is up to date.");
+            }
+            break; 
         }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogCritical(ex, "FATAL: Database migration failed at startup.");
+        catch (Exception ex)
+        {
+            retries--;
+            if (retries == 0)
+            {
+                logger.LogCritical(ex, "FATAL: Database migration failed after multiple attempts.");
+                throw; 
+            }
+            logger.LogWarning("DB Connection failed. DB may be initializing. Retrying in 5 seconds... ({Retries} attempts left)", retries);
+            System.Threading.Thread.Sleep(5000);
+        }
     }
 }
 

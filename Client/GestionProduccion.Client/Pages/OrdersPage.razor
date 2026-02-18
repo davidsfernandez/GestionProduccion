@@ -44,6 +44,9 @@
                             <button class="btn btn-light shadow-none border me-2" @onclick="ExportToCsv">
                                 <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
                             </button>
+                            <button class="btn btn-light shadow-none border me-2" @onclick="ExportToExcel">
+                                <i class="fa-solid fa-file-excel text-success me-2"></i> @Portuguese.OP_ExportExcel
+                            </button>
                             <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
                                 <button class="btn btn-light shadow-none border" @onclick="DownloadDailyReport">
                                     <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
@@ -307,6 +310,33 @@
             else
             {
                 ToastService.ShowToast("Erro ao exportar CSV", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        try 
+        {
+            ToastService.ShowToast("Gerando Excel...", ToastLevel.Info);
+            // Construct the filter query string based on the current search term
+            var filterUrl = "api/ProductionOrders/export-excel" + (string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?productDescription={searchTerm}");
+            var response = await Http.GetAsync(filterUrl);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_{DateTime.Now:yyyyMMdd}.xlsx", streamRef);
+                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast("Erro al exportar Excel", ToastLevel.Error);
             }
         }
         catch (Exception ex)
