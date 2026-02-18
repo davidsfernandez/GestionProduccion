@@ -13,15 +13,11 @@
 <PageTitle>@Portuguese.User_Title</PageTitle>
 
 <div class="container-fluid p-0">
-    <div class="row mb-2 mb-xl-3">
-        <div class="col-auto d-none d-sm-block">
-            <h3 class="d-inline-block align-middle text-dark">@Portuguese.User_Title</h3>
-        </div>
-        <div class="col-auto ms-auto text-end mt-n1">
-            <button class="btn btn-primary shadow-sm" @onclick="ShowCreateModal">
-                <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.User_NewUser
-            </button>
-        </div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.User_Title</h3>
+        <button class="btn btn-primary shadow-sm w-100 w-md-auto" @onclick="ShowCreateModal">
+            <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.User_NewUser
+        </button>
     </div>
 
     <div class="row">
@@ -55,7 +51,7 @@
                                     <th>@Portuguese.User_Email</th>
                                     <th>@Portuguese.User_Role</th>
                                     <th>@Portuguese.User_Status</th>
-                                    <th class="text-end">@Portuguese.Actions</th>
+                                    <th class="text-end text-nowrap">@Portuguese.Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -87,7 +83,7 @@
                                                 <span class="badge bg-danger-soft">@Portuguese.User_Inactive</span>
                                             }
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end text-nowrap">
                                             <button class="btn btn-sm btn-light me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>

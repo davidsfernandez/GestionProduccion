@@ -15,17 +15,13 @@
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
-    <div class="row mb-2 mb-xl-3">
-        <div class="col-auto d-none d-sm-block">
-            <h3 class="d-inline-block align-middle text-dark">@Portuguese.OP_Title</h3>
-        </div>
-        <div class="col-auto ms-auto text-end mt-n1">
-            <AuthorizeView Roles="Administrator,Leader" Context="createContext">
-                <button class="btn btn-primary shadow-sm" @onclick="CreateNewOrder">
-                    <i class="fa-solid fa-plus me-2"></i> @Portuguese.OP_NewOrder
-                </button>
-            </AuthorizeView>
-        </div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.OP_Title</h3>
+        <AuthorizeView Roles="Administrator,Leader" Context="createContext">
+            <button class="btn btn-primary shadow-sm w-100 w-md-auto" @onclick="CreateNewOrder">
+                <i class="fa-solid fa-plus me-2"></i> @Portuguese.OP_NewOrder
+            </button>
+        </AuthorizeView>
     </div>
 
     <div class="row">
@@ -55,18 +51,20 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-12 text-md-end mb-3 d-none d-md-block">
-                            <button class="btn btn-light shadow-none border me-2" @onclick="ExportToCsv">
-                                <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
-                            </button>
-                            <button class="btn btn-light shadow-none border me-2" @onclick="ExportToExcel">
-                                <i class="fa-solid fa-file-excel text-success me-2"></i> @Portuguese.OP_ExportExcel
-                            </button>
-                            <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
-                                <button class="btn btn-light shadow-none border" @onclick="DownloadDailyReport">
-                                    <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
+                        <div class="col-md-12 text-md-end mb-3">
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToCsv">
+                                    <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
                                 </button>
-                            </AuthorizeView>
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToExcel">
+                                    <i class="fa-solid fa-file-excel text-success me-2"></i> @Portuguese.OP_ExportExcel
+                                </button>
+                                <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
+                                    <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="DownloadDailyReport">
+                                        <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
+                                    </button>
+                                </AuthorizeView>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -109,7 +107,7 @@
                             </div>
                         </div>
                     }
-                    <div class="table-mobile-responsive">
+                    <div class="table-responsive">
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
@@ -123,7 +121,7 @@
                                     <th>@Portuguese.OP_Status</th>
                                     <th class="d-none d-lg-table-cell">@Portuguese.OP_Delivery</th>
                                     <th class="d-none d-xl-table-cell">@Portuguese.OP_AssignedTo</th>
-                                    <th class="text-end">@Portuguese.Actions</th>
+                                    <th class="text-end text-nowrap">@Portuguese.Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -153,7 +151,7 @@
                                                 <span class="small text-muted">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</span>
                                             </div>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end text-nowrap">
                                             <button class="btn btn-lg btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>

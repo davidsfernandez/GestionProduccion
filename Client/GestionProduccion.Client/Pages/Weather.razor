@@ -3,38 +3,56 @@
 
 <PageTitle>Previsão do Tempo</PageTitle>
 
-<h1>Previsão do Tempo</h1>
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">Previsão do Tempo</h3>
+    </div>
 
-<p>Este componente demonstra a busca de dados do servidor.</p>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted">Este componente demonstra a busca de dados do servidor.</p>
 
-@if (forecasts == null)
-{
-    <p><em>Carregando...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th aria-label="Temperatura em Celsius">Temp. (C)</th>
-                <th aria-label="Temperatura em Fahrenheit">Temp. (F)</th>
-                <th>Resumo</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+                    @if (forecasts == null)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-nowrap">Data</th>
+                                        <th class="text-nowrap" aria-label="Temperatura em Celsius">Temp. (C)</th>
+                                        <th class="text-nowrap" aria-label="Temperatura em Fahrenheit">Temp. (F)</th>
+                                        <th class="text-nowrap">Resumo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var forecast in forecasts)
+                                    {
+                                        <tr>
+                                            <td class="text-nowrap">@forecast.Date.ToShortDateString()</td>
+                                            <td>@forecast.TemperatureC</td>
+                                            <td>@forecast.TemperatureF</td>
+                                            <td>@forecast.Summary</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     private WeatherForecast[]? forecasts;

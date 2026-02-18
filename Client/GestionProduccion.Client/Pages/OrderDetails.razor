@@ -207,10 +207,10 @@
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
-                                    <th>@Portuguese.Hist_Date</th>
-                                    <th>Ação</th>
-                                    <th>Responsável</th>
-                                    <th>Nota</th>
+                                    <th class="text-nowrap">@Portuguese.Hist_Date</th>
+                                    <th class="text-nowrap">Ação</th>
+                                    <th class="text-nowrap">Responsável</th>
+                                    <th class="text-nowrap">Nota</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -219,15 +219,15 @@
                                     @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
                                     {
                                         <tr>
-                                            <td class="small text-muted">@log.ModificationDate.ToString("g")</td>
-                                            <td>
+                                            <td class="small text-muted text-nowrap">@log.ModificationDate.ToString("g")</td>
+                                            <td class="text-nowrap">
                                                 <div class="d-flex align-items-center">
                                                     <span class="badge bg-light text-muted border me-2 xsmall">@TranslateStage(log.PreviousStage)</span>
                                                     <i class="fa-solid fa-arrow-right text-primary opacity-25 me-2 xsmall"></i>
                                                     <span class="badge bg-primary-soft xsmall">@TranslateStage(log.NewStage)</span>
                                                 </div>
                                             </td>
-                                            <td class="small">@log.UserName</td>
+                                            <td class="small text-nowrap">@log.UserName</td>
                                             <td class="small text-muted">@log.Note</td>
                                         </tr>
                                     }
