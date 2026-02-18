@@ -5,6 +5,7 @@ using GestionProduccion.Hubs;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace GestionProduccion.Services;
@@ -211,6 +212,16 @@ public class ProductionOrderService : IProductionOrderService
             if (filter.EndDate.HasValue)
             {
                 query = query.Where(po => po.CreationDate <= filter.EndDate.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.ClientName))
+            {
+                query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Size))
+            {
+                query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
             }
         }
 
@@ -565,6 +576,30 @@ public class ProductionOrderService : IProductionOrderService
         var totalComp = query.Count(o => o.CurrentStatus == ProductionStatus.Completed);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
+        // Populate TodaysOrders for Daily Report
+        // Using AsNoTracking() as requested for performance
+        var todaysOrdersList = query
+            .AsNoTracking()
+            .Where(o => o.CreationDate >= today)
+            .OrderByDescending(o => o.CreationDate)
+            .ToList();
+
+        var todaysOrdersDtos = todaysOrdersList.Select(po => new ProductionOrderDto
+        {
+            Id = po.Id,
+            UniqueCode = po.UniqueCode,
+            ProductDescription = po.ProductDescription,
+            Quantity = po.Quantity,
+            ClientName = po.ClientName,
+            Size = po.Size,
+            CurrentStage = po.CurrentStage.ToString(),
+            CurrentStatus = po.CurrentStatus.ToString(),
+            CreationDate = po.CreationDate,
+            EstimatedDeliveryDate = po.EstimatedDeliveryDate,
+            UserId = po.UserId,
+            AssignedUserName = po.AssignedUser != null ? po.AssignedUser.Name : null
+        }).ToList();
+
         return new DashboardDto
         {
             TotalActiveOrders = totalActiveOrders,
@@ -576,6 +611,7 @@ public class ProductionOrderService : IProductionOrderService
             UrgentOrders = new List<ProductionOrderDto>(), // Logic for Urgent could be added similarly using filters
             StoppedOperations = new List<StoppedOperationDto>(), // Logic for Stopped could be added similarly
             RecentActivities = recentActivities,
+            TodaysOrders = todaysOrdersDtos,
             CompletionRate = Math.Round(rate, 1),
             LastUpdated = DateTime.Now
         };

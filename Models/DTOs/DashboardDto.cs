@@ -20,6 +20,7 @@ public class DashboardDto
     public List<ProductionOrderDto> UrgentOrders { get; set; } = new();
     public List<StoppedOperationDto> StoppedOperations { get; set; } = new();
     public List<RecentActivityDto> RecentActivities { get; set; } = new();
+    public List<ProductionOrderDto> TodaysOrders { get; set; } = new();
 
     // --- CONTROL ---
     public DateTime LastUpdated { get; set; }

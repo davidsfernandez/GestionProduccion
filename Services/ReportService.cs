@@ -147,7 +147,6 @@ public class ReportService : IReportService
 
     public async Task<byte[]> GenerateDailyProductionReportAsync()
     {
-        // Keeping existing implementation logic but simplified/placeholder as the main task is the Ficha
         var dashboard = await _productionOrderService.GetDashboardAsync();
         var document = Document.Create(container =>
         {
@@ -155,11 +154,85 @@ public class ReportService : IReportService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.Header().Text("Relatório Diário").FontSize(20).Bold();
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+
+                // HEADER
+                page.Header().Row(row =>
+                {
+                    row.RelativeItem().Column(col =>
+                    {
+                        col.Item().Text("Relatório Diário de Produção").FontSize(20).Bold().FontColor(Colors.Grey.Darken3);
+                        col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);
+                    });
+                });
+
+                // CONTENT
                 page.Content().PaddingVertical(10).Column(x =>
                 {
-                    x.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
-                    x.Item().Text($"Eficiência: {dashboard.CompletionRate}%");
+                    x.Spacing(20);
+
+                    // SUMMARY BOX
+                    x.Item().Background(Colors.Grey.Lighten4).Padding(10).Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("Resumo Estatístico").Bold();
+                            c.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
+                            c.Item().Text($"Taxa de Conclusão: {dashboard.CompletionRate}%");
+                        });
+                    });
+
+                    // DETAILED TABLE
+                    x.Item().Text("Detalhamento das Ordens do Dia").Bold().FontSize(12);
+
+                    x.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3); // Lot
+                            columns.RelativeColumn(4); // Client
+                            columns.RelativeColumn(2); // Size
+                            columns.RelativeColumn(3); // Status
+                            columns.RelativeColumn(4); // Operator
+                        });
+
+                        // Header
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(HeaderStyle).Text("Lote");
+                            header.Cell().Element(HeaderStyle).Text("Cliente");
+                            header.Cell().Element(HeaderStyle).Text("Tamanho");
+                            header.Cell().Element(HeaderStyle).Text("Status");
+                            header.Cell().Element(HeaderStyle).Text("Operador");
+
+                            static IContainer HeaderStyle(IContainer container) => 
+                                container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
+                        });
+
+                        // Rows
+                        for (int i = 0; i < dashboard.TodaysOrders.Count; i++)
+                        {
+                            var order = dashboard.TodaysOrders[i];
+                            var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
+
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.UniqueCode);
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ClientName ?? "-");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.Size ?? "-");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.AssignedUserName ?? "Não atribuído");
+
+                            static IContainer CellStyle(IContainer container, string bgColor) => 
+                                container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+                        }
+                    });
+                });
+
+                // FOOTER
+                page.Footer().AlignCenter().Text(x =>
+                {
+                    x.Span("Página ");
+                    x.CurrentPageNumber();
                 });
             });
         });
