@@ -166,6 +166,15 @@ public class ProductionOrderService : IProductionOrderService
         
         var query = await _orderRepository.GetQueryableAsync();
 
+        // Enforce Security: Operators and Workshop only see their own assigned orders
+        var currentUserId = GetCurrentUserId();
+        var currentUser = await _userRepository.GetByIdAsync(currentUserId);
+        
+        if (currentUser != null && (currentUser.Role == UserRole.Operator || currentUser.Role == UserRole.Workshop))
+        {
+            query = query.Where(po => po.UserId == currentUserId);
+        }
+
         if (filter != null)
         {
             if (!string.IsNullOrWhiteSpace(filter.ProductDescription))
@@ -279,6 +288,16 @@ public class ProductionOrderService : IProductionOrderService
             return false;
         }
 
+        // Security Check: Operator/Workshop can only modify their own assigned orders
+        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
+        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
+        {
+            if (order.UserId != modifiedByUserId)
+            {
+                throw new UnauthorizedAccessException("Você só pode atualizar o status de ordens atribuídas a você.");
+            }
+        }
+
         if (newStatus == ProductionStatus.Completed && order.CurrentStage != ProductionStage.Packaging)
         {
             return false;
@@ -325,6 +344,11 @@ public class ProductionOrderService : IProductionOrderService
                     result.Errors.Add($"Order {id}: Update failed (business rule violation or not found).");
                 }
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                result.FailureCount++;
+                result.Errors.Add($"Order {id}: Permission denied - {ex.Message}");
+            }
             catch (Exception ex)
             {
                 result.FailureCount++;
@@ -340,6 +364,16 @@ public class ProductionOrderService : IProductionOrderService
         if (order == null)
         {
             return false;
+        }
+
+        // Security Check: Operator/Workshop can only modify their own assigned orders
+        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
+        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
+        {
+            if (order.UserId != modifiedByUserId)
+            {
+                throw new UnauthorizedAccessException("Você só pode avançar a etapa de ordens atribuídas a você.");
+            }
         }
 
         if (order.CurrentStatus == ProductionStatus.Completed)
