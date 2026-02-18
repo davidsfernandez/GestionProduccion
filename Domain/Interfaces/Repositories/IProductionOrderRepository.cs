@@ -16,5 +16,6 @@ public interface IProductionOrderRepository
     Task<List<ProductionOrder>> GetAssignedToUserAsync(int userId);
     Task AddHistoryAsync(ProductionHistory history);
     Task<List<ProductionHistory>> GetHistoryByOrderIdAsync(int orderId);
+    Task<List<ProductionHistory>> GetRecentHistoryAsync(int count);
     Task SaveChangesAsync();
 }

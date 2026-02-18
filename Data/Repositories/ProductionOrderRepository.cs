@@ -89,6 +89,16 @@ public class ProductionOrderRepository : IProductionOrderRepository
             .ToListAsync();
     }
 
+    public async Task<List<ProductionHistory>> GetRecentHistoryAsync(int count)
+    {
+        return await _context.ProductionHistories
+            .Include(h => h.ResponsibleUser)
+            .Include(h => h.ProductionOrder)
+            .OrderByDescending(h => h.ModificationDate)
+            .Take(count)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

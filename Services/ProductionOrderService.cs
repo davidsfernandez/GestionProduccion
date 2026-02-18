@@ -403,14 +403,44 @@ public class ProductionOrderService : IProductionOrderService
             weeklyVolume.Add(0); // Placeholder
         }
 
-        // Workload
-        var workloadDistribution = new List<WorkerStatsDto>();
+        // Workload Distribution (Active Orders per User)
+        // We fetch active orders and their assigned users.
+        // Since we have 'query' which is IQueryable of Orders, we can filter locally or via EF if supported.
+        var activeOrdersList = query
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
+            .ToList(); // Materialize to group in memory (Repository pattern limitation for now)
 
+        var workloadDistribution = activeOrdersList
+            .GroupBy(o => o.UserId!.Value)
+            .Select((g, index) => {
+                var user = g.First().AssignedUser; // Included in GetAllAsync/Queryable
+                return new WorkerStatsDto
+                {
+                    Name = user?.Name ?? "Unknown",
+                    AvatarUrl = string.IsNullOrEmpty(user?.AvatarUrl) ? "/img/avatars/avatar.jpg" : user.AvatarUrl,
+                    ActiveCount = g.Count(),
+                    EfficiencyScore = 95.0, // Placeholder calculation
+                    Color = GetColorByIndex(index)
+                };
+            })
+            .OrderByDescending(w => w.ActiveCount)
+            .ToList();
+
+        // Recent Activity
+        var historyLogs = await _orderRepository.GetRecentHistoryAsync(10);
+        var recentActivities = historyLogs.Select(h => new RecentActivityDto
+        {
+            OrderId = h.ProductionOrderId,
+            UniqueCode = h.ProductionOrder?.UniqueCode ?? "N/A",
+            UserName = h.ResponsibleUser?.Name ?? "System",
+            Action = h.Note ?? h.NewStatus.ToString(),
+            Date = h.ModificationDate
+        }).ToList();
+        
         // Orders By Stage
         var ordersByStage = activeOrdersQuery
             .GroupBy(o => o.CurrentStage)
-            .Select(g => new { Stage = g.Key, Count = g.Count() })
-            .ToDictionary(g => g.Stage.ToString(), g => g.Count);
+            .ToDictionary(g => g.Key.ToString(), g => g.Count());
 
         // Stats
         var totalAll = query.Count();
@@ -425,9 +455,9 @@ public class ProductionOrderService : IProductionOrderService
             WeeklyVolumeData = weeklyVolume,
             WorkloadDistribution = workloadDistribution,
             OrdersByStage = ordersByStage,
-            UrgentOrders = new List<ProductionOrderDto>(),
-            StoppedOperations = new List<StoppedOperationDto>(),
-            RecentActivities = new List<RecentActivityDto>(),
+            UrgentOrders = new List<ProductionOrderDto>(), // Logic for Urgent could be added similarly using filters
+            StoppedOperations = new List<StoppedOperationDto>(), // Logic for Stopped could be added similarly
+            RecentActivities = recentActivities,
             CompletionRate = Math.Round(rate, 1),
             LastUpdated = DateTime.Now
         };

@@ -155,7 +155,7 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
-                                <InputText type="password" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="••••••••" />
+                                <InputText type="password" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
                                 @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em branco para manter</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
@@ -324,10 +324,18 @@
 
     public class UserFormModel
     {
+        [System.ComponentModel.DataAnnotations.Required]
         public string Name { get; set; } = "";
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
         public string Email { get; set; } = "";
+        
         public string PublicId { get; set; } = "";
+        
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
         public string Password { get; set; } = "";
+        
         public UserRole Role { get; set; } = UserRole.Operator;
     }
 }
