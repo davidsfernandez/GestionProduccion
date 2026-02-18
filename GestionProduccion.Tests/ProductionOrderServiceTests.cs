@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using System.Threading;
 using System.Threading.Tasks;
 using GestionProduccion.Data;
+using GestionProduccion.Data.Repositories;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Hubs;
@@ -41,7 +41,11 @@ public class ProductionOrderServiceTests : IDisposable
         mockClients.Setup(clients => clients.All).Returns(mockClientProxy.Object);
         _mockHubContext.Setup(hub => hub.Clients).Returns(mockClients.Object);
 
-        _service = new ProductionOrderService(_context, _mockHubContext.Object, _mockHttpContextAccessor.Object);
+        // Repositories
+        var orderRepo = new ProductionOrderRepository(_context);
+        var userRepo = new UserRepository(_context);
+
+        _service = new ProductionOrderService(orderRepo, userRepo, _mockHubContext.Object, _mockHttpContextAccessor.Object);
     }
 
     public void Dispose()
@@ -180,7 +184,7 @@ public class ProductionOrderServiceTests : IDisposable
             CurrentStatus = ProductionStatus.InProduction,
             CreationDate = DateTime.UtcNow
         };
-        var user = new User { Id = 10, Name = "Operator 1", Email = "op1@test.com", Role = UserRole.Operator };
+        var user = new User { Id = 10, Name = "Operator 1", Email = "op1@test.com", Role = UserRole.Operator, IsActive = true };
         
         _context.ProductionOrders.Add(order);
         _context.Users.Add(user);
@@ -225,6 +229,10 @@ public class ProductionOrderServiceTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
+        // Note: With current simplistic Service-side dashboard implementation (due to repository pattern limit),
+        // filtering complex stuff without dedicated repository methods might return slightly different results or work fine if logic was preserved.
+        // We preserved the logic using Queryable in service.
+        
         Assert.Equal(25.0m, result.CompletionRate); // 1 out of 4 is completed
         
         Assert.Contains("Sewing", result.OrdersByStage.Keys);
@@ -248,7 +256,7 @@ public class ProductionOrderServiceTests : IDisposable
             CurrentStatus = ProductionStatus.InProduction,
             CreationDate = DateTime.UtcNow
         };
-        var targetUser = new User { Id = 20, Name = "Operator 2", Role = UserRole.Operator };
+        var targetUser = new User { Id = 20, Name = "Operator 2", Role = UserRole.Operator, IsActive = true };
         
         _context.ProductionOrders.Add(order);
         _context.Users.Add(targetUser);
@@ -284,7 +292,7 @@ public class ProductionOrderServiceTests : IDisposable
         }
 
         Assert.NotNull(history);
-        Assert.Equal(99, history.UserId); // Verify the history was logged by user 99
+        Assert.Equal(99, history.UserId);
     }
 
     [Fact]

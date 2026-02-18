@@ -1,7 +1,5 @@
-using GestionProduccion.Data;
 using GestionProduccion.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,13 +13,11 @@ namespace GestionProduccion.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IUserService _userService;
 
-    public AuthController(AppDbContext context, IConfiguration configuration, IUserService userService)
+    public AuthController(IConfiguration configuration, IUserService userService)
     {
-        _context = context;
         _configuration = configuration;
         _userService = userService;
     }
@@ -55,7 +51,7 @@ public class AuthController : ControllerBase
                 return BadRequest(new { message = "Email and password are required." });
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.Trim() == login.Email.Trim());
+            var user = await _userService.GetUserByEmailAsync(login.Email.Trim());
 
             if (user == null)
             {

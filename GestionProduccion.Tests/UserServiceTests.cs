@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using GestionProduccion.Data;
+using GestionProduccion.Data.Repositories;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Services;
@@ -13,27 +14,30 @@ namespace GestionProduccion.Tests
         private AppDbContext GetInMemoryDbContext()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: System.Guid.NewGuid().ToString()) // Unique DB per test
+                .UseInMemoryDatabase(databaseName: System.Guid.NewGuid().ToString())
                 .Options;
             return new AppDbContext(options);
         }
 
         [Fact]
-        public async Task GetAllUsersAsync_ShouldReturnAllUsers()
+        public async Task GetActiveUsersAsync_ShouldReturnActiveUsers()
         {
             // Arrange
             using var context = GetInMemoryDbContext();
             context.Users.Add(new User { Name = "User 1", Email = "user1@test.com", Role = UserRole.Operator, IsActive = true });
             context.Users.Add(new User { Name = "User 2", Email = "user2@test.com", Role = UserRole.Leader, IsActive = true });
+            context.Users.Add(new User { Name = "Inactive", Email = "inactive@test.com", Role = UserRole.Operator, IsActive = false });
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var userRepo = new UserRepository(context);
+            var orderRepo = new ProductionOrderRepository(context);
+            var service = new UserService(userRepo, orderRepo);
 
             // Act
             var result = await service.GetActiveUsersAsync();
 
             // Assert
-            Assert.Equal(2, result.Count());
+            Assert.Equal(2, result.Count);
         }
 
         [Fact]
@@ -45,7 +49,9 @@ namespace GestionProduccion.Tests
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var userRepo = new UserRepository(context);
+            var orderRepo = new ProductionOrderRepository(context);
+            var service = new UserService(userRepo, orderRepo);
 
             // Act
             var result = await service.GetUserByIdAsync(user.Id);
@@ -60,7 +66,10 @@ namespace GestionProduccion.Tests
         {
             // Arrange
             using var context = GetInMemoryDbContext();
-            var service = new UserService(context);
+            var userRepo = new UserRepository(context);
+            var orderRepo = new ProductionOrderRepository(context);
+            var service = new UserService(userRepo, orderRepo);
+            
             var newUser = new User { Name = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operator };
 
             // Act
@@ -81,7 +90,10 @@ namespace GestionProduccion.Tests
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var userRepo = new UserRepository(context);
+            var orderRepo = new ProductionOrderRepository(context);
+            var service = new UserService(userRepo, orderRepo);
+            
             user.Name = "Updated Name";
 
             // Act
@@ -93,7 +105,7 @@ namespace GestionProduccion.Tests
         }
 
         [Fact]
-        public async Task DeleteUserAsync_ShouldRemoveUser_WhenExists()
+        public async Task DeactivateUserAsync_ShouldSetIsActiveFalse_WhenExists()
         {
             // Arrange
             using var context = GetInMemoryDbContext();
@@ -101,7 +113,9 @@ namespace GestionProduccion.Tests
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var userRepo = new UserRepository(context);
+            var orderRepo = new ProductionOrderRepository(context);
+            var service = new UserService(userRepo, orderRepo);
 
             // Act
             await service.DeactivateUserAsync(user.Id);

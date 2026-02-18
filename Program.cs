@@ -28,6 +28,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRepository, GestionProduccion.Data.Repositories.UserRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderRepository, GestionProduccion.Data.Repositories.ProductionOrderRepository>();
 builder.Services.AddSignalR();
 
 // --- 3. AUTHENTICACION & JWT ---

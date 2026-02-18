@@ -1,18 +1,19 @@
-using GestionProduccion.Data;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
+using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace GestionProduccion.Services;
 
 public class UserService : IUserService
 {
-    private readonly AppDbContext _context;
+    private readonly IUserRepository _userRepository;
+    private readonly IProductionOrderRepository _orderRepository;
 
-    public UserService(AppDbContext context)
+    public UserService(IUserRepository userRepository, IProductionOrderRepository orderRepository)
     {
-        _context = context;
+        _userRepository = userRepository;
+        _orderRepository = orderRepository;
     }
 
     /// <summary>
@@ -20,10 +21,8 @@ public class UserService : IUserService
     /// </summary>
     public async Task<User?> GetUserByIdAsync(int userId)
     {
-        return await _context.Users
-            .Include(u => u.AssignedOrders)
-            .Include(u => u.HistoryChanges)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        var user = await _userRepository.GetByIdAsync(userId);
+        return user != null && user.IsActive ? user : null;
     }
 
     /// <summary>
@@ -36,10 +35,8 @@ public class UserService : IUserService
             throw new ArgumentException("Email cannot be empty.", nameof(email));
         }
 
-        return await _context.Users
-            .Include(u => u.AssignedOrders)
-            .Include(u => u.HistoryChanges)
-            .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+        var user = await _userRepository.GetByEmailAsync(email);
+        return user != null && user.IsActive ? user : null;
     }
 
     /// <summary>
@@ -47,12 +44,7 @@ public class UserService : IUserService
     /// </summary>
     public async Task<List<User>> GetActiveUsersAsync()
     {
-        return await _context.Users
-            .AsNoTracking()
-            .Where(u => u.IsActive)
-            .Include(u => u.AssignedOrders)
-            .OrderBy(u => u.Name)
-            .ToListAsync();
+        return await _userRepository.GetAllActiveAsync();
     }
 
     /// <summary>
@@ -65,12 +57,7 @@ public class UserService : IUserService
             throw new ArgumentException("Role cannot be empty.", nameof(role));
         }
 
-        return await _context.Users
-            .AsNoTracking()
-            .Where(u => u.IsActive && u.Role.ToString() == role)
-            .Include(u => u.AssignedOrders)
-            .OrderBy(u => u.Name)
-            .ToListAsync();
+        return await _userRepository.GetByRoleAsync(role);
     }
 
     /// <summary>
@@ -78,8 +65,12 @@ public class UserService : IUserService
     /// </summary>
     public async Task<bool> IsUserAssignedToOrderAsync(int userId, int orderId)
     {
-        return await _context.ProductionOrders
-            .AnyAsync(po => po.Id == orderId && po.UserId == userId && po.AssignedUser!.IsActive);
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order == null || order.UserId != userId || order.AssignedUser == null || !order.AssignedUser.IsActive)
+        {
+            return false;
+        }
+        return true;
     }
 
     /// <summary>
@@ -93,10 +84,7 @@ public class UserService : IUserService
             throw new KeyNotFoundException("User not found.");
         }
 
-        return await _context.ProductionOrders
-            .Where(po => po.UserId == userId)
-            .OrderByDescending(po => po.CreationDate)
-            .ToListAsync();
+        return await _orderRepository.GetAssignedToUserAsync(userId);
     }
 
     /// <summary>
@@ -126,26 +114,26 @@ public class UserService : IUserService
         }
 
         // Check if email already exists
-        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
+        var existingUser = await _userRepository.GetByEmailAsync(user.Email);
         if (existingUser != null)
         {
             throw new InvalidOperationException($"User with email '{user.Email}' already exists.");
         }
 
         user.IsActive = true;
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await _userRepository.AddAsync(user);
+        await _userRepository.SaveChangesAsync();
         return user;
     }
 
     public async Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return false;
 
         user.AvatarUrl = avatarUrl;
-        _context.Entry(user).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
         return true;
     }
 
@@ -159,7 +147,7 @@ public class UserService : IUserService
             throw new ArgumentNullException(nameof(user));
         }
 
-        var existingUser = await _context.Users.FindAsync(user.Id);
+        var existingUser = await _userRepository.GetByIdAsync(user.Id);
         if (existingUser == null)
         {
             throw new KeyNotFoundException("User not found.");
@@ -172,8 +160,8 @@ public class UserService : IUserService
         existingUser.AvatarUrl = user.AvatarUrl;
         existingUser.IsActive = user.IsActive;
 
-        _context.Entry(existingUser).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateAsync(existingUser);
+        await _userRepository.SaveChangesAsync();
         return existingUser;
     }
 
@@ -182,21 +170,21 @@ public class UserService : IUserService
     /// </summary>
     public async Task<bool> DeactivateUserAsync(int userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)
         {
             throw new KeyNotFoundException("User not found.");
         }
 
         user.IsActive = false;
-        _context.Entry(user).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
         return true;
     }
 
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return false;
 
         if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
@@ -205,8 +193,8 @@ public class UserService : IUserService
         }
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-        _context.Entry(user).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
         return true;
     }
 
@@ -215,7 +203,7 @@ public class UserService : IUserService
     /// </summary>
     public async Task<int> CountActiveUsersAsync()
     {
-        return await _context.Users.CountAsync(u => u.IsActive);
+        return await _userRepository.CountActiveAsync();
     }
 
     /// <summary>
@@ -223,7 +211,7 @@ public class UserService : IUserService
     /// </summary>
     public async Task<int> GetUserWorkloadAsync(int userId)
     {
-        return await _context.ProductionOrders
-            .CountAsync(po => po.UserId == userId && po.CurrentStatus != Domain.Enums.ProductionStatus.Completed);
+        var orders = await _orderRepository.GetAssignedToUserAsync(userId);
+        return orders.Count(po => po.CurrentStatus != Domain.Enums.ProductionStatus.Completed);
     }
 }
