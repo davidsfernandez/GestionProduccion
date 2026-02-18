@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,7 +129,17 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- 7. CORS REPAIR (Architect Rule 11) ---
+// --- 7. RESPONSE COMPRESSION (Infrastructure Optimization) ---
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream", "application/json" });
+});
+
+// --- 8. CORS REPAIR (Architect Rule 11) ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -158,6 +169,8 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
     await next();
 });
+
+app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles(); // Architect Rule 19
