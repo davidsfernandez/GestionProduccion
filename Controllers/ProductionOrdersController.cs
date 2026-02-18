@@ -172,6 +172,40 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpPost("{orderId}/change-stage")]
+    [Authorize(Roles = "Administrator,Leader,Operator")]
+    public async Task<IActionResult> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var result = await _productionOrderService.ChangeStageAsync(orderId, request.NewStage, request.Note, modifiedByUserId);
+            if (!result) return NotFound(new { message = "Order not found." });
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+             return StatusCode(500, new { message = "Error changing stage", error = ex.Message });
+        }
+    }
+
     [HttpPost("{orderId}/advance-stage")]
     [Authorize(Roles = "Administrator,Leader,Operator")]
     public async Task<IActionResult> AdvanceStage(int orderId)

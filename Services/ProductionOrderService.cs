@@ -347,6 +347,63 @@ public class ProductionOrderService : IProductionOrderService
         return true;
     }
 
+    public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order == null)
+        {
+            return false;
+        }
+
+        // Validate Rework (Moving backwards)
+        if (newStage < order.CurrentStage)
+        {
+            if (string.IsNullOrWhiteSpace(note))
+            {
+                throw new InvalidOperationException("É obrigatório fornecer um comentário ao retornar para uma etapa anterior.");
+            }
+        }
+        else if (newStage == order.CurrentStage)
+        {
+            // No change
+            return true;
+        }
+
+        // Validate User Permissions
+        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
+        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop)) // Assuming Workshop also behaves like Operator
+        {
+            // Operator/Workshop can only modify their own orders
+            if (order.UserId != modifiedByUserId)
+            {
+                throw new UnauthorizedAccessException("Você só pode alterar o estágio de ordens atribuídas a você.");
+            }
+        }
+        // Admin/Leader can modify any
+
+        var previousStage = order.CurrentStage;
+        var previousStatus = order.CurrentStatus;
+
+        order.CurrentStage = newStage;
+        // Reset status to InProduction when stage changes, unless specified otherwise (but here we assume InProduction is correct for active work)
+        order.CurrentStatus = ProductionStatus.InProduction;
+
+        await _orderRepository.UpdateAsync(order);
+        
+        var actionText = newStage < previousStage ? "Retornou para" : "Alterou para";
+        var historyNote = string.IsNullOrWhiteSpace(note) 
+            ? $"{actionText} {newStage}" 
+            : $"{actionText} {newStage}: {note}";
+
+        await AddHistory(order.Id, previousStage, newStage, previousStatus, order.CurrentStatus, modifiedByUserId, historyNote);
+
+        await _orderRepository.SaveChangesAsync();
+        
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
+
+        return true;
+    }
+
     public async Task<DashboardDto> GetDashboardAsync()
     {
         var now = DateTime.UtcNow;

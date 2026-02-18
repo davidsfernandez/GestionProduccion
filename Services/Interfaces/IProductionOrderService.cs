@@ -19,6 +19,9 @@ public interface IProductionOrderService
     
     // WORKFLOW: ADVANCE STAGE
     Task<bool> AdvanceStageAsync(int orderId, int modifiedByUserId);
+
+    // WORKFLOW: CHANGE STAGE (Allows rework/rollback)
+    Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId);
     
     // UPDATE STATUS
     Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId);

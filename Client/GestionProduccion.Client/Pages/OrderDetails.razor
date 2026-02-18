@@ -150,6 +150,54 @@
                     </div>
                 </AuthorizeView>
 
+                <!-- Change Stage / Rework -->
+                <AuthorizeView Roles="Administrator,Leader,Operator" Context="changeStageContext">
+                    <div class="card mb-4">
+                        <div class="card-header border-0 pt-4 px-4 bg-warning bg-opacity-10">
+                            <h5 class="card-title mb-0">Alterar Estágio / Retrabalho</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row align-items-end">
+                                <div class="col-md-5 mb-3 mb-md-0">
+                                    <label class="form-label small fw-bold text-muted">Novo Estágio</label>
+                                    <select class="form-select" @bind="targetStage">
+                                        <option value="0">@Portuguese.Stage_Cutting</option>
+                                        <option value="1">@Portuguese.Stage_Sewing</option>
+                                        <option value="2">@Portuguese.Stage_Review</option>
+                                        <option value="3">@Portuguese.Stage_Packaging</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold text-muted">
+                                        Motivo / Observação 
+                                        @if (IsRework) { <span class="text-danger">*</span> }
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control @(IsRework && string.IsNullOrWhiteSpace(stageChangeNote) ? "is-invalid" : "")" 
+                                               placeholder="Descreva o motivo..." 
+                                               @bind="stageChangeNote" @bind:event="oninput" />
+                                        <button class="btn btn-warning" @onclick="ChangeStage" 
+                                                disabled="@(!CanSaveStageChange || isChangingStage)">
+                                            @if (isChangingStage)
+                                            {
+                                                <span class="spinner-border spinner-border-sm"></span>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-solid fa-rotate-left me-2"></i> <span>Atualizar</span>
+                                            }
+                                        </button>
+                                    </div>
+                                    @if (IsRework && string.IsNullOrWhiteSpace(stageChangeNote))
+                                    {
+                                        <div class="text-danger xsmall mt-1">Obrigatório para retornar a uma fase anterior.</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </AuthorizeView>
+
                 <!-- History -->
                 <div class="card">
                     <div class="card-header border-0 pt-4 px-4">
@@ -223,6 +271,9 @@
     private bool loading = true;
     private bool isAssigning = false;
     private int selectedUserId;
+    private int targetStage;
+    private string stageChangeNote = "";
+    private bool isChangingStage = false;
 
     private async Task DownloadPdf()
     {
@@ -274,6 +325,8 @@
             {
                 var content = await orderResp.Content.ReadAsStringAsync();
                 order = JsonSerializer.Deserialize<ProductionOrderDto>(content, _jsonOptions);
+                targetStage = GetStageIndex(order.CurrentStage);
+                stageChangeNote = "";
             }
 
             var historyResp = await Http.GetAsync($"api/ProductionOrders/{Id}/history");
@@ -437,6 +490,53 @@
     }
 
     private void GoBack() => NavigationManager.NavigateTo("/orders");
+
+    private int GetStageIndex(string stage) => stage?.ToLower() switch
+    {
+        "cutting" => 0,
+        "sewing" => 1,
+        "review" => 2,
+        "packaging" => 3,
+        _ => 0
+    };
+
+    private bool IsRework => order != null && targetStage < GetStageIndex(order.CurrentStage);
+    private bool CanSaveStageChange => !IsRework || !string.IsNullOrWhiteSpace(stageChangeNote);
+
+    private async Task ChangeStage()
+    {
+        if (order == null) return;
+        if (!CanSaveStageChange)
+        {
+             ToastService.ShowToast("Comentário é obrigatório para retrabalho.", ToastLevel.Warning);
+             return;
+        }
+
+        try
+        {
+            isChangingStage = true;
+            var request = new { NewStage = targetStage, Note = stageChangeNote };
+            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/change-stage", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Estágio alterado com sucesso!", ToastLevel.Success);
+                await LoadData();
+            }
+            else
+            {
+                ToastService.ShowToast($"Erro ao alterar estágio.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isChangingStage = false;
+        }
+    }
 
     private string GetStatusSoftClass(string? status) => status?.ToLower() switch
     {
