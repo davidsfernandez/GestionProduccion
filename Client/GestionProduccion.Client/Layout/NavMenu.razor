@@ -86,12 +86,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        UserState.OnChange += NotifyStateChanged;
+        UserState.OnChange += HandleStateChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         await LoadUserData();
     }
 
-    private async void NotifyStateChanged() => await InvokeAsync(StateHasChanged);
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
     {
@@ -125,7 +128,7 @@
         }
         else
         {
-            UserState.UpdateAvatar(null);
+            UserState.ClearState();
         }
     }
 
@@ -141,7 +144,7 @@
 
     public void Dispose()
     {
-        UserState.OnChange -= NotifyStateChanged;
+        UserState.OnChange -= HandleStateChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 

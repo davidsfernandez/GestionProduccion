@@ -34,10 +34,25 @@
                 <div class="card-header border-0 pb-0">
                     <div class="row align-items-center">
                         <div class="col-md-12 mb-3">
-                            <div class="input-group input-group-lg shadow-sm" style="border-radius: 12px; overflow: hidden;">
-                                <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                <input type="search" class="form-control border-0 px-2" placeholder="Pesquisar por lote ou produto..."
-                                       @bind="searchTerm" @bind:event="oninput" />
+                            <div class="row g-2">
+                                <div class="col-md-5">
+                                    <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
+                                        <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
+                                               @bind="searchTerm" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Cliente..." @bind="filterClient" style="border-radius: 10px;" />
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterSize" style="border-radius: 10px;" />
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
+                                        <i class="fa-solid fa-filter me-2"></i>Filtrar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-12 text-md-end mb-3 d-none d-md-block">
@@ -168,11 +183,10 @@
     private List<ProductionOrderDto>? orders;
     private bool loading = true;
     private string searchTerm = "";
+    private string filterClient = "";
+    private string filterSize = "";
 
-    private List<ProductionOrderDto>? FilteredOrders => string.IsNullOrWhiteSpace(searchTerm)
-        ? orders
-        : orders?.Where(o => o.UniqueCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                            o.ProductDescription.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    private List<ProductionOrderDto>? FilteredOrders => orders;
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,7 +213,15 @@
         try
         {
             loading = true;
-            orders = await Http.GetFromJsonAsync<List<ProductionOrderDto>>("api/ProductionOrders");
+            var queryParams = new List<string>();
+            if (!string.IsNullOrWhiteSpace(searchTerm)) queryParams.Add($"productDescription={Uri.EscapeDataString(searchTerm)}");
+            if (!string.IsNullOrWhiteSpace(filterClient)) queryParams.Add($"clientName={Uri.EscapeDataString(filterClient)}");
+            if (!string.IsNullOrWhiteSpace(filterSize)) queryParams.Add($"size={Uri.EscapeDataString(filterSize)}");
+            
+            var url = "api/ProductionOrders";
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
+
+            orders = await Http.GetFromJsonAsync<List<ProductionOrderDto>>(url);
         }
         catch (Exception ex)
         {
@@ -282,7 +304,7 @@
             }
             else
             {
-                ToastService.ShowToast("Erro ao atualizar ordens.", ToastLevel.Error);
+                ToastService.ShowToast("Erro ao actualizar ordens.", ToastLevel.Error);
                 loading = false; // Reset loading if not reloading
             }
         }

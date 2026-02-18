@@ -77,7 +77,12 @@ public class AuthController : ControllerBase
 
             var token = GenerateJwtToken(user);
             Console.WriteLine($"LOGIN SUCCESS: User {login.Email} logged in successfully");
-            return Ok(new LoginResponse { Token = token, User = user });
+            return Ok(new LoginResponse 
+            { 
+                Token = token, 
+                AvatarUrl = user.AvatarUrl,
+                UserName = user.Name
+            });
         }
         catch (Exception ex)
         {
@@ -150,6 +155,7 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.Name),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("AvatarUrl", user.AvatarUrl ?? ""),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

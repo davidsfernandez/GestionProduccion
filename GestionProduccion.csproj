@@ -6,6 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Optimization for Production (Release) -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Client\**" />
     <Content Remove="Client\**" />
