@@ -31,7 +31,7 @@ public class ProductsController : ControllerBase
             MainSku = p.MainSku,
             AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
             EstimatedSalePrice = p.EstimatedSalePrice,
-            Sizes = p.Sizes.Select(s => new ProductSizeDto { Id = s.Id, SizeName = s.SizeName }).ToList()
+            Sizes = p.Sizes.Select(s => new ProductSizeDto { Id = s.Id, Size = s.Size }).ToList()
         }).ToList();
 
         return Ok(dtos);
@@ -52,7 +52,7 @@ public class ProductsController : ControllerBase
             MainSku = p.MainSku,
             AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
             EstimatedSalePrice = p.EstimatedSalePrice,
-            Sizes = p.Sizes.Select(s => new ProductSizeDto { Id = s.Id, SizeName = s.SizeName }).ToList()
+            Sizes = p.Sizes.Select(s => new ProductSizeDto { Id = s.Id, Size = s.Size }).ToList()
         });
     }
 
@@ -69,7 +69,7 @@ public class ProductsController : ControllerBase
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
                 EstimatedSalePrice = dto.EstimatedSalePrice,
-                Sizes = dto.Sizes.Select(s => new ProductSize { SizeName = s }).ToList()
+                Sizes = dto.Sizes.Select(s => new ProductSize { Size = s }).ToList()
             };
 
             var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
@@ -81,7 +81,7 @@ public class ProductsController : ControllerBase
                 Name = created.Name,
                 MainSku = created.MainSku,
                 EstimatedSalePrice = created.EstimatedSalePrice,
-                Sizes = created.Sizes.Select(s => new ProductSizeDto { Id = s.Id, SizeName = s.SizeName }).ToList()
+                Sizes = created.Sizes.Select(s => new ProductSizeDto { Id = s.Id, Size = s.Size }).ToList()
             };
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, result);
@@ -108,7 +108,7 @@ public class ProductsController : ControllerBase
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
                 EstimatedSalePrice = dto.EstimatedSalePrice,
-                Sizes = dto.Sizes.Select(s => new ProductSize { SizeName = s }).ToList()
+                Sizes = dto.Sizes.Select(s => new ProductSize { Size = s }).ToList()
             };
 
             await _productService.UpdateProductAsync(product, HttpContext.RequestAborted);

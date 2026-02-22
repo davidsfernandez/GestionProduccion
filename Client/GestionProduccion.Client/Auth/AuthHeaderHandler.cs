@@ -5,7 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using GestionProduccion.Client.Models.DTOs;
+using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Client.Auth
 {

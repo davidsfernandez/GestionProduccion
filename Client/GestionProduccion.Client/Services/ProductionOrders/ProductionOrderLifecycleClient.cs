@@ -1,6 +1,5 @@
-using GestionProduccion.Client.Models.DTOs;
 using GestionProduccion.Domain.Enums;
-using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs; // From Shared
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -48,7 +47,10 @@ public class ProductionOrderLifecycleClient : IProductionOrderLifecycleClient
     {
         var request = new BulkUpdateStatusRequest { OrderIds = orderIds, NewStatus = newStatus, Note = note };
         var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-status", request, ct);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<BulkUpdateResult>(cancellationToken: ct);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<BulkUpdateResult>(cancellationToken: ct);
+        }
+        return null;
     }
 }

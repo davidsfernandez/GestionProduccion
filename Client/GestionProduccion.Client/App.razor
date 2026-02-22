@@ -1,4 +1,4 @@
-ï»¿<CascadingAuthenticationState>
+<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
@@ -9,7 +9,7 @@
                     }
                     else
                     {
-                        <p role="alert">VocÃª nÃ£o tem permissÃ£o para acessar este recurso.</p>
+                        <p role="alert">Você não tem permissão para acessar este recurso.</p>
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
@@ -17,7 +17,7 @@
         </Found>
         <NotFound>
             <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <p role="alert">Desculpe, nÃ£o hÃ¡ nada neste endereÃ§o.</p>
+                <p role="alert">Desculpe, não há nada neste endereço.</p>
             </LayoutView>
         </NotFound>
     </Router>

@@ -45,5 +45,5 @@ public class UpdateProductDto : CreateProductDto
 public class ProductSizeDto
 {
     public int Id { get; set; }
-    public string SizeName { get; set; } = string.Empty;
+    public string Size { get; set; } = string.Empty;
 }

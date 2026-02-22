@@ -199,5 +199,20 @@ namespace GestionProduccion.Client.Resources
         // Toasts
         public const string Toast_SystemNotice = "Notificação do Sistema";
         public const string Toast_Close = "Fechar";
+        public const string OP_Finalize = "Finalizar Ordem";
+        public const string OP_MainInfo = "Informações Principais";
+        public const string OP_CurrentAssignment = "Atribuição Atual";
+        public const string OP_OperatorAssigned = "Operador Atribuído";
+        public const string OP_AssignOperator = "Atribuir Operador";
+        
+        public const string QA_Title = "Qualidade";
+        public const string QA_Reason = "Motivo";
+        public const string QA_Photo = "Foto";
+        public const string QA_NoDefects = "Nenhum defeito registrado.";
+
+        public const string Product = "Produto";
+        public const string Quantity = "Quantidade";
+        public const string ExportPDF = "Exportar PDF";
+        public const string OP_Action = "Ação";
     }
 }

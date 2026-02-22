@@ -19,19 +19,8 @@ public class QAService : IQAService
     public async Task<QADefect> RegisterDefectAsync(CreateQADefectDto dto)
     {
         string? photoUrl = null;
-        if (dto.PhotoFile != null)
-        {
-            // Validate Image
-            var extension = Path.GetExtension(dto.PhotoFile.FileName).ToLower();
-            if (extension != ".jpg" && extension != ".png" && extension != ".jpeg")
-                throw new ArgumentException("Invalid file type. Only JPG and PNG allowed.");
-
-            if (dto.PhotoFile.Length > 5 * 1024 * 1024)
-                throw new ArgumentException("File size exceeds 5MB limit.");
-
-            var fileName = await _fileStorage.UploadAsync(dto.PhotoFile, "defects");
-            photoUrl = _fileStorage.GetUrl(fileName, "defects");
-        }
+        // Photo upload logic removed from DTO to support Blazor sharing. 
+        // File should be handled separately in the controller.
 
         var defect = new QADefect
         {

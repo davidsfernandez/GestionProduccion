@@ -1,5 +1,5 @@
 @page "/catalogo-produtos"
-@using GestionProduccion.Client.Models.DTOs
+@using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Resources
@@ -72,7 +72,7 @@
                                         <td>@product.FabricType</td>
                                         <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
                                         <td class="d-none d-md-table-cell">
-                                            @string.Join(", ", product.Sizes.Select(s => s.SizeName))
+                                            @string.Join(", ", product.Sizes.Select(s => s.Size))
                                         </td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
@@ -262,7 +262,7 @@
                 FabricType = product.FabricType,
                 MainSku = product.MainSku,
                 EstimatedSalePrice = product.EstimatedSalePrice,
-                Sizes = product.Sizes.Select(s => s.SizeName).ToList()
+                Sizes = product.Sizes.Select(s => s.Size).ToList()
             };
         }
         else

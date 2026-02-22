@@ -1,6 +1,5 @@
-using GestionProduccion.Client.Models.DTOs;
 using GestionProduccion.Domain.Enums;
-using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs; // From Shared
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;

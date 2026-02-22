@@ -3,8 +3,10 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Hubs;
+using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces; // For IFinancialCalculatorService
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore; // Added missing using
 using System.Security.Claims;
 using System.Threading;
 

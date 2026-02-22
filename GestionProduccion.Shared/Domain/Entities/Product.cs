@@ -41,7 +41,7 @@ public class ProductSize
 
     [Required]
     [StringLength(10)]
-    public string SizeName { get; set; } = string.Empty; // P, M, G, GG, etc.
+    public string Size { get; set; } = string.Empty; // P, M, G, GG, etc.
 
     public int ProductId { get; set; }
     

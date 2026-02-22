@@ -1,11 +1,11 @@
-using GestionProduccion.Client.Models.DTOs;
 using GestionProduccion.Domain.Enums;
-using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs; // From Shared
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace GestionProduccion.Client.Services.ProductionOrders;
 

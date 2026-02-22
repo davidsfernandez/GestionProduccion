@@ -11,11 +11,3 @@ public interface ITaskService
     Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status);
     Task<List<RankingEntryDto>> GetPerformanceRankingAsync();
 }
-
-public class RankingEntryDto
-{
-    public string UserName { get; set; } = string.Empty;
-    public string AvatarUrl { get; set; } = string.Empty;
-    public int CompletedTasks { get; set; }
-    public double Score { get; set; }
-}

@@ -1,11 +1,15 @@
 @page "/orders/create"
-@using GestionProduccion.Client.Models.DTOs
+@using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @using GestionProduccion.Client.Services
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
+@using GestionProduccion.Client.Services.ProductionOrders
+@inject IProductionOrderQueryClient QueryClient
+@inject IProductionOrderMutationClient MutationClient
+@inject IProductionOrderLifecycleClient LifecycleClient
 
 @using GestionProduccion.Client.Resources
 
@@ -28,101 +32,80 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-4">
-                                <label class="form-label small fw-bold text-muted">@Portuguese.OP_Code (OP)</label>
-                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.UniqueCode" placeholder="Ex: OP-2024-001" />
-                                <ValidationMessage For="@(() => createModel.UniqueCode)" class="text-danger small mt-1" />
+                                <label class="form-label fw-bold">Código da Ordem (Lote)</label>
+                                <InputText @bind-Value="createModel.UniqueCode" class="form-control form-control-lg" placeholder="Ex: OP-2024-001" />
+                                <ValidationMessage For="@(() => createModel.UniqueCode)" class="text-danger small" />
                             </div>
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label small fw-bold text-muted">@Portuguese.OP_Qty</label>
-                                <InputNumber class="form-control form-control-lg bg-light" @bind-Value="createModel.Quantity" />
-                                <ValidationMessage For="@(() => createModel.Quantity)" class="text-danger small mt-1" />
-                            </div>
-                        </div>
 
-                        <!-- Product Selection -->
-                        <div class="row">
-                            <div class="col-md-8 mb-4">
-                                <label class="form-label small fw-bold text-muted">Produto do Catálogo</label>
-                                <InputSelect class="form-select form-select-lg bg-light" Value="createModel.ProductId" ValueExpression="@(() => createModel.ProductId)" ValueChanged="@((int id) => OnProductChanged(id))">
-                                    <option value="0">Selecione um produto...</option>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-bold">Produto</label>
+                                <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
+                                    <option value="0">-- Selecione un produto --</option>
                                     @if (products != null)
                                     {
-                                        @foreach (var p in products)
+                                        @foreach (var prod in products)
                                         {
-                                            <option value="@p.Id">@p.InternalCode - @p.Name (@p.FabricType)</option>
+                                            <option value="@prod.Id">@prod.Name (@prod.InternalCode)</option>
                                         }
                                     }
                                 </InputSelect>
-                                <ValidationMessage For="@(() => createModel.ProductId)" class="text-danger small mt-1" />
+                                <ValidationMessage For="@(() => createModel.ProductId)" class="text-danger small" />
                             </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label small fw-bold text-muted">Tamanho / Grade</label>
-                                @if (createModel.ProductId > 0 && selectedProductSizes != null && selectedProductSizes.Any())
-                                {
-                                    <InputSelect class="form-select form-select-lg bg-light" @bind-Value="createModel.Size">
-                                        <option value="">Selecione...</option>
-                                        @foreach (var s in selectedProductSizes)
-                                        {
-                                            <option value="@s.SizeName">@s.SizeName</option>
-                                        }
-                                    </InputSelect>
-                                }
-                                else
-                                {
-                                    <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.Size" placeholder="Ex: M, G, 42..." />
-                                }
-                            </div>
-                        </div>
 
-                        <div class="row">
                             <div class="col-md-6 mb-4">
-                                <label class="form-label small fw-bold text-muted">Cliente / Destino (Opcional)</label>
-                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ClientName" placeholder="Nome do cliente..." />
+                                <label class="form-label fw-bold">Quantidade</label>
+                                <InputNumber @bind-Value="createModel.Quantity" class="form-control form-control-lg" />
+                                <ValidationMessage For="@(() => createModel.Quantity)" class="text-danger small" />
                             </div>
-                            <div class="col-md-6 mb-4">
-                                <label class="form-label small fw-bold text-muted">@Portuguese.OP_EstimatedDelivery</label>
-                                <InputDate class="form-control form-control-lg bg-light" @bind-Value="createModel.EstimatedDeliveryDate" />
-                                <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger small mt-1" />
-                                @if (isDateAutoCalculated)
-                                {
-                                    <span class="text-success small"><i class="fa-solid fa-magic"></i> Calculado automaticamente</span>
-                                }
-                            </div>
-                        </div>
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted">Responsável / Atribuir a (Opcional)</label>
-                            <InputSelect class="form-select form-select-lg bg-light" @bind-Value="createModel.UserId">
-                                <option value="">Não atribuído</option>
-                                @if (assignableUsers != null)
-                                {
-                                    @foreach (var user in assignableUsers)
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-bold">Data Estimada de Entrega</label>
+                                <InputDate @bind-Value="createModel.EstimatedDeliveryDate" class="form-control form-control-lg" />
+                                <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-bold">Cliente (Opcional)</label>
+                                <InputText @bind-Value="createModel.ClientName" class="form-control" />
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-bold">Tamanho</label>
+                                <InputSelect @bind-Value="createModel.Size" class="form-select">
+                                    <option value="">N/A</option>
+                                    @if (availableSizes != null)
                                     {
-                                        <option value="@user.Id">@user.Name (@TranslateRole(user.Role))</option>
+                                        @foreach (var s in availableSizes)
+                                        {
+                                            <option value="@s.Size">@s.Size</option>
+                                        }
                                     }
-                                }
-                            </InputSelect>
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div class="alert alert-danger d-flex align-items-center rounded-3">
-                                <i class="fa-solid fa-circle-exclamation me-2"></i>
-                                <div>@errorMessage</div>
+                                </InputSelect>
                             </div>
-                        }
+
+                            <div class="col-12 mb-4">
+                                <label class="form-label fw-bold">Atribuir Operador/Oficina (Opcional)</label>
+                                <InputSelect @bind-Value="assignedUserId" class="form-select">
+                                    <option value="0">-- Não atribuir agora --</option>
+                                    @if (users != null)
+                                    {
+                                        @foreach (var user in users)
+                                        {
+                                            <option value="@user.Id">@user.Name (@user.Role)</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-2">
-                            <button type="button" class="btn btn-secondary px-4" @onclick="Cancel">@Portuguese.Cancel</button>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm" disabled="@isSubmitting">
+                            <button type="button" class="btn btn-light px-4" @onclick="Cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="isSubmitting">
                                 @if (isSubmitting)
                                 {
-                                    <span class="spinner-border spinner-border-sm me-2"></span> @Portuguese.Loading
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
                                 }
-                                else
-                                {
-                                    <i class="fa-solid fa-save me-2"></i> @Portuguese.Create
-                                }
+                                Criar Ordem
                             </button>
                         </div>
                     </EditForm>
@@ -131,103 +114,96 @@
         </div>
 
         <div class="col-12 col-lg-4">
-            <div class="alert bg-primary-soft border-0 rounded-4 p-4 shadow-sm">
-                <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-circle-info me-2"></i> Ajuda</h5>
-                <p class="small mb-0 text-muted" style="line-height: 1.6;">
-                    Agora você pode selecionar produtos diretamente do Catálogo para preencher automaticamente as informações.
-                    <br/><br/>
-                    <b>Dica:</b> A data de entrega é sugerida baseada no histórico de produção deste item.
-                </p>
+            <div class="card bg-primary text-white border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-white opacity-75">Resumo da Ordem</h5>
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Código:</span>
+                            <span class="fw-bold">@createModel.UniqueCode</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Quantidade:</span>
+                            <span class="fw-bold">@createModel.Quantity</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Entrega:</span>
+                            <span class="fw-bold">@createModel.EstimatedDeliveryDate.ToShortDateString()</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
+                <div class="d-flex">
+                    <i class="fa-solid fa-circle-info fa-2x me-3"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Dica de Produção</h6>
+                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estágio de <strong>Corte</strong> com status <strong>Em Produção</strong>.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 @code {
-    private CreateProductionOrderRequest createModel = new()
-    {
-        EstimatedDeliveryDate = DateTime.Today.AddDays(7)
+    private CreateProductionOrderRequest createModel = new() 
+    { 
+        EstimatedDeliveryDate = DateTime.Now.AddDays(7),
+        Quantity = 1
     };
-
-    private List<UserDto>? assignableUsers;
+    private List<UserDto>? users;
     private List<ProductDto>? products;
-    private List<ProductSizeDto>? selectedProductSizes;
+    private List<ProductSizeDto>? availableSizes;
+    private int assignedUserId;
     private bool isSubmitting = false;
-    private bool isDateAutoCalculated = false;
-    private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadInitialData();
     }
 
-    private async Task LoadData()
+    private async Task LoadInitialData()
     {
         try
         {
-            // Still using Http for users as there's no dedicated client service for users yet.
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
-            // Use new client service for products
-            products = (await ProductionOrderQueryClient.ListProductionOrdersAsync(null))?.ToList(); // Load all products
-            
-            assignableUsers = await usersTask;
-        }
-        catch (Exception)
-        {
-            // Error logged by service or UI
-        }
-    }
-
-    private void OnProductChanged(int productId)
-    {
-        createModel.ProductId = productId;
-        isDateAutoCalculated = false;
-        selectedProductSizes = null;
-
-        if (productId > 0 && products != null)
-        {
-            var product = products.FirstOrDefault(p => p.Id == productId);
-            if (product != null)
+            var userResp = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users");
+            if (userResp?.Success == true)
             {
-                selectedProductSizes = product.Sizes;
-                
-                // Auto-calculate date (Phase 2)
-                if (product.AverageProductionTimeMinutes > 0)
-                {
-                    // Add average time (in minutes) to now, then round to days if needed or just set date
-                    // Assuming working days logic is simpler for MVP: just add days based on minutes / 480 (8h)
-                    double days = product.AverageProductionTimeMinutes / 480.0;
-                    if (days < 1) days = 1;
-                    
-                    createModel.EstimatedDeliveryDate = DateTime.Today.AddDays(Math.Ceiling(days));
-                    isDateAutoCalculated = true;
-                }
+                // Using Enum for comparison
+                users = userResp.Data.Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop).ToList();
             }
+
+            products = await Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
 
     private async Task HandleSubmit()
     {
+        isSubmitting = true;
         try
         {
-            isSubmitting = true;
-            errorMessage = string.Empty;
-
-            var response = await ProductionOrderMutationClient.CreateProductionOrderAsync(createModel);
-
-            if (response != null)
+            // Corrected call with int? assignedUserId
+            var result = await MutationClient.CreateProductionOrderAsync(createModel, assignedUserId > 0 ? assignedUserId : null);
+            
+            if (result != null)
             {
-                ToastService.ShowToast(Portuguese.Msg_OrderCreated, ToastLevel.Success);
-                NavigationManager.NavigateTo("/orders");
+                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+                NavigationManager.NavigateTo($"/orders/{result.Id}");
             }
             else
             {
-                errorMessage = $"{Portuguese.Msg_Error}: No order was returned.";
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -235,15 +211,8 @@
         }
     }
 
-    private void Cancel() => NavigationManager.NavigateTo("/orders");
-
-    private string TranslateRole(UserRole role) => role switch
+    private void Cancel()
     {
-        UserRole.Administrator => Portuguese.Role_Admin,
-        UserRole.Leader => Portuguese.Role_Leader,
-        UserRole.Operator => Portuguese.Role_Operator,
-        UserRole.Sewer => Portuguese.Role_Operator,
-        UserRole.Workshop => Portuguese.Role_Workshop,
-        _ => role.ToString()
-    };
+        NavigationManager.NavigateTo("/orders");
+    }
 }

@@ -18,6 +18,10 @@
     <Content Remove="Client\**" />
     <EmbeddedResource Remove="Client\**" />
     <None Remove="Client\**" />
+    <Compile Remove="GestionProduccion.Shared\**" />
+    <Content Remove="GestionProduccion.Shared\**" />
+    <EmbeddedResource Remove="GestionProduccion.Shared\**" />
+    <None Remove="GestionProduccion.Shared\**" />
     <Compile Remove="GestionProduccion.Tests\**" />
     <Content Remove="GestionProduccion.Tests\**" />
     <EmbeddedResource Remove="GestionProduccion.Tests\**" />

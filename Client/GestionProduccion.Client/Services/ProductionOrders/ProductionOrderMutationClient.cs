@@ -1,4 +1,5 @@
-using GestionProduccion.Client.Models.DTOs;
+using GestionProduccion.Models.DTOs;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
@@ -15,11 +16,15 @@ public class ProductionOrderMutationClient : IProductionOrderMutationClient
         _httpClient = httpClient;
     }
 
-    public async Task<ProductionOrderDto?> CreateProductionOrderAsync(CreateProductionOrderRequest request, CancellationToken ct = default)
+    public async Task<ProductionOrderDto?> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders", request, ct);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ProductionOrderDto>(cancellationToken: ct);
+        var url = assignedUserId.HasValue ? $"api/ProductionOrders?userId={assignedUserId.Value}" : "api/ProductionOrders";
+        var response = await _httpClient.PostAsJsonAsync(url, request, ct);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<ProductionOrderDto>(cancellationToken: ct);
+        }
+        return null;
     }
 
     public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)

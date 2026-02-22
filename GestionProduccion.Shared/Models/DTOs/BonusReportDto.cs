@@ -1,14 +1,7 @@
-namespace GestionProduccion.Client.Models.DTOs;
+using System;
+using System.Collections.Generic;
 
-public class BonusRuleDto
-{
-    public int Id { get; set; }
-    public decimal ProductivityPercentage { get; set; }
-    public decimal DeadlineBonusPercentage { get; set; }
-    public decimal DefectLimitPercentage { get; set; }
-    public decimal DelayPenaltyPercentage { get; set; }
-    public DateTime LastUpdate { get; set; }
-}
+namespace GestionProduccion.Models.DTOs;
 
 public class BonusReportDto
 {
@@ -19,8 +12,19 @@ public class BonusReportDto
     public decimal DefectPercentage { get; set; }
     public decimal FinalBonusPercentage { get; set; }
     public decimal TotalAmount { get; set; }
+    
+    // Details for transparency
     public int CompletedOrders { get; set; }
     public int OnTimeOrders { get; set; }
     public int TotalProduced { get; set; }
     public int TotalDefects { get; set; }
+    public List<OrderBonusDetail> Orders { get; set; } = new List<OrderBonusDetail>();
+}
+
+public class OrderBonusDetail
+{
+    public string UniqueCode { get; set; } = string.Empty;
+    public bool IsOnTime { get; set; }
+    public int Defects { get; set; }
+    public decimal Contribution { get; set; }
 }
