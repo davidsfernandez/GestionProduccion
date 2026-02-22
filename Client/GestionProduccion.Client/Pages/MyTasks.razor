@@ -1,0 +1,121 @@
+@page "/minhas-tarefas"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="container-fluid p-0">
+    <h3 class="h3 mb-3 text-dark">Minhas Tarefas</h3>
+
+    @if (tasks == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (!tasks.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fa-solid fa-clipboard-check fs-1 text-muted opacity-25 mb-3"></i>
+            <p class="text-muted">Você não tem tarefas pendentes. Bom trabalho!</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var task in tasks)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100 border-start border-4 @GetStatusBorder(task.Status)">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h5 class="card-title fw-bold mb-0">@task.Title</h5>
+                                <span class="badge @GetStatusClass(task.Status)">@task.Status</span>
+                            </div>
+                            <p class="card-text text-muted small">@task.Description</p>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span>Progresso do Prazo</span>
+                                    <span class="@(task.ProgressPercentage > 90 ? "text-danger" : "")">@task.ProgressPercentage.ToString("F0")%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar @GetProgressColor(task.ProgressPercentage)" 
+                                         role="progressbar" 
+                                         style="width: @task.ProgressPercentage.ToString("F0")%"></div>
+                                </div>
+                                @if (task.Deadline.HasValue)
+                                {
+                                    <div class="small text-muted mt-1">
+                                        <i class="fa-solid fa-calendar-day me-1"></i> Prazo: @task.Deadline.Value.ToString("dd/MM HH:mm")
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                @if (task.Status == "Pending")
+                                {
+                                    <button class="btn btn-sm btn-primary w-100" @onclick='() => UpdateStatus(task.Id, "InProgress")'>Começar</button>
+                                }
+                                else if (task.Status == "InProgress")
+                                {
+                                    <button class="btn btn-sm btn-success w-100" @onclick='() => UpdateStatus(task.Id, "Completed")'>Finalizar</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<TaskDto>? tasks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks/my");
+        if (response != null && response.Success)
+        {
+            tasks = response.Data;
+        }
+    }
+
+    private async Task UpdateStatus(int taskId, string status)
+    {
+        var response = await Http.PatchAsJsonAsync($"api/Tasks/{taskId}/status", status);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadTasks();
+        }
+    }
+
+    private string GetStatusBorder(string status) => status switch
+    {
+        "Pending" => "border-warning",
+        "InProgress" => "border-primary",
+        "Completed" => "border-success",
+        _ => "border-secondary"
+    };
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Pending" => "bg-warning-soft text-warning",
+        "InProgress" => "bg-primary-soft text-primary",
+        "Completed" => "bg-success-soft text-success",
+        _ => "bg-light text-dark"
+    };
+
+    private string GetProgressColor(double progress)
+    {
+        if (progress < 50) return "bg-success";
+        if (progress < 85) return "bg-warning";
+        return "bg-danger";
+    }
+}
