@@ -45,6 +45,7 @@
 
     private async Task SaveFinancialSettings()
     {
+        await Task.Yield();
         try
         {
             var response = await Http.PostAsJsonAsync("api/Configuration/financial", financialModel);

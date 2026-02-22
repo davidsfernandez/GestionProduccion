@@ -534,7 +534,7 @@
             {
                 var content = await orderResp.Content.ReadAsStringAsync();
                 order = JsonSerializer.Deserialize<ProductionOrderDto>(content, _jsonOptions);
-                targetStage = GetStageIndex(order.CurrentStage);
+                targetStage = GetStageIndex(order?.CurrentStage ?? "Open");
                 stageChangeNote = "";
             }
 

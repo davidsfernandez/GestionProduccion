@@ -2,5 +2,5 @@ namespace GestionProduccion.Models.DTOs;
 
 public class LogoDto
 {
-    public string Base64Image { get; set; }
+    public required string Base64Image { get; set; }
 }

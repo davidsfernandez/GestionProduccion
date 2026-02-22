@@ -34,7 +34,7 @@ public class ReportService : IReportService
 
         var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(orderId);
         var logoBase64 = await _configService.GetLogoAsync();
-        byte[] logoBytes = null;
+        byte[]? logoBytes = null;
 
         if (!string.IsNullOrEmpty(logoBase64))
         {
@@ -171,7 +171,7 @@ public class ReportService : IReportService
     {
         var dashboard = await _productionOrderService.GetDashboardAsync();
         var logoBase64 = await _configService.GetLogoAsync();
-        byte[] logoBytes = null;
+        byte[]? logoBytes = null;
 
         if (!string.IsNullOrEmpty(logoBase64))
         {

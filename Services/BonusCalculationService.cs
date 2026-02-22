@@ -1,3 +1,4 @@
+using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Models.DTOs;
