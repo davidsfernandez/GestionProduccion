@@ -100,6 +100,15 @@ public class ProductionOrderRepository : IProductionOrderRepository
             .ToListAsync();
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var order = await _context.ProductionOrders.FindAsync(id);
+        if (order != null)
+        {
+            _context.ProductionOrders.Remove(order);
+        }
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

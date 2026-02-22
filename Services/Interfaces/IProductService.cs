@@ -1,12 +1,13 @@
 using GestionProduccion.Domain.Entities;
+using System.Threading;
 
 namespace GestionProduccion.Services.Interfaces;
 
 public interface IProductService
 {
-    Task<List<Product>> GetAllProductsAsync();
-    Task<Product?> GetProductByIdAsync(int id);
-    Task<Product> CreateProductAsync(Product product);
-    Task<Product> UpdateProductAsync(Product product);
-    Task DeleteProductAsync(int id);
+    Task<List<Product>> GetAllProductsAsync(CancellationToken ct = default);
+    Task<Product?> GetProductByIdAsync(int id, CancellationToken ct = default);
+    Task<Product> CreateProductAsync(Product product, CancellationToken ct = default);
+    Task<Product> UpdateProductAsync(Product product, CancellationToken ct = default);
+    Task DeleteProductAsync(int id, CancellationToken ct = default);
 }

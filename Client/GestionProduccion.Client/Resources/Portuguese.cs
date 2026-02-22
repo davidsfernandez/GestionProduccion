@@ -74,6 +74,7 @@ namespace GestionProduccion.Client.Resources
         // Order Create / Details
         public const string OP_Create_Title = "Criar Nova Ordem de Produção";
         public const string OP_Details_Title = "Detalhes da Ordem de Produção";
+        public const string OP_InfoDetails = "Informações Detalhadas";
         public const string OP_UniqueCode = "Código Único (Ex: OP-2024-001)";
         public const string OP_ProductDesc = "Descrição do Produto";
         public const string OP_EstimatedDelivery = "Data de Entrega Estimada";
@@ -91,6 +92,23 @@ namespace GestionProduccion.Client.Resources
         public const string OP_BackToList = "Voltar para Lista";
         public const string OP_OrderNotFound = "Ordem não encontrada.";
         public const string OP_ChangeAssignment = "Alterar atribuição...";
+        public const string OP_Controls = "Controles de Produção";
+        public const string OP_ChangeStage = "Alterar Estágio / Retrabalho";
+        public const string OP_NewStage = "Novo Estágio";
+        public const string OP_ReworkReason = "Motivo / Observação";
+        public const string OP_ReworkRequired = "Obrigatório para retornar a uma fase anterior.";
+        public const string OP_QuickActions = "Atalhos Rápidos";
+        public const string OP_PrintTag = "Imprimir Ficha";
+        public const string OP_FinancialAnalysis = "Análise Financeira";
+        public const string OP_TotalCost = "Custo Total";
+        public const string OP_CostPerPiece = "Custo / Peça";
+        public const string OP_ProfitMargin = "Margem";
+        public const string OP_DefectsFound = "Defeitos Registrados";
+        public const string OP_NoDefects = "Nenhum defeito registrado nesta ordem.";
+        public const string OP_ReportDefect = "Reportar Defeito";
+        public const string OP_ConfirmFinalize = "Confirmar Finalização";
+        public const string OP_FinalizeWarning = "Tem certeza que deseja finalizar a produção da ordem?";
+        public const string OP_FinalizeEffects = "Esta ação irá encerrar o cronômetro, calcular custos e atualizar estoque.";
         
         // History Table
         public const string Hist_Date = "Data";
@@ -98,6 +116,7 @@ namespace GestionProduccion.Client.Resources
         public const string Hist_To = "Para";
         public const string Hist_User = "Usuário";
         public const string Hist_Note = "Nota";
+        public const string Hist_Action = "Ação";
 
         // User Management
         public const string User_Title = "Gerenciamento de Usuários";
@@ -152,5 +171,33 @@ namespace GestionProduccion.Client.Resources
         public const string Msg_PassChanged = "Senha alterada com sucesso";
         public const string Msg_Error = "Ocorreu um erro";
         public const string Msg_LoginFailed = "Falha no login. Verifique suas credenciais.";
+
+        // Catalog
+        public const string Cat_Title = "Catálogo de Produtos";
+        public const string Cat_NewProduct = "Novo Produto";
+        public const string Cat_EditProduct = "Editar Produto";
+        public const string Cat_MainSku = "SKU Principal";
+        public const string Cat_InternalCode = "Código Interno";
+        public const string Cat_FabricType = "Tecido";
+        public const string Cat_AvgTime = "Tempo Médio (min)";
+        public const string Cat_Sizes = "Tamanhos";
+        public const string Cat_NoProducts = "Nenhum produto encontrado.";
+        public const string Cat_SearchHint = "Buscar por SKU ou Nome...";
+        public const string Cat_EstSalePrice = "Preço Venda Estimado (R$)";
+        public const string Cat_AvailSizes = "Tamanhos Disponíveis";
+        public const string Cat_AddSize = "Adicionar";
+        public const string Cat_NoSizes = "Nenhum tamanho adicionado.";
+        public const string Cat_SuccessCreated = "Produto criado com sucesso!";
+        public const string Cat_SuccessUpdated = "Produto atualizado!";
+        public const string Cat_SuccessDeleted = "Produto removido.";
+        public const string Cat_ErrLoad = "Erro ao carregar catálogo.";
+        public const string Cat_ErrDeleteLinked = "Não é possível excluir: produto possui ordens vinculadas.";
+        public const string Cat_ConfirmDelete = "Tem certeza que deseja excluir este produto?";
+        public const string Cat_NoLinkedProduct = "Sem produto vinculado";
+        public const string Cat_UnknownItem = "Elemento Desconcedido";
+
+        // Toasts
+        public const string Toast_SystemNotice = "Notificação do Sistema";
+        public const string Toast_Close = "Fechar";
     }
 }

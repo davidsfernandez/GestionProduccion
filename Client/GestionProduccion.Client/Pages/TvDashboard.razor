@@ -99,7 +99,7 @@ else
             <div style="overflow-y: hidden; flex: 1;">
                 @foreach (var order in dashboard.TodaysOrders.Take(5)) 
                 {
-                    <div class="list-item">
+                    <div class="list-item" @key="order.Id">
                         <span>@order.UniqueCode</span>
                         <span class="text-info">@order.CurrentStage</span>
                     </div>
@@ -122,7 +122,7 @@ else
             <div style="overflow-y: hidden; flex: 1;">
                 @foreach (var activity in dashboard.RecentActivities.Take(5))
                 {
-                    <div class="list-item" style="font-size: 1.2rem;">
+                    <div class="list-item" style="font-size: 1.2rem;" @key="activity.Date.Ticks">
                         <span>@activity.UniqueCode</span>
                         <span class="text-muted">@activity.Action</span>
                     </div>

@@ -23,7 +23,7 @@
         <div class="row">
             @foreach (var team in teams)
             {
-                <div class="col-md-4 mb-4">
+                <div class="col-md-4 mb-4" @key="team.Id">
                     <div class="card shadow-sm h-100 @(team.IsActive ? "" : "opacity-50")">
                         <div class="card-body">
                             <h5 class="card-title fw-bold">@team.Name</h5>

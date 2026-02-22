@@ -4,6 +4,7 @@ using GestionProduccion.Client;
 using Microsoft.AspNetCore.Components.Authorization;
 using GestionProduccion.Client.Auth;
 using GestionProduccion.Client.Services;
+using GestionProduccion.Client.Services.ProductionOrders;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 
@@ -32,6 +33,9 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
 // --- 3. FRONTEND SERVICES (Scoped) ---
+builder.Services.AddScoped<IProductionOrderQueryClient, ProductionOrderQueryClient>();
+builder.Services.AddScoped<IProductionOrderMutationClient, ProductionOrderMutationClient>();
+builder.Services.AddScoped<IProductionOrderLifecycleClient, ProductionOrderLifecycleClient>();
 builder.Services.AddSingleton<SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<UserStateService>();

@@ -80,10 +80,13 @@ public class ProductionOrderServiceTests : IDisposable
     public async Task CreateProductionOrderAsync_ShouldCreateOrder_WhenRequestIsValid()
     {
         // Arrange
+        var product = new Product { Id = 1, Name = "Test Product", InternalCode = "P001", FabricType = "Cotton", MainSku = "SKU001" };
+        _mockProductRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(product);
+
         var request = new CreateProductionOrderRequest
         {
             UniqueCode = "OP-TEST-001",
-            ProductDescription = "Test Product",
+            ProductId = 1,
             Quantity = 100,
             EstimatedDeliveryDate = DateTime.UtcNow.AddDays(7)
         };
@@ -100,6 +103,7 @@ public class ProductionOrderServiceTests : IDisposable
 
         var orderInDb = await _context.ProductionOrders.FirstOrDefaultAsync(o => o.UniqueCode == "OP-TEST-001");
         Assert.NotNull(orderInDb);
+        Assert.Equal(1, orderInDb.ProductId);
         Assert.Equal(1, await _context.ProductionHistories.CountAsync());
     }
 
@@ -110,7 +114,7 @@ public class ProductionOrderServiceTests : IDisposable
         var request = new CreateProductionOrderRequest
         {
             UniqueCode = "OP-TEST-002",
-            ProductDescription = "Test Product",
+            ProductId = 1,
             Quantity = 0,
             EstimatedDeliveryDate = DateTime.UtcNow.AddDays(7)
         };
@@ -127,7 +131,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 1,
             UniqueCode = "OP-ADV-001",
-            ProductDescription = "Advancing Test",
+            ProductId = 1,
             Quantity = 50,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
@@ -153,7 +157,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 2,
             UniqueCode = "OP-ADV-002",
-            ProductDescription = "Final Stage Test",
+            ProductId = 1,
             Quantity = 50,
             CurrentStage = ProductionStage.Packaging,
             CurrentStatus = ProductionStatus.InProduction,
@@ -174,7 +178,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 3,
             UniqueCode = "OP-STATUS-001",
-            ProductDescription = "Status Test",
+            ProductId = 1,
             Quantity = 50,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
@@ -200,7 +204,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 4,
             UniqueCode = "OP-ASSIGN-001",
-            ProductDescription = "Assign Test",
+            ProductId = 1,
             Quantity = 10,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
@@ -277,7 +281,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 5,
             UniqueCode = "OP-LOG-001",
-            ProductDescription = "Log Test",
+            ProductId = 1,
             Quantity = 10,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
@@ -322,7 +326,7 @@ public class ProductionOrderServiceTests : IDisposable
         {
             Id = 6,
             UniqueCode = "OP-STATUS-002",
-            ProductDescription = "Status Change Test",
+            ProductId = 1,
             Quantity = 10,
             CurrentStage = ProductionStage.Sewing,
             CurrentStatus = ProductionStatus.InProduction,

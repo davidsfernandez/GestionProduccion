@@ -14,12 +14,12 @@ namespace GestionProduccion.Services;
 
 public class ReportService : IReportService
 {
-    private readonly IProductionOrderService _productionOrderService;
+    private readonly IProductionOrderQueryService _queryService;
     private readonly ISystemConfigurationService _configService;
 
-    public ReportService(IProductionOrderService productionOrderService, ISystemConfigurationService configService)
+    public ReportService(IProductionOrderQueryService queryService, ISystemConfigurationService configService)
     {
-        _productionOrderService = productionOrderService;
+        _queryService = queryService;
         _configService = configService;
         QuestPDF.Settings.License = LicenseType.Community;
     }
@@ -29,10 +29,10 @@ public class ReportService : IReportService
         // This is the implementation of the requested "GenerateProductionOrderPdf" logic
         // but mapped to the existing interface method name to avoid breaking changes unless strictly necessary.
         
-        var order = await _productionOrderService.GetProductionOrderByIdAsync(orderId);
+        var order = await _queryService.GetProductionOrderByIdAsync(orderId);
         if (order == null) return Array.Empty<byte>();
 
-        var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(orderId);
+        var history = await _queryService.GetHistoryByProductionOrderIdAsync(orderId);
         var logoBase64 = await _configService.GetLogoAsync();
         byte[]? logoBytes = null;
 
@@ -103,9 +103,7 @@ public class ReportService : IReportService
                         table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
 
                         // Row 2
-                        var productDesc = order.Product != null
-                            ? $"{order.Product.Name} ({order.Product.FabricType})"
-                            : order.ProductDescription;
+                        var productDesc = order.ProductName ?? "Elemento Desconocido";
 
                         table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span(productDesc); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
@@ -169,7 +167,7 @@ public class ReportService : IReportService
 
     public async Task<byte[]> GenerateDailyProductionReportAsync()
     {
-        var dashboard = await _productionOrderService.GetDashboardAsync();
+        var dashboard = await _queryService.GetDashboardAsync();
         var logoBase64 = await _configService.GetLogoAsync();
         byte[]? logoBytes = null;
 
@@ -234,21 +232,21 @@ public class ReportService : IReportService
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3); // Lot
-                            columns.RelativeColumn(4); // Client
+                            columns.RelativeColumn(3); // Lot/OP
+                            columns.RelativeColumn(4); // Product
                             columns.RelativeColumn(3); // Team
                             columns.RelativeColumn(3); // Status
-                            columns.RelativeColumn(4); // Operator
+                            columns.RelativeColumn(3); // Total Cost
                         });
 
                         // Header
                         table.Header(header =>
                         {
-                            header.Cell().Element(HeaderStyle).Text("Lote");
-                            header.Cell().Element(HeaderStyle).Text("Cliente");
+                            header.Cell().Element(HeaderStyle).Text("Lote/OP");
+                            header.Cell().Element(HeaderStyle).Text("Produto");
                             header.Cell().Element(HeaderStyle).Text("Equipe");
                             header.Cell().Element(HeaderStyle).Text("Status");
-                            header.Cell().Element(HeaderStyle).Text("Operador");
+                            header.Cell().Element(HeaderStyle).Text("Custo Total");
 
                             static IContainer HeaderStyle(IContainer container) => 
                                 container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
@@ -261,10 +259,10 @@ public class ReportService : IReportService
                             var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
 
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.UniqueCode);
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ClientName ?? "-");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.AssignedUserName ?? "Não atribuído");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.CalculatedTotalCost:N2}");
 
                             static IContainer CellStyle(IContainer container, string bgColor) => 
                                 container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
@@ -293,7 +291,7 @@ public class ReportService : IReportService
         {
             var user = order.AssignedUserName ?? "N/A";
             // Sanitize CSV fields
-            var prod = order.ProductDescription.Replace(";", ",");
+            var prod = (order.ProductName ?? "N/A").Replace(";", ",");
             
             sb.AppendLine($"{order.UniqueCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedDeliveryDate:dd/MM/yyyy};{user}");
         }
@@ -307,6 +305,7 @@ public class ReportService : IReportService
 
         return Task.FromResult(result);
     }
+
 
     private string TranslateStage(string stage) => stage?.ToLower() switch
     {

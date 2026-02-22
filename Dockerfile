@@ -24,6 +24,7 @@ RUN dotnet publish "GestionProduccion.csproj" -c Release -o /app/publish /p:UseA
 # Stage 3: Final Runtime Image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 80
 EXPOSE 443
 

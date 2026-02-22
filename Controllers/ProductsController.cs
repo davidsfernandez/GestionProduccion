@@ -21,7 +21,7 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<ProductDto>>> GetAll()
     {
-        var products = await _productService.GetAllProductsAsync();
+        var products = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
         var dtos = products.Select(p => new ProductDto
         {
             Id = p.Id,
@@ -40,7 +40,7 @@ public class ProductsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetById(int id)
     {
-        var p = await _productService.GetProductByIdAsync(id);
+        var p = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
         if (p == null) return NotFound();
 
         return Ok(new ProductDto
@@ -72,7 +72,7 @@ public class ProductsController : ControllerBase
                 Sizes = dto.Sizes.Select(s => new ProductSize { SizeName = s }).ToList()
             };
 
-            var created = await _productService.CreateProductAsync(product);
+            var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
             
             // Map back to DTO manually for simplicity
             var result = new ProductDto
@@ -111,7 +111,7 @@ public class ProductsController : ControllerBase
                 Sizes = dto.Sizes.Select(s => new ProductSize { SizeName = s }).ToList()
             };
 
-            await _productService.UpdateProductAsync(product);
+            await _productService.UpdateProductAsync(product, HttpContext.RequestAborted);
             return NoContent();
         }
         catch (KeyNotFoundException)
@@ -128,14 +128,26 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _productService.DeleteProductAsync(id);
-        return NoContent();
+        try
+        {
+            await _productService.DeleteProductAsync(id, HttpContext.RequestAborted);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Capture the business rule exception (likely FK violation)
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id}/stats")]
     public async Task<ActionResult<object>> GetStats(int id)
     {
-        var product = await _productService.GetProductByIdAsync(id);
+        var product = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
         if (product == null) return NotFound();
 
         return Ok(new 

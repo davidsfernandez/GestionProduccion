@@ -34,7 +34,7 @@
                 <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <h3 class="d-inline-block align-middle text-dark mb-0">Ordem: @order.UniqueCode</h3>
+                <h3 class="d-inline-block align-middle text-dark mb-0">@Portuguese.OP_Code: @order.UniqueCode</h3>
             </div>
             <div class="col-auto ms-auto">
                 <span class="badge @GetStatusSoftClass(order.CurrentStatus) fs-sm px-3 py-2">
@@ -48,32 +48,41 @@
             <div class="col-md-8">
                 <div class="card mb-4">
                     <div class="card-header border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0">InformaÃ§Ãµes Detalhadas</h5>
+                        <h5 class="card-title mb-0">@Portuguese.OP_InfoDetails</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="row">
                             <div class="col-sm-6 mb-4">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Produto</label>
-                                <div class="text-dark fw-bold">@order.ProductDescription</div>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_Product</label>
+                                <div class="text-dark fw-bold">
+                                    @if (!string.IsNullOrEmpty(order.ProductName))
+                                    {
+                                        <span>@order.ProductName (@order.ProductCode)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger small"><i>@Portuguese.Cat_NoLinkedProduct</i></span>
+                                    }
+                                </div>
                             </div>
                             <div class="col-sm-3 mb-4">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Quantidade</label>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_Qty</label>
                                 <div class="text-dark fw-bold">@order.Quantity unidades</div>
                             </div>
                             <div class="col-sm-3 mb-4">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Etapa Atual</label>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_Stage</label>
                                 <span class="badge bg-primary-soft">@TranslateStage(order.CurrentStage)</span>
                             </div>
                             <div class="col-sm-6 mb-4">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Data de CriaÃ§Ã£o</label>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_CreationDate</label>
                                 <div class="text-muted small">@order.CreationDate.ToString("f")</div>
                             </div>
                             <div class="col-sm-6 mb-4">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">Entrega Estimada</label>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_Delivery</label>
                                 <div class="text-primary fw-bold">@order.EstimatedDeliveryDate.ToLongDateString()</div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">ResponsÃ¡vel</label>
+                                <label class="form-label small fw-bold text-muted d-block uppercase mb-1">@Portuguese.OP_AssignedTo</label>
                                 <div class="d-flex align-items-center flex-wrap gap-3 mt-2">
                                     <div class="d-flex align-items-center bg-light px-3 py-2 rounded-3">
                                         <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 32px; height: 32px;">
@@ -90,7 +99,7 @@
                                                 {
                                                     @foreach (var user in assignableUsers)
                                                     {
-                                                        <option value="@user.Id" selected="@(user.Id == order.UserId)">@user.Name (@TranslateRole(user.Role))</option>
+                                                        <option @key="user.Id" value="@user.Id" selected="@(user.Id == order.UserId)">@user.Name (@TranslateRole(user.Role))</option>
                                                     }
                                                 }
                                             </select>
@@ -118,20 +127,20 @@
                     {
                         <div class="card mb-4 bg-light border-primary border-opacity-25">
                             <div class="card-header border-0 pt-4 px-4 bg-transparent">
-                                <h5 class="card-title mb-0 text-primary">Análise Financeira</h5>
+                                <h5 class="card-title mb-0 text-primary">@Portuguese.OP_FinancialAnalysis</h5>
                             </div>
                             <div class="card-body p-4">
                                 <div class="row text-center">
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
-                                        <div class="text-muted small uppercase mb-1">Custo Total</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_TotalCost</div>
                                         <div class="h3 mb-0 text-dark">R$ @order.CalculatedTotalCost.ToString("N2")</div>
                                     </div>
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
-                                        <div class="text-muted small uppercase mb-1">Custo / Peça</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_CostPerPiece</div>
                                         <div class="h3 mb-0 text-dark">R$ @order.AverageCostPerPiece.ToString("N2")</div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="text-muted small uppercase mb-1">Margem</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_ProfitMargin</div>
                                         <div class="h3 mb-0 @(order.EstimatedProfitMargin < 0 ? "text-danger" : "text-success")">
                                             @order.EstimatedProfitMargin.ToString("N1")%
                                         </div>
@@ -146,7 +155,7 @@
                 <AuthorizeView Roles="Administrator,Leader,Operator" Context="actionContext">
                     <div class="card mb-4 overflow-hidden">
                         <div class="card-header border-0 pt-4 px-4 bg-light bg-opacity-50">
-                            <h5 class="card-title mb-0">Controles de ProduÃ§Ã£o</h5>
+                            <h5 class="card-title mb-0">@Portuguese.OP_Controls</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="d-flex flex-wrap gap-3">
@@ -185,12 +194,12 @@
                 <AuthorizeView Roles="Administrator,Leader,Operator" Context="changeStageContext">
                     <div class="card mb-4">
                         <div class="card-header border-0 pt-4 px-4 bg-warning bg-opacity-10">
-                            <h5 class="card-title mb-0">Alterar EstÃ¡gio / Retrabalho</h5>
+                            <h5 class="card-title mb-0">@Portuguese.OP_ChangeStage</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="row align-items-end">
                                 <div class="col-md-5 mb-3 mb-md-0">
-                                    <label class="form-label small fw-bold text-muted">Novo EstÃ¡gio</label>
+                                    <label class="form-label small fw-bold text-muted">@Portuguese.OP_NewStage</label>
                                     <select class="form-select" @bind="targetStage">
                                         <option value="0">@Portuguese.Stage_Cutting</option>
                                         <option value="1">@Portuguese.Stage_Sewing</option>
@@ -200,7 +209,7 @@
                                 </div>
                                 <div class="col-md-7">
                                     <label class="form-label small fw-bold text-muted">
-                                        Motivo / ObservaÃ§Ã£o
+                                        @Portuguese.OP_ReworkReason
                                         @if (IsRework) { <span class="text-danger">*</span> }
                                     </label>
                                     <div class="input-group">
@@ -215,13 +224,13 @@
                                             }
                                             else
                                             {
-                                                <i class="fa-solid fa-rotate-left me-2"></i> <span>Atualizar</span>
+                                                <i class="fa-solid fa-rotate-left me-2"></i> <span>@Portuguese.Refresh</span>
                                             }
                                         </button>
                                     </div>
                                     @if (IsRework && string.IsNullOrWhiteSpace(stageChangeNote))
                                     {
-                                        <div class="text-danger xsmall mt-1">ObrigatÃ³rio para retornar a uma fase anterior.</div>
+                                        <div class="text-danger xsmall mt-1">@Portuguese.OP_ReworkRequired</div>
                                     }
                                 </div>
                             </div>
@@ -234,7 +243,7 @@
                                     <div class="card-header border-0 pt-4 px-4 bg-white">
                                         <ul class="nav nav-tabs card-header-tabs" id="orderTabs" role="tablist">
                                             <li class="nav-item">
-                                                <button class="nav-link @(activeTab == "history" ? "active" : "")" @onclick='() => activeTab = "history"'>Histórico</button>
+                                                <button class="nav-link @(activeTab == "history" ? "active" : "")" @onclick='() => activeTab = "history"'>@Portuguese.OP_History</button>
                                             </li>
                                             <li class="nav-item">
                                                 <button class="nav-link @(activeTab == "qa" ? "active" : "")" @onclick='() => activeTab = "qa"'>
@@ -253,19 +262,18 @@
                                                     <thead>
                                                         <tr>
                                                             <th class="text-nowrap">@Portuguese.Hist_Date</th>
-                                                            <th class="text-nowrap">AÃ§Ã£o</th>
-                                                            <th class="text-nowrap">ResponsÃ¡vel</th>
-                                                            <th class="text-nowrap">Nota</th>
+                                                            <th class="text-nowrap">@Portuguese.Hist_Action</th>
+                                                            <th class="text-nowrap">@Portuguese.Hist_User</th>
+                                                            <th class="text-nowrap">@Portuguese.Hist_Note</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        @if (history != null)
-                                                        {
-                                                            @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
-                                                            {
-                                                                <tr>
-                                                                    <td class="small text-muted text-nowrap">@log.ModificationDate.ToString("g")</td>    
-                                                                    <td class="text-nowrap">
+                                                                                                                @if (history != null)
+                                                                                                                {
+                                                                                                                    @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
+                                                                                                                    {
+                                                                                                                        <tr @key="log.Id">
+                                                                                                                            <td class="small text-muted text-nowrap">@log.ModificationDate.ToString("g")</td>                                                                        <td class="text-nowrap">
                                                                         <div class="d-flex align-items-center">
                                                                             <span class="badge bg-light text-muted border me-2 xsmall">@TranslateStage(log.PreviousStage)</span>
                                                                             <i class="fa-solid fa-arrow-right text-primary opacity-25 me-2 xsmall"></i>  
@@ -316,7 +324,7 @@
                                                             <tbody>
                                                                 @foreach (var defect in defects)
                                                                 {
-                                                                    <tr>
+                                                                    <tr @key="defect.Id">
                                                                         <td>@defect.RegistrationDate.ToString("dd/MM HH:mm")</td>
                                                                         <td>@defect.Reason</td>
                                                                         <td><span class="badge bg-danger-soft text-danger">@defect.Quantity</span></td>
@@ -432,12 +440,16 @@
     private async Task ConfirmCompleteOrder()
     {
         showCompleteModal = false;
-        var request = new { NewStatus = "Completed", Note = "Produto finalizado e pronto" };
-        var response = await Http.PatchAsJsonAsync($"api/ProductionOrders/{Id}/status", request);
-        if (response.IsSuccessStatusCode)
+        // Direct call to lifecycle client
+        var success = await ProductionOrderLifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Produto finalizado e pronto");
+        if (success)
         {
             ToastService.ShowToast(Portuguese.Status_Completed, ToastLevel.Success);
             await LoadData();
+        }
+        else
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
 
@@ -456,16 +468,16 @@
                 using var streamRef = new DotNetStreamReference(stream: fileStream);
 
                 await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orden_{order.UniqueCode}.pdf", streamRef);
-                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
             }
             else
             {
-                ToastService.ShowToast("Erro ao gerar PDF", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -490,6 +502,7 @@
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", "Deseja excluir este registro de defeito?"))
         {
+            // This still uses HTTP directly as there is no QA service created yet
             var response = await Http.DeleteAsync($"api/QA/{id}");
             if (response.IsSuccessStatusCode)
             {
@@ -503,6 +516,7 @@
     {
         try
         {
+            // This still uses HTTP directly as there is no QA service created yet
             var resp = await Http.GetFromJsonAsync<ApiResponse<List<QADefectDto>>>($"api/QA/order/{Id}");
             if (resp != null && resp.Success)
             {
@@ -529,21 +543,13 @@
         try
         {
             loading = true;
-            var orderResp = await Http.GetAsync($"api/ProductionOrders/{Id}");
-            if (orderResp.IsSuccessStatusCode)
+            order = await ProductionOrderQueryClient.GetProductionOrderByIdAsync(Id);
+            if (order != null)
             {
-                var content = await orderResp.Content.ReadAsStringAsync();
-                order = JsonSerializer.Deserialize<ProductionOrderDto>(content, _jsonOptions);
-                targetStage = GetStageIndex(order?.CurrentStage ?? "Open");
+                targetStage = GetStageIndex(order.CurrentStage);
                 stageChangeNote = "";
             }
-
-            var historyResp = await Http.GetAsync($"api/ProductionOrders/{Id}/history");
-            if (historyResp.IsSuccessStatusCode)
-            {
-                var content = await historyResp.Content.ReadAsStringAsync();
-                history = JsonSerializer.Deserialize<List<ProductionHistoryDto>>(content, _jsonOptions);
-            }
+            history = await ProductionOrderQueryClient.GetHistoryByProductionOrderIdAsync(Id);
         }
         catch (Exception)
         {
@@ -559,6 +565,7 @@
     {
         try
         {
+            // This still uses HTTP directly as there is no user service client created yet.
             var response = await Http.GetAsync("api/ProductionOrders/assignable");
             if (response.IsSuccessStatusCode)
             {
@@ -620,9 +627,9 @@
         try
         {
             isAssigning = true;
-            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/assign", new { UserId = selectedUserId });
+            var success = await ProductionOrderLifecycleClient.AssignTaskAsync(Id, selectedUserId);
 
-            if (response.IsSuccessStatusCode)
+            if (success)
             {
                 ToastService.ShowToast(Portuguese.Msg_TaskAssigned, ToastLevel.Success);
                 await LoadData();
@@ -640,8 +647,8 @@
 
     private async Task AdvanceStage()
     {
-        var response = await Http.PostAsync($"api/ProductionOrders/{Id}/advance-stage", null);
-        if (response.IsSuccessStatusCode)
+        var success = await ProductionOrderLifecycleClient.AdvanceStageAsync(Id);
+        if (success)
         {
             ToastService.ShowToast(Portuguese.Msg_StageAdvanced, ToastLevel.Success);
             await LoadData();
@@ -650,9 +657,8 @@
 
     private async Task StopOrder()
     {
-        var request = new { NewStatus = "Stopped", Note = "Ordem parada manualmente" };
-        var response = await Http.PatchAsJsonAsync($"api/ProductionOrders/{Id}/status", request);
-        if (response.IsSuccessStatusCode)
+        var success = await ProductionOrderLifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Stopped, "Ordem parada manualmente");
+        if (success)
         {
             ToastService.ShowToast(Portuguese.Msg_StatusUpdated, ToastLevel.Warning);
             await LoadData();
@@ -661,9 +667,8 @@
 
     private async Task ResumeOrder()
     {
-        var request = new { NewStatus = "InProduction", Note = "ProduÃ§Ã£o retomada" };
-        var response = await Http.PatchAsJsonAsync($"api/ProductionOrders/{Id}/status", request);
-        if (response.IsSuccessStatusCode)
+        var success = await ProductionOrderLifecycleClient.UpdateStatusAsync(Id, ProductionStatus.InProduction, "Producción retomada");
+        if (success)
         {
             ToastService.ShowToast(Portuguese.Msg_StatusUpdated, ToastLevel.Success);
             await LoadData();
@@ -706,29 +711,28 @@
         if (order == null) return;
         if (!CanSaveStageChange)
         {
-             ToastService.ShowToast("ComentÃ¡rio Ã© obrigatÃ³rio para retrabalho.", ToastLevel.Warning);
+             ToastService.ShowToast(Portuguese.OP_ReworkRequired, ToastLevel.Warning);
              return;
         }
 
         try
         {
             isChangingStage = true;
-            var request = new { NewStage = targetStage, Note = stageChangeNote };
-            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/change-stage", request);
+            var success = await ProductionOrderLifecycleClient.ChangeStageAsync(Id, (ProductionStage)targetStage, stageChangeNote);
 
-            if (response.IsSuccessStatusCode)
+            if (success)
             {
-                ToastService.ShowToast("EstÃ¡gio alterado com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Msg_StageAdvanced, ToastLevel.Success);
                 await LoadData();
             }
             else
             {
-                ToastService.ShowToast($"Erro ao alterar estÃ¡gio.", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {

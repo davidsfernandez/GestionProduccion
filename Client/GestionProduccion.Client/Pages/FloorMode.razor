@@ -45,7 +45,7 @@
         <div class="row g-4">
             @foreach (var order in orders.OrderByDescending(o => o.CreationDate))
             {
-                <div class="col-xl-4 col-md-6">
+                <div class="col-xl-4 col-md-6" @key="order.Id">
                     <div class="card bg-dark border-secondary h-100 shadow-lg floor-card">
                         <div class="card-header border-secondary bg-transparent py-4 px-4 d-flex justify-content-between align-items-start">
                             <div>
@@ -60,7 +60,7 @@
                             </div>
                         </div>
                         <div class="card-body p-4">
-                            <h3 class="display-6 text-light mb-4" style="line-height: 1.2;">@order.ProductDescription</h3>
+                            <h3 class="display-6 text-light mb-4" style="line-height: 1.2;">@(order.ProductName ?? "Produto sem nome")</h3>
                             
                             <div class="mb-4">
                                 <label class="fs-6 text-muted uppercase d-block mb-1">@Portuguese.OP_Stage</label>

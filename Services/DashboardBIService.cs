@@ -59,7 +59,7 @@ public class DashboardBIService : IDashboardBIService
         // We need to group by ProductId
         var productStats = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.ProductId.HasValue)
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
             .GroupBy(o => o.ProductId)
             .Select(g => new 
             {
@@ -75,11 +75,11 @@ public class DashboardBIService : IDashboardBIService
             .ToDictionaryAsync(p => p.Id, p => new { p.Name, p.MainSku });
 
         var profitabilityList = productStats
-            .Where(p => p.ProductId.HasValue && products.ContainsKey(p.ProductId.Value))
+            .Where(p => products.ContainsKey(p.ProductId))
             .Select(p => new ProductProfitabilityDto
             {
-                Sku = products[p.ProductId!.Value].MainSku,
-                Name = products[p.ProductId!.Value].Name,
+                Sku = products[p.ProductId].MainSku,
+                Name = products[p.ProductId].Name,
                 AverageMargin = p.AvgMargin
             })
             .OrderByDescending(p => p.AverageMargin)
@@ -89,8 +89,8 @@ public class DashboardBIService : IDashboardBIService
         var sixtyDaysAgo = now.AddDays(-60);
         var activeProductIds = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CreationDate >= sixtyDaysAgo && o.ProductId.HasValue)
-            .Select(o => o.ProductId!.Value)
+            .Where(o => o.CreationDate >= sixtyDaysAgo)
+            .Select(o => o.ProductId)
             .Distinct()
             .ToListAsync();
 

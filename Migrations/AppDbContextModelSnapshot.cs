@@ -275,12 +275,7 @@ namespace GestionProduccion.Migrations
                     b.Property<DateTime>("ModificationDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("ProductDescription")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<int?>("ProductId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -553,7 +548,8 @@ namespace GestionProduccion.Migrations
                     b.HasOne("GestionProduccion.Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("GestionProduccion.Domain.Entities.SewingTeam", "AssignedTeam")
                         .WithMany("AssignedOrders")

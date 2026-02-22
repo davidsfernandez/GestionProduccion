@@ -53,8 +53,23 @@ public class ProductRepository : IProductRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product != null)
+        {
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+        }
+    }
+
     public async Task<bool> ExistsAsync(string sku)
     {
         return await _context.Products.AnyAsync(p => p.MainSku == sku);
+    }
+
+    public async Task<bool> ExistsByInternalCodeAsync(string internalCode)
+    {
+        return await _context.Products.AnyAsync(p => p.InternalCode == internalCode);
     }
 }

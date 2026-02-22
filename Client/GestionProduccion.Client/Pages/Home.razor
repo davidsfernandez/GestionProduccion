@@ -139,7 +139,7 @@
                                         {
                                             @foreach (var item in dashboard.TopProfitableModels)
                                             {
-                                                <tr>
+                                                <tr @key="item.Sku">
                                                     <td><strong>@item.Sku</strong> - @item.Name</td>
                                                     <td class="text-end text-success fw-bold">@item.AverageMargin.ToString("N1")%</td>
                                                 </tr>
@@ -164,7 +164,7 @@
                                     <ul class="list-group list-group-flush">
                                         @foreach (var ws in dashboard.ProductionByWorkshop)
                                         {
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <li @key="ws.WorkshopName" class="list-group-item d-flex justify-content-between align-items-center">
                                                 @ws.WorkshopName
                                                 <span class="badge bg-primary rounded-pill">@ws.Quantity</span>
                                             </li>
@@ -194,7 +194,7 @@
                                 {
                                     @foreach (var item in dashboard.StalledStock)
                                     {
-                                        <li class="list-group-item border-0 px-4 py-3">
+                                        <li @key="item.Sku" class="list-group-item border-0 px-4 py-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
                                                     <i class="fa-solid fa-box-open text-warning"></i>
@@ -223,13 +223,12 @@
                             </div>
                             <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
-                                    @if (dashboard.BottomProfitableModels != null && dashboard.BottomProfitableModels.Any(p => p.AverageMargin < 5)) // Threshold 5%
-                                    {
-                                        @foreach (var item in dashboard.BottomProfitableModels.Where(p => p.AverageMargin < 5))
-                                        {
-                                            <li class="list-group-item border-0 px-4 py-3">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                                    @if (dashboard.BottomProfitableModels != null && dashboard.BottomProfitableModels.Any(p => p.AverageMargin < 5)) // Threshold 5%
+                                                                    {
+                                                                        @foreach (var item in dashboard.BottomProfitableModels.Where(p => p.AverageMargin < 5))
+                                                                        {
+                                                                            <li @key="item.Sku" class="list-group-item border-0 px-4 py-3">
+                                                                                <div class="d-flex align-items-center">                                                    <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
                                                         <i class="fa-solid fa-arrow-trend-down text-danger"></i>
                                                     </div>
                                                     <div class="flex-grow-1 ms-3">

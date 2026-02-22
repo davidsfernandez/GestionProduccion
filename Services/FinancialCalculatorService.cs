@@ -51,17 +51,14 @@ public class FinancialCalculatorService : IFinancialCalculatorService
         }
 
         // 5. Calculate Margin
-        if (order.ProductId.HasValue)
+        var product = await _productRepo.GetByIdAsync(order.ProductId);
+        if (product != null && product.EstimatedSalePrice > 0)
         {
-            var product = await _productRepo.GetByIdAsync(order.ProductId.Value);
-            if (product != null && product.EstimatedSalePrice > 0)
-            {
-                order.EstimatedProfitMargin = ((product.EstimatedSalePrice - order.AverageCostPerPiece) / product.EstimatedSalePrice) * 100;
-            }
-            else
-            {
-                order.EstimatedProfitMargin = 0;
-            }
+            order.EstimatedProfitMargin = ((product.EstimatedSalePrice - order.AverageCostPerPiece) / product.EstimatedSalePrice) * 100;
+        }
+        else
+        {
+            order.EstimatedProfitMargin = 0;
         }
     }
 }

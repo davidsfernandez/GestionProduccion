@@ -4,7 +4,8 @@ public class ProductionOrderDto
 {
     public int Id { get; set; }
     public string UniqueCode { get; set; } = string.Empty;
-    public string ProductDescription { get; set; } = string.Empty;
+    public string? ProductName { get; set; }
+    public string? ProductCode { get; set; }
     public int Quantity { get; set; }
     public string? ClientName { get; set; }
     public string? Size { get; set; }

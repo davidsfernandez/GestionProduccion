@@ -1,3 +1,4 @@
+using GestionProduccion.Services.ProductionOrders;
 using GestionProduccion.Data;
 using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Services.Interfaces;
@@ -37,7 +38,9 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
+builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderQueryService, GestionProduccion.Services.ProductionOrders.ProductionOrderQueryService>();
+builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderMutationService, GestionProduccion.Services.ProductionOrders.ProductionOrderMutationService>();
+builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderLifecycleService, GestionProduccion.Services.ProductionOrders.ProductionOrderLifecycleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();

@@ -11,8 +11,8 @@ public class CreateProductionOrderRequestValidator : AbstractValidator<CreatePro
             .NotEmpty().WithMessage("Unique Code is required.")
             .MaximumLength(50).WithMessage("Unique Code cannot exceed 50 characters.");
 
-        RuleFor(x => x.ProductDescription)
-            .NotEmpty().WithMessage("Product Description is required.");
+        RuleFor(x => x.ProductId)
+            .GreaterThan(0).WithMessage("Product ID is required.");
 
         RuleFor(x => x.Quantity)
             .GreaterThan(0).WithMessage("Quantity must be greater than 0.");

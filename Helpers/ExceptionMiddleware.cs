@@ -31,13 +31,33 @@ public class ExceptionMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        
+        var statusCode = HttpStatusCode.InternalServerError;
+        var message = "Internal Server Error. Please contact support.";
+
+        switch (exception)
+        {
+            case KeyNotFoundException:
+                statusCode = HttpStatusCode.NotFound;
+                message = exception.Message;
+                break;
+            case InvalidOperationException:
+                statusCode = HttpStatusCode.BadRequest;
+                message = exception.Message;
+                break;
+            case UnauthorizedAccessException:
+                statusCode = HttpStatusCode.Forbidden;
+                message = "You do not have permission to perform this action.";
+                break;
+        }
+
+        context.Response.StatusCode = (int)statusCode;
 
         var response = new ApiResponse<string>
         {
             Success = false,
-            Message = "Internal Server Error. Please contact support.",
-            Data = exception.Message // In production, hide detailed message
+            Message = message,
+            Data = exception.Message 
         };
 
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };

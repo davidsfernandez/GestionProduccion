@@ -29,7 +29,6 @@ public class StoppedOperationDto
 {
     public int OrderId { get; set; }
     public string UniqueCode { get; set; } = string.Empty;
-    public string ProductDescription { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public double DurationHours { get; set; }
 }

@@ -2,6 +2,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Services.ProductionOrders; // New using directive
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -14,13 +15,22 @@ namespace GestionProduccion.Controllers;
 [Authorize] // Requires authentication for all controller endpoints
 public class ProductionOrdersController : ControllerBase
 {
-    private readonly IProductionOrderService _productionOrderService;
+    private readonly IProductionOrderQueryService _queryService;
+    private readonly IProductionOrderMutationService _mutationService;
+    private readonly IProductionOrderLifecycleService _lifecycleService;
     private readonly IUserService _userService;
     private readonly IExcelExportService _excelExportService;
 
-    public ProductionOrdersController(IProductionOrderService productionOrderService, IUserService userService, IExcelExportService excelExportService)
+    public ProductionOrdersController(
+        IProductionOrderQueryService queryService,
+        IProductionOrderMutationService mutationService,
+        IProductionOrderLifecycleService lifecycleService,
+        IUserService userService,
+        IExcelExportService excelExportService)
     {
-        _productionOrderService = productionOrderService;
+        _queryService = queryService;
+        _mutationService = mutationService;
+        _lifecycleService = lifecycleService;
         _userService = userService;
         _excelExportService = excelExportService;
     }
@@ -42,7 +52,7 @@ public class ProductionOrdersController : ControllerBase
                 return Unauthorized(new { message = "User ID claim not found or invalid." });
             }
 
-            var newOrder = await _productionOrderService.CreateProductionOrderAsync(request, createdByUserId);
+            var newOrder = await _mutationService.CreateProductionOrderAsync(request, createdByUserId, HttpContext.RequestAborted);
             return CreatedAtAction(nameof(GetProductionOrderById), new { id = newOrder.Id }, newOrder);
         }
         catch (InvalidOperationException ex)
@@ -60,7 +70,7 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var orders = await _productionOrderService.ListProductionOrdersAsync(filter);
+            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
             return Ok(orders);
         }
         catch (Exception ex)
@@ -98,7 +108,7 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var order = await _productionOrderService.GetProductionOrderByIdAsync(id);
+            var order = await _queryService.GetProductionOrderByIdAsync(id, HttpContext.RequestAborted);
             if (order == null)
             {
                 return NotFound(new { message = $"Production order with ID {id} not found." });
@@ -116,7 +126,7 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(id);
+            var history = await _queryService.GetHistoryByProductionOrderIdAsync(id, HttpContext.RequestAborted);
             return Ok(history);
         }
         catch (Exception ex)
@@ -136,7 +146,7 @@ public class ProductionOrdersController : ControllerBase
 
         try
         {
-            var updatedOrder = await _productionOrderService.AssignTaskAsync(orderId, request.UserId);
+            var updatedOrder = await _lifecycleService.AssignTaskAsync(orderId, request.UserId, HttpContext.RequestAborted);
             return Ok(updatedOrder);
         }
         catch (KeyNotFoundException ex)
@@ -165,7 +175,7 @@ public class ProductionOrdersController : ControllerBase
                 return Unauthorized(new { message = "User ID claim not found or invalid." });
             }
 
-            var updatedOrder = await _productionOrderService.UpdateStatusAsync(orderId, request.NewStatus, request.Note, modifiedByUserId);
+            var updatedOrder = await _lifecycleService.UpdateStatusAsync(orderId, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
             return Ok(updatedOrder);
         }
         catch (KeyNotFoundException ex)
@@ -186,7 +196,7 @@ public class ProductionOrdersController : ControllerBase
                 return Unauthorized(new { message = "User ID claim not found or invalid." });
             }
 
-            var result = await _productionOrderService.BulkUpdateStatusAsync(request.OrderIds, request.NewStatus, request.Note, modifiedByUserId);
+            var result = await _lifecycleService.BulkUpdateStatusAsync(request.OrderIds, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
             return Ok(result);
         }
         catch (Exception ex)
@@ -211,7 +221,7 @@ public class ProductionOrdersController : ControllerBase
                 return Unauthorized(new { message = "User ID claim not found or invalid." });
             }
 
-            var result = await _productionOrderService.ChangeStageAsync(orderId, request.NewStage, request.Note, modifiedByUserId);
+            var result = await _lifecycleService.ChangeStageAsync(orderId, request.NewStage, request.Note, modifiedByUserId, HttpContext.RequestAborted);
             if (!result) return NotFound(new { message = "Order not found." });
             return Ok(result);
         }
@@ -241,7 +251,7 @@ public class ProductionOrdersController : ControllerBase
                 return Unauthorized(new { message = "User ID claim not found or invalid." });
             }
 
-            var updatedOrder = await _productionOrderService.AdvanceStageAsync(orderId, modifiedByUserId);
+            var updatedOrder = await _lifecycleService.AdvanceStageAsync(orderId, modifiedByUserId, HttpContext.RequestAborted);
             return Ok(updatedOrder);
         }
         catch (KeyNotFoundException ex)
@@ -254,10 +264,30 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> DeleteProductionOrder(int id)
+    {
+        try
+        {
+            var result = await _mutationService.DeleteProductionOrderAsync(id, HttpContext.RequestAborted);
+            if (!result) return NotFound(new { message = "Order not found." });
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error deleting order", error = ex.Message });
+        }
+    }
+
     [HttpGet("dashboard")]
     public async Task<ActionResult<DashboardDto>> GetDashboard()
     {
-        var dashboardData = await _productionOrderService.GetDashboardAsync();
+        var dashboardData = await _queryService.GetDashboardAsync(HttpContext.RequestAborted);
         return Ok(dashboardData);
     }
 
@@ -266,7 +296,7 @@ public class ProductionOrdersController : ControllerBase
     public async Task<ActionResult<DashboardDto>> GetTvStats()
     {
         // Optimized endpoint for TV Kiosk (can be cached later)
-        var dashboardData = await _productionOrderService.GetDashboardAsync();
+        var dashboardData = await _queryService.GetDashboardAsync(HttpContext.RequestAborted);
         return Ok(dashboardData);
     }
 
@@ -275,7 +305,7 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var order = await _productionOrderService.GetProductionOrderByIdAsync(id);
+            var order = await _queryService.GetProductionOrderByIdAsync(id, HttpContext.RequestAborted);
             if (order == null) return NotFound(new { message = "Order not found." });
 
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
@@ -325,7 +355,7 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var orders = await _productionOrderService.ListProductionOrdersAsync(filter);
+            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
             var csvBytes = await reportService.GenerateOrdersCsvAsync(orders);
             return File(csvBytes, "text/csv", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv");
         }
@@ -340,7 +370,8 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var excelBytes = await _excelExportService.ExportProductionOrdersToExcelAsync(filter);
+            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
+            var excelBytes = await _excelExportService.ExportProductionOrdersToExcelAsync(orders);
             return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }
         catch (Exception ex)

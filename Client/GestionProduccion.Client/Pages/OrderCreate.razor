@@ -40,30 +40,24 @@
                         </div>
 
                         <!-- Product Selection -->
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted">Produto do Catálogo</label>
-                            <InputSelect class="form-select form-select-lg bg-light" Value="createModel.ProductId" ValueExpression="@(() => createModel.ProductId)" ValueChanged="@((int? id) => OnProductChanged(id))">
-                                <option value="">Selecione um produto...</option>
-                                @if (products != null)
-                                {
-                                    @foreach (var p in products)
-                                    {
-                                        <option value="@p.Id">@p.MainSku - @p.Name (@p.FabricType)</option>
-                                    }
-                                }
-                            </InputSelect>
-                        </div>
-
-                        <!-- Fallback/Override Description -->
                         <div class="row">
                             <div class="col-md-8 mb-4">
-                                <label class="form-label small fw-bold text-muted">@Portuguese.OP_ProductDesc</label>
-                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ProductDescription" placeholder="Descreva o produto..." disabled="@(createModel.ProductId.HasValue)" />
-                                <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger small mt-1" />
+                                <label class="form-label small fw-bold text-muted">Produto do Catálogo</label>
+                                <InputSelect class="form-select form-select-lg bg-light" Value="createModel.ProductId" ValueExpression="@(() => createModel.ProductId)" ValueChanged="@((int id) => OnProductChanged(id))">
+                                    <option value="0">Selecione um produto...</option>
+                                    @if (products != null)
+                                    {
+                                        @foreach (var p in products)
+                                        {
+                                            <option value="@p.Id">@p.InternalCode - @p.Name (@p.FabricType)</option>
+                                        }
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => createModel.ProductId)" class="text-danger small mt-1" />
                             </div>
                             <div class="col-md-4 mb-4">
                                 <label class="form-label small fw-bold text-muted">Tamanho / Grade</label>
-                                @if (createModel.ProductId.HasValue && selectedProductSizes != null && selectedProductSizes.Any())
+                                @if (createModel.ProductId > 0 && selectedProductSizes != null && selectedProductSizes.Any())
                                 {
                                     <InputSelect class="form-select form-select-lg bg-light" @bind-Value="createModel.Size">
                                         <option value="">Selecione...</option>
@@ -171,13 +165,12 @@
     {
         try
         {
+            // Still using Http for users as there's no dedicated client service for users yet.
             var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
-            var productsTask = Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
-            
-            await Task.WhenAll(usersTask, productsTask);
+            // Use new client service for products
+            products = (await ProductionOrderQueryClient.ListProductionOrdersAsync(null))?.ToList(); // Load all products
             
             assignableUsers = await usersTask;
-            products = await productsTask;
         }
         catch (Exception)
         {
@@ -185,18 +178,17 @@
         }
     }
 
-    private void OnProductChanged(int? productId)
+    private void OnProductChanged(int productId)
     {
         createModel.ProductId = productId;
         isDateAutoCalculated = false;
         selectedProductSizes = null;
 
-        if (productId.HasValue && products != null)
+        if (productId > 0 && products != null)
         {
-            var product = products.FirstOrDefault(p => p.Id == productId.Value);
+            var product = products.FirstOrDefault(p => p.Id == productId);
             if (product != null)
             {
-                createModel.ProductDescription = $"{product.Name} ({product.FabricType})";
                 selectedProductSizes = product.Sizes;
                 
                 // Auto-calculate date (Phase 2)
@@ -212,10 +204,6 @@
                 }
             }
         }
-        else
-        {
-            createModel.ProductDescription = "";
-        }
     }
 
     private async Task HandleSubmit()
@@ -225,17 +213,16 @@
             isSubmitting = true;
             errorMessage = string.Empty;
 
-            var response = await Http.PostAsJsonAsync("api/ProductionOrders", createModel);
+            var response = await ProductionOrderMutationClient.CreateProductionOrderAsync(createModel);
 
-            if (response.IsSuccessStatusCode)
+            if (response != null)
             {
                 ToastService.ShowToast(Portuguese.Msg_OrderCreated, ToastLevel.Success);
                 NavigationManager.NavigateTo("/orders");
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                errorMessage = $"{Portuguese.Msg_Error}: {error}";
+                errorMessage = $"{Portuguese.Msg_Error}: No order was returned.";
             }
         }
         catch (Exception ex)

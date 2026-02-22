@@ -6,5 +6,5 @@ namespace GestionProduccion.Services.Interfaces;
 
 public interface IExcelExportService
 {
-    Task<byte[]> ExportProductionOrdersToExcelAsync(FilterProductionOrderDto? filter);
+    Task<byte[]> ExportProductionOrdersToExcelAsync(List<ProductionOrderDto> orders);
 }

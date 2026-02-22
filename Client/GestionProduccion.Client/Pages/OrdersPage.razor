@@ -1,9 +1,13 @@
 @page "/orders"
 @using GestionProduccion.Client.Models.DTOs
 @using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Services.ProductionOrders
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator,Leader,Operator")]
-@inject HttpClient Http
+@inject IProductionOrderQueryClient ProductionOrderQueryClient
+@inject IProductionOrderMutationClient ProductionOrderMutationClient
+@inject IProductionOrderLifecycleClient ProductionOrderLifecycleClient
+@inject HttpClient Http // Still needed for Export-Excel endpoint logic
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject SignalRService SignalR
@@ -11,6 +15,7 @@
 @implements IAsyncDisposable
 
 @using GestionProduccion.Client.Resources
+@using GestionProduccion.Domain.Enums // Needed for ProductionStatus enum
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
@@ -34,7 +39,7 @@
                                 <div class="col-md-5">
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
+                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto o Código..."
                                                @bind="searchTerm" />
                                     </div>
                                 </div>
@@ -127,12 +132,22 @@
                             <tbody>
                                 @foreach (var order in FilteredOrders)
                                 {
-                                    <tr>
+                                    <tr @key="order.Id">
                                         <td>
                                             <input type="checkbox" class="form-check-input" checked="@selectedOrderIds.Contains(order.Id)" @onchange="@(() => ToggleSelection(order.Id))" @onclick:stopPropagation="true" />
                                         </td>
                                         <td><strong class="text-dark">@order.UniqueCode</strong></td>
-                                        <td class="text-muted d-none d-md-table-cell">@order.ProductDescription</td>
+                                        <td class="text-muted d-none d-md-table-cell">
+                                            @if (!string.IsNullOrEmpty(order.ProductName))
+                                            {
+                                                <div class="fw-bold text-dark">@order.ProductName</div>
+                                                <div class="small">@order.ProductCode</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger small"><i>@Portuguese.Cat_NoLinkedProduct</i></span>
+                                            }
+                                        </td>
                                         <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
                                         <td>
                                             <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
@@ -152,12 +167,17 @@
                                             </div>
                                         </td>
                                         <td class="text-end text-nowrap">
-                                            <button class="btn btn-lg btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-lg btn-light text-danger" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
+                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
+                                            <AuthorizeView Roles="Administrator">
+                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteOrder(order)" title="Excluir">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </AuthorizeView>
                                         </td>
                                     </tr>
                                 }
@@ -211,15 +231,14 @@
         try
         {
             loading = true;
-            var queryParams = new List<string>();
-            if (!string.IsNullOrWhiteSpace(searchTerm)) queryParams.Add($"productDescription={Uri.EscapeDataString(searchTerm)}");
-            if (!string.IsNullOrWhiteSpace(filterClient)) queryParams.Add($"clientName={Uri.EscapeDataString(filterClient)}");
-            if (!string.IsNullOrWhiteSpace(filterSize)) queryParams.Add($"size={Uri.EscapeDataString(filterSize)}");
-            
-            var url = "api/ProductionOrders";
-            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
+            var filter = new FilterProductionOrderDto
+            {
+                ClientName = filterClient,
+                Size = filterSize,
+                // Add Product search by searchTerm if needed
+            };
 
-            orders = await Http.GetFromJsonAsync<List<ProductionOrderDto>>(url);
+            orders = (await ProductionOrderQueryClient.ListProductionOrdersAsync(filter))?.ToList();
         }
         catch (Exception)
         {
@@ -233,6 +252,30 @@
 
     private void CreateNewOrder() => NavigationManager.NavigateTo("/orders/create");
     private void ViewDetails(int id) => NavigationManager.NavigateTo($"/orders/{id}");
+
+    private async Task DeleteOrder(ProductionOrderDto order)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.UniqueCode}? Esta ação alterará as métricas de produção."))
+        {
+            try
+            {
+                var success = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
+                if (success)
+                {
+                    ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
+                    await LoadOrders();
+                }
+                else
+                {
+                    ToastService.ShowToast($"Erro ao excluir ordem.", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Falha: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
@@ -289,13 +332,12 @@
         {
             loading = true;
             // Send request to backend
-            var request = new { OrderIds = selectedOrderIds.ToList(), NewStatus = status, Note = "Atualização em massa via lista" };
+            ProductionStatus newStatus = (ProductionStatus)status;
+            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa via lista");
             
-            var response = await Http.PostAsJsonAsync("api/ProductionOrders/bulk-status", request);
-            
-            if (response.IsSuccessStatusCode)
+            if (result != null)
             {
-                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas!", ToastLevel.Success);
+                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas! {result.SuccessCount} sucesso, {result.FailureCount} falhas.", ToastLevel.Success);
                 selectedOrderIds.Clear();
                 await LoadOrders();
             }
@@ -317,7 +359,8 @@
         try 
         {
             ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
-            var response = await Http.GetAsync("api/ProductionOrders/export-csv" + (string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?productDescription={searchTerm}"));
+            // It uses Http client directly, as it calls a ReportService backend endpoint.
+            var response = await Http.GetAsync("api/ProductionOrders/export-csv");
             
             if (response.IsSuccessStatusCode)
             {
@@ -343,14 +386,22 @@
         {
             ToastService.ShowToast("Gerando Excel...", ToastLevel.Info);
             // Construct the filter query string based on the current search term
-            var filterUrl = "api/ProductionOrders/export-excel" + (string.IsNullOrWhiteSpace(searchTerm) ? "" : $"?productDescription={searchTerm}");
-            var response = await Http.GetAsync(filterUrl);
+            var filter = new FilterProductionOrderDto
+            {
+                ClientName = filterClient,
+                Size = filterSize,
+                // Add Product search by searchTerm if needed
+            };
+            var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
+
+            // It uses Http client directly, as it calls a ExcelExportService backend endpoint.
+            var response = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", ordersToExport);
             
             if (response.IsSuccessStatusCode)
             {
                 var fileStream = await response.Content.ReadAsStreamAsync();
                 using var streamRef = new DotNetStreamReference(stream: fileStream);
-                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_{DateTime.Now:yyyyMMdd}.xlsx", streamRef);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", streamRef);
                 ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
             }
             else

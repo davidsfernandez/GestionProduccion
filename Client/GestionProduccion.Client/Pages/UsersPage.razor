@@ -57,7 +57,7 @@
                             <tbody>
                                 @foreach (var user in users)
                                 {
-                                    <tr>
+                                    <tr @key="user.Id">
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
@@ -161,7 +161,7 @@
                                 <InputSelect class="form-select form-select-lg" @bind-Value="userModel.Role">
                                     @foreach (var role in Enum.GetValues<UserRole>())
                                     {
-                                        <option value="@role">@TranslateRole(role)</option>
+                                        <option @key="role" value="@role">@TranslateRole(role)</option>
                                     }
                                 </InputSelect>
                             </div>
