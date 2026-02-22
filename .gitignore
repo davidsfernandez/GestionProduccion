@@ -109,3 +109,11 @@ appsettings.Development.json
 # Documentation files
 *.md
 docs/
+SPRINT_*.txt
+DOC_*.txt
+*_STANDARD_TEMP.txt
+build_*.txt
+final_*.txt
+full_build_log.txt
+test_output.txt
+app_build/
