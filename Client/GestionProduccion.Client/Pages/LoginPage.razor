@@ -29,13 +29,13 @@
                                     
                                     <div class="mb-3">
                                         <label class="form-label">@Portuguese.User_Email</label>
-                                        <InputText class="form-control form-control-lg" @bind-Value="loginModel.Email" placeholder="seu.email@exemplo.com" />
+                                        <InputText class="form-control form-control-lg" @bind-Value="loginModel.Email" placeholder="email@exemplo.com" />
                                         <ValidationMessage For="@(() => loginModel.Email)" class="text-danger small" />
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">@Portuguese.User_Password</label>
-                                        <InputText type="password" class="form-control form-control-lg" @bind-Value="loginModel.Password" placeholder="@Portuguese.User_Password" />
+                                        <InputText type="password" class="form-control form-control-lg" @bind-Value="loginModel.Password" placeholder="********" />
                                         <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small" />
                                     </div>
 

@@ -219,6 +219,11 @@ public class ReportService : IReportService
                             c.Item().Text("Resumo Estatístico").Bold();
                             c.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
                             c.Item().Text($"Taxa de Conclusão: {dashboard.CompletionRate}%");
+                            
+                            // Efficiency Calculation (Completed vs Total Today)
+                            var totalToday = dashboard.TodaysOrders.Count;
+                            var efficiency = totalToday > 0 ? (decimal)dashboard.CompletedToday / totalToday * 100 : 0;
+                            c.Item().Text($"Eficiência Global do Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
                         });
                     });
 
@@ -231,7 +236,7 @@ public class ReportService : IReportService
                         {
                             columns.RelativeColumn(3); // Lot
                             columns.RelativeColumn(4); // Client
-                            columns.RelativeColumn(2); // Size
+                            columns.RelativeColumn(3); // Team
                             columns.RelativeColumn(3); // Status
                             columns.RelativeColumn(4); // Operator
                         });
@@ -241,7 +246,7 @@ public class ReportService : IReportService
                         {
                             header.Cell().Element(HeaderStyle).Text("Lote");
                             header.Cell().Element(HeaderStyle).Text("Cliente");
-                            header.Cell().Element(HeaderStyle).Text("Tamanho");
+                            header.Cell().Element(HeaderStyle).Text("Equipe");
                             header.Cell().Element(HeaderStyle).Text("Status");
                             header.Cell().Element(HeaderStyle).Text("Operador");
 
@@ -257,7 +262,7 @@ public class ReportService : IReportService
 
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.UniqueCode);
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ClientName ?? "-");
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.Size ?? "-");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.AssignedUserName ?? "Não atribuído");
 

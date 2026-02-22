@@ -86,6 +86,10 @@ namespace GestionProduccion.Client.Auth
                 {
                     claims.Add(new Claim(ClaimTypes.Email, value.GetString() ?? value.ToString()));
                 }
+                else if (key == "AvatarUrl")
+                {
+                    claims.Add(new Claim("AvatarUrl", value.GetString() ?? value.ToString()));
+                }
                 else
                 {
                     claims.Add(new Claim(key, value.ToString()));

@@ -153,6 +153,13 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
+            // Immediate update from claims (JWT)
+            var avatarClaim = user.FindFirst("AvatarUrl");
+            if (avatarClaim != null && !string.IsNullOrEmpty(avatarClaim.Value))
+            {
+                UserState.UpdateAvatar(avatarClaim.Value);
+            }
+
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {

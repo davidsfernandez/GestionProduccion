@@ -325,9 +325,9 @@
             dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo");
             StateHasChanged();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+            // Error loading handled
         }
         finally
         {

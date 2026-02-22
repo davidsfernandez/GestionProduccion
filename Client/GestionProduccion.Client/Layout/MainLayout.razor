@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Client.Components
 @using GestionProduccion.Client.Resources
@@ -54,14 +55,26 @@
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        // Close sidebar on navigation (Mobile UX)
-        if (!_isSidebarCollapsed)
+        // Close sidebar on navigation (Mobile UX only)
+        // We use JS to check screen width to avoid closing on Desktop
+        var isMobile = await CheckIfMobile();
+        if (isMobile && !_isSidebarCollapsed)
         {
             _isSidebarCollapsed = true;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<bool> CheckIfMobile()
+    {
+        try 
+        {
+            // Simple JS interop to check window width
+            return await JS.InvokeAsync<int>("eval", "window.innerWidth") < 992;
+        }
+        catch { return false; }
     }
 
     private void ToggleSidebar()

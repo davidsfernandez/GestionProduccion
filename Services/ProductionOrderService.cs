@@ -313,11 +313,17 @@ public class ProductionOrderService : IProductionOrderService
     {
         var today = DateTime.UtcNow.Date;
         var query = await _orderRepository.GetQueryableAsync();
+        
+        // Eager load related entities for the report and UI
+        var ordersWithRelations = query
+            .Include(o => o.AssignedUser)
+            .Include(o => o.AssignedTeam)
+            .AsNoTracking();
 
-        var totalActiveOrders = query.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
-        var completedToday = 0; // Requires optimization or additional logic
+        var totalActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
+        var completedToday = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed && o.ActualEndDate >= today);
 
-        var activeOrdersList = query
+        var activeOrdersList = ordersWithRelations
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
             .ToList();
 
@@ -350,10 +356,10 @@ public class ProductionOrderService : IProductionOrderService
             .ToDictionary(g => g.Key.ToString(), g => g.Count());
 
         var totalAll = query.Count();
-        var totalComp = query.Count(o => o.CurrentStatus == ProductionStatus.Completed);
+        var totalComp = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
-        var todaysOrdersList = query.AsNoTracking().Where(o => o.CreationDate >= today).OrderByDescending(o => o.CreationDate).ToList();
+        var todaysOrdersList = ordersWithRelations.Where(o => o.CreationDate >= today || (o.ActualEndDate != null && o.ActualEndDate >= today)).OrderByDescending(o => o.CreationDate).ToList();
         var todaysOrdersDtos = todaysOrdersList.Select(MapToDto).ToList();
 
         return new DashboardDto
@@ -452,6 +458,8 @@ public class ProductionOrderService : IProductionOrderService
             EstimatedDeliveryDate = order.EstimatedDeliveryDate,
             UserId = order.UserId,
             AssignedUserName = order.AssignedUser?.Name,
+            SewingTeamId = order.SewingTeamId,
+            SewingTeamName = order.AssignedTeam?.Name,
             Product = order.Product != null ? new ProductDto
             {
                 Id = order.Product.Id,

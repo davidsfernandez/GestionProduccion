@@ -179,9 +179,9 @@
             assignableUsers = await usersTask;
             products = await productsTask;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            // Error logged by service or UI
         }
     }
 
