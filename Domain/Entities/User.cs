@@ -36,6 +36,7 @@ public class User
     public bool IsActive { get; set; } = true;
 
     // EF Core navigation properties
+    public virtual ICollection<SewingTeam> Teams { get; set; } = new List<SewingTeam>();
     public virtual ICollection<ProductionOrder> AssignedOrders { get; set; } = new List<ProductionOrder>();
     public virtual ICollection<ProductionHistory> HistoryChanges { get; set; } = new List<ProductionHistory>();
 }

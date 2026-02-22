@@ -1,0 +1,70 @@
+@page "/configuracao-bonus"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+
+<div class="container-fluid p-0">
+    <h3 class="h3 mb-4 text-dark">Configuração de Bonificações</h3>
+
+    @if (rule == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 col-lg-6">
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Bônus por Produtividade (%)</label>
+                    <input type="number" step="0.5" class="form-control" @bind="rule.ProductivityPercentage" />
+                    <small class="text-muted">Percentual base se as metas forem atingidas.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Bônus por Prazo (%)</label>
+                    <input type="number" step="0.5" class="form-control" @bind="rule.DeadlineBonusPercentage" />
+                    <small class="text-muted">Adicional para entregas antecipadas ou no prazo.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Limite de Defeitos (%)</label>
+                    <input type="number" step="0.1" class="form-control" @bind="rule.DefectLimitPercentage" />
+                    <small class="text-muted">Se ultrapassar este limite de defeitos por lote, o bônus é cancelado.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Penalidade por Atraso (%)</label>
+                    <input type="number" step="0.5" class="form-control" @bind="rule.DelayPenaltyPercentage" />
+                    <small class="text-muted">Desconto se mais de 50% das ordens atrasarem.</small>
+                </div>
+
+                <button class="btn btn-primary w-100 py-2" @onclick="SaveRules" disabled="@saving">
+                    @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                    Salvar Configurações
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private BonusRuleDto? rule;
+    private bool saving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<ApiResponse<BonusRuleDto>>("api/BonusRules");
+        if (response != null && response.Success) rule = response.Data;
+    }
+
+    private async Task SaveRules()
+    {
+        saving = true;
+        var response = await Http.PutAsJsonAsync("api/BonusRules", rule);
+        saving = false;
+        // Logic for success toast
+    }
+}

@@ -50,8 +50,11 @@ builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPas
 .Repositories.PasswordResetTokenRepository>();
 builder.Services.AddMemoryCache(); // TV Dashboard optimization
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductRepository, GestionProduccion.Data.Repositories.ProductRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISewingTeamRepository, GestionProduccion.Data.Repositories.SewingTeamRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IBonusRuleRepository, GestionProduccion.Data.Repositories.BonusRuleRepository>();
 builder.Services.AddScoped<IFinancialCalculatorService, FinancialCalculatorService>();
 builder.Services.AddScoped<IDashboardBIService, DashboardBIService>();
+builder.Services.AddScoped<IBonusCalculationService, BonusCalculationService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();

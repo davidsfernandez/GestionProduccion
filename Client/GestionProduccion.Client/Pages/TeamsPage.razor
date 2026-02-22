@@ -1,0 +1,68 @@
+@page "/gestao-equipes"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="h3 text-dark">Gestão de Equipes</h3>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="fa-solid fa-plus me-2"></i>Nova Equipe
+        </button>
+    </div>
+
+    @if (teams == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var team in teams)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm h-100 @(team.IsActive ? "" : "opacity-50")">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">@team.Name</h5>
+                            <p class="card-text text-muted">@team.MemberCount Membros</p>
+                            
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditTeam(team.Id)">Editar</button>
+                                <button class="btn btn-sm @(team.IsActive ? "btn-outline-danger" : "btn-outline-success")" 
+                                        @onclick="() => ToggleStatus(team)">
+                                    @(team.IsActive ? "Desativar" : "Ativar")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<SewingTeamDto>? teams;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTeams();
+    }
+
+    private async Task LoadTeams()
+    {
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+        if (response != null && response.Success) teams = response.Data;
+    }
+
+    private void ShowCreateModal() { /* Logic for modal */ }
+    private void EditTeam(int id) { /* Logic for editing */ }
+    private async Task ToggleStatus(SewingTeamDto team)
+    {
+        var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
+        if (response.IsSuccessStatusCode) await LoadTeams();
+    }
+}

@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductSize> ProductSizes { get; set; }
+    public DbSet<SewingTeam> SewingTeams { get; set; }
+    public DbSet<BonusRule> BonusRules { get; set; }
     public DbSet<QADefect> QADefects { get; set; }
     public DbSet<OperationalTask> OperationalTasks { get; set; }
 
@@ -189,5 +191,17 @@ public class AppDbContext : DbContext
         // --- SEED DATA REMOVED FOR PRODUCTION READINESS ---
         // The system now uses a Setup Wizard flow. If no users exist,
         // the frontend will redirect to /setup to create the first admin.
+
+        // --- SEWING TEAM AND BONUS RULES ---
+        modelBuilder.Entity<SewingTeam>()
+            .HasMany(t => t.Members)
+            .WithMany(u => u.Teams)
+            .UsingEntity(j => j.ToTable("SewingTeamMembers"));
+
+        modelBuilder.Entity<ProductionOrder>()
+            .HasOne(po => po.AssignedTeam)
+            .WithMany(t => t.AssignedOrders)
+            .HasForeignKey(po => po.SewingTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

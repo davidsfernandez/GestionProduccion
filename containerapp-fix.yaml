@@ -1,0 +1,40 @@
+location: brazilsouth
+name: gestionproduccion
+resourceGroup: gestionproduccion
+type: Microsoft.App/containerApps
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: Auto
+      allowInsecure: false
+    registries:
+    - server: gestionproduccion54780e.azurecr.io
+      username: gestionproduccion54780e
+      passwordSecretRef: registry-password
+    secrets:
+    - name: registry-password
+      value: ErIQb1bYxDCUBwAhIbOE3X1TIxVHVUx52m3VK2zBjGPWZqofEXnRJQQJ99CBACZoyfiEqg7NAAACAZCR7KhT
+  template:
+    containers:
+    - image: gestionproduccion54780e.azurecr.io/gestionproduccion:latest
+      name: gestion-produccion
+      env:
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - name: ConnectionStrings__DefaultConnection
+        value: "Server=db.internal.whiteocean-f0634b4c.brazilsouth.azurecontainerapps.io;Port=3306;Database=GestionProduccionDB;User Id=gp_admin;Password=gp_secure_pass_2026;AllowUserVariables=true;ConvertZeroDateTime=true;"
+      - name: Jwt__Key
+        value: "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"
+      - name: Jwt__Issuer
+        value: "GestionProduccion"
+      - name: Jwt__Audience
+        value: "GestionProduccionAPI"
+      resources:
+        cpu: 0.5
+        memory: 1.0Gi
+    scale:
+      minReplicas: 1
+      maxReplicas: 1

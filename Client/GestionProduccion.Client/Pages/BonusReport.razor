@@ -1,0 +1,97 @@
+@page "/relatorio-bonus"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+
+<div class="container-fluid p-0">
+    <h3 class="h3 mb-4 text-dark">Relatório de Bonificação</h3>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">EQUIPE</label>
+                    <select class="form-select" @bind="selectedTeamId">
+                        <option value="0">Selecione uma equipe...</option>
+                        @foreach (var team in teams ?? new())
+                        {
+                            <option value="@team.Id">@team.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">MÊS</label>
+                    <input type="month" class="form-control" @bind="selectedMonth" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="Calculate" disabled="@(selectedTeamId == 0)">
+                        Calcular Bônus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (report != null)
+    {
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 text-center p-4 @(report.FinalBonusPercentage == 0 ? "bg-danger bg-opacity-10" : "bg-success bg-opacity-10")">
+                    <h1 class="display-4 fw-bold @(report.FinalBonusPercentage == 0 ? "text-danger" : "text-success")">
+                        @report.FinalBonusPercentage.ToString("F1")%
+                    </h1>
+                    <p class="mb-0 fw-bold uppercase small text-muted">Bonificação Final do Mês</p>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-sm-4">
+                        <div class="card shadow-sm border-0 p-3 mb-3">
+                            <small class="text-muted d-block mb-1">PRODUTIVIDADE</small>
+                            <h4 class="mb-0 fw-bold">@report.ProductivityPercentage.ToString("F1")%</h4>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card shadow-sm border-0 p-3 mb-3">
+                            <small class="text-muted d-block mb-1">QUALIDADE (DEFEITOS)</small>
+                            <h4 class="mb-0 fw-bold @(report.DefectPercentage > 2 ? "text-danger" : "text-success")">
+                                @report.DefectPercentage.ToString("F1")%
+                            </h4>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card shadow-sm border-0 p-3 mb-3">
+                            <small class="text-muted d-block mb-1">ORDENS NO PRAZO</small>
+                            <h4 class="mb-0 fw-bold">@report.DeadlinePerformance.ToString("F1")%</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SewingTeamDto>? teams;
+    private int selectedTeamId;
+    private DateTime selectedMonth = DateTime.Now;
+    private BonusReportDto? report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+        if (response != null && response.Success) teams = response.Data;
+    }
+
+    private async Task Calculate()
+    {
+        var start = new DateTime(selectedMonth.Year, selectedMonth.Month, 1);
+        var end = start.AddMonths(1).AddDays(-1);
+        
+        var url = $"api/BonusCalculation?teamId={selectedTeamId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
+        var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url);
+        if (response != null && response.Success) report = response.Data;
+    }
+}

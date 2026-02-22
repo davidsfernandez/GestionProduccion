@@ -19,6 +19,35 @@ namespace GestionProduccion.Migrations
                 .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.BonusRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DeadlineBonusPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("DefectLimitPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("DelayPenaltyPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastUpdate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("ProductivityPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BonusRules");
+                });
+
             modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTask", b =>
                 {
                     b.Property<int>("Id")
@@ -257,6 +286,9 @@ namespace GestionProduccion.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SewingTeamId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Size")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
@@ -272,6 +304,8 @@ namespace GestionProduccion.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("SewingTeamId");
 
                     b.HasIndex("UniqueCode")
                         .IsUnique();
@@ -314,6 +348,28 @@ namespace GestionProduccion.Migrations
                     b.HasIndex("ReportedByUserId");
 
                     b.ToTable("QADefects");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.SewingTeam", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SewingTeams");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.SystemConfiguration", b =>
@@ -425,6 +481,21 @@ namespace GestionProduccion.Migrations
                     b.ToTable("UserRefreshTokens");
                 });
 
+            modelBuilder.Entity("SewingTeamUser", b =>
+                {
+                    b.Property<int>("MembersId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeamsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("MembersId", "TeamsId");
+
+                    b.HasIndex("TeamsId");
+
+                    b.ToTable("SewingTeamMembers", (string)null);
+                });
+
             modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTask", b =>
                 {
                     b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
@@ -484,10 +555,17 @@ namespace GestionProduccion.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("GestionProduccion.Domain.Entities.SewingTeam", "AssignedTeam")
+                        .WithMany("AssignedOrders")
+                        .HasForeignKey("SewingTeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
                         .WithMany("AssignedOrders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedTeam");
 
                     b.Navigation("AssignedUser");
 
@@ -522,6 +600,21 @@ namespace GestionProduccion.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SewingTeamUser", b =>
+                {
+                    b.HasOne("GestionProduccion.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("MembersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionProduccion.Domain.Entities.SewingTeam", null)
+                        .WithMany()
+                        .HasForeignKey("TeamsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GestionProduccion.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Sizes");
@@ -530,6 +623,11 @@ namespace GestionProduccion.Migrations
             modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionOrder", b =>
                 {
                     b.Navigation("History");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.SewingTeam", b =>
+                {
+                    b.Navigation("AssignedOrders");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.User", b =>

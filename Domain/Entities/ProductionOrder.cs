@@ -69,6 +69,11 @@ public class ProductionOrder
     [ForeignKey("UserId")]
     public virtual User? AssignedUser { get; set; }
 
+    // Bonus Module: Assign to a team
+    public int? SewingTeamId { get; set; }
+    [ForeignKey("SewingTeamId")]
+    public virtual SewingTeam? AssignedTeam { get; set; }
+
     // Navigation property for history
     public virtual ICollection<ProductionHistory> History { get; set; } = new List<ProductionHistory>();
 }
