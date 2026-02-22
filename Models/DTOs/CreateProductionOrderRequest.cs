@@ -15,6 +15,8 @@ public class CreateProductionOrderRequest
     [StringLength(255)]
     public string ProductDescription { get; set; } = string.Empty;
 
+    public int? ProductId { get; set; }
+
     [Required(ErrorMessage = "Quantity is required.")]
     [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0.")]
     public int Quantity { get; set; }

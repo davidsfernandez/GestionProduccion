@@ -60,6 +60,22 @@ public interface IUserService
     Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
 
     /// <summary>
+    /// Requests a password reset for a user by email.
+    /// Returns the raw token to be sent by email.
+    /// </summary>
+    Task<string?> RequestPasswordResetAsync(string email);
+
+    /// <summary>
+    /// Completes the password reset process after validating the token.
+    /// </summary>
+    Task<bool> CompletePasswordResetAsync(string email, string token, string newPassword);
+
+    /// <summary>
+    /// Resets the password for a user without old password validation (for recovery).
+    /// </summary>
+    Task<bool> ResetPasswordAsync(int userId, string newPassword);
+
+    /// <summary>
     /// Counts total active users in the system.
     /// </summary>
     Task<int> CountActiveUsersAsync();

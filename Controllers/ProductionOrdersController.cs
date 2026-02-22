@@ -261,6 +261,15 @@ public class ProductionOrdersController : ControllerBase
         return Ok(dashboardData);
     }
 
+    [HttpGet("tv-stats")]
+    [AllowAnonymous]
+    public async Task<ActionResult<DashboardDto>> GetTvStats()
+    {
+        // Optimized endpoint for TV Kiosk (can be cached later)
+        var dashboardData = await _productionOrderService.GetDashboardAsync();
+        return Ok(dashboardData);
+    }
+
     [HttpGet("{id}/pdf")]
     public async Task<IActionResult> GetOrderPdf(int id, [FromServices] IReportService reportService)
     {

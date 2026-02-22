@@ -1,0 +1,119 @@
+@using GestionProduccion.Client.Models.DTOs
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Reportar Defeito</h5>
+                <button type="button" class="btn-close" @onclick="Close"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Motivo do Defeito</label>
+                        <InputSelect class="form-select" @bind-Value="model.Reason">
+                            <option value="">Selecione...</option>
+                            <option value="Costura Torta">Costura Torta</option>
+                            <option value="Furo no Tecido">Furo no Tecido</option>
+                            <option value="Mancha">Mancha</option>
+                            <option value="Tamanho Incorreto">Tamanho Incorreto</option>
+                            <option value="Outro">Outro</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => model.Reason)" class="text-danger small" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Quantidade Afetada</label>
+                        <InputNumber class="form-control" @bind-Value="model.Quantity" />
+                        <ValidationMessage For="@(() => model.Quantity)" class="text-danger small" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Foto (Opcional)</label>
+                        <InputFile class="form-control" OnChange="OnInputFileChange" accept=".jpg,.png,.jpeg" />
+                        <div class="form-text xsmall">Máximo 5MB (JPG/PNG).</div>
+                    </div>
+
+                    @if (isUploading)
+                    {
+                        <div class="text-center py-2">
+                            <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                            <span class="ms-2 small">Enviando...</span>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-light" @onclick="Close">Cancelar</button>
+                        <button type="submit" class="btn btn-danger" disabled="@isUploading">Registrar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private DefectFormModel model = new();
+    private IBrowserFile? selectedFile;
+    private bool isUploading = false;
+
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isUploading = true;
+            using var content = new MultipartFormDataContent();
+            
+            content.Add(new StringContent(OrderId.ToString()), "ProductionOrderId");
+            content.Add(new StringContent(model.Reason), "Reason");
+            content.Add(new StringContent(model.Quantity.ToString()), "Quantity");
+
+            if (selectedFile != null)
+            {
+                var fileContent = new StreamContent(selectedFile.OpenReadStream(5 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
+                content.Add(fileContent, "PhotoFile", selectedFile.Name);
+            }
+
+            var response = await Http.PostAsync("api/QA", content);
+            if (response.IsSuccessStatusCode)
+            {
+                await OnSuccess.InvokeAsync();
+                await OnClose.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Erro: " + ex.Message);
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void Close() => OnClose.InvokeAsync();
+
+    public class DefectFormModel
+    {
+        [Required(ErrorMessage = "O motivo é obrigatório")]
+        public string Reason { get; set; } = string.Empty;
+
+        [Range(1, 1000, ErrorMessage = "Quantidade inválida")]
+        public int Quantity { get; set; } = 1;
+    }
+}

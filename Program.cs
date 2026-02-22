@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Services;
 using GestionProduccion.Hubs;
+using GestionProduccion.Domain.Interfaces.Repositories;
+using GestionProduccion.Data.Repositories;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -41,6 +43,22 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRepository, GestionProduccion.Data.Repositories.UserRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderRepository, GestionProduccion.Data.Repositories.ProductionOrderRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISystemConfigurationRepository, GestionProduccion.Data.Repositories.SystemConfigurationRepository>();
+builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRefreshTokenRepository, GestionProduccion.Data.Repositories.UserRefreshTokenRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data
+.Repositories.PasswordResetTokenRepository>();
+builder.Services.AddMemoryCache(); // TV Dashboard optimization
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductRepository, GestionProduccion.Data.Repositories.ProductRepository>();
+builder.Services.AddScoped<IFinancialCalculatorService, FinancialCalculatorService>();
+builder.Services.AddScoped<IDashboardBIService, DashboardBIService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IQAService, QAService>();
+builder.Services.AddScoped<ITaskService, OperationalTaskService>();
+builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, GestionProduccion.Services.SmtpEmailService>()
+;
 builder.Services.AddSignalR();
 
 // --- 3. AUTHENTICACION & JWT ---
@@ -70,7 +88,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GestionProduccion",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GestionProduccionAPI",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.Zero
     };
 });
 
@@ -161,6 +180,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseWebAssemblyDebugging();
 }
+
+app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
 
 // Security Headers
 app.Use(async (context, next) =>

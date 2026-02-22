@@ -39,6 +39,14 @@
                                         <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small" />
                                     </div>
 
+                                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                                        <div class="form-check">
+                                            <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberCheck" />
+                                            <label class="form-check-label" for="rememberCheck">Manter sessão</label>
+                                        </div>
+                                        <a href="forgot-password" class="small text-muted">Esqueci a senha?</a>
+                                    </div>
+
                                     <div class="d-grid gap-2 mt-3">
                                         <button type="submit" class="btn btn-lg btn-primary">@Portuguese.Login</button>
                                     </div>
@@ -95,7 +103,7 @@
                     // Update global state immediately
                     UserState.SetUser(result.UserName ?? "Usuário", result.AvatarUrl);
                     
-                    await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token);
+                    await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token, result.RefreshToken);
                     NavigationManager.NavigateTo("/");
                 }
                 else

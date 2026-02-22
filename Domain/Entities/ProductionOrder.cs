@@ -23,6 +23,11 @@ public class ProductionOrder
     [StringLength(255)]
     public string ProductDescription { get; set; } = string.Empty;
 
+    // Foreign Key for Product
+    public int? ProductId { get; set; }
+    [ForeignKey("ProductId")]
+    public virtual Product? Product { get; set; }
+
     [Required]
     public int Quantity { get; set; }
 
@@ -39,6 +44,19 @@ public class ProductionOrder
     public DateTime ModificationDate { get; set; }
 
     public DateTime EstimatedDeliveryDate { get; set; }
+
+    // Phase 3: Financial Tracking & Actual Dates
+    public DateTime? ActualStartDate { get; set; }
+    public DateTime? ActualEndDate { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CalculatedTotalCost { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal AverageCostPerPiece { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal EstimatedProfitMargin { get; set; }
 
     [StringLength(100)]
     public string? ClientName { get; set; }

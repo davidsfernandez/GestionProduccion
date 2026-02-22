@@ -20,6 +20,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
     {
         return await _context.ProductionOrders
             .Include(po => po.AssignedUser)
+            .Include(po => po.Product)
             .Include(po => po.History)
             .FirstOrDefaultAsync(po => po.Id == id);
     }
@@ -34,18 +35,18 @@ public class ProductionOrderRepository : IProductionOrderRepository
     {
         return await _context.ProductionOrders
             .Include(po => po.AssignedUser)
+            .Include(po => po.Product)
             .OrderByDescending(po => po.CreationDate)
             .ToListAsync();
     }
 
-    public Task<IQueryable<ProductionOrder>> GetQueryableAsync()
-    {
-        // Return Queryable for complex filtering in service layer if needed, 
-        // though ideally all filtering moves here. 
-        // For now, to ease refactoring, we expose IQueryable.
-        return Task.FromResult(_context.ProductionOrders.Include(po => po.AssignedUser).AsQueryable());
-    }
-
+        public Task<IQueryable<ProductionOrder>> GetQueryableAsync()
+        {
+            // Return Queryable for complex filtering in service layer if needed,
+            // though ideally all filtering moves here.
+            // For now, to ease refactoring, we expose IQueryable.
+            return Task.FromResult(_context.ProductionOrders.Include(po => po.AssignedUser).Include(po => po.Product).AsQueryable());
+        }
     public async Task AddAsync(ProductionOrder order)
     {
         await _context.ProductionOrders.AddAsync(order);

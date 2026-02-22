@@ -1,0 +1,12 @@
+- Los nombres de las variables, funciones, clases y todo el codigo debe estar en ingles,
+asi como la base de datos, todo debe de estar en ingles.
+
+- La interfaz de usuario debe de estar en portugues ya que nuestro cliente es de Brasil
+
+- Los archivos de configuracion y chat de cualquier IA, asi como todos los archivos con extension .md nunca deben de ser subidos al repositorio de Github.
+
+- Cada vez que se vaya a trabajar, anadir, realizar algun cambio en el sistema se debe de crear una rama, una vez finalizado se debe proceder a realizar un commit (mensaje en ingles) y fusionar la rama con main y luego proceder a subir los cambios al repositorio de Github
+
+- Los comentarios en el codigo fuente no deben parecer ser escritos por una IA, asi como tampoco los commits.
+
+- Valga la redundancia, cada mensaje de un commit debe estar en ingles tecnico y profesional y explicando que cambio se hizo y por que.

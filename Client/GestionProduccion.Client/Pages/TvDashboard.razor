@@ -1,0 +1,223 @@
+@page "/tv-producao"
+@layout EmptyLayout
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<style>
+    body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        overflow: hidden; /* Hide scrollbars */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .tv-container {
+        height: 100vh;
+        width: 100vw;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 20px;
+        padding: 20px;
+    }
+    .tv-panel {
+        background-color: #2d2d2d;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        border: 1px solid #444;
+    }
+    .tv-panel-header {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #aaaaaa;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+    }
+    .highlight-flash {
+        animation: flash-green 1s;
+    }
+    @@keyframes flash-green {
+        0% { background-color: #2d2d2d; }
+        50% { background-color: #198754; }
+        100% { background-color: #2d2d2d; }
+    }
+    .stat-value {
+        font-size: 6rem;
+        font-weight: bold;
+        color: #00C899;
+        text-align: center;
+        margin: auto;
+    }
+    .list-item {
+        font-size: 1.5rem;
+        padding: 10px;
+        border-bottom: 1px solid #444;
+        display: flex;
+        justify-content: space-between;
+    }
+    .progress-ring {
+        margin: auto;
+        position: relative;
+        width: 200px;
+        height: 200px;
+    }
+    .offline-indicator {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        color: #dc3545;
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+</style>
+
+@if (dashboard == null)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <h1 class="text-white">Carregando TV...</h1>
+    </div>
+}
+else
+{
+    <div class="tv-container">
+        <!-- Panel 1: Items Produced Today -->
+        <div class="tv-panel @(highlightStats ? "highlight-flash" : "")">
+            <div class="tv-panel-header"><i class="fa-solid fa-check-circle"></i> Produzido Hoje</div>
+            <div class="stat-value">@dashboard.CompletedToday</div>
+            <div class="text-center text-muted h4">Peças</div>
+        </div>
+
+        <!-- Panel 2: Items In Production -->
+        <div class="tv-panel">
+            <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em Produção</div>
+            <div style="overflow-y: hidden; flex: 1;">
+                @foreach (var order in dashboard.TodaysOrders.Take(5)) 
+                {
+                    <div class="list-item">
+                        <span>@order.UniqueCode</span>
+                        <span class="text-info">@order.CurrentStage</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Panel 3: Efficiency -->
+        <div class="tv-panel">
+            <div class="tv-panel-header"><i class="fa-solid fa-chart-line"></i> Eficiência Diária</div>
+            <div class="stat-value" style="color: @(dashboard.CompletionRate >= 80 ? "#00C899" : "#fcb92c")">
+                @dashboard.CompletionRate%
+            </div>
+            <div class="text-center text-muted h4">Meta: 100%</div>
+        </div>
+
+        <!-- Panel 4: Next Batches / Recent Activity -->
+        <div class="tv-panel">
+            <div class="tv-panel-header"><i class="fa-solid fa-clock-rotate-left"></i> Atividade Recente</div>
+            <div style="overflow-y: hidden; flex: 1;">
+                @foreach (var activity in dashboard.RecentActivities.Take(5))
+                {
+                    <div class="list-item" style="font-size: 1.2rem;">
+                        <span>@activity.UniqueCode</span>
+                        <span class="text-muted">@activity.Action</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (!isConnected)
+    {
+        <div class="offline-indicator">
+            <i class="fa-solid fa-wifi-slash"></i> Offline
+        </div>
+    }
+}
+
+@code {
+    private DashboardDto? dashboard;
+    private HubConnection? hubConnection;
+    private bool isConnected = false;
+    private bool highlightStats = false;
+    private System.Threading.Timer? pollingTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await StartSignalR();
+        
+        // Polling fallback every 30 seconds
+        pollingTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadData), null, 30000, 30000);
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var oldVal = dashboard?.CompletedToday ?? 0;
+            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/tv-stats");
+            
+            if (dashboard != null && dashboard.CompletedToday > oldVal)
+            {
+                highlightStats = true;
+                StateHasChanged();
+                await Task.Delay(1000);
+                highlightStats = false;
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            isConnected = false;
+        }
+    }
+
+    private async Task StartSignalR()
+    {
+        var hubUrl = NavigationManager.BaseUri + "productionHub";
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<int, string, string>("ReceiveUpdate", async (id, stage, status) =>
+        {
+            await LoadData();
+        });
+
+        hubConnection.Reconnecting += (ex) =>
+        {
+            isConnected = false;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        hubConnection.Reconnected += (id) =>
+        {
+            isConnected = true;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        try
+        {
+            await hubConnection.StartAsync();
+            isConnected = true;
+        }
+        catch
+        {
+            isConnected = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (pollingTimer != null) await pollingTimer.DisposeAsync();
+        if (hubConnection != null) await hubConnection.DisposeAsync();
+    }
+}

@@ -2,6 +2,8 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace GestionProduccion.Services;
 
@@ -9,11 +11,19 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IProductionOrderRepository _orderRepository;
+    private readonly IPasswordResetTokenRepository _passwordResetRepo;
+    private readonly IUserRefreshTokenRepository _refreshTokenRepo;
 
-    public UserService(IUserRepository userRepository, IProductionOrderRepository orderRepository)
+    public UserService(
+        IUserRepository userRepository, 
+        IProductionOrderRepository orderRepository,
+        IPasswordResetTokenRepository passwordResetRepo,
+        IUserRefreshTokenRepository refreshTokenRepo)
     {
         _userRepository = userRepository;
         _orderRepository = orderRepository;
+        _passwordResetRepo = passwordResetRepo;
+        _refreshTokenRepo = refreshTokenRepo;
     }
 
     /// <summary>
@@ -198,6 +208,83 @@ public class UserService : IUserService
         return true;
     }
 
+    public async Task<string?> RequestPasswordResetAsync(string email)
+    {
+        var user = await GetUserByEmailAsync(email);
+        if (user == null) return null;
+
+        var token = GenerateSecureToken();
+        var tokenHash = ComputeHash(token);
+
+        await _passwordResetRepo.AddAsync(new PasswordResetToken
+        {
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            ExpiryDate = DateTime.UtcNow.AddMinutes(15),
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return token;
+    }
+
+    public async Task<bool> CompletePasswordResetAsync(string email, string token, string newPassword)
+    {
+        var tokenHash = ComputeHash(token);
+        var resetToken = await _passwordResetRepo.GetByHashAsync(tokenHash);
+
+        if (resetToken == null || resetToken.IsUsed || resetToken.ExpiryDate <= DateTime.UtcNow)
+        {
+            return false;
+        }
+
+        if (resetToken.User.Email.ToLower() != email.ToLower())
+        {
+            return false;
+        }
+
+        // Update password
+        var user = resetToken.User;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _userRepository.UpdateAsync(user);
+
+        // Mark token used
+        resetToken.IsUsed = true;
+        await _passwordResetRepo.UpdateAsync(resetToken);
+
+        // Revoke all sessions for security
+        await _refreshTokenRepo.RevokeAllUserTokensAsync(user.Id);
+
+        await _userRepository.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return false;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+        return true;
+    }
+
+    private string GenerateSecureToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
+
+    private string ComputeHash(string input)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToBase64String(bytes);
+    }
+
     /// <summary>
     /// Counts total active users in the system.
     /// </summary>
@@ -217,10 +304,7 @@ public class UserService : IUserService
 
     public async Task<bool> IsSetupRequiredAsync()
     {
-        var count = await _userRepository.CountActiveAsync(); // Or CountAllAsync if soft deleted ones matter, but usually Active is what we care about for logging in.
-        // Actually, if we have inactive users but no active ones, we are locked out. So we should check if ANY user exists (even inactive) or strictly active admins.
-        // For simplicity, let's assume if countActive == 0, we need setup. 
-        // Better: repository.AnyAsync() if available. CountActiveAsync is fine.
+        var count = await _userRepository.CountActiveAsync(); 
         return count == 0;
     }
 }

@@ -19,5 +19,6 @@ public class ProductionOrderDto
     public DateTime EstimatedDeliveryDate { get; set; }
     public int? UserId { get; set; }
     public string? AssignedUserName { get; set; }
+    public ProductDto? Product { get; set; }
     public List<ProductionHistoryDto> History { get; set; } = new();
 }

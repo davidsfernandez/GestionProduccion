@@ -15,10 +15,12 @@ namespace GestionProduccion.Services;
 public class ReportService : IReportService
 {
     private readonly IProductionOrderService _productionOrderService;
+    private readonly ISystemConfigurationService _configService;
 
-    public ReportService(IProductionOrderService productionOrderService)
+    public ReportService(IProductionOrderService productionOrderService, ISystemConfigurationService configService)
     {
         _productionOrderService = productionOrderService;
+        _configService = configService;
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
@@ -31,6 +33,18 @@ public class ReportService : IReportService
         if (order == null) return Array.Empty<byte>();
 
         var history = await _productionOrderService.GetHistoryByProductionOrderIdAsync(orderId);
+        var logoBase64 = await _configService.GetLogoAsync();
+        byte[] logoBytes = null;
+
+        if (!string.IsNullOrEmpty(logoBase64))
+        {
+            try 
+            {
+                var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
+                logoBytes = Convert.FromBase64String(base64Data);
+            }
+            catch { /* Ignore invalid logo */ }
+        }
 
         // QR Code Generation (Using Real QRCoder library)
         var qrUrl = $"https://tu-dominio.com/orders/{order.Id}";
@@ -54,6 +68,10 @@ public class ReportService : IReportService
                     // Left: Title and Logo/Company Name
                     row.RelativeItem().Column(col =>
                     {
+                        if (logoBytes != null)
+                        {
+                            col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
+                        }
                         col.Item().Text("FICHA DE PRODUÇÃO").FontSize(24).Bold().FontColor(Colors.White);
                         col.Item().Text("Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
                     });
@@ -85,7 +103,11 @@ public class ReportService : IReportService
                         table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
 
                         // Row 2
-                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span(order.ProductDescription); });
+                        var productDesc = order.Product != null
+                            ? $"{order.Product.Name} ({order.Product.FabricType})"
+                            : order.ProductDescription;
+
+                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span(productDesc); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
                     });
 
@@ -148,6 +170,19 @@ public class ReportService : IReportService
     public async Task<byte[]> GenerateDailyProductionReportAsync()
     {
         var dashboard = await _productionOrderService.GetDashboardAsync();
+        var logoBase64 = await _configService.GetLogoAsync();
+        byte[] logoBytes = null;
+
+        if (!string.IsNullOrEmpty(logoBase64))
+        {
+            try 
+            {
+                var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
+                logoBytes = Convert.FromBase64String(base64Data);
+            }
+            catch { /* Ignore */ }
+        }
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -162,6 +197,10 @@ public class ReportService : IReportService
                 {
                     row.RelativeItem().Column(col =>
                     {
+                        if (logoBytes != null)
+                        {
+                            col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
+                        }
                         col.Item().Text("Relatório Diário de Produção").FontSize(20).Bold().FontColor(Colors.Grey.Darken3);
                         col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);
                     });

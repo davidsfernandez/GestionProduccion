@@ -16,6 +16,13 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<ProductionOrder> ProductionOrders { get; set; }
     public DbSet<ProductionHistory> ProductionHistories { get; set; }
+    public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
+    public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductSize> ProductSizes { get; set; }
+    public DbSet<QADefect> QADefects { get; set; }
+    public DbSet<OperationalTask> OperationalTasks { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -24,13 +31,95 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // --- QA AND TASKS CONFIGURATION ---
+        modelBuilder.Entity<QADefect>()
+            .HasOne(d => d.ProductionOrder)
+            .WithMany()
+            .HasForeignKey(d => d.ProductionOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OperationalTask>()
+            .HasOne(t => t.AssignedUser)
+            .WithMany()
+            .HasForeignKey(t => t.AssignedUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OperationalTask>()
+            .Property(t => t.Status)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        // --- PRODUCT CONFIGURATION ---
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.MainSku)
+            .IsUnique();
+        
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.InternalCode)
+            .IsUnique();
+
+        modelBuilder.Entity<Product>()
+            .HasMany(p => p.Sizes)
+            .WithOne(s => s.Product)
+            .HasForeignKey(s => s.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relationship: ProductionOrder -> Product (N to 1)
+        // Prevents deleting a Product if there are associated production orders.
+        modelBuilder.Entity<ProductionOrder>()
+            .HasOne(po => po.Product)
+            .WithMany()
+            .HasForeignKey(po => po.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // --- ENUM TO STRING CONVERSION ---
+            
+        // User Refresh Token
+        modelBuilder.Entity<UserRefreshToken>()
+            .HasIndex(rt => rt.Token)
+            .IsUnique();
+        modelBuilder.Entity<UserRefreshToken>()
+            .Property(rt => rt.Token)
+            .IsRequired()
+            .HasMaxLength(255);
+        modelBuilder.Entity<UserRefreshToken>()
+            .HasOne(rt => rt.User)
+            .WithMany()
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Password Reset Token
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(pt => pt.TokenHash)
+            .IsUnique();
+        modelBuilder.Entity<PasswordResetToken>()
+            .Property(pt => pt.TokenHash)
+            .IsRequired()
+            .HasMaxLength(255);
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasOne(pt => pt.User)
+            .WithMany()
+            .HasForeignKey(pt => pt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Converts UserRole enum in User entity
         modelBuilder.Entity<User>()
             .Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(50);
+            
+        // System Configuration
+        modelBuilder.Entity<SystemConfiguration>()
+            .HasIndex(sc => sc.Key)
+            .IsUnique();
+        modelBuilder.Entity<SystemConfiguration>()
+            .Property(sc => sc.Key)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<SystemConfiguration>()
+            .Property(sc => sc.Logo)
+            .HasColumnType("longtext"); // For base64 storage
 
         // Converts enums in ProductionOrder entity
         modelBuilder.Entity<ProductionOrder>()

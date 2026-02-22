@@ -1,0 +1,30 @@
+REGLAS DE ESTILO OBLIGATORIAS (User Interface Repair):
+
+1.  **Corrección de Colores (Variables):**
+    * Define `--serona-primary: #00C899;` (Verde Menta).
+    * Define `--serona-dark: #151628;` (Azul Noche para Sidebar).
+    * Define `--serona-bg: #F5F6FA;` (Gris pálido para fondo de pantalla).
+    * Define `--input-bg: #F4F5F7;` (Gris para fondo de inputs).
+
+2.  **Reparación de Formularios y Modals (CRÍTICO):**
+    * Los contenedores de formulario (`.modal-content`, `.card`) DEBEN ser BLANCOS (`#fff`), sin bordes (`border: none`) y con `border-radius: 20px`.
+    * Sombra suave: `box-shadow: 0 10px 40px rgba(0,0,0,0.08);`.
+    * **INPUTS:** Los `.form-control` NO deben tener borde (`border: none`). Su fondo debe ser `--input-bg` (#F4F5F7). `border-radius: 10px`. El texto debe ser oscuro.
+    * Al hacer focus en un input, NO usar el borde azul de Bootstrap. Usar un `box-shadow` suave color verde menta.
+
+3.  **Botones Modernos:**
+    * `.btn-primary` (y `.btn-success`): Fondo `--serona-primary`. Borde: ninguno. `border-radius: 12px`. Texto: Blanco.
+    * Efecto Hover: Oscurecer ligeramente y elevar (`transform: translateY(-2px)`).
+    * Botones secundarios (Cancelar/Editar): Fondo transparente o gris muy suave, texto gris oscuro.
+
+4.  **Sidebar y Perfil:**
+    * El Sidebar (`.sidebar`) debe tener fondo `--serona-dark`.
+    * Items del menú: `padding: 12px 20px`. Color texto: `#8A94A6`.
+    * Item Activo: Fondo `rgba(255,255,255,0.1)`, Texto Blanco, Icono Verde.
+    * **Perfil:** La imagen de perfil debe ser redonda (`rounded-circle`), borde de 3px semi-transparente. El nombre de usuario debe ser blanco y negrita.
+
+5.  **Tablas (Listas):**
+    * `.table`: Fondo blanco.
+    * `thead`: Fondo transparente, texto gris pequeño y mayúsculas.
+    * Celdas: `vertical-align: middle`.
+    * Las filas deben tener `hover` suave.

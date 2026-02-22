@@ -1,0 +1,104 @@
+# Diseño de Sprint 6: Motor de Bonificaciones Dinámico
+
+## Objetivo
+Automatizar el cálculo y auditoría de bonificaciones colectivas por equipo de costura basándose en productividad, plazos y calidad.
+
+## Tareas Detalladas
+1. **Gestión de Equipos y Asignación:**
+   - Entidad `ProductionTeam` (Equipe A, B, etc.).
+   - Entidad `TeamBatchAssignment` para registrar el desempeño del equipo por lote.
+
+2. **Motor de Reglas (Rule Engine):**
+   - Configuración de umbrales: % Eficiencia mínima, % Defectos máximo y bonos por anticipación.
+   - Servicio `BonusCalculationService` para procesar reglas al cierre de cada lote.
+
+3. **Lógica de Calidad y Penalización:**
+   - Integración con el Módulo de Calidad para anular (zerar) bonos ante excesos de defectos.
+   - Cálculo de bonos por entrega temprana comparado con la "Memoria de Producción".
+
+4. **Auditoría y Transparencia:**
+   - Generación de "Recibo de Bonificación" (PDF/Vista) con el desglose matemático del pago.
+   - Log de aplicación de reglas para justificar resultados ante los operarios.
+
+5. **Panel de Gestión Administrativa:**
+   - Dashboard de bonos mensuales por equipo.
+   - Interfaz de configuración de reglas de negocio sin requerir cambios de código.
+
+## Criterios de Aceptación
+- El cálculo del bono es automático y reactivo al cierre del lote.
+- El filtro de calidad anula correctamente los bonos según el umbral configurado.
+- Los recibos de bonificación explican detalladamente el origen de cada monto.
+- Las reglas de negocio son editables por el administrador desde la UI.
+
+Diseño del Sprint 6: Motor de Bonificaciones Dinámico
+
+
+  Objetivo del Sprint:
+  Implementar el motor de reglas automatizado para el cálculo de bonificaciones colectivas por equipo, basándose en métricas de Productividad,    
+  Plazo y Calidad, permitiendo la auditoría total de los pagos.
+
+  ---
+
+
+  Tarea 6.1: Gestión de Equipos y Asignación (Data Layer)
+   * Acción: Definir la estructura de equipos de trabajo y su historial de lotes.
+   * Lógica:
+       * Entidad ProductionTeam: Agrupación lógica de usuarios (Equipe A, B, etc.).
+       * Entidad TeamBatchAssignment: Registro de qué equipo trabajó en qué lote y su desempeño específico (Unidades, Defectos, Fecha Entrega).   
+   * Archivos implicados: Domain/Entities/ProductionTeam.cs, Domain/Entities/TeamBatchAssignment.cs.
+
+
+  Tarea 6.2: Motor de Reglas Configurables (Rule Engine)
+   * Acción: Desarrollar el sistema que permite al administrador definir las reglas sin programar.
+   * Lógica:
+       * Entidad BonusRule: Almacenará parámetros como:
+           * MinEfficiency (ej. 90% para calificar).
+           * MaxDefectPercent (ej. 3% para no perder el bono).
+           * EarlyDeliveryReward (Monto por día de anticipación).
+       * BonusCalculationService: El "Cerebro" que procesará el lote contra estas reglas al finalizar la producción.
+   * Archivos implicados: Services/BonusCalculationService.cs, Domain/Entities/BonusRule.cs.
+
+
+  Tarea 6.3: Filtro de Calidad y Penalizaciones
+   * Acción: Implementar la lógica de "Zerar" (Anular) bonos por fallos de calidad.
+   * Lógica:
+       * Integrar los datos del Módulo de Calidad (Sprint 4).
+       * Si DefectosLote > MaxDefectPercent, el estado del bono cambia a Nulled y se registra el motivo en el historial de auditoría.
+   * Archivos implicados: Services/BonusCalculationService.cs (Ampliación).
+
+
+  Tarea 6.4: Recibo de Bonificación y Auditoría (UI/PDF)
+   * Acción: Crear el documento explicativo del cálculo para los equipos.
+   * Lógica:
+       * BonusAuditReceipt.razor: Vista que detalla paso a paso: Meta vs Real, Días de adelanto/atraso, % de defectos y resultado monetario.      
+       * Generación de PDF del recibo para entrega física o digital a los líderes de equipo.
+   * Archivos implicados: Templates/BonusReceiptTemplate.cs, Client/Pages/Admin/BonusAudit.razor.
+
+
+  Tarea 6.5: Dashboard de Nómina de Bonos
+   * Acción: Crear el panel de control para la liquidación mensual de incentivos.
+   * Componentes:
+       * BonusSummary.razor: Tabla consolidada por equipo con el total de bonos ganados en el mes.
+       * RuleConfigurator.razor: Interfaz para que el administrador ajuste los umbrales de productividad y calidad.
+   * Archivos implicados: Client/Pages/Admin/TeamManagement.razor, Client/Pages/Admin/BonusConfig.razor.
+
+  ---
+
+  Estrategia de Validación (Criterios de Aceptación)
+   1. Automatización: El bono debe calcularse instantáneamente al cerrar un lote en el Módulo Financiero (Sprint 5).
+   2. Sensibilidad de Calidad: Si un lote tiene 4% de defectos y el límite es 3%, el sistema debe mostrar claramente que el bono fue de "0.00" por
+      incumplimiento de calidad.
+   3. Transparencia: El "Recibo de Bonificación" debe contener la traza matemática exacta del cálculo.
+   4. Flexibilidad: Cambiar una regla en la configuración debe afectar automáticamente a los lotes que se cierren a partir de ese momento.
+
+  ---
+
+
+  Archivos que se verán afectados o creados:
+   - Domain/Entities/ProductionTeam.cs (Nuevo)
+   - Domain/Entities/BonusRule.cs (Nuevo)
+   - Domain/Entities/BonusResult.cs (Nuevo)
+   - Services/BonusCalculationService.cs (Nuevo)
+   - Templates/BonusReceiptTemplate.cs (Nuevo)
+   - Client/Pages/Admin/BonusConfig.razor (Nuevo)
+   - Client/Pages/Admin/TeamManagement.razor (Nuevo)

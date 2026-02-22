@@ -1,0 +1,107 @@
+# Diseño de Sprint 2: Catálogo y Memoria de Producción
+
+## Objetivo
+Evolucionar hacia un catálogo relacional de SKUs e implementar la lógica de "Memoria de Producción" para cálculos automáticos de plazos.
+
+## Tareas Detalladas
+1. **Modelado de Datos (Normalización):**
+   - Entidades `Fabric`, `Product`, `SKU` y `ProductSize`.
+   - Configuración de índices únicos y relaciones en `AppDbContext`.
+
+2. **Motor de Inteligencia (Backend):**
+   - `ProductionMemoryService`: Implementación de Media Móvil Ponderada para el tiempo promedio por pieza.
+   - Lógica de actualización automática al finalizar lotes.
+
+3. **Evolución de Órdenes:**
+   - Vinculación de `ProductionOrder` con `SKUId`.
+   - Cálculo automático de `Deadline` basado en el tiempo de memoria.
+   - Herramienta "Legacy Mapper" para conciliación de datos antiguos.
+
+4. **Reportes y Estética:**
+   - Generación de Ficha de Producción en PDF (QuestPDF).
+   - Inyección dinámica de Logo de Empresa.
+   - Inclusión de Código QR para trazabilidad en planta.
+
+5. **UI de Administración (Blazor):**
+   - Gestión integral de Productos, Telas y Tallas.
+   - Dashboard de eficiencia histórica por producto.
+
+## Criterios de Aceptación
+- No existen SKUs duplicados.
+- El sistema sugiere plazos de entrega realistas basados en la historia.
+- Las Fichas de Producción muestran el logo y datos técnicos correctamente.
+- Las órdenes antiguas pueden ser mapeadas a SKUs nuevos.
+
+Diseño del Sprint 2: Catálogo de Productos y Memoria
+
+
+  Objetivo del Sprint:
+  Evolucionar el sistema de un registro de texto plano a un catálogo relacional de productos y variaciones (SKUs), e implementar la "Memoria de   
+  Producción" para la estimación automática de plazos de entrega.
+
+  ---
+
+
+  Tarea 2.1: Normalización de Datos (Catálogo de Productos)
+   * Acción: Crear la estructura de tablas para el catálogo técnico.
+   * Entidades a crear:
+       * Fabric (Tejido): Maestro de telas (Nombre, Composición).
+       * ProductSize (Talla): Maestro de tallas con orden de visualización.
+       * Product: Entidad base (Nombre, Código Base, FabricId, AverageProductionTimeMinutes).
+       * SKU: La variante producible (Producto + Talla + Color + Código Único).
+   * Fluent API: Configurar el SKUCode como índice único para evitar duplicados.
+
+
+  Tarea 2.2: Implementación de la "Memoria de Producción"
+   * Acción: Desarrollar el motor de cálculo de promedios históricos.
+   * Lógica:
+       * Crear el ProductionMemoryService que implemente el algoritmo de Media Móvil Ponderada (70% peso al último lote, 30% al histórico).       
+       * Configurar un Event Trigger que se dispare al marcar una ProductionOrder como finalizada para actualizar el AverageProductionTimeMinutes 
+         en la entidad Product.
+
+
+  Tarea 2.3: Evolución de la Orden de Producción
+   * Acción: Vincular las órdenes al nuevo catálogo y automatizar plazos.
+   * Cambios:
+       * Añadir SKUId (FK nullable) a ProductionOrder.
+       * Implementar lógica en el comando de creación: Deadline = FechaInicio + (Cantidad * SKU.Product.AverageTime).
+       * Crear el "Legacy Mapper": Interfaz para asociar órdenes antiguas de texto a los nuevos SKUs de forma masiva.
+
+
+  Tarea 2.4: Ficha de Producción Técnica (PDF)
+   * Acción: Generar el documento oficial para la fábrica usando QuestPDF.
+   * Requisitos:
+       * Inclusión dinámica del logotipo de la empresa (desde la tabla de configuración).
+       * Visualización clara de: Código de Lote (QR), Tela, SKU, Talla y cantidad.
+       * Diseño optimizado para impresión térmica o A4.
+
+
+  Tarea 2.5: UI de Gestión de Catálogo (Blazor)
+   * Acción: Crear las pantallas para administrar el catálogo.
+   * Componentes:
+       * ProductCatalog.razor: Lista de productos con sus variantes.
+       * FabricManager.razor: Gestión de telas.
+       * SizeManager.razor: Gestión de tallas.
+       * ProductDetails.razor: Visualización de la "Memoria" (histórico de tiempos vs actual).
+
+  ---
+
+
+  Estrategia de Validación (Criterios de Aceptación)
+   1. Integridad: No se permite crear dos SKUs con el mismo código.
+   2. Automatización: Al seleccionar un producto y cantidad, el sistema debe sugerir una fecha de entrega basada en la "Memoria".
+   3. Identidad: El logo de la empresa debe aparecer correctamente en la Ficha de Producción PDF.
+   4. Transición: Es posible mapear una orden antigua (ProductDescription) a un nuevo SKUId sin perder el histórico.
+
+  ---
+
+
+  Archivos que se verán afectados o creados:
+   - Domain/Entities/Fabric.cs (Nuevo)
+   - Domain/Entities/Product.cs (Nuevo)
+   - Domain/Entities/SKU.cs (Nuevo)
+   - Domain/Entities/ProductSize.cs (Nuevo)
+   - Services/ProductionMemoryService.cs (Nuevo)
+   - Services/PdfGeneratorService.cs (Modificación/Ampliación)
+   - Client/Pages/Catalog/ (Nuevas Vistas)
+   - Data/AppDbContext.cs (Modificación)

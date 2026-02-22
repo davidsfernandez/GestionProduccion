@@ -1,0 +1,65 @@
+@page "/configuracoes"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>Configurações do Sistema</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Parâmetros Financeiros</h5>
+            </div>
+            <div class="card-body">
+                <EditForm Model="financialModel" OnValidSubmit="SaveFinancialSettings">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Custo Fixo Diário (R$)</label>
+                        <InputNumber class="form-control" @bind-Value="financialModel.DailyFixedCost" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Custo Operacional Hora (R$)</label>
+                        <InputNumber class="form-control" @bind-Value="financialModel.OperationalHourlyCost" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UpdateFinancialConfigDto financialModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load current settings (Simulated or fetch via separate GET endpoint if created)
+        // For MVP, we assume backend handles this via ConfigurationController endpoints we need to update/verify.
+    }
+
+    private async Task SaveFinancialSettings()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Configuration/financial", financialModel);
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "Configurações salvas com sucesso!");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Erro ao salvar.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Erro: {ex.Message}");
+        }
+    }
+}

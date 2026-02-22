@@ -9,9 +9,19 @@
 
 <nav id="sidebar" class="sidebar js-sidebar @(IsOpen ? "toggled" : "collapsed")">
     <div class="sidebar-content js-simplebar">
-        
-        <!-- PERFIL EN SIDEBAR (Serona Standard) -->
-        <AuthorizeView>
+        <!-- LOGO DA EMPRESA (Global Config) -->
+        <div class="sidebar-brand text-center py-3">
+            @if (!string.IsNullOrEmpty(CompanyLogo))
+            {
+                <img src="@CompanyLogo" alt="Logo" style="max-width: 150px; max-height: 50px; object-fit: contain;" />
+            }
+            else
+            {
+                <span class="align-middle text-white fw-bold">GESTÃƒO DE PRODUÃ‡ÃƒO</span>
+            }
+        </div>
+
+        <!-- PERFIL EN SIDEBAR (Serona Standard) -->        <AuthorizeView>
             <Authorized>
                 <div class="sidebar-profile">
                     <div class="position-relative d-inline-block">
@@ -51,6 +61,12 @@
                 </NavLink>
             </li>
 
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="minhas-tarefas">
+                    <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
+                </NavLink>
+            </li>
+
             <li class="menu-label">Conta</li>
 
             <li class="sidebar-item">
@@ -66,12 +82,23 @@
                         <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
                     </NavLink>
                 </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="configuracoes">
+                        <i class="fa-solid fa-cogs"></i> <span class="align-middle">Configurações</span>
+                    </NavLink>
+                </li>
             </AuthorizeView>
         </ul>
     </div>
 </nav>
 
 @code {
+    private string? CompanyLogo;
+    private bool IsOpenValue;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
     private string GetAvatarUrl()
     {
         var url = UserState.AvatarUrl;
@@ -89,6 +116,24 @@
         UserState.OnChange += HandleStateChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         await LoadUserData();
+        await LoadCompanyLogo();
+    }
+
+    private async Task LoadCompanyLogo()
+    {
+        try
+        {
+            var logoDto = await Http.GetFromJsonAsync<LogoDto>("api/Configuration/logo");
+            if (logoDto != null && !string.IsNullOrEmpty(logoDto.Base64Image))
+            {
+                CompanyLogo = logoDto.Base64Image;
+            }
+        }
+        catch
+        {
+            // Fallback to text logo if fetch fails
+            CompanyLogo = null;
+        }
     }
 
     private void HandleStateChanged()
@@ -147,7 +192,4 @@
         UserState.OnChange -= HandleStateChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
-
-    [Parameter]
-    public bool IsOpen { get; set; }
 }

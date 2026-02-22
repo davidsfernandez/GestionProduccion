@@ -7,6 +7,9 @@ namespace GestionProduccion.Client.Models
         [JsonPropertyName("Token")]
         public string Token { get; set; } = string.Empty;
 
+        [JsonPropertyName("RefreshToken")]
+        public string? RefreshToken { get; set; }
+
         [JsonPropertyName("AvatarUrl")]
         public string? AvatarUrl { get; set; }
 

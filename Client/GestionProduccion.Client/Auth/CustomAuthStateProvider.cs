@@ -33,9 +33,14 @@ namespace GestionProduccion.Client.Auth
             }
         }
 
-        public async Task MarkUserAsAuthenticated(string token)
+        public async Task MarkUserAsAuthenticated(string token, string? refreshToken = null)
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshToken);
+            }
+
             var claims = ParseClaimsFromJwt(token);
             var identity = new ClaimsIdentity(claims, "jwt", ClaimTypes.Name, ClaimTypes.Role);
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity))));
@@ -44,6 +49,7 @@ namespace GestionProduccion.Client.Auth
         public async Task MarkUserAsLoggedOut()
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
 

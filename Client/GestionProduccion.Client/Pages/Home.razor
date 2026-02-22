@@ -38,159 +38,143 @@
         }
         else if (dashboard != null)
         {
+            <!-- FINANCIAL CARDS (ADMIN ONLY) -->
+            <AuthorizeView Roles="Administrator">
+                <div class="row mb-4">
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-1">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold text-dark">R$ @dashboard.MonthAverageCostPerPiece.ToString("N2")</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo Médio / Peça</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-coins text-primary fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-2">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-success")">
+                                            @dashboard.MonthAverageMargin.ToString("N1")%
+                                        </h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem Média</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-success-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-chart-pie text-success fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-3">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Produção do Mês</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-info-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-industry text-info fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-4">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-success")">
+                                            @dashboard.DelayedOrdersCount
+                                        </h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Ordens Atrasadas</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-triangle-exclamation text-danger fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </AuthorizeView>
+
             <div class="row">
-                <!-- ROW 1: KEY METRICS -->
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-1">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-2 fw-bold text-dark">@dashboard.TotalActiveOrders</h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_ActiveOrders</p>
-                                </div>
-                                <div class="d-inline-block ms-3">
-                                    <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                        <i class="fa-solid fa-layer-group text-primary fs-4"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-2">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-2 fw-bold text-dark">@dashboard.CompletedToday</h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_CompletedToday</p>
-                                </div>
-                                <div class="d-inline-block ms-3">
-                                    <div class="bg-success-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                        <i class="fa-solid fa-check-double text-success fs-4"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-3">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-2 fw-bold text-dark">@dashboard.AverageLeadTimeHours.ToString("F1") h</h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_AvgLeadTime</p>
-                                </div>
-                                <div class="d-inline-block ms-3">
-                                    <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                        <i class="fa-solid fa-stopwatch text-warning fs-4"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-4">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-2 fw-bold text-dark">@dashboard.CompletionRate.ToString("F1")%</h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_Efficiency</p>
-                                </div>
-                                <div class="d-inline-block ms-3">
-                                    <div class="bg-info-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                        <i class="fa-solid fa-chart-line text-info fs-4"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <!-- COLUMNA PRINCIPAL (LEFT - Charts) -->
+                <!-- COLUMNA PRINCIPAL (LEFT - Charts & Lists) -->
                 <div class="col-xl-8 d-flex flex-column">
-                    
-                    <!-- MAIN CHART (VOLUME) -->
-                    <div class="card flex-fill w-100 animate-fade-in-up delay-3">
+
+                    <!-- TOP PROFITABLE MODELS (ADMIN ONLY) -->
+                    <AuthorizeView Roles="Administrator">
+                        <div class="card flex-fill w-100 animate-fade-in-up delay-3 mb-4">
+                            <div class="card-header border-0 pt-4 px-4 bg-success bg-opacity-10">
+                                <h5 class="card-title mb-0 text-success">Modelos Mais Lucrativos (Top 5)</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover my-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Modelo</th>
+                                            <th class="text-end">Margem Média</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (dashboard.TopProfitableModels != null)
+                                        {
+                                            @foreach (var item in dashboard.TopProfitableModels)
+                                            {
+                                                <tr>
+                                                    <td><strong>@item.Sku</strong> - @item.Name</td>
+                                                    <td class="text-end text-success fw-bold">@item.AverageMargin.ToString("N1")%</td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </AuthorizeView>
+
+                    <!-- WORKSHOP PRODUCTION CHART -->
+                    <div class="card flex-fill w-100 animate-fade-in-up delay-4">
                         <div class="card-header border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0">@Portuguese.Dash_WeeklyVolume</h5>
+                            <h5 class="card-title mb-0">Produção por Oficina</h5>
                         </div>
                         <div class="card-body py-3">
                             <div class="chart chart-sm chart-container">
-                                <canvas id="revenueChart" style="height: 300px; width: 100%;"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- WORKLOAD DISTRIBUTION & STAGES -->
-                    <div class="row">
-                        <!-- WORKLOAD -->
-                        <div class="col-12 col-lg-6 d-flex">
-                            <div class="card flex-fill w-100 animate-fade-in-up delay-4">
-                                <div class="card-header border-0 pt-4 px-4">
-                                    <h5 class="card-title mb-0">@Portuguese.Dash_WorkloadByOp</h5>
-                                </div>
-                                <div class="card-body d-flex w-100 align-items-center">
-                                    @if (dashboard.WorkloadDistribution != null && dashboard.WorkloadDistribution.Any())
-                                    {
-                                        <div class="row w-100">
-                                            <!-- CHART -->
-                                            <div class="col-5 d-flex justify-content-center align-items-center">
-                                                 <div class="chart chart-sm w-100 chart-container">
-                                                     <canvas id="workloadChart" style="height: 180px; width: 180px;"></canvas>
-                                                 </div>
-                                            </div>
-                                            <!-- LIST -->
-                                            <div class="col-7 align-self-center ps-2">
-                                                <ul class="list-unstyled mb-0 small">
-                                                    @foreach (var user in dashboard.WorkloadDistribution.Take(5))
-                                                    {
-                                                        <li class="mb-3 d-flex align-items-center justify-content-between">
-                                                            <div class="d-flex align-items-center text-truncate">
-                                                                <img src="@(GetAvatarUrl(user.AvatarUrl))" 
-                                                                     class="rounded-circle border border-white shadow-sm me-2" 
-                                                                     style="width: 32px; height: 32px; object-fit: cover;">
-                                                                <div>
-                                                                    <div class="text-dark fw-bold text-truncate" style="max-width: 90px;">@user.Name</div>
-                                                                    <div class="xsmall text-muted" style="font-size: 0.65rem;">@Portuguese.Dash_Efficiency: @user.EfficiencyScore%</div>
-                                                                </div>
-                                                            </div>
-                                                            <span class="badge bg-primary-soft text-primary border border-light">@user.ActiveCount @Portuguese.OP_BatchCount</span>
-                                                        </li>
-                                                    }
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="w-100 text-center text-muted">
-                                            <i class="fa-solid fa-pause fs-1 mb-2 opacity-25"></i>
-                                            <p class="xsmall mb-0">@Portuguese.Dash_NoActiveWork</p>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- STAGES -->
-                        <div class="col-12 col-lg-6 d-flex">
-                            <div class="card flex-fill w-100 animate-fade-in-up delay-4">
-                                <div class="card-header border-0 pt-4 px-4">
-                                    <h5 class="card-title mb-0">@Portuguese.Dash_OrdersByStage</h5>
-                                </div>
-                                <div class="card-body d-flex w-100">
-                                    <div class="align-self-center chart chart-sm chart-container">
-                                        <canvas id="barChart" style="height: 250px; width: 100%;"></canvas>
-                                    </div>
-                                </div>
+                                <!-- Placeholder for Chart Integration -->
+                                @if (dashboard.ProductionByWorkshop != null && dashboard.ProductionByWorkshop.Any())
+                                {
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var ws in dashboard.ProductionByWorkshop)
+                                        {
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                @ws.WorkshopName
+                                                <span class="badge bg-primary rounded-pill">@ws.Quantity</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted">Sem dados de produção este mês.</div>
+                                }
                             </div>
                         </div>
                     </div>
@@ -198,105 +182,108 @@
 
                 <!-- COLUMNA LATERAL (RIGHT - Alerts) -->
                 <div class="col-xl-4 d-flex flex-column">
-                    
-                    <!-- URGENT -->
-                    <div class="card flex-fill animate-fade-in-up delay-2">
-                        <div class="card-header border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0">@Portuguese.OP_Urgent</h5>
+
+                    <!-- STALLED STOCK -->
+                    <div class="card flex-fill animate-fade-in-up delay-2 mb-4">
+                        <div class="card-header border-0 pt-4 px-4 bg-warning bg-opacity-10">
+                            <h5 class="card-title mb-0 text-warning">Estoque Parado (> 60 dias)</h5>
                         </div>
                         <div class="card-body p-0">
                              <ul class="list-group list-group-flush">
-                                @if (dashboard.UrgentOrders != null && dashboard.UrgentOrders.Any())
+                                @if (dashboard.StalledStock != null && dashboard.StalledStock.Any())
                                 {
-                                    @foreach (var order in dashboard.UrgentOrders)
+                                    @foreach (var item in dashboard.StalledStock)
                                     {
                                         <li class="list-group-item border-0 px-4 py-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                                    <i class="fa-solid fa-fire text-warning"></i>
+                                                    <i class="fa-solid fa-box-open text-warning"></i>
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <strong class="text-dark d-block small fw-bold">@order.UniqueCode</strong>
-                                                    <small class="text-muted">@Portuguese.OP_Delivery: @order.EstimatedDeliveryDate.ToString("dd/MM")</small>
+                                                    <strong class="text-dark d-block small fw-bold">@item.Sku</strong>
+                                                    <small class="text-muted">@item.Name</small>
                                                 </div>
-                                                <span class="badge bg-light text-dark">@TranslateStage(order.CurrentStage)</span>
                                             </div>
                                         </li>
                                     }
                                 }
                                 else
                                 {
-                                    <li class="p-4 text-center text-muted small fw-bold">@Portuguese.OP_NoUrgentFound</li>
+                                    <li class="p-4 text-center text-muted small fw-bold">Nenhum item parado. Ótimo!</li>
                                 }
                             </ul>
                         </div>
                     </div>
 
-                    <!-- STOPPED / ALERTS -->
-                    <div class="card flex-fill animate-fade-in-up delay-1 mb-4">
-                        <div class="card-header border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 text-danger">@Portuguese.Dash_Alerts</h5>
-                        </div>
-                        <div class="card-body p-0">
-                            @if (dashboard.StoppedOperations != null && dashboard.StoppedOperations.Any())
-                            {
+                    <!-- MODELS TO DISCONTINUE (ADMIN) -->
+                    <AuthorizeView Roles="Administrator">
+                        <div class="card flex-fill animate-fade-in-up delay-1">
+                            <div class="card-header border-0 pt-4 px-4 bg-danger bg-opacity-10">
+                                <h5 class="card-title mb-0 text-danger">Atenção: Margem Baixa</h5>
+                            </div>
+                            <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
-                                    @foreach (var op in dashboard.StoppedOperations)
+                                    @if (dashboard.BottomProfitableModels != null && dashboard.BottomProfitableModels.Any(p => p.AverageMargin < 5)) // Threshold 5%
                                     {
-                                        <li class="list-group-item border-0 px-4 py-3">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                                    <i class="fa-solid fa-hand text-danger"></i>
+                                        @foreach (var item in dashboard.BottomProfitableModels.Where(p => p.AverageMargin < 5))
+                                        {
+                                            <li class="list-group-item border-0 px-4 py-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                        <i class="fa-solid fa-arrow-trend-down text-danger"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <strong class="text-danger d-block small fw-bold">@item.Sku</strong>
+                                                        <small class="text-muted">Margem: @item.AverageMargin.ToString("N1")%</small>
+                                                    </div>
                                                 </div>
-                                                <div class="flex-grow-1 ms-3">
-                                                    <strong class="text-danger d-block small fw-bold">@op.UniqueCode</strong>
-                                                    <small class="text-muted">@op.ProductDescription</small>
-                                                </div>
-                                            </div>
-                                        </li>
+                                            </li>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="p-4 text-center text-muted">
+                                            <i class="fa-solid fa-thumbs-up text-success fs-3 mb-2"></i>
+                                            <p class="mb-0 small fw-bold">Todas as margens saudáveis.</p>
+                                        </div>
                                     }
                                 </ul>
-                            }
-                            else
-                            {
-                                <div class="p-4 text-center text-muted">
-                                    <i class="fa-solid fa-thumbs-up text-success fs-3 mb-2"></i>
-                                    <p class="mb-0 small fw-bold">@Portuguese.Dash_NormalOperation</p>
-                                </div>
-                            }
+                            </div>
                         </div>
-                    </div>
+                    </AuthorizeView>
 
-                    <!-- RECENT ACTIVITY (Real-time) -->
+                    <!-- PERFORMANCE RANKING (Gamification) -->
                     <div class="card flex-fill animate-fade-in-up delay-3">
                         <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">@Portuguese.Dash_RecentActivity</h5>
-                            <span class="badge bg-primary-soft text-primary">@Portuguese.Dash_RealTime</span>
+                            <h5 class="card-title mb-0">Ranking de Desempenho</h5>
+                            <span class="badge bg-success-soft text-success">Top Operadores</span>
                         </div>
                         <div class="card-body p-0">
                             <div class="list-group list-group-flush">
-                                @if (dashboard.RecentActivities != null && dashboard.RecentActivities.Any())
+                                @if (ranking != null && ranking.Any())
                                 {
-                                    @foreach (var activity in dashboard.RecentActivities)
+                                    @for (int i = 0; i < ranking.Count; i++)
                                     {
+                                        var entry = ranking[i];
                                         <div class="list-group-item border-0 px-4 py-3">
-                                            <div class="d-flex align-items-start">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3 fw-bold text-muted" style="width: 20px;">@(i + 1)º</div>
+                                                <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                     class="rounded-circle me-3" width="36" height="36" alt="@entry.UserName">
                                                 <div class="flex-grow-1">
-                                                    <div class="d-flex justify-content-between mb-1">
-                                                        <strong class="text-dark small">@activity.UniqueCode</strong>
-                                                        <small class="text-muted" style="font-size: 0.7rem;">@GetTimeAgo(activity.Date)</small>
-                                                    </div>
-                                                    <p class="mb-0 text-muted small">
-                                                        <span class="fw-bold text-primary">@activity.UserName</span>: @activity.Action
-                                                    </p>
+                                                    <h6 class="mb-0 small fw-bold">@entry.UserName</h6>
+                                                    <small class="text-muted">@entry.CompletedTasks tarefas concluídas</small>
                                                 </div>
+                                                @if (i == 0) { <i class="fa-solid fa-medal text-warning fs-4"></i> }
+                                                else if (i == 1) { <i class="fa-solid fa-medal text-secondary fs-4"></i> }
+                                                else if (i == 2) { <i class="fa-solid fa-medal text-brown fs-4" style="color: #cd7f32;"></i> }
                                             </div>
                                         </div>
                                     }
                                 }
                                 else
                                 {
-                                    <div class="p-4 text-center text-muted small">@Portuguese.Dash_NoRecentActivity</div>
+                                    <div class="p-4 text-center text-muted small">Sem dados de ranking disponíveis.</div>
                                 }
                             </div>
                         </div>
@@ -309,7 +296,8 @@
 </div>
 
 @code {
-    private DashboardDto? dashboard;
+    private DashboardCompleteResponse? dashboard;
+    private List<RankingEntryDto>? ranking;
     private bool loading = false;
     private bool isTvMode = false;
     private System.Threading.Timer? _timer;
@@ -320,86 +308,44 @@
         await SignalR.StartConnection(hubUrl);
 
         SignalR.OnUpdateReceived += async (opId, stage, status) => {
-            await LoadDashboard();
+            await LoadDashboard(); // Refresh on updates
             await InvokeAsync(StateHasChanged);
         };
 
         await LoadDashboard();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (dashboard != null)
-        {
-            // Volume Chart (Weekly)
-            if (dashboard.WeeklyVolumeData != null && dashboard.WeeklyVolumeData.Any())
-            {
-                // Generate labels dynamically for Last 7 Days
-                var labels = new string[7];
-                for (int i = 0; i < 7; i++)
-                {
-                    labels[i] = DateTime.Now.AddDays(-(6 - i)).ToString("dd/MM");
-                }
-                
-                var data = dashboard.WeeklyVolumeData.Select(x => (double)x).ToArray(); // JS expects numbers
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "revenueChart", data, labels);
-            }
-
-            // Workload Chart
-            if (dashboard.WorkloadDistribution != null && dashboard.WorkloadDistribution.Any())
-            {
-                var topUsers = dashboard.WorkloadDistribution.Take(5).ToList();
-                var labels = topUsers.Select(u => u.Name).ToArray();
-                var data = topUsers.Select(u => u.ActiveCount).ToArray();
-                var colors = topUsers.Select(u => u.Color).ToArray();
-                
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderDoughnutChart", "workloadChart", data, labels, colors);
-            }
-
-            // Bar Chart (Stages)
-            if (dashboard.OrdersByStage != null && dashboard.OrdersByStage.Any())
-            {
-                var labels = dashboard.OrdersByStage.Keys.Select(TranslateStage).ToArray();
-                var data = dashboard.OrdersByStage.Values.ToArray();
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "barChart", data, labels);
-            }
-        }
-    }
-
-    private string GetTimeAgo(DateTime dateTime)
-    {
-        var span = DateTime.UtcNow - dateTime;
-        if (span.TotalMinutes < 1) return "Agora mesmo";
-        if (span.TotalMinutes < 60) return $"há {Math.Floor(span.TotalMinutes)} min";
-        if (span.TotalHours < 24) return $"há {Math.Floor(span.TotalHours)} h";
-        return dateTime.ToString("dd/MM HH:mm");
+        await LoadRanking();
     }
 
     private async Task LoadDashboard()
     {
         try
         {
-            // Do not show loading spinner on refresh if data already exists (smoother TV mode)
             if (dashboard == null) loading = true;
-            
-            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard");
+            // Use new endpoint
+            dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo");
             StateHasChanged();
         }
-                catch (Exception)
-                {
-                    // Silent error handling
-                }
-                finally
-                {
-                    loading = false;
-                }    }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
 
-    private string GetAvatarUrl(string? url)
+    private async Task LoadRanking()
     {
-        if (string.IsNullOrEmpty(url)) return "/img/avatars/avatar.jpg";
-        // Ensure leading slash for consistency
-        var finalUrl = url.StartsWith("/") ? url : "/" + url;
-        return $"{finalUrl}?t={DateTime.Now.Ticks}";
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RankingEntryDto>>>("api/Tasks/ranking");
+            if (resp != null && resp.Success)
+            {
+                ranking = resp.Data;
+            }
+        }
+        catch { /* Silent fail */ }
     }
 
     private void ToggleTvMode()
@@ -424,26 +370,9 @@
             await InvokeAsync(async () =>
             {
                 await LoadDashboard();
-                StateHasChanged(); // Force refresh charts
+                StateHasChanged();
             });
-        }, null, 30000, 30000); // 30 seconds
-    }
-    
-    private string TranslateStage(string stage) => stage.ToLower() switch
-    {
-        "cutting" => Portuguese.Stage_Cutting,
-        "sewing" => Portuguese.Stage_Sewing,
-        "review" => Portuguese.Stage_Review,
-        "packaging" => Portuguese.Stage_Packaging,
-        _ => stage
-    };
-
-    private void ViewOrder(int id)
-    {
-        if (!isTvMode) // Disable navigation in TV mode to prevent accidental clicks
-        {
-            NavigationManager.NavigateTo($"/orders/{id}");
-        }
+        }, null, 60000, 60000); // 1 min refresh for BI
     }
 
     public async ValueTask DisposeAsync()

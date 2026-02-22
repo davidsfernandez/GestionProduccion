@@ -39,15 +39,44 @@
                             </div>
                         </div>
 
+                        <!-- Product Selection -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Produto do Catálogo</label>
+                            <InputSelect class="form-select form-select-lg bg-light" Value="createModel.ProductId" ValueExpression="@(() => createModel.ProductId)" ValueChanged="@((int? id) => OnProductChanged(id))">
+                                <option value="">Selecione um produto...</option>
+                                @if (products != null)
+                                {
+                                    @foreach (var p in products)
+                                    {
+                                        <option value="@p.Id">@p.MainSku - @p.Name (@p.FabricType)</option>
+                                    }
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <!-- Fallback/Override Description -->
                         <div class="row">
                             <div class="col-md-8 mb-4">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.OP_ProductDesc</label>
-                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ProductDescription" placeholder="Descreva o produto..." />
+                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.ProductDescription" placeholder="Descreva o produto..." disabled="@(createModel.ProductId.HasValue)" />
                                 <ValidationMessage For="@(() => createModel.ProductDescription)" class="text-danger small mt-1" />
                             </div>
                             <div class="col-md-4 mb-4">
                                 <label class="form-label small fw-bold text-muted">Tamanho / Grade</label>
-                                <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.Size" placeholder="Ex: M, G, 42..." />
+                                @if (createModel.ProductId.HasValue && selectedProductSizes != null && selectedProductSizes.Any())
+                                {
+                                    <InputSelect class="form-select form-select-lg bg-light" @bind-Value="createModel.Size">
+                                        <option value="">Selecione...</option>
+                                        @foreach (var s in selectedProductSizes)
+                                        {
+                                            <option value="@s.SizeName">@s.SizeName</option>
+                                        }
+                                    </InputSelect>
+                                }
+                                else
+                                {
+                                    <InputText class="form-control form-control-lg bg-light" @bind-Value="createModel.Size" placeholder="Ex: M, G, 42..." />
+                                }
                             </div>
                         </div>
 
@@ -60,6 +89,10 @@
                                 <label class="form-label small fw-bold text-muted">@Portuguese.OP_EstimatedDelivery</label>
                                 <InputDate class="form-control form-control-lg bg-light" @bind-Value="createModel.EstimatedDeliveryDate" />
                                 <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger small mt-1" />
+                                @if (isDateAutoCalculated)
+                                {
+                                    <span class="text-success small"><i class="fa-solid fa-magic"></i> Calculado automaticamente</span>
+                                }
                             </div>
                         </div>
 
@@ -102,15 +135,14 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-12 col-lg-4">
             <div class="alert bg-primary-soft border-0 rounded-4 p-4 shadow-sm">
                 <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-circle-info me-2"></i> Ajuda</h5>
                 <p class="small mb-0 text-muted" style="line-height: 1.6;">
-                    As Ordens de Produção (OP) são o coração do sistema. Certifique-se de que o código seja único para evitar duplicidade. 
-                    A data de entrega estimada ajudará o sistema a alertar sobre prioridades no dashboard.
+                    Agora você pode selecionar produtos diretamente do Catálogo para preencher automaticamente as informações.
                     <br/><br/>
-                    <b>Dica:</b> Você pode atribuir um responsável agora o fazer isso depois nos detalhes da ordem.
+                    <b>Dica:</b> A data de entrega é sugerida baseada no histórico de produção deste item.
                 </p>
             </div>
         </div>
@@ -118,29 +150,71 @@
 </div>
 
 @code {
-    private CreateOrderModel createModel = new()
+    private CreateProductionOrderRequest createModel = new()
     {
         EstimatedDeliveryDate = DateTime.Today.AddDays(7)
     };
-    
+
     private List<UserDto>? assignableUsers;
+    private List<ProductDto>? products;
+    private List<ProductSizeDto>? selectedProductSizes;
     private bool isSubmitting = false;
+    private bool isDateAutoCalculated = false;
     private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAssignableUsers();
+        await LoadData();
     }
 
-    private async Task LoadAssignableUsers()
+    private async Task LoadData()
     {
         try
         {
-            assignableUsers = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable");
+            var productsTask = Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
+            
+            await Task.WhenAll(usersTask, productsTask);
+            
+            assignableUsers = await usersTask;
+            products = await productsTask;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error handling already done via assignableUsers being null or empty
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private void OnProductChanged(int? productId)
+    {
+        createModel.ProductId = productId;
+        isDateAutoCalculated = false;
+        selectedProductSizes = null;
+
+        if (productId.HasValue && products != null)
+        {
+            var product = products.FirstOrDefault(p => p.Id == productId.Value);
+            if (product != null)
+            {
+                createModel.ProductDescription = $"{product.Name} ({product.FabricType})";
+                selectedProductSizes = product.Sizes;
+                
+                // Auto-calculate date (Phase 2)
+                if (product.AverageProductionTimeMinutes > 0)
+                {
+                    // Add average time (in minutes) to now, then round to days if needed or just set date
+                    // Assuming working days logic is simpler for MVP: just add days based on minutes / 480 (8h)
+                    double days = product.AverageProductionTimeMinutes / 480.0;
+                    if (days < 1) days = 1;
+                    
+                    createModel.EstimatedDeliveryDate = DateTime.Today.AddDays(Math.Ceiling(days));
+                    isDateAutoCalculated = true;
+                }
+            }
+        }
+        else
+        {
+            createModel.ProductDescription = "";
         }
     }
 
@@ -181,19 +255,8 @@
         UserRole.Administrator => Portuguese.Role_Admin,
         UserRole.Leader => Portuguese.Role_Leader,
         UserRole.Operator => Portuguese.Role_Operator,
-        UserRole.Sewer => Portuguese.Role_Operator, // Legacy mapping
+        UserRole.Sewer => Portuguese.Role_Operator,
         UserRole.Workshop => Portuguese.Role_Workshop,
         _ => role.ToString()
     };
-
-    public class CreateOrderModel
-    {
-        public string UniqueCode { get; set; } = string.Empty;
-        public string ProductDescription { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public DateTime EstimatedDeliveryDate { get; set; }
-        public string? ClientName { get; set; }
-        public string? Size { get; set; }
-        public int? UserId { get; set; }
-    }
 }

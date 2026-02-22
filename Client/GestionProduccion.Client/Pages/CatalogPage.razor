@@ -1,0 +1,277 @@
+@page "/catalogo-produtos"
+@using GestionProduccion.Client.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="container-fluid p-0">
+    <div class="row mb-2 mb-xl-3">
+        <div class="col-auto d-none d-sm-block">
+            <h3><strong>Catálogo</strong> de Produtos</h3>
+        </div>
+        <div class="col-auto ms-auto text-end mt-n1">
+            <button class="btn btn-primary" @onclick="() => OpenModal()">+ Novo Produto</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Buscar por SKU ou Nome..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterProducts" />
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover my-0">
+                    <thead>
+                        <tr>
+                            <th>SKU Principal</th>
+                            <th>Nome</th>
+                            <th>Código Interno</th>
+                            <th>Tecido</th>
+                            <th>Tempo Médio (min)</th>
+                            <th class="d-none d-md-table-cell">Tamanhos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (filteredProducts == null)
+                        {
+                            <tr><td colspan="7" class="text-center">Carregando...</td></tr>
+                        }
+                        else if (!filteredProducts.Any())
+                        {
+                            <tr><td colspan="7" class="text-center">Nenhum produto encontrado.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var product in filteredProducts)
+                            {
+                                <tr>
+                                    <td><strong>@product.MainSku</strong></td>
+                                    <td>@product.Name</td>
+                                    <td>@product.InternalCode</td>
+                                    <td>@product.FabricType</td>
+                                    <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
+                                    <td class="d-none d-md-table-cell">
+                                        @string.Join(", ", product.Sizes.Select(s => s.SizeName))
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenModal(product)">Editar</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product)">Excluir</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingId == 0 ? "Novo Produto" : "Editar Produto")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@editingProduct" OnValidSubmit="SaveProduct">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nome</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.Name" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">SKU Principal</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.MainSku" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Código Interno</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.InternalCode" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Tecido</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.FabricType" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preço Venda Estimado (R$)</label>
+                                <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tamanhos</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" placeholder="Adicionar tamanho (ex: G)" @bind="newSize" />
+                                <button type="button" class="btn btn-outline-secondary" @onclick="AddSize">Adicionar</button>
+                            </div>
+                            <div>
+                                @foreach (var size in editingProduct.Sizes)
+                                {
+                                    <span class="badge bg-secondary me-1 mb-1">
+                                        @size
+                                        <span class="ms-1" style="cursor: pointer;" @onclick="() => RemoveSize(size)">&times;</span>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProductDto>? allProducts;
+    private List<ProductDto>? filteredProducts;
+    private string searchTerm = "";
+    private bool showModal = false;
+    private CreateProductDto editingProduct = new();
+    private int editingId = 0;
+    private string newSize = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            allProducts = await Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
+            filteredProducts = allProducts;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private void FilterProducts()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredProducts = allProducts;
+        }
+        else
+        {
+            filteredProducts = allProducts?
+                .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                            p.MainSku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private void OpenModal(ProductDto? product = null)
+    {
+        if (product != null)
+        {
+            editingId = product.Id;
+            editingProduct = new CreateProductDto
+            {
+                Name = product.Name,
+                InternalCode = product.InternalCode,
+                FabricType = product.FabricType,
+                MainSku = product.MainSku,
+                Sizes = product.Sizes.Select(s => s.SizeName).ToList()
+            };
+        }
+        else
+        {
+            editingId = 0;
+            editingProduct = new CreateProductDto();
+        }
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private void AddSize()
+    {
+        if (!string.IsNullOrWhiteSpace(newSize) && !editingProduct.Sizes.Contains(newSize))
+        {
+            editingProduct.Sizes.Add(newSize.ToUpper());
+            newSize = "";
+        }
+    }
+
+    private void RemoveSize(string size)
+    {
+        editingProduct.Sizes.Remove(size);
+    }
+
+    private async Task SaveProduct()
+    {
+        try
+        {
+            HttpResponseMessage response;
+            if (editingId == 0)
+            {
+                response = await Http.PostAsJsonAsync("api/Products", editingProduct);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"api/Products/{editingId}", new UpdateProductDto 
+                { 
+                    Id = editingId,
+                    Name = editingProduct.Name,
+                    InternalCode = editingProduct.InternalCode,
+                    FabricType = editingProduct.FabricType,
+                    MainSku = editingProduct.MainSku,
+                    Sizes = editingProduct.Sizes
+                });
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                showModal = false;
+                await LoadProducts();
+            }
+            else
+            {
+                // Handle error
+                var msg = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", $"Erro: {msg}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Erro: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteProduct(ProductDto product)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir {product.Name}?"))
+        {
+            await Http.DeleteAsync($"api/Products/{product.Id}");
+            await LoadProducts();
+        }
+    }
+}

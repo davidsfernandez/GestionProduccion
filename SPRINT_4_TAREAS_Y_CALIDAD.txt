@@ -1,0 +1,105 @@
+# Diseño de Sprint 4: Tareas Operativas, Calidad y Ranking
+
+## Objetivo
+Implementar la gestión de tareas administrativas, el control de calidad con evidencia fotográfica y el motor de gamificación para el personal.
+
+## Tareas Detalladas
+1. **Gestión de Actividades (Task Engine):**
+   - Entidad `OperationalTask` con prioridades y plazos.
+   - Motor de cálculo de SLA (Barra de progreso de tiempo dinámica).
+   - Notificaciones en tiempo real vía SignalR para asignaciones.
+
+2. **Módulo de Calidad:**
+   - Maestro de `DefectCategory` para estandarizar reportes.
+   - Registro de `QualityIncident` vinculado a Órdenes de Producción.
+   - Trazabilidad del responsable del defecto (Taller/Oficina).
+
+3. **Manejo de Imágenes (Fotos de Defectos):**
+   - Implementación de compresión en el cliente (JS Canvas API) para optimizar el payload.
+   - Servicio de almacenamiento `IFileStorageService` (Local/Cloud).
+
+4. **Motor de Ranking (Gamificación):**
+   - Algoritmo de puntos basado en volumen de tareas y puntualidad (SLA).
+   - Vista de Podio/Ranking de empleados destacados en el Dashboard.
+
+5. **UI para el Operario:**
+   - Interfaz simplificada "Mis Tareas" con indicadores de urgencia.
+   - Formulario de inspección de calidad optimizado para dispositivos móviles/tablets.
+
+## Criterios de Aceptación
+- Las notificaciones de tareas llegan instantáneamente al operario.
+- Las imágenes de defectos se comprimen correctamente antes del upload (< 300KB).
+- La barra de progreso de tiempo es reactiva y precisa.
+- El ranking refleja fielmente el desempeño individual basado en las reglas de puntos.
+
+Diseño del Sprint 4: Gestión Operativa, Calidad y Ranking
+
+  Objetivo del Sprint:
+  Implementar el sistema de delegación de tareas administrativas, el módulo de control de calidad con soporte fotográfico y el motor de ranking   
+  para incentivar la eficiencia de los empleados.
+
+  ---
+
+
+  Tarea 4.1: Gestión de Tareas Operativas (Task Engine)
+   * Acción: Crear el sistema de delegación de actividades no relacionadas con la costura.
+   * Lógica:
+       * Entidad OperationalTask: Campos para Titulo, Descripcion, AsignadoA, Prioridad, FechaLimite.
+       * Motor de SLA: Lógica en el frontend para calcular la "Barra de Progreso de Tiempo": (Ahora - Creacion) / (Limite - Creacion) * 100.      
+       * Integración con SignalR para notificar a "Pedro" (el operario) en el momento exacto de la asignación.
+   * Archivos implicados: Domain/Entities/OperationalTask.cs, Services/TaskService.cs.
+
+
+  Tarea 4.2: Control de Calidad y Defectos
+   * Acción: Implementar el registro detallado de fallos por lote.
+   * Lógica:
+       * DefectCategory: Maestro de motivos (Mancha, Costura, Medida).
+       * QualityIncident: Registro vinculado a la ProductionOrder que guarda la cantidad de piezas afectadas y el responsable.
+       * Vincular el índice de defectos al futuro Módulo de Bonificaciones (Sprint 6).
+   * Archivos implicados: Domain/Entities/QualityIncident.cs, Domain/Entities/DefectCategory.cs.
+
+
+  Tarea 4.3: Evidencia Visual (Compresión y Upload)
+   * Acción: Permitir la subida de fotos de defectos optimizadas para el servidor.
+   * Lógica:
+       * JS Interop: Implementar un script en el cliente que tome la imagen del InputFile, la dibuje en un Canvas, la redimensione (Max 1200px) y 
+         la comprima (70% calidad JPG).
+       * FileStorageService: Servicio en el backend para guardar las imágenes en una estructura de carpetas organizada por Fecha/Lote.
+   * Archivos implicados: wwwroot/js/imageOptimizer.js, Services/FileStorageService.cs.
+
+
+  Tarea 4.4: Motor de Ranking y Gamificación
+   * Acción: Crear el sistema de puntos para premiar a los mejores empleados.
+   * Lógica:
+       * RankingService: Query de agregación que sume puntos por tareas completadas, reste por retrasos y asigne bonos por entregas tempranas.    
+       * Componente EmployeeRanking.razor: Podio visual de los empleados con mayor puntaje del mes.
+   * Archivos implicados: Services/RankingService.cs, Models/DTOs/UserRankingDto.cs.
+
+
+  Tarea 4.5: UI Operacional y Notificaciones
+   * Acción: Crear el "Centro de Trabajo" para el usuario operativo.
+   * Componentes:
+       * MyTasks.razor: Lista de tareas pendientes con la barra de tiempo dinámica.
+       * QualityForm.razor: Formulario rápido para reportar defectos con acceso a la cámara del dispositivo.
+   * Archivos implicados: Client/Pages/Operations/MyTasks.razor, Client/Pages/Quality/RegisterDefect.razor.
+
+  ---
+
+
+  Estrategia de Validación (Criterios de Aceptación)
+   1. Instantaneidad: El operario recibe una notificación visual inmediata al serle asignada una tarea.
+   2. Eficiencia de Datos: Las fotos subidas no deben exceder los 300KB tras la compresión en el cliente.
+   3. Urgencia Visual: La barra de progreso de las tareas debe cambiar de color (Verde -> Amarillo -> Rojo) automáticamente según la cercanía del 
+      plazo.
+   4. Justicia en el Ranking: El cálculo de puntos debe ser auditable y reflejar fielmente el cumplimiento del SLA.
+
+  ---
+
+
+  Archivos que se verán afectados o creados:
+   - Domain/Entities/OperationalTask.cs (Nuevo)
+   - Domain/Entities/QualityIncident.cs (Nuevo)
+   - Services/TaskService.cs (Nuevo)
+   - Services/FileStorageService.cs (Nuevo)
+   - Client/wwwroot/js/imageOptimizer.js (Nuevo)
+   - Client/Pages/Operations/MyTasks.razor (Nuevo)

@@ -14,5 +14,10 @@ public class ProductionOrderDto
     public DateTime EstimatedDeliveryDate { get; set; }
     public int? UserId { get; set; }
     public string? AssignedUserName { get; set; }
+    
+    public decimal CalculatedTotalCost { get; set; }
+    public decimal AverageCostPerPiece { get; set; }
+    public decimal EstimatedProfitMargin { get; set; }
+
     public List<ProductionHistoryDto> History { get; set; } = new();
 }

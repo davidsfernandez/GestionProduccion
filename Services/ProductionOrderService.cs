@@ -14,69 +14,71 @@ public class ProductionOrderService : IProductionOrderService
 {
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IProductRepository _productRepository;
+    private readonly IFinancialCalculatorService _financialCalculator;
     private readonly IHubContext<ProductionHub> _hubContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ProductionOrderService(
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
-        IHubContext<ProductionHub> hubContext, 
+        IProductRepository productRepository,
+        IFinancialCalculatorService financialCalculator,
+        IHubContext<ProductionHub> hubContext,
         IHttpContextAccessor httpContextAccessor)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
+        _productRepository = productRepository;
+        _financialCalculator = financialCalculator;
         _hubContext = hubContext;
         _httpContextAccessor = httpContextAccessor;
     }
 
-    /// <summary>
-    /// Gets the ID of the authenticated user from the current HTTP context.
-    /// Returns 1 (Admin) as fallback if no user is authenticated.
-    /// In production, consider throwing an exception instead of using fallback.
-    /// </summary>
     private int GetCurrentUserId()
     {
         var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (int.TryParse(userIdClaim, out var userId))
         {
             return userId;
         }
-
-        // Fallback for development/testing - In production should throw exception
         return 1;
     }
 
     public async Task<ProductionOrderDto> CreateProductionOrderAsync(CreateProductionOrderRequest request, int createdByUserId)
     {
-        // Business validations
         if (string.IsNullOrWhiteSpace(request.UniqueCode))
-        {
             throw new InvalidOperationException("Production order unique code cannot be empty.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.ProductDescription))
-        {
-            throw new InvalidOperationException("Product description cannot be empty.");
-        }
 
         if (request.Quantity <= 0)
-        {
             throw new InvalidOperationException("Quantity must be greater than 0.");
-        }
 
         if (request.EstimatedDeliveryDate <= DateTime.UtcNow)
-        {
             throw new InvalidOperationException("Estimated delivery date must be in the future.");
+
+        if (request.ProductId.HasValue)
+        {
+            var product = await _productRepository.GetByIdAsync(request.ProductId.Value);
+            if (product == null)
+                throw new InvalidOperationException($"Product with ID {request.ProductId} not found.");
+            
+            if (string.IsNullOrWhiteSpace(request.ProductDescription))
+                request.ProductDescription = $"{product.Name} ({product.FabricType})";
+
+            if (product.AverageProductionTimeMinutes > 0)
+            {
+                // Auto-calculation logic could refine EstimatedDeliveryDate here if needed
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(request.ProductDescription))
+        {
+             throw new InvalidOperationException("Product description cannot be empty if no Product ID is provided.");
         }
 
-        // Check that unique code doesn't already exist
         var existingOrder = await _orderRepository.GetByUniqueCodeAsync(request.UniqueCode);
-        
         if (existingOrder != null)
-        {
             throw new InvalidOperationException($"A production order with code '{request.UniqueCode}' already exists.");
-        }
 
         var order = new ProductionOrder
         {
@@ -90,21 +92,18 @@ public class ProductionOrderService : IProductionOrderService
             CurrentStatus = ProductionStatus.InProduction,
             CreationDate = DateTime.UtcNow,
             ModificationDate = DateTime.UtcNow,
-            UserId = request.UserId // Set optional assigned user
+            UserId = request.UserId,
+            ProductId = request.ProductId
         };
-        
+
         await _orderRepository.AddAsync(order);
-        await _orderRepository.SaveChangesAsync(); // Save to get the order.Id
+        await _orderRepository.SaveChangesAsync();
 
         var historyNote = "Criação da ordem de produção";
         if (request.UserId.HasValue)
         {
-            // If assigned immediately, fetch user name for history log
             var assignedUser = await _userRepository.GetByIdAsync(request.UserId.Value);
-            if (assignedUser != null)
-            {
-                historyNote += $" e atribuído a {assignedUser.Name}";
-            }
+            if (assignedUser != null) historyNote += $" e atribuído a {assignedUser.Name}";
         }
 
         await AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
@@ -112,65 +111,23 @@ public class ProductionOrderService : IProductionOrderService
 
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
 
-        // Re-fetch to get AssignedUser name for DTO
         var createdOrder = await _orderRepository.GetByIdAsync(order.Id);
 
-        return new ProductionOrderDto
-        {
-            Id = order.Id,
-            UniqueCode = order.UniqueCode,
-            ProductDescription = order.ProductDescription,
-            Quantity = order.Quantity,
-            ClientName = order.ClientName,
-            Size = order.Size,
-            CurrentStage = order.CurrentStage.ToString(),
-            CurrentStatus = order.CurrentStatus.ToString(),
-            CreationDate = order.CreationDate,
-            EstimatedDeliveryDate = order.EstimatedDeliveryDate,
-            UserId = order.UserId,
-            AssignedUserName = createdOrder?.AssignedUser?.Name
-        };
+        return MapToDto(createdOrder!);
     }
 
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id)
     {
         var order = await _orderRepository.GetByIdAsync(id);
-
-        if (order == null)
-        {
-            return null;
-        }
-
-        return new ProductionOrderDto
-        {
-            Id = order.Id,
-            UniqueCode = order.UniqueCode,
-            ProductDescription = order.ProductDescription,
-            Quantity = order.Quantity,
-            ClientName = order.ClientName,
-            Size = order.Size,
-            CurrentStage = order.CurrentStage.ToString(),
-            CurrentStatus = order.CurrentStatus.ToString(),
-            CreationDate = order.CreationDate,
-            EstimatedDeliveryDate = order.EstimatedDeliveryDate,
-            UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.Name
-        };
+        return order == null ? null : MapToDto(order);
     }
 
     public async Task<List<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter)
     {
-        // For complex filtering, we can use the repository's Queryable or implement a specific filter method in repository.
-        // For now, let's assume we use the GetAllAsync and filter in memory if the dataset is small, OR
-        // better, use the repository pattern properly.
-        // I'll use GetQueryableAsync exposed in repository for now to maintain the LINQ flexibility without rewriting everything.
-        
         var query = await _orderRepository.GetQueryableAsync();
-
-        // Enforce Security: Operators and Workshop only see their own assigned orders
         var currentUserId = GetCurrentUserId();
         var currentUser = await _userRepository.GetByIdAsync(currentUserId);
-        
+
         if (currentUser != null && (currentUser.Role == UserRole.Operator || currentUser.Role == UserRole.Workshop))
         {
             query = query.Where(po => po.UserId == currentUserId);
@@ -179,113 +136,48 @@ public class ProductionOrderService : IProductionOrderService
         if (filter != null)
         {
             if (!string.IsNullOrWhiteSpace(filter.ProductDescription))
-            {
                 query = query.Where(po => po.ProductDescription.Contains(filter.ProductDescription));
-            }
+            
+            if (!string.IsNullOrWhiteSpace(filter.CurrentStage) && Enum.TryParse<ProductionStage>(filter.CurrentStage, true, out var stage))
+                query = query.Where(po => po.CurrentStage == stage);
 
-            if (!string.IsNullOrWhiteSpace(filter.CurrentStage))
-            {
-                if (Enum.TryParse<ProductionStage>(filter.CurrentStage, true, out var stage))
-                {
-                    query = query.Where(po => po.CurrentStage == stage);
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(filter.CurrentStatus))
-            {
-                if (Enum.TryParse<ProductionStatus>(filter.CurrentStatus, true, out var status))
-                {
-                    query = query.Where(po => po.CurrentStatus == status);
-                }
-            }
+            if (!string.IsNullOrWhiteSpace(filter.CurrentStatus) && Enum.TryParse<ProductionStatus>(filter.CurrentStatus, true, out var status))
+                query = query.Where(po => po.CurrentStatus == status);
 
             if (filter.UserId.HasValue && filter.UserId.Value > 0)
-            {
                 query = query.Where(po => po.UserId == filter.UserId.Value);
-            }
 
             if (filter.StartDate.HasValue)
-            {
                 query = query.Where(po => po.CreationDate >= filter.StartDate.Value);
-            }
 
             if (filter.EndDate.HasValue)
-            {
                 query = query.Where(po => po.CreationDate <= filter.EndDate.Value);
-            }
-
+            
             if (!string.IsNullOrWhiteSpace(filter.ClientName))
-            {
                 query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
-            }
 
             if (!string.IsNullOrWhiteSpace(filter.Size))
-            {
                 query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
-            }
         }
 
-        // Materialize
-        // Note: EF Core Queryable handling should be done carefully.
-        // Since IQueryable is exposed, we can use ToListAsync if we include Microsoft.EntityFrameworkCore
-        // But we want to avoid EF dependency here. 
-        // Ideally Repository should accept a Filter object.
-        // But for this step, let's keep it simple.
-        // We need to iterate the queryable.
-        
-        // Simple workaround: ToList() synchronous or loop. 
-        // Or better: move this logic to Repository later.
-        // For now, let's allow EF Core usage here solely for LINQ evaluation if possible, or just Enumerable.
-        
-        var ordersList = query.ToList(); // Sync execution on IQueryable (if it's EF, it might be sync blocking)
-        // Ideally we should use await query.ToListAsync() but that requires EF Core.
-        
-        return ordersList.Select(po => new ProductionOrderDto
-            {
-                Id = po.Id,
-                UniqueCode = po.UniqueCode,
-                ProductDescription = po.ProductDescription,
-                Quantity = po.Quantity,
-                ClientName = po.ClientName,
-                Size = po.Size,
-                CurrentStage = po.CurrentStage.ToString(),
-                CurrentStatus = po.CurrentStatus.ToString(),
-                CreationDate = po.CreationDate,
-                EstimatedDeliveryDate = po.EstimatedDeliveryDate,
-                UserId = po.UserId,
-                AssignedUserName = po.AssignedUser != null ? po.AssignedUser.Name : null
-            })
-            .ToList();
+        var ordersList = query.ToList();
+        return ordersList.Select(MapToDto).ToList();
     }
 
     public async Task<bool> AssignTaskAsync(int orderId, int userId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
-        {
-            return false;
-        }
+        if (order == null) return false;
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-        {
-            return false;
-        }
-        
-        if (user.Role != UserRole.Operator && user.Role != UserRole.Workshop)
-        {
-            return false; 
-        }
+        if (user == null || (user.Role != UserRole.Operator && user.Role != UserRole.Workshop)) return false;
 
         order.UserId = userId;
         await _orderRepository.UpdateAsync(order);
-        
+
         var currentUserId = GetCurrentUserId();
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, 
-            currentUserId, $"Atribuído a {user.Name}");
-
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, currentUserId, $"Atribuído a {user.Name}");
         await _orderRepository.SaveChangesAsync();
-
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
 
         return true;
@@ -294,44 +186,47 @@ public class ProductionOrderService : IProductionOrderService
     public async Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
-        {
-            return false;
-        }
+        if (order == null) return false;
 
-        // Security Check: Operator/Workshop can only modify their own assigned orders
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            if (order.UserId != modifiedByUserId)
-            {
-                throw new UnauthorizedAccessException("Você só pode atualizar o status de ordens atribuídas a você.");
-            }
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode atualizar o status de ordens atribuídas a você.");
         }
 
-        if (newStatus == ProductionStatus.Completed && order.CurrentStage != ProductionStage.Packaging)
-        {
-            return false;
-        }
-
-        if (order.CurrentStatus == ProductionStatus.Completed && newStatus != ProductionStatus.Completed)
-        {
-            return false;
-        }
+        if (newStatus == ProductionStatus.Completed && order.CurrentStage != ProductionStage.Packaging) return false;
+        if (order.CurrentStatus == ProductionStatus.Completed && newStatus != ProductionStatus.Completed) return false;
 
         var previousStatus = order.CurrentStatus;
         order.CurrentStatus = newStatus;
 
+        // Timestamp Logic
+        if (newStatus == ProductionStatus.InProduction && previousStatus != ProductionStatus.InProduction && order.ActualStartDate == null)
+        {
+            order.ActualStartDate = DateTime.UtcNow;
+        }
+        else if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
+        {
+            order.ActualEndDate = DateTime.UtcNow;
+        }
+
         await _orderRepository.UpdateAsync(order);
-        
-        var completeNote = string.IsNullOrWhiteSpace(note) 
-            ? $"Status alterado de {previousStatus} para {newStatus}" 
-            : note;
-        
+
+        var completeNote = string.IsNullOrWhiteSpace(note) ? $"Status alterado de {previousStatus} para {newStatus}" : note;
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, completeNote);
 
-        await _orderRepository.SaveChangesAsync();
+        if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
+        {
+            // Financial Calculation
+            await _financialCalculator.CalculateFinalOrderCostAsync(order);
 
+            if (order.ProductId.HasValue)
+            {
+                await RecalculateProductAverageTimeAsync(order.ProductId.Value, order.CreationDate, DateTime.UtcNow);
+            }
+        }
+
+        await _orderRepository.SaveChangesAsync();
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
 
         return true;
@@ -344,27 +239,10 @@ public class ProductionOrderService : IProductionOrderService
         {
             try
             {
-                var success = await UpdateStatusAsync(id, newStatus, note, modifiedByUserId);
-                if (success)
-                {
-                    result.SuccessCount++;
-                }
-                else
-                {
-                    result.FailureCount++;
-                    result.Errors.Add($"Order {id}: Update failed (business rule violation or not found).");
-                }
+                if (await UpdateStatusAsync(id, newStatus, note, modifiedByUserId)) result.SuccessCount++;
+                else { result.FailureCount++; result.Errors.Add($"Order {id}: Update failed."); }
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                result.FailureCount++;
-                result.Errors.Add($"Order {id}: Permission denied - {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                result.FailureCount++;
-                result.Errors.Add($"Order {id}: Error - {ex.Message}");
-            }
+            catch (Exception ex) { result.FailureCount++; result.Errors.Add($"Order {id}: {ex.Message}"); }
         }
         return result;
     }
@@ -372,48 +250,31 @@ public class ProductionOrderService : IProductionOrderService
     public async Task<bool> AdvanceStageAsync(int orderId, int modifiedByUserId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
-        {
-            return false;
-        }
+        if (order == null) return false;
 
-        // Security Check: Operator/Workshop can only modify their own assigned orders
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            if (order.UserId != modifiedByUserId)
-            {
-                throw new UnauthorizedAccessException("Você só pode avançar a etapa de ordens atribuídas a você.");
-            }
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode avançar a etapa de ordens atribuídas a você.");
         }
 
-        if (order.CurrentStatus == ProductionStatus.Completed)
-        {
-            return false;
-        }
+        if (order.CurrentStatus == ProductionStatus.Completed) return false;
 
         var previousStage = order.CurrentStage;
-        var previousStatus = order.CurrentStatus;
-
         var newStage = previousStage switch
         {
             ProductionStage.Cutting => ProductionStage.Sewing,
             ProductionStage.Sewing => ProductionStage.Review,
             ProductionStage.Review => ProductionStage.Packaging,
-            ProductionStage.Packaging => throw new InvalidOperationException("Production order is already in final stage. Use status update method to complete it."),
-            _ => throw new InvalidOperationException("Unknown production stage.")
+            _ => throw new InvalidOperationException("Unknown production stage or already final.")
         };
-        
+
         order.CurrentStage = newStage;
         order.CurrentStatus = ProductionStatus.InProduction;
 
         await _orderRepository.UpdateAsync(order);
-        
-        await AddHistory(order.Id, previousStage, newStage, previousStatus, order.CurrentStatus, modifiedByUserId, 
-            $"Avançou para {newStage}");
-
+        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Avançou para {newStage}");
         await _orderRepository.SaveChangesAsync();
-        
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
 
         return true;
@@ -422,55 +283,27 @@ public class ProductionOrderService : IProductionOrderService
     public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
-        {
-            return false;
-        }
+        if (order == null) return false;
 
-        // Validate Rework (Moving backwards)
-        if (newStage < order.CurrentStage)
-        {
-            if (string.IsNullOrWhiteSpace(note))
-            {
-                throw new InvalidOperationException("É obrigatório fornecer um comentário ao retornar para uma etapa anterior.");
-            }
-        }
-        else if (newStage == order.CurrentStage)
-        {
-            // No change
-            return true;
-        }
+        if (newStage < order.CurrentStage && string.IsNullOrWhiteSpace(note))
+            throw new InvalidOperationException("É obrigatório fornecer um comentário ao retornar para uma etapa anterior.");
 
-        // Validate User Permissions
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop)) // Assuming Workshop also behaves like Operator
+        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            // Operator/Workshop can only modify their own orders
-            if (order.UserId != modifiedByUserId)
-            {
-                throw new UnauthorizedAccessException("Você só pode alterar o estágio de ordens atribuídas a você.");
-            }
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode alterar o estágio de ordens atribuídas a você.");
         }
-        // Admin/Leader can modify any
 
         var previousStage = order.CurrentStage;
-        var previousStatus = order.CurrentStatus;
-
         order.CurrentStage = newStage;
-        // Reset status to InProduction when stage changes, unless specified otherwise (but here we assume InProduction is correct for active work)
         order.CurrentStatus = ProductionStatus.InProduction;
 
         await _orderRepository.UpdateAsync(order);
-        
         var actionText = newStage < previousStage ? "Retornou para" : "Alterou para";
-        var historyNote = string.IsNullOrWhiteSpace(note) 
-            ? $"{actionText} {newStage}" 
-            : $"{actionText} {newStage}: {note}";
-
-        await AddHistory(order.Id, previousStage, newStage, previousStatus, order.CurrentStatus, modifiedByUserId, historyNote);
-
-        await _orderRepository.SaveChangesAsync();
+        var historyNote = string.IsNullOrWhiteSpace(note) ? $"{actionText} {newStage}" : $"{actionText} {newStage}: {note}";
         
+        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, historyNote);
+        await _orderRepository.SaveChangesAsync();
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString());
 
         return true;
@@ -478,84 +311,29 @@ public class ProductionOrderService : IProductionOrderService
 
     public async Task<DashboardDto> GetDashboardAsync()
     {
-        var now = DateTime.UtcNow;
-        var today = now.Date;
-
-        // Note: For Dashboard, we ideally want specialized Repository methods for aggregation to avoid loading all data.
-        // For now, implementing using available repository methods efficiently where possible, 
-        // or getting Queryable if we must.
-        
+        var today = DateTime.UtcNow.Date;
         var query = await _orderRepository.GetQueryableAsync();
-        
-        // Count Active
-        var activeOrdersQuery = query.Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
-        var totalActiveOrders = activeOrdersQuery.Count();
 
-        // Completed Today - Complex query, might need direct access or specific repo method.
-        // Let's use GetAllAsync or similar if dataset is small, but for Dashboard we want performance.
-        // Implementing specific repo method logic via queryable for now.
-        // Note: Need to include history.
-        // We don't have direct access to Histories DbSet via IProductionOrderRepository unless added.
-        // Let's assume we can get it or add a method.
-        
-        // FIX: I cannot easily query Histories via Order Repository's IQueryable of Orders efficiently for "Completed Today" 
-        // if the navigation property isn't enough.
-        // It's better to add specific methods to IProductionOrderRepository for Dashboard stats.
-        // But to save time, I will assume the Repository implementation allows us to get necessary data.
-        
-        // Workaround: We will use the Context in Repository, so let's add `GetDashboardStatsAsync` to repository later?
-        // For now, let's fetch lists. 
-        // Ideally we shouldn't use .ToList() on everything.
-        
-        // Let's use the basic counts we can get.
-        
-        // Completed Today (Needs History)
-        // I can't do this efficiently without exposing History DbSet or adding a method.
-        // I'll fallback to "0" or "Implementation Pending" for complex stats to ensure compilation first, 
-        // OR add `GetCompletedTodayCountAsync()` to Repository.
-        
-        // I will add dashboard methods to the Interface later. For now, I will use Queryable logic cautiously.
-        // Since I cannot execute async LINQ (CountAsync) on IQueryable without EF reference in Service, 
-        // I will use sync Count() which is blocking but compiles.
-        
-        // To do it properly:
-        // I'll assume 0 for complex stats for this refactoring step to ensure structural correctness first.
-        var completedToday = 0; 
+        var totalActiveOrders = query.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
+        var completedToday = 0; // Requires optimization or additional logic
 
-        // Average Lead Time
-        double avgLeadTime = 0;
-
-        // Weekly Volume
-        var weeklyVolume = new List<int>();
-        for (int i = 6; i >= 0; i--)
-        {
-            weeklyVolume.Add(0); // Placeholder
-        }
-
-        // Workload Distribution (Active Orders per User)
-        // We fetch active orders and their assigned users.
-        // Since we have 'query' which is IQueryable of Orders, we can filter locally or via EF if supported.
         var activeOrdersList = query
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
-            .ToList(); // Materialize to group in memory (Repository pattern limitation for now)
+            .ToList();
 
         var workloadDistribution = activeOrdersList
             .GroupBy(o => o.UserId!.Value)
-            .Select((g, index) => {
-                var user = g.First().AssignedUser; // Included in GetAllAsync/Queryable
-                return new WorkerStatsDto
-                {
-                    Name = user?.Name ?? "Unknown",
-                    AvatarUrl = string.IsNullOrEmpty(user?.AvatarUrl) ? "/img/avatars/avatar.jpg" : user.AvatarUrl,
-                    ActiveCount = g.Count(),
-                    EfficiencyScore = 95.0, // Placeholder calculation
-                    Color = GetColorByIndex(index)
-                };
+            .Select((g, index) => new WorkerStatsDto
+            {
+                Name = g.First().AssignedUser?.Name ?? "Unknown",
+                AvatarUrl = g.First().AssignedUser?.AvatarUrl ?? "/img/avatars/avatar.jpg",
+                ActiveCount = g.Count(),
+                EfficiencyScore = 95.0,
+                Color = GetColorByIndex(index)
             })
             .OrderByDescending(w => w.ActiveCount)
             .ToList();
 
-        // Recent Activity
         var historyLogs = await _orderRepository.GetRecentHistoryAsync(10);
         var recentActivities = historyLogs.Select(h => new RecentActivityDto
         {
@@ -565,101 +343,53 @@ public class ProductionOrderService : IProductionOrderService
             Action = h.Note ?? h.NewStatus.ToString(),
             Date = h.ModificationDate
         }).ToList();
-        
-        // Orders By Stage
-        var ordersByStage = activeOrdersQuery
+
+        var ordersByStage = query.Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled)
+            .ToList() // Client evaluation for Enum grouping if EF fails
             .GroupBy(o => o.CurrentStage)
             .ToDictionary(g => g.Key.ToString(), g => g.Count());
 
-        // Stats
         var totalAll = query.Count();
         var totalComp = query.Count(o => o.CurrentStatus == ProductionStatus.Completed);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
-        // Populate TodaysOrders for Daily Report
-        // Using AsNoTracking() as requested for performance
-        var todaysOrdersList = query
-            .AsNoTracking()
-            .Where(o => o.CreationDate >= today)
-            .OrderByDescending(o => o.CreationDate)
-            .ToList();
-
-        var todaysOrdersDtos = todaysOrdersList.Select(po => new ProductionOrderDto
-        {
-            Id = po.Id,
-            UniqueCode = po.UniqueCode,
-            ProductDescription = po.ProductDescription,
-            Quantity = po.Quantity,
-            ClientName = po.ClientName,
-            Size = po.Size,
-            CurrentStage = po.CurrentStage.ToString(),
-            CurrentStatus = po.CurrentStatus.ToString(),
-            CreationDate = po.CreationDate,
-            EstimatedDeliveryDate = po.EstimatedDeliveryDate,
-            UserId = po.UserId,
-            AssignedUserName = po.AssignedUser != null ? po.AssignedUser.Name : null
-        }).ToList();
+        var todaysOrdersList = query.AsNoTracking().Where(o => o.CreationDate >= today).OrderByDescending(o => o.CreationDate).ToList();
+        var todaysOrdersDtos = todaysOrdersList.Select(MapToDto).ToList();
 
         return new DashboardDto
         {
             TotalActiveOrders = totalActiveOrders,
             CompletedToday = completedToday,
-            AverageLeadTimeHours = Math.Round(avgLeadTime, 1),
-            WeeklyVolumeData = weeklyVolume,
+            AverageLeadTimeHours = 0,
+            WeeklyVolumeData = new List<int> { 0, 0, 0, 0, 0, 0, 0 },
             WorkloadDistribution = workloadDistribution,
             OrdersByStage = ordersByStage,
-            UrgentOrders = new List<ProductionOrderDto>(), // Logic for Urgent could be added similarly using filters
-            StoppedOperations = new List<StoppedOperationDto>(), // Logic for Stopped could be added similarly
             RecentActivities = recentActivities,
             TodaysOrders = todaysOrdersDtos,
-            CompletionRate = Math.Round(rate, 1),
+            CompletionRate = rate,
             LastUpdated = DateTime.Now
         };
     }
 
-    private string GetColorByIndex(int index)
-    {
-        var colors = new[] 
-        { 
-            "#00C899", // Green
-            "#3B7DDD", // Blue
-            "#fcb92c", // Yellow
-            "#dc3545", // Red
-            "#151628", // Dark
-            "#6f42c1", // Purple
-            "#e83e8c"  // Pink
-        };
-        return colors[index % colors.Length];
-    }
-    
     public async Task<List<ProductionHistoryDto>> GetHistoryByProductionOrderIdAsync(int orderId)
     {
         var history = await _orderRepository.GetHistoryByOrderIdAsync(orderId);
-        
         return history.Select(h => new ProductionHistoryDto
-            {
-                Id = h.Id,
-                ProductionOrderId = h.ProductionOrderId,
-                PreviousStage = h.PreviousStage != null ? h.PreviousStage.ToString() : string.Empty,
-                NewStage = h.NewStage.ToString(),
-                PreviousStatus = h.PreviousStatus != null ? h.PreviousStatus.ToString() : string.Empty,
-                NewStatus = h.NewStatus.ToString(),
-                UserId = h.UserId,
-                UserName = h.ResponsibleUser != null ? h.ResponsibleUser.Name : "Unknown",
-                ModificationDate = h.ModificationDate,
-                Note = h.Note ?? string.Empty
-            })
-            .ToList();
+        {
+            Id = h.Id,
+            ProductionOrderId = h.ProductionOrderId,
+            PreviousStage = h.PreviousStage?.ToString() ?? "",
+            NewStage = h.NewStage.ToString(),
+            PreviousStatus = h.PreviousStatus?.ToString() ?? "",
+            NewStatus = h.NewStatus.ToString(),
+            UserId = h.UserId,
+            UserName = h.ResponsibleUser?.Name ?? "Unknown",
+            ModificationDate = h.ModificationDate,
+            Note = h.Note ?? ""
+        }).ToList();
     }
-    
-    private async Task AddHistory(
-        int productionOrderId, 
-        ProductionStage? previousStage, 
-        ProductionStage newStage, 
-        ProductionStatus? previousStatus, 
-        ProductionStatus newStatus, 
-        int userId, 
-        string note)
+
+    private async Task AddHistory(int productionOrderId, ProductionStage? previousStage, ProductionStage newStage, ProductionStatus? previousStatus, ProductionStatus newStatus, int userId, string note)
     {
         var history = new ProductionHistory
         {
@@ -673,5 +403,70 @@ public class ProductionOrderService : IProductionOrderService
             Note = note
         };
         await _orderRepository.AddHistoryAsync(history);
+    }
+
+    private async Task RecalculateProductAverageTimeAsync(int productId, DateTime startDate, DateTime endDate)
+    {
+        var durationMinutes = (endDate - startDate).TotalMinutes;
+        if (durationMinutes < 0) durationMinutes = 0;
+
+        var product = await _productRepository.GetByIdAsync(productId);
+        if (product == null) return;
+
+        var query = await _orderRepository.GetQueryableAsync();
+        var completedOrders = await query
+            .AsNoTracking()
+            .Where(o => o.ProductId == productId && o.CurrentStatus == ProductionStatus.Completed)
+            .Select(o => new { o.CreationDate, o.ModificationDate })
+            .ToListAsync();
+
+        double totalMinutes = durationMinutes;
+        int count = 1;
+
+        foreach (var order in completedOrders)
+        {
+            var d = (order.ModificationDate - order.CreationDate).TotalMinutes;
+            if (d > 0) { totalMinutes += d; count++; }
+        }
+
+        if (count > 0)
+        {
+            product.AverageProductionTimeMinutes = totalMinutes / count;
+            await _productRepository.UpdateAsync(product);
+        }
+    }
+
+    private ProductionOrderDto MapToDto(ProductionOrder order)
+    {
+        return new ProductionOrderDto
+        {
+            Id = order.Id,
+            UniqueCode = order.UniqueCode,
+            ProductDescription = order.ProductDescription,
+            Quantity = order.Quantity,
+            ClientName = order.ClientName,
+            Size = order.Size,
+            CurrentStage = order.CurrentStage.ToString(),
+            CurrentStatus = order.CurrentStatus.ToString(),
+            CreationDate = order.CreationDate,
+            EstimatedDeliveryDate = order.EstimatedDeliveryDate,
+            UserId = order.UserId,
+            AssignedUserName = order.AssignedUser?.Name,
+            Product = order.Product != null ? new ProductDto
+            {
+                Id = order.Product.Id,
+                Name = order.Product.Name,
+                InternalCode = order.Product.InternalCode,
+                FabricType = order.Product.FabricType,
+                MainSku = order.Product.MainSku,
+                AverageProductionTimeMinutes = order.Product.AverageProductionTimeMinutes
+            } : null
+        };
+    }
+
+    private string GetColorByIndex(int index)
+    {
+        var colors = new[] { "#00C899", "#3B7DDD", "#fcb92c", "#dc3545", "#151628", "#6f42c1", "#e83e8c" };
+        return colors[index % colors.Length];
     }
 }

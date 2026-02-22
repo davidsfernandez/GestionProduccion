@@ -1,32 +1,23 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GestionProduccion.Controllers;
-using GestionProduccion.Data;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Xunit;
-
+using Microsoft.Extensions.Logging;
 using Moq;
+using Xunit;
+using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
 
 namespace GestionProduccion.Tests
 {
     public class AuthControllerTests
     {
-        private AppDbContext GetInMemoryDbContext()
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: System.Guid.NewGuid().ToString())
-                .Options;
-            return new AppDbContext(options);
-        }
-
         private IConfiguration GetMockConfiguration()
         {
-            var inMemorySettings = new Dictionary<string, string> {
+            var inMemorySettings = new Dictionary<string, string?> {
                 {"Jwt:Key", "super_secret_testing_key_1234567890123456"},
                 {"Jwt:Issuer", "TestIssuer"},
                 {"Jwt:Audience", "TestAudience"}
@@ -41,14 +32,33 @@ namespace GestionProduccion.Tests
         public async Task Login_ShouldReturnToken_WhenCredentialsAreValid()
         {
             // Arrange
-            using var context = GetInMemoryDbContext();
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword("password123");
-            context.Users.Add(new User { Name = "Admin", Email = "admin@test.com", PasswordHash = hashedPassword, Role = Domain.Enums.UserRole.Administrator, IsActive = true });
-            await context.SaveChangesAsync();
-
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
-            var controller = new AuthController(context, config, mockUserService.Object);
+            var mockLogger = new Mock<ILogger<AuthController>>();
+            var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
+            var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
+            var mockEmailService = new Mock<IEmailService>();
+            
+            var user = new User 
+            { 
+                Id = 1,
+                Name = "Admin", 
+                Email = "admin@test.com", 
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
+                Role = Domain.Enums.UserRole.Administrator, 
+                IsActive = true 
+            };
+
+            mockUserService.Setup(s => s.GetUserByEmailAsync("admin@test.com")).ReturnsAsync(user);
+
+            var controller = new AuthController(
+                config, 
+                mockUserService.Object, 
+                mockLogger.Object, 
+                mockRefreshTokenRepo.Object, 
+                mockPasswordResetRepo.Object, 
+                mockEmailService.Object
+            );
 
             var loginDto = new LoginDto { Email = "admin@test.com", Password = "password123" };
 
@@ -64,14 +74,33 @@ namespace GestionProduccion.Tests
         public async Task Login_ShouldReturnUnauthorized_WhenPasswordIsWrong()
         {
             // Arrange
-            using var context = GetInMemoryDbContext();
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword("password123");
-            context.Users.Add(new User { Name = "User", Email = "user@test.com", PasswordHash = hashedPassword, Role = Domain.Enums.UserRole.Operator, IsActive = true });
-            await context.SaveChangesAsync();
-
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
-            var controller = new AuthController(context, config, mockUserService.Object);
+            var mockLogger = new Mock<ILogger<AuthController>>();
+            var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
+            var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
+            var mockEmailService = new Mock<IEmailService>();
+            
+            var user = new User 
+            { 
+                Id = 1,
+                Name = "User", 
+                Email = "user@test.com", 
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
+                Role = Domain.Enums.UserRole.Operator, 
+                IsActive = true 
+            };
+
+            mockUserService.Setup(s => s.GetUserByEmailAsync("user@test.com")).ReturnsAsync(user);
+
+            var controller = new AuthController(
+                config, 
+                mockUserService.Object, 
+                mockLogger.Object, 
+                mockRefreshTokenRepo.Object, 
+                mockPasswordResetRepo.Object, 
+                mockEmailService.Object
+            );
 
             var loginDto = new LoginDto { Email = "user@test.com", Password = "wrongpassword" };
 
@@ -86,10 +115,23 @@ namespace GestionProduccion.Tests
         public async Task Login_ShouldReturnUnauthorized_WhenUserNotFound()
         {
             // Arrange
-            using var context = GetInMemoryDbContext();
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
-            var controller = new AuthController(context, config, mockUserService.Object);
+            var mockLogger = new Mock<ILogger<AuthController>>();
+            var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
+            var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
+            var mockEmailService = new Mock<IEmailService>();
+            
+            mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null);
+
+            var controller = new AuthController(
+                config, 
+                mockUserService.Object, 
+                mockLogger.Object, 
+                mockRefreshTokenRepo.Object, 
+                mockPasswordResetRepo.Object, 
+                mockEmailService.Object
+            );
 
             var loginDto = new LoginDto { Email = "nonexistent@test.com", Password = "password123" };
 
