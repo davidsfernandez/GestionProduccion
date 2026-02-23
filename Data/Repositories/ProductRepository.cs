@@ -17,6 +17,7 @@ public class ProductRepository : IProductRepository
     {
         return await _context.Products
             .Include(p => p.Sizes)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -24,6 +25,7 @@ public class ProductRepository : IProductRepository
     {
         return await _context.Products
             .Include(p => p.Sizes)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.MainSku == sku);
     }
 
@@ -32,6 +34,7 @@ public class ProductRepository : IProductRepository
         return await _context.Products
             .Include(p => p.Sizes)
             .AsNoTracking()
+            .AsSplitQuery()
             .ToListAsync();
     }
 

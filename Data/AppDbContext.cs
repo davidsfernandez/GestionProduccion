@@ -66,6 +66,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(s => s.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<ProductSize>(entity =>
+        {
+            entity.ToTable("ProductSizes");
+            entity.Property(s => s.Size).HasColumnName("Size").IsRequired().HasMaxLength(10);
+        });
+
         // Relationship: ProductionOrder -> Product (N to 1)
         // Prevents deleting a Product if there are associated production orders.
         modelBuilder.Entity<ProductionOrder>()
