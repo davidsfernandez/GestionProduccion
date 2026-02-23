@@ -43,10 +43,14 @@
                             <DataAnnotationsValidator />
 
                             <div class="row">
-                                <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Código da Ordem (Lote)</label>
-                                    <InputText @bind-Value="createModel.UniqueCode" class="form-control form-control-lg" placeholder="Ex: OP-2024-001" />
-                                    <ValidationMessage For="@(() => createModel.UniqueCode)" class="text-danger small" />
+                                <div class="col-12 mb-4">
+                                    <div class="alert alert-primary d-flex align-items-center" role="alert">
+                                        <i class="fa-solid fa-wand-magic-sparkles me-3 fs-4"></i>
+                                        <div>
+                                            <strong>Geração Automática</strong>
+                                            <div class="small">O código do lote (OP) será gerado sequencialmente pelo sistema ao salvar.</div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6 mb-4">
@@ -180,6 +184,7 @@
 @code {
     private CreateProductionOrderRequest createModel = new() 
     { 
+        UniqueCode = "AUTO-GENERATED", // Placeholder for client validation
         EstimatedDeliveryDate = DateTime.Now.AddDays(7),
         Quantity = 1
     };

@@ -52,10 +52,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
 
     public async Task<ProductionOrderDto> CreateProductionOrderAsync(CreateProductionOrderRequest request, int createdByUserId, CancellationToken ct = default)
     {
-        // Validation (can be moved to FluentValidation)
-        if (string.IsNullOrWhiteSpace(request.UniqueCode))
-            throw new InvalidOperationException("Production order unique code cannot be empty.");
-
+        // Validation
         if (request.Quantity <= 0)
             throw new InvalidOperationException("Quantity must be greater than 0.");
 
@@ -68,19 +65,41 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
 
         if (request.SewingTeamId.HasValue)
         {
-            // Inject ISewingTeamRepository to verify existence if not already present
-            // Assuming this check is desired for robustness
-            // var team = await _teamRepository.GetByIdAsync(request.SewingTeamId.Value);
-            // if (team == null) throw new InvalidOperationException($"Sewing Team with ID {request.SewingTeamId} not found.");
+            // Optional team validation logic here
         }
 
-        var existingOrder = await _orderRepository.GetByUniqueCodeAsync(request.UniqueCode);
-        if (existingOrder != null)
-            throw new InvalidOperationException($"A production order with code '{request.UniqueCode}' already exists.");
+        // Auto-generate Sequential Code (OP-YYYY-MM-DD-X)
+        // Note: For high concurrency, use a database sequence or distributed lock.
+        // This implementation relies on EF Core transactional consistency for MVP.
+        
+        var today = DateTime.UtcNow; // Or configured timezone
+        var prefix = $"OP-{today:yyyy-MM-dd}-";
+        
+        // Find the max suffix for today
+        var query = await _orderRepository.GetQueryableAsync();
+        var todaysCodes = await query
+            .Where(o => o.UniqueCode.StartsWith(prefix))
+            .Select(o => o.UniqueCode)
+            .ToListAsync(ct);
+
+        int nextSequence = 1;
+        if (todaysCodes.Any())
+        {
+            var maxSuffix = todaysCodes
+                .Select(c => c.Replace(prefix, ""))
+                .Where(s => int.TryParse(s, out _))
+                .Select(int.Parse)
+                .DefaultIfEmpty(0)
+                .Max();
+            
+            nextSequence = maxSuffix + 1;
+        }
+
+        var uniqueCode = $"{prefix}{nextSequence}";
 
         var order = new ProductionOrder
         {
-            UniqueCode = request.UniqueCode,
+            UniqueCode = uniqueCode,
             Quantity = request.Quantity,
             EstimatedDeliveryDate = request.EstimatedDeliveryDate,
             ClientName = request.ClientName,
