@@ -32,11 +32,14 @@ public class BonusCalculationService : IBonusCalculationService
 
         var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
         
-        // Query completed orders within range for this team
-        var orders = await _orderRepo.GetAllAsync();
-        var teamOrders = orders.Where(o => o.SewingTeamId == teamId && 
-                                           o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
-                                           o.ActualEndDate >= startDate && o.ActualEndDate <= endDate).ToList();
+        // Query completed orders within range for this team (Server-Side Evaluation)
+        var query = await _orderRepo.GetQueryableAsync();
+        var teamOrders = await query
+            .AsNoTracking()
+            .Where(o => o.SewingTeamId == teamId && 
+                        o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
+                        o.ActualEndDate >= startDate && o.ActualEndDate <= endDate)
+            .ToListAsync();
 
         if (!teamOrders.Any())
         {

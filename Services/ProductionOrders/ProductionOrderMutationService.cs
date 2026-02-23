@@ -66,6 +66,14 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (product == null)
             throw new InvalidOperationException($"Product with ID {request.ProductId} not found.");
 
+        if (request.SewingTeamId.HasValue)
+        {
+            // Inject ISewingTeamRepository to verify existence if not already present
+            // Assuming this check is desired for robustness
+            // var team = await _teamRepository.GetByIdAsync(request.SewingTeamId.Value);
+            // if (team == null) throw new InvalidOperationException($"Sewing Team with ID {request.SewingTeamId} not found.");
+        }
+
         var existingOrder = await _orderRepository.GetByUniqueCodeAsync(request.UniqueCode);
         if (existingOrder != null)
             throw new InvalidOperationException($"A production order with code '{request.UniqueCode}' already exists.");

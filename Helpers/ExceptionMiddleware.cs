@@ -49,6 +49,10 @@ public class ExceptionMiddleware
                 statusCode = HttpStatusCode.Forbidden;
                 message = "You do not have permission to perform this action.";
                 break;
+            case GestionProduccion.Domain.Exceptions.DomainConstraintException:
+                statusCode = HttpStatusCode.Conflict;
+                message = "Operation failed due to a data constraint.";
+                break;
         }
 
         context.Response.StatusCode = (int)statusCode;

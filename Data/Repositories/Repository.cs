@@ -44,6 +44,13 @@ public class Repository<T> : IRepository<T> where T : class
 
     public async Task SaveChangesAsync()
     {
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new GestionProduccion.Domain.Exceptions.DomainConstraintException("The operation was blocked by a database constraint (e.g., related data exists).", ex);
+        }
     }
 }
