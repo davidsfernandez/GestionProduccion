@@ -9,5 +9,5 @@ public interface ITaskService
     Task<List<TaskDto>> GetUserTasksAsync(int userId);
     Task<List<TaskDto>> GetAllTasksAsync();
     Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status);
-    Task<List<RankingEntryDto>> GetPerformanceRankingAsync();
+    Task<List<RankingEntryDto>> GetPerformanceRankingAsync(CancellationToken cancellationToken = default);
 }

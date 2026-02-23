@@ -34,6 +34,7 @@ public class OperationalTaskService : ITaskService
     public async Task<List<TaskDto>> GetUserTasksAsync(int userId)
     {
         return await _context.OperationalTasks
+            .AsNoTracking()
             .Where(t => t.AssignedUserId == userId)
             .OrderBy(t => t.Deadline)
             .Select(t => MapToDto(t))
@@ -43,6 +44,7 @@ public class OperationalTaskService : ITaskService
     public async Task<List<TaskDto>> GetAllTasksAsync()
     {
         return await _context.OperationalTasks
+            .AsNoTracking()
             .Include(t => t.AssignedUser)
             .OrderByDescending(t => t.CreationDate)
             .Select(t => MapToDto(t))
@@ -60,27 +62,37 @@ public class OperationalTaskService : ITaskService
         }
     }
 
-    public async Task<List<RankingEntryDto>> GetPerformanceRankingAsync()
+    public async Task<List<RankingEntryDto>> GetPerformanceRankingAsync(CancellationToken cancellationToken = default)
     {
-        // Algorithm: (Completed Tasks / Total) * resolution time efficiency
-        // For MVP: Count completed tasks within deadline
-        // FIXED: Handle empty sequences for Average to prevent 'Nullable object must have a value' exception
-        var result = await _context.Users
+        // Phase 1: Raw Data Query (Database)
+        // Extract only necessary columns. No math here.
+        var rawData = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Role != Domain.Enums.UserRole.Administrator)
+            .Select(u => new 
+            {
+                u.Name,
+                AvatarUrl = u.AvatarUrl,
+                CompletedCount = _context.OperationalTasks
+                    .Count(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed)
+            })
+            .ToListAsync(cancellationToken);
+
+        // Phase 2: In-Memory Calculation & Projection
+        // Safe math logic without EF Core translation limitations
+        var result = rawData
             .Select(u => new RankingEntryDto
             {
                 UserName = u.Name,
                 AvatarUrl = u.AvatarUrl ?? "",
-                CompletedTasks = _context.OperationalTasks
-                    .Count(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed),
-                Score = _context.OperationalTasks
-                    .Where(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed)
-                    .Select(t => 100.0)
-                    .DefaultIfEmpty(0)
-                    .Average()
+                CompletedTasks = u.CompletedCount,
+                // Simple efficiency formula: 10 points per task for MVP
+                Score = u.CompletedCount * 10.0 
             })
-            .OrderByDescending(r => r.CompletedTasks)
-            .ToListAsync();
+            .OrderByDescending(r => r.Score)
+            .ThenByDescending(r => r.CompletedTasks)
+            .Take(10) // Top 10 limit
+            .ToList();
 
         return result;
     }

@@ -77,8 +77,10 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         }
 
         // Optimize: do not track entities for read operations, include necessary relations
+        // Use AsSplitQuery to avoid Cartesian explosion when loading multiple related entities
         var ordersList = await query
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(po => po.Product)
             .Include(po => po.AssignedUser)
             .Include(po => po.AssignedTeam)

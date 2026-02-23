@@ -35,15 +35,23 @@ namespace GestionProduccion.Client.Auth
 
         public async Task MarkUserAsAuthenticated(string token, string? refreshToken = null)
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-            if (!string.IsNullOrEmpty(refreshToken))
+            try
             {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshToken);
-            }
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+                if (!string.IsNullOrEmpty(refreshToken))
+                {
+                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshToken);
+                }
 
-            var claims = ParseClaimsFromJwt(token);
-            var identity = new ClaimsIdentity(claims, "jwt", ClaimTypes.Name, ClaimTypes.Role);
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity))));
+                var claims = ParseClaimsFromJwt(token);
+                var identity = new ClaimsIdentity(claims, "jwt", ClaimTypes.Name, ClaimTypes.Role);
+                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity))));
+            }
+            catch (Exception)
+            {
+                // If token is invalid, clear storage and notify as anonymous
+                await MarkUserAsLoggedOut();
+            }
         }
 
         public async Task MarkUserAsLoggedOut()

@@ -1,0 +1,419 @@
+/* SERONA PRODUCTION SYSTEM - Visual Standard Implementation */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --serona-primary: #00C899;
+    --serona-dark: #151628;
+    --serona-bg: #F5F6FA;
+    --input-bg: #F4F5F7;
+    --card-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    --card-radius: 20px;
+    
+    /* Bootstrap Overrides */
+    --bs-primary: #00C899;
+    --bs-body-bg: #F5F6FA;
+    --bs-font-sans-serif: 'Inter', sans-serif;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--serona-bg) !important;
+    color: #334155;
+}
+
+/* --- CARDS & CONTAINERS --- */
+.card, .modal-content {
+    background-color: #fff !important;
+    border: none !important;
+    border-radius: var(--card-radius) !important;
+    box-shadow: var(--card-shadow) !important;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.03) !important;
+    padding: 20px 25px !important;
+}
+
+.card-title {
+    color: #64748b !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- FORMS & INPUTS --- */
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #fff !important;
+    box-shadow: 0 0 0 4px rgba(0, 200, 153, 0.15) !important;
+    outline: none !important;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+/* --- BUTTONS --- */
+.btn-primary, .btn-success {
+    background-color: var(--serona-primary) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 10px 24px !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: #00b388 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 200, 153, 0.3) !important;
+}
+
+.btn-secondary {
+    background-color: #f1f5f9 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    background-color: var(--serona-dark) !important;
+    min-width: 280px;
+    max-width: 280px;
+}
+
+.sidebar-content {
+    background-color: transparent !important;
+}
+
+.sidebar-link, a.sidebar-link {
+    padding: 12px 20px !important;
+    color: #8A94A6 !important;
+    border-radius: 12px !important;
+    margin: 4px 15px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+}
+
+.sidebar-item.active .sidebar-link i, 
+.sidebar-item.active .sidebar-link svg {
+    color: var(--serona-primary) !important;
+}
+
+/* --- SIDEBAR PROFILE --- */
+.sidebar-profile {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50% !important;
+    border: 3px solid rgba(255, 255, 255, 0.1) !important;
+    object-fit: cover;
+}
+
+.profile-name {
+    color: #fff !important;
+    font-weight: 700 !important;
+    margin-top: 15px;
+    display: block;
+}
+
+.profile-role {
+    color: #8A94A6;
+    font-size: 0.8rem;
+    display: block;
+}
+
+/* --- TABLES --- */
+.table-container {
+    background: #fff;
+    border-radius: var(--card-radius);
+    padding: 10px;
+    box-shadow: var(--card-shadow);
+}
+
+.table {
+    background-color: #fff !important;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: transparent !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #94a3b8 !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    padding: 15px 20px !important;
+}
+
+.table tbody td {
+    padding: 15px 20px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f8fafc !important;
+    color: #475569;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* --- UTILITIES & SOFT BACKGROUNDS --- */
+.badge {
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+}
+
+.text-primary { color: var(--serona-primary) !important; }
+.bg-primary { background-color: var(--serona-primary) !important; }
+
+/* Fix progress bar visibility */
+.progress-bar.bg-primary {
+    background-color: var(--serona-primary) !important;
+}
+
+.xsmall {
+    font-size: 0.7rem;
+}
+
+/* Custom Soft Backgrounds (Fixes Green Block Issue) */
+.bg-primary-soft { background-color: rgba(0, 200, 153, 0.1) !important; color: #00C899 !important; }
+.bg-success-soft { background-color: rgba(34, 197, 94, 0.1) !important; color: #22c55e !important; }
+.bg-danger-soft { background-color: rgba(239, 68, 68, 0.1) !important; color: #ef4444 !important; }
+.bg-warning-soft { background-color: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; }
+.bg-info-soft { background-color: rgba(59, 130, 246, 0.1) !important; color: #3b82f6 !important; }
+.bg-dark-soft { background-color: rgba(30, 41, 59, 0.1) !important; color: #1e293b !important; }
+
+/* --- ANIMATIONS (Phase 4.1) --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulseSoft {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-pulse-soft {
+    animation: pulseSoft 2s infinite ease-in-out;
+}
+
+/* Staggered delays for a professional feel */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* Apply fadeInUp to all cards by default for a cohesive entry */
+.card {
+    animation: fadeInUp 0.6s ease-out both;
+}
+
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+
+/* --- MOBILE RESPONSIVENESS (Prompt Implementation) --- */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+@media (max-width: 992px) {
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
+    /* Hide Sidebar by default on mobile */
+    .sidebar {
+        margin-left: -280px !important; /* Force override with correct width */
+        transition: margin-left 0.3s ease-in-out;
+        position: fixed;
+        z-index: 1050;
+        height: 100vh;
+        width: 280px;
+    }
+
+    /* Show Sidebar when active */
+    .sidebar.toggled {
+        margin-left: 0 !important;
+    }
+
+    .wrapper.sidebar-open .sidebar {
+        margin-left: 0 !important;
+    }
+
+    /* Fix for the main content when sidebar is open on mobile */
+    .wrapper.sidebar-open .main {
+        overflow: hidden;
+    }
+}
+
+/* Desktop Toggled (Collapsed) */
+@media (min-width: 993px) {
+    .sidebar {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .sidebar.collapsed {
+        margin-left: -280px !important;
+    }
+}
+
+/* Hamburger Icon Styling (AdminKit style) */
+.hamburger, .hamburger:after, .hamburger:before {
+    cursor: pointer;
+    border-radius: 1px;
+    height: 3px;
+    width: 24px;
+    background: #495057;
+    display: block;
+    content: "";
+    transition: all .1s ease-in-out;
+    position: relative;
+}
+
+.hamburger:before {
+    top: -7px;
+}
+
+.hamburger:after {
+    bottom: -10px;
+}
+
+.sidebar-toggle {
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+/* Ensure icons are visible and have enough contrast */
+.sidebar-link i, .sidebar-link svg {
+    margin-right: 12px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+    color: #8A94A6;
+}
+
+/* Floating Action Button (FAB) */
+.btn-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50% !important;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 1000;
+    padding: 0 !important;
+}
+
+/* --- TV MODE / FACTORY KIOSK --- */
+.tv-mode-active .sidebar,
+.tv-mode-active .navbar {
+    display: none !important;
+}
+
+.tv-mode-active .main, 
+.tv-mode-active .content {
+    margin-left: 0 !important;
+    padding: 2rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.tv-mode-active .card {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,0.15) !important; /* Stronger shadow for TV */
+    border: 1px solid #e2e8f0;
+}
+
+.tv-mode-active h1, 
+.tv-mode-active h3 {
+    font-size: 2.5rem !important; /* Larger text for distance viewing */
+}
+
+.tv-mode-active .badge {
+    font-size: 1.2rem !important;
+    padding: 0.5em 1em !important;
+}

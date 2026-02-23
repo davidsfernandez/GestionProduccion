@@ -48,12 +48,23 @@
                                     </div>
 
                                     <div class="d-grid gap-2 mt-3">
-                                        <button type="submit" class="btn btn-lg btn-primary">@Portuguese.Login</button>
+                                        <button type="submit" class="btn btn-lg btn-primary" disabled="@isLoading">
+                                            @if (isLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                @Portuguese.Loading...
+                                            }
+                                            else
+                                            {
+                                                @Portuguese.Login
+                                            }
+                                        </button>
                                     </div>
 
                                     @if (!string.IsNullOrEmpty(errorMessage))
                                     {
                                         <div class="alert alert-danger mt-3 mb-0 py-2">
+                                            <i class="fa-solid fa-circle-exclamation me-2"></i>
                                             <small>@errorMessage</small>
                                         </div>
                                     }
@@ -71,6 +82,7 @@
 @code {
     private LoginModel loginModel = new();
     private string errorMessage = string.Empty;
+    private bool isLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,8 +102,11 @@
 
     private async Task HandleLogin()
     {
+        if (isLoading) return;
+        
         try
         {
+            isLoading = true;
             errorMessage = string.Empty;
             var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
 
@@ -113,12 +128,23 @@
             }
             else
             {
-                errorMessage = Portuguese.Msg_LoginFailed;
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    errorMessage = "Credenciais inválidas. Verifique seu e-mail e senha.";
+                }
+                else
+                {
+                    errorMessage = $"{Portuguese.Msg_LoginFailed} ({response.StatusCode})";
+                }
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 }

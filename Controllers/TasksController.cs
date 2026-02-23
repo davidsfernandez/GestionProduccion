@@ -4,6 +4,7 @@ using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using System.Security.Claims;
 using GestionProduccion.Domain.Entities;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GestionProduccion.Controllers;
 
@@ -13,10 +14,14 @@ namespace GestionProduccion.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<TasksController> _logger;
 
-    public TasksController(ITaskService taskService)
+    public TasksController(ITaskService taskService, IMemoryCache cache, ILogger<TasksController> logger)
     {
         _taskService = taskService;
+        _cache = cache;
+        _logger = logger;
     }
 
     [HttpGet("my")]
@@ -53,7 +58,21 @@ public class TasksController : ControllerBase
     [HttpGet("ranking")]
     public async Task<ActionResult<ApiResponse<List<RankingEntryDto>>>> GetRanking()
     {
-        var ranking = await _taskService.GetPerformanceRankingAsync();
-        return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = ranking });
+        try
+        {
+            var ranking = await _cache.GetOrCreateAsync("PerformanceRanking", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return await _taskService.GetPerformanceRankingAsync();
+            });
+
+            return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = ranking ?? new List<RankingEntryDto>() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to calculate performance ranking");
+            // Return empty list instead of 500 to prevent Dashboard crash
+            return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = new List<RankingEntryDto>() });
+        }
     }
 }

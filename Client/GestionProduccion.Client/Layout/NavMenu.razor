@@ -55,17 +55,27 @@
                 </NavLink>
             </li>
 
-            <li class="sidebar-item">
-                <NavLink class="sidebar-link" href="orders">
-                    <i class="fa-solid fa-list-check"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
-                </NavLink>
-            </li>
+            <AuthorizeView Roles="Administrator,Leader">
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="orders">
+                        <i class="fa-solid fa-list-check"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="minhas-tarefas">
                     <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
                 </NavLink>
             </li>
+
+            <AuthorizeView Roles="Administrator">
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="bonus-report">
+                        <i class="fa-solid fa-money-bill-trend-up"></i> <span class="align-middle">Relatório Financeiro</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
 
             <li class="menu-label">Conta</li>
 

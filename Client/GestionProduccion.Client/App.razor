@@ -1,24 +1,60 @@
 <CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
-                <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated != true)
-                    {
-                        <RedirectToLogin />
-                    }
-                    else
-                    {
-                        <p role="alert">VocÍ n„o tem permiss„o para acessar este recurso.</p>
-                    }
-                </NotAuthorized>
-            </AuthorizeRouteView>
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <p role="alert">Desculpe, n„o h· nada neste endereÁo.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
+    <ErrorBoundary>
+        <ChildContent>
+            <Router AppAssembly="@typeof(App).Assembly">
+                <Found Context="routeData">
+                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+                        <NotAuthorized>
+                            @if (context.User.Identity?.IsAuthenticated != true)
+                            {
+                                <RedirectToLogin />
+                            }
+                            else
+                            {
+                                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                                    <div class="d-flex justify-content-center align-items-center h-100">
+                                        <div class="alert alert-danger m-5 shadow">
+                                            <h4 class="alert-heading"><i class="fa-solid fa-ban me-2"></i>Acesso Negado</h4>
+                                            <p>Voc√™ n√£o tem permiss√£o para acessar este recurso.</p>
+                                            <hr>
+                                            <a href="/" class="btn btn-outline-danger btn-sm">Voltar ao In√≠cio</a>
+                                        </div>
+                                    </div>
+                                </LayoutView>
+                            }
+                        </NotAuthorized>
+                    </AuthorizeRouteView>
+                    <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+                </Found>
+                <NotFound>
+                    <LayoutView Layout="@typeof(Layout.MainLayout)">
+                        <div class="text-center mt-5">
+                            <h1 class="display-1 fw-bold text-muted">404</h1>
+                            <p class="lead">P√°gina n√£o encontrada.</p>
+                            <a href="/" class="btn btn-primary mt-3">Voltar ao In√≠cio</a>
+                        </div>
+                    </LayoutView>
+                </NotFound>
+            </Router>
+        </ChildContent>
+        <ErrorContent Context="ex">
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light" style="z-index: 9999; position: fixed; top: 0; left: 0; width: 100%;">
+                <div class="card shadow-lg border-0 p-5 text-center" style="max-width: 500px; border-radius: 1rem;">
+                    <div class="mb-4 text-danger">
+                        <i class="fa-solid fa-triangle-exclamation fa-4x"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">Erro Inesperado</h3>
+                    <p class="text-muted mb-4">Ocorreu um problema t√©cnico que impediu o carregamento da aplica√ß√£o.</p>
+                    
+                    <div class="bg-light p-3 rounded mb-4 text-start small border overflow-auto" style="max-height: 150px; width: 100%;">
+                        <code class="text-danger">@ex.Message</code>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg w-100 rounded-pill" onclick="window.location.reload()">
+                        <i class="fa-solid fa-rotate-right me-2"></i> Recarregar Sistema
+                    </button>
+                </div>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
 </CascadingAuthenticationState>
