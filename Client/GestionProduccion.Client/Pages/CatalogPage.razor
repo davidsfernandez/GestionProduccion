@@ -72,7 +72,12 @@
                                         <td>@product.FabricType</td>
                                         <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
                                         <td class="d-none d-md-table-cell">
-                                            @string.Join(", ", product.Sizes.Select(s => s.Size))
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var s in product.Sizes)
+                                                {
+                                                    <span class="badge bg-info-subtle text-info">@s.Size</span>
+                                                }
+                                            </div>
                                         </td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
@@ -142,8 +147,17 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">@Portuguese.Cat_AvailSizes</label>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                @foreach (var brSize in new[] { "PP", "P", "M", "G", "GG", "XG", "U" })
+                                {
+                                    <button type="button" class="btn btn-sm @(editingProduct.Sizes.Contains(brSize) ? "btn-primary" : "btn-outline-secondary")"
+                                            @onclick="() => ToggleSize(brSize)">
+                                        @brSize
+                                    </button>
+                                }
+                            </div>
                             <div class="input-group mb-2">
-                                <input type="text" class="form-control" placeholder="Ex: G" @bind="newSize" @onkeyup="@(e => { if (e.Key == "Enter") AddSize(); })" />
+                                <input type="text" class="form-control" placeholder="Outro... Ex: 42" @bind="newSize" @onkeyup="@(e => { if (e.Key == "Enter") AddSize(); })" />
                                 <button type="button" class="btn btn-secondary" @onclick="AddSize">@Portuguese.Cat_AddSize</button>
                             </div>
                             <div class="d-flex flex-wrap gap-1 mt-2">
@@ -292,6 +306,14 @@
             }
             newSize = "";
         }
+    }
+
+    private void ToggleSize(string size)
+    {
+        if (editingProduct.Sizes.Contains(size))
+            editingProduct.Sizes.Remove(size);
+        else
+            editingProduct.Sizes.Add(size);
     }
 
     private void RemoveSize(string size)

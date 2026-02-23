@@ -36,6 +36,16 @@ public class ProductService : IProductService
             throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: InternalCode '{product.InternalCode}'");
         }
 
+        // Brazilian Standard Sizes Fallback (Fase 1 - Paso 18 & 19)
+        if (product.Sizes == null || !product.Sizes.Any())
+        {
+            var defaultSizes = new List<string> { "PP", "P", "M", "G", "GG", "XG", "U" };
+            foreach (var sizeName in defaultSizes)
+            {
+                product.Sizes.Add(new ProductSize { Size = sizeName });
+            }
+        }
+
         await _productRepository.AddAsync(product);
         return product;
     }
