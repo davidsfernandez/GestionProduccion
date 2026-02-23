@@ -124,6 +124,7 @@
                                     <th class="d-none d-sm-table-cell">@Portuguese.OP_Qty</th>
                                     <th>@Portuguese.OP_Stage</th>
                                     <th>@Portuguese.OP_Status</th>
+                                    <th class="d-none d-lg-table-cell">Equipe</th>
                                     <th class="d-none d-lg-table-cell">@Portuguese.OP_Delivery</th>
                                     <th class="d-none d-xl-table-cell">@Portuguese.OP_AssignedTo</th>
                                     <th class="text-end text-nowrap">@Portuguese.Actions</th>
@@ -156,6 +157,9 @@
                                             <span class="badge @GetStatusSoftClass(order.CurrentStatus)">
                                                 @TranslateStatus(order.CurrentStatus)
                                             </span>
+                                        </td>
+                                        <td class="d-none d-lg-table-cell">
+                                            <span class="text-muted small">@(order.SewingTeamName ?? "-")</span>
                                         </td>
                                         <td class="d-none d-lg-table-cell">@order.EstimatedDeliveryDate.ToString("dd/MM")</td>
                                         <td class="d-none d-xl-table-cell">
@@ -269,6 +273,10 @@
                 {
                     ToastService.ShowToast($"Erro ao excluir ordem.", ToastLevel.Error);
                 }
+            }
+            catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
             }
             catch (Exception ex)
             {

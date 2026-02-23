@@ -36,6 +36,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 builder.Services.AddScoped<IProductionOrderQueryClient, ProductionOrderQueryClient>();
 builder.Services.AddScoped<IProductionOrderMutationClient, ProductionOrderMutationClient>();
 builder.Services.AddScoped<IProductionOrderLifecycleClient, ProductionOrderLifecycleClient>();
+builder.Services.AddScoped<IProductClient, ProductClient>();
+builder.Services.AddScoped<ISewingTeamClient, SewingTeamClient>();
 builder.Services.AddSingleton<SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<UserStateService>();
