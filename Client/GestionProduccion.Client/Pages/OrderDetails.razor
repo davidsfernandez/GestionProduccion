@@ -622,7 +622,7 @@
     private async Task LoadUsers()
     {
         var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users");
-        if (response != null && response.Success)
+        if (response != null && response.Success && response.Data != null)
         {
             assignableUsers = response.Data.Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop).ToList();
         }

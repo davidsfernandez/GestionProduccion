@@ -214,14 +214,14 @@
             await Task.WhenAll(usersTask, productsTask, teamsTask);
 
             var userResp = await usersTask;
-            if (userResp?.Success == true)
+            if (userResp?.Success == true && userResp.Data != null)
             {
                 users = userResp.Data.Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop).ToList();
             }
 
             products = await productsTask;
             var teamResp = await teamsTask;
-            if (teamResp?.Success == true)
+            if (teamResp?.Success == true && teamResp.Data != null)
             {
                 teams = teamResp.Data.Where(t => t.IsActive).ToList();
             }
