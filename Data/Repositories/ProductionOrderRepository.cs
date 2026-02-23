@@ -21,6 +21,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
         return await _context.ProductionOrders
             .Include(po => po.AssignedUser)
             .Include(po => po.Product)
+            .Include(po => po.AssignedTeam) // Added for full detail
             .Include(po => po.History)
             .FirstOrDefaultAsync(po => po.Id == id);
     }

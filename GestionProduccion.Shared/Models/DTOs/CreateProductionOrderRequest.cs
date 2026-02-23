@@ -29,4 +29,6 @@ public class CreateProductionOrderRequest
     public string? Size { get; set; }
 
     public int? UserId { get; set; }
+
+    public int? SewingTeamId { get; set; }
 }

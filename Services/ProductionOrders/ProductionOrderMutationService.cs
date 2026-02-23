@@ -90,7 +90,8 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             CreationDate = DateTime.UtcNow,
             ModificationDate = DateTime.UtcNow,
             UserId = request.UserId,
-            ProductId = request.ProductId
+            ProductId = request.ProductId,
+            SewingTeamId = request.SewingTeamId
         };
 
         await _orderRepository.AddAsync(order);

@@ -5,6 +5,7 @@
 @using System.Text.Json.Serialization
 @attribute [Authorize]
 @using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Components
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
@@ -12,6 +13,7 @@
 @inject IProductionOrderQueryClient QueryClient
 @inject IProductionOrderMutationClient MutationClient
 @inject IProductionOrderLifecycleClient LifecycleClient
+@inject IJSRuntime JSRuntime
 
 @using GestionProduccion.Client.Resources
 
@@ -416,7 +418,7 @@
 
 @if (showQAForm)
 {
-    <QARegistryModal OrderId="Id" OnClose="OnQAClose" />
+    <QARegistryModal OrderId="Id" OnSuccess="OnQASuccess" OnClose="OnQAClose" />
 }
 
 @if (showCompleteModal)
@@ -543,14 +545,15 @@
         }
     }
 
-    private async Task OnQAClose(bool success)
+    private async Task OnQASuccess()
+    {
+        await LoadDefects();
+        ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+    }
+
+    private void OnQAClose()
     {
         showQAForm = false;
-        if (success)
-        {
-            await LoadDefects();
-            ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
-        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -717,6 +720,4 @@
         if (order.CurrentStatus == "Completed") return false;
         return order.CurrentStage == stage.ToString();
     }
-
-    [Inject] IJSRuntime JSRuntime { get; set; }
 }
