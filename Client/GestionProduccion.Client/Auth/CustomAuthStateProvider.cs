@@ -74,13 +74,31 @@ namespace GestionProduccion.Client.Auth
                 var value = element.Value;
 
                 // Robust mapping to standard .NET ClaimTypes
-                if (key == "role" || key.Contains("claims/role"))
+                if (key == "role" || key == "roles" || key.Contains("claims/role"))
                 {
                     if (value.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var r in value.EnumerateArray()) claims.Add(new Claim(ClaimTypes.Role, r.GetString() ?? ""));
+                        foreach (var r in value.EnumerateArray()) 
+                        {
+                            claims.Add(new Claim(ClaimTypes.Role, r.GetString() ?? ""));
+                        }
                     }
-                    else claims.Add(new Claim(ClaimTypes.Role, value.GetString() ?? value.ToString()));
+                    else 
+                    {
+                        var roleValue = value.GetString() ?? value.ToString();
+                        // Handle potential comma-separated roles in a single string
+                        if (roleValue.Contains(','))
+                        {
+                            foreach (var r in roleValue.Split(','))
+                            {
+                                claims.Add(new Claim(ClaimTypes.Role, r.Trim()));
+                            }
+                        }
+                        else
+                        {
+                            claims.Add(new Claim(ClaimTypes.Role, roleValue));
+                        }
+                    }
                 }
                 else if (key == "unique_name" || key == "name" || key.Contains("claims/name"))
                 {
