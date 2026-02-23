@@ -5,6 +5,8 @@
 **/obj
 **/*.user
 **/*.log
+test_publish/
+docker_publish_test/
 .dockerignore
 Dockerfile
 docker-compose*

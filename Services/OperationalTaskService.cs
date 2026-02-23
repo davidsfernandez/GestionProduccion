@@ -64,6 +64,7 @@ public class OperationalTaskService : ITaskService
     {
         // Algorithm: (Completed Tasks / Total) * resolution time efficiency
         // For MVP: Count completed tasks within deadline
+        // FIXED: Handle empty sequences for Average to prevent 'Nullable object must have a value' exception
         var result = await _context.Users
             .Where(u => u.Role != Domain.Enums.UserRole.Administrator)
             .Select(u => new RankingEntryDto
@@ -74,7 +75,9 @@ public class OperationalTaskService : ITaskService
                     .Count(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed),
                 Score = _context.OperationalTasks
                     .Where(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed)
-                    .Average(t => 100.0) // Placeholder for efficiency calculation
+                    .Select(t => 100.0)
+                    .DefaultIfEmpty(0)
+                    .Average()
             })
             .OrderByDescending(r => r.CompletedTasks)
             .ToListAsync();

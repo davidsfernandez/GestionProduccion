@@ -4,7 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <WarningsAsErrors>false</WarningsAsErrors>
+    <UserSecretsId>gestion-produccion-secrets-2026</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <!-- Explicitly exclude nested source directories to prevent duplicate compilation in Docker/Linux -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Client/GestionProduccion.Client/wwwroot/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- Optimization for Production (Release) -->
@@ -14,43 +17,56 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Client\**" />
-    <Content Remove="Client\**" />
-    <EmbeddedResource Remove="Client\**" />
-    <None Remove="Client\**" />
-    <Compile Remove="GestionProduccion.Shared\**" />
-    <Content Remove="GestionProduccion.Shared\**" />
-    <EmbeddedResource Remove="GestionProduccion.Shared\**" />
-    <None Remove="GestionProduccion.Shared\**" />
-    <Compile Remove="GestionProduccion.Tests\**" />
-    <Content Remove="GestionProduccion.Tests\**" />
-    <EmbeddedResource Remove="GestionProduccion.Tests\**" />
-    <None Remove="GestionProduccion.Tests\**" />
+    <!-- Exclude source from the main project to avoid duplicate types & errors -->
+    <Compile Remove="Client/**" />
+    <Compile Remove="GestionProduccion.Shared/**" />
+    <Compile Remove="GestionProduccion.Tests/**" />
+    <Compile Remove="docker_publish_test/**" />
+    <Compile Remove="test_publish/**" />
+    
+    <!-- Also remove non-compiled items to be safe -->
+    <None Remove="Client/**" />
+    <None Remove="GestionProduccion.Shared/**" />
+    <None Remove="GestionProduccion.Tests/**" />
+    
+    <!-- CRITICAL: Exclude Razor files from Content to stop Server from compiling them -->
+    <Content Remove="Client/**" />
+    <Content Remove="GestionProduccion.Shared/**" />
+    <Content Remove="GestionProduccion.Tests/**" />
+    <Content Remove="docker_publish_test/**" />
+    <Content Remove="test_publish/**" />
+    
+    <EmbeddedResource Remove="Client/**" />
+    <EmbeddedResource Remove="GestionProduccion.Shared/**" />
+    <EmbeddedResource Remove="GestionProduccion.Tests/**" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include=".github\copilot-instructions.md" />
-  </ItemGroup>
-
- <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-    <PackageReference Include="ClosedXML" Version="0.102.2" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
-    <PackageReference Include="QRCoder" Version="1.7.0" />
-    <PackageReference Include="QuestPDF" Version="2025.12.4" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="QuestPDF" Version="2023.12.0" />
+    <PackageReference Include="QRCoder" Version="1.4.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="Client\GestionProduccion.Client\GestionProduccion.Client.csproj" />
     <ProjectReference Include="GestionProduccion.Shared\GestionProduccion.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Explicitly include Client wwwroot assets for publishing -->
+    <Content Include="Client/GestionProduccion.Client/wwwroot/**" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

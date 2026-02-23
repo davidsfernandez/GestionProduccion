@@ -5,6 +5,7 @@ WORKDIR /src
 # Copy solution and project files first to leverage Docker cache
 COPY ["GestionProduccion.sln", "./"]
 COPY ["GestionProduccion.csproj", "./"]
+COPY ["GestionProduccion.Shared/GestionProduccion.Shared.csproj", "GestionProduccion.Shared/"]
 COPY ["Client/GestionProduccion.Client/GestionProduccion.Client.csproj", "Client/GestionProduccion.Client/"]
 COPY ["GestionProduccion.Tests/GestionProduccion.Tests.csproj", "GestionProduccion.Tests/"]
 

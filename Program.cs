@@ -138,7 +138,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // --- 6. CONTROLLERS & JSON REPAIR ---
-builder.Services.AddControllers()
+builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
         // Fix for circular references (Architect Rule 7)
@@ -151,6 +151,7 @@ builder.Services.AddControllers()
         // Safeguard against nulls (Architect Rule 48)
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
+builder.Services.AddRazorPages();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -162,7 +163,7 @@ builder.Services.AddResponseCompression(options =>
     options.Providers.Add<BrotliCompressionProvider>();
     options.Providers.Add<GzipCompressionProvider>();
     options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/octet-stream", "application/json" });
+        new[] { "application/octet-stream", "application/json", "application/wasm" });
 });
 
 // --- 8. CORS REPAIR (Architect Rule 11) ---
@@ -179,12 +180,16 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // --- 8. MIDDLEWARE PIPELINE (Correct Order) ---
-if (app.Environment.IsDevelopment())
+// Enable Swagger in Dev or if explicitly enabled via Env Var (e.g. in Docker)
+if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
 {
-    app.UseDeveloperExceptionPage(); // Architect Rule 18
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseDeveloperExceptionPage(); // Architect Rule 18
+        app.UseWebAssemblyDebugging();
+    }
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseWebAssemblyDebugging();
 }
 
 app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
@@ -200,7 +205,12 @@ app.Use(async (context, next) =>
 
 app.UseResponseCompression();
 
-app.UseHttpsRedirection();
+// Only enforce HTTPS Redirection if NOT running in a container (Docker handles SSL termination usually)
+if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseBlazorFrameworkFiles(); // Architect Rule 19
 app.UseStaticFiles();          // Architect Rule 19
 app.UseRouting();
@@ -247,6 +257,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
+app.MapRazorPages();
 app.MapHub<ProductionHub>("/productionHub");
 app.MapFallbackToFile("index.html");
 
