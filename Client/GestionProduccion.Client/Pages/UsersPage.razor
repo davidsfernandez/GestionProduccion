@@ -296,6 +296,7 @@
                 ToastService.ShowToast(isEditing ? Portuguese.Msg_UserUpdated : Portuguese.Msg_UserCreated, ToastLevel.Success);
                 showModal = false;
                 await LoadUsers();
+                await InvokeAsync(StateHasChanged);
             }
             else
             {

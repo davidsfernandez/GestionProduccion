@@ -169,6 +169,7 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             // Immediate update from claims (JWT)
+            // Use the consistent claim name 'AvatarUrl'
             var avatarClaim = user.FindFirst("AvatarUrl");
             if (avatarClaim != null && !string.IsNullOrEmpty(avatarClaim.Value))
             {
