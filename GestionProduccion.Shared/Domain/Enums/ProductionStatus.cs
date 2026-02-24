@@ -5,6 +5,7 @@ namespace GestionProduccion.Domain.Enums;
 /// </summary>
 public enum ProductionStatus
 {
+    Pending,
     InProduction,
     Stopped,
     Completed,

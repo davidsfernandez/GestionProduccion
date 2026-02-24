@@ -32,7 +32,8 @@ namespace GestionProduccion.Tests
             var orderRepo = new ProductionOrderRepository(context);
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
+            var teamRepo = new SewingTeamRepository(context);
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
 
             var result = await service.GetActiveUsersAsync();
 
@@ -51,7 +52,8 @@ namespace GestionProduccion.Tests
             var orderRepo = new ProductionOrderRepository(context);
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
+            var teamRepo = new SewingTeamRepository(context);
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
 
             var result = await service.GetUserByIdAsync(user.Id);
 
@@ -67,7 +69,8 @@ namespace GestionProduccion.Tests
             var orderRepo = new ProductionOrderRepository(context);
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
+            var teamRepo = new SewingTeamRepository(context);
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
 
             var newUser = new User { FullName = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operational };
 
@@ -90,7 +93,8 @@ namespace GestionProduccion.Tests
             var orderRepo = new ProductionOrderRepository(context);
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
+            var teamRepo = new SewingTeamRepository(context);
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
 
             user.FullName = "Updated Name";
 
@@ -112,7 +116,8 @@ namespace GestionProduccion.Tests
             var orderRepo = new ProductionOrderRepository(context);
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
+            var teamRepo = new SewingTeamRepository(context);
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
 
             await service.DeactivateUserAsync(user.Id);
             var deletedUser = await context.Users.FindAsync(user.Id);

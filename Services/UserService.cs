@@ -13,17 +13,20 @@ public class UserService : IUserService
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IPasswordResetTokenRepository _passwordResetRepo;
     private readonly IUserRefreshTokenRepository _refreshTokenRepo;
+    private readonly ISewingTeamRepository _teamRepository;
 
     public UserService(
         IUserRepository userRepository,
         IProductionOrderRepository orderRepository,
         IPasswordResetTokenRepository passwordResetRepo,
-        IUserRefreshTokenRepository refreshTokenRepo)
+        IUserRefreshTokenRepository refreshTokenRepo,
+        ISewingTeamRepository teamRepository)
     {
         _userRepository = userRepository;
         _orderRepository = orderRepository;
         _passwordResetRepo = passwordResetRepo;
         _refreshTokenRepo = refreshTokenRepo;
+        _teamRepository = teamRepository;
     }
 
     public async Task<User?> GetUserByIdAsync(int userId)
@@ -101,6 +104,15 @@ public class UserService : IUserService
             throw new InvalidOperationException("User password hash cannot be empty.");
         }
 
+        if (user.SewingTeamId.HasValue)
+        {
+            var team = await _teamRepository.GetByIdAsync(user.SewingTeamId.Value);
+            if (team == null)
+            {
+                throw new InvalidOperationException($"Sewing Team with ID {user.SewingTeamId} not found.");
+            }
+        }
+
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
         if (existingUser != null)
         {
@@ -137,11 +149,21 @@ public class UserService : IUserService
             throw new KeyNotFoundException("User not found.");
         }
 
+        if (user.SewingTeamId.HasValue)
+        {
+            var team = await _teamRepository.GetByIdAsync(user.SewingTeamId.Value);
+            if (team == null)
+            {
+                throw new InvalidOperationException($"Sewing Team with ID {user.SewingTeamId} not found.");
+            }
+        }
+
         existingUser.FullName = user.FullName;
         existingUser.Email = user.Email;
         existingUser.Role = user.Role;
         existingUser.AvatarUrl = user.AvatarUrl;
         existingUser.IsActive = user.IsActive;
+        existingUser.SewingTeamId = user.SewingTeamId;
 
         await _userRepository.UpdateAsync(existingUser);
         await _userRepository.SaveChangesAsync();

@@ -49,6 +49,7 @@ builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUse
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderRepository, GestionProduccion.Data.Repositories.ProductionOrderRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISystemConfigurationRepository, GestionProduccion.Data.Repositories.SystemConfigurationRepository>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
+builder.Services.AddScoped<ISewingTeamService, SewingTeamService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRefreshTokenRepository, GestionProduccion.Data.Repositories.UserRefreshTokenRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data
 .Repositories.PasswordResetTokenRepository>();

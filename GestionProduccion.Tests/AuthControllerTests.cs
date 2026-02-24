@@ -37,6 +37,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
+            var mockTeamRepo = new Mock<ISewingTeamRepository>();
 
             var user = new User
             {
@@ -76,6 +77,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
+            var mockTeamRepo = new Mock<ISewingTeamRepository>();
 
             var user = new User
             {
@@ -114,6 +116,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
+            var mockTeamRepo = new Mock<ISewingTeamRepository>();
 
             mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
 
