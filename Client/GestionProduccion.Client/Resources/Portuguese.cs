@@ -21,7 +21,7 @@ namespace GestionProduccion.Client.Resources
         public const string Generate = "Gerar";
         public const string Success = "Sucesso";
         public const string ConfirmDeactivate = "Tem certeza que deseja desativar este usuário?";
-        
+
         // Navigation
         public const string Nav_Dashboard = "Início";
         public const string Nav_Orders = "Ordens de Produção";
@@ -29,7 +29,7 @@ namespace GestionProduccion.Client.Resources
         public const string Nav_Users = "Usuários";
         public const string Nav_Teams = "Equipes";
         public const string Nav_Reports = "Relatórios";
-        
+
         // Dashboard
         public const string Dash_Title = "Dashboard de Produção";
         public const string Dash_CompletionRate = "Taxa de Conclusão";
@@ -51,7 +51,7 @@ namespace GestionProduccion.Client.Resources
         public const string Dash_RecentActivity = "Atividades Recentes";
         public const string Dash_RealTime = "Tempo Real";
         public const string Dash_NoRecentActivity = "Nenhuma atividade recente.";
-        
+
         // Production Orders
         public const string OP_Title = "Ordens de Produção";
         public const string OP_NewOrder = "Nova Ordem";
@@ -72,7 +72,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_Urgent = "Prioridade Alta (Urgente)";
         public const string OP_NoUrgentFound = "Nenhuma ordem urgente";
         public const string OP_BatchCount = "Lotes";
-        
+
         // Order Create / Details
         public const string OP_Create_Title = "Criar Nova Ordem de Produção";
         public const string OP_Details_Title = "Detalhes da Ordem de Produção";
@@ -111,7 +111,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_ConfirmFinalize = "Confirmar Finalização";
         public const string OP_FinalizeWarning = "Tem certeza que deseja finalizar a produção da ordem?";
         public const string OP_FinalizeEffects = "Esta ação irá encerrar o cronômetro, calcular custos e atualizar estoque.";
-        
+
         // History Table
         public const string Hist_Date = "Data";
         public const string Hist_From = "De";
@@ -135,33 +135,33 @@ namespace GestionProduccion.Client.Resources
         public const string User_PassHint = "(Deixe em branco para manter a atual)";
         public const string User_GenerateUUID = "Gerar UUID";
         public const string User_UUIDRequired = "UUID Público é obrigatório.";
-        
+
         // Profile
         public const string Prof_Title = "Meu Perfil";
         public const string Prof_ChangePass = "Alterar Senha";
         public const string Prof_CurrentPass = "Senha Atual";
         public const string Prof_NewPass = "Nova Senha";
         public const string Prof_ConfirmPass = "Confirmar Nova Senha";
-        
+
         // Roles
         public const string Role_Admin = "Administrador";
         public const string Role_Leader = "Líder";
         public const string Role_Operator = "Costureira";
         public const string Role_Workshop = "Oficina";
-        
+
         // Stages
         public const string Stage_Cutting = "Corte";
         public const string Stage_Sewing = "Costura";
         public const string Stage_Review = "Revisão";
         public const string Stage_Packaging = "Embalagem";
-        
+
         // Status
         public const string Status_InProduction = "Em Produção";
         public const string Status_Stopped = "Parado";
         public const string Status_Completed = "Finalizado";
         public const string Status_Paused = "Pausado";
         public const string Status_Finished = "Concluído";
-        
+
         // Toasts / Messages
         public const string Msg_OrderCreated = "Ordem de produção criada";
         public const string Msg_OrderUpdated = "Ordem atualizada";
@@ -206,7 +206,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_CurrentAssignment = "Atribuição Atual";
         public const string OP_OperatorAssigned = "Operador Atribuído";
         public const string OP_AssignOperator = "Atribuir Operador";
-        
+
         public const string QA_Title = "Qualidade";
         public const string QA_Reason = "Motivo";
         public const string QA_Photo = "Foto";

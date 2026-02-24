@@ -61,7 +61,7 @@ public class DashboardBIService : IDashboardBIService
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed)
             .GroupBy(o => o.ProductId)
-            .Select(g => new 
+            .Select(g => new
             {
                 ProductId = g.Key,
                 AvgMargin = g.Average(x => x.ProfitMargin)

@@ -68,7 +68,7 @@ public class OperationalTaskService : ITaskService
         var rawData = await _context.Users
             .AsNoTracking()
             .Where(u => u.Role != Domain.Enums.UserRole.Administrator)
-            .Select(u => new 
+            .Select(u => new
             {
                 u.FullName,
                 AvatarUrl = u.AvatarUrl,
@@ -83,7 +83,7 @@ public class OperationalTaskService : ITaskService
                 UserName = u.FullName,
                 AvatarUrl = u.AvatarUrl ?? "",
                 CompletedTasks = u.CompletedCount,
-                Score = u.CompletedCount * 10.0 
+                Score = u.CompletedCount * 10.0
             })
             .OrderByDescending(r => r.Score)
             .ThenByDescending(r => r.CompletedTasks)
@@ -109,10 +109,10 @@ public class OperationalTaskService : ITaskService
     {
         if (t.Status == OpTaskStatus.Completed) return 100;
         if (t.Deadline == null) return 0;
-        
+
         var total = (t.Deadline.Value - t.CreatedAt).TotalSeconds;
         var elapsed = (DateTime.UtcNow - t.CreatedAt).TotalSeconds;
-        
+
         var progress = (elapsed / total) * 100;
         return Math.Clamp(progress, 0, 100);
     }

@@ -236,7 +236,8 @@
                 InternalCode = product.InternalCode,
                 FabricType = product.FabricType,
                 MainSku = product.MainSku,
-                EstimatedSalePrice = product.EstimatedSalePrice
+                EstimatedSalePrice = product.EstimatedSalePrice,
+                AverageProductionTimeMinutes = product.AverageProductionTimeMinutes
             };
             averageTime = product.AverageProductionTimeMinutes;
         }
@@ -294,23 +295,20 @@
             }
             else
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                var errorBody = await response.Content.ReadAsStringAsync();
+                string specificError = errorBody;
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
                 {
-                    var errorBody = await response.Content.ReadAsStringAsync();
-                    if (errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ToastService.ShowToast("O código do produto já existe", ToastLevel.Error);
-                    }
-                    else
-                    {
-                        ToastService.ShowToast($"{Portuguese.Msg_Error}: {errorBody}", ToastLevel.Error);
-                    }
+                    specificError = "O código do produto já existe";
                 }
-                else
-                {
-                    ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
-                }
+                
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
             }
+        }
+        catch (HttpRequestException)
+        {
+            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -336,12 +334,17 @@
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error);
+                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
                 }
                 else
                 {
-                    ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    ToastService.ShowToast($"{Portuguese.Msg_Error}: {errorBody}", ToastLevel.Error);
                 }
+            }
+            catch (HttpRequestException)
+            {
+                ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
             }
             catch (Exception ex)
             {

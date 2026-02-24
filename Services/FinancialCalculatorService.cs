@@ -19,7 +19,7 @@ public class FinancialCalculatorService : IFinancialCalculatorService
     {
         if (order.StartedAt == null || order.CompletedAt == null)
         {
-            return; 
+            return;
         }
 
         var hourlyCostStr = await _configRepo.GetValueAsync("OperationalHourlyCost");

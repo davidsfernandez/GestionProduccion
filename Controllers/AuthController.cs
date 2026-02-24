@@ -25,9 +25,9 @@ public class AuthController : ControllerBase
     private readonly IEmailService _emailService;
 
     public AuthController(
-        IConfiguration configuration, 
-        IUserService userService, 
-        ILogger<AuthController> logger, 
+        IConfiguration configuration,
+        IUserService userService,
+        ILogger<AuthController> logger,
         IUserRefreshTokenRepository refreshTokenRepo,
         IPasswordResetTokenRepository passwordResetRepo,
         IEmailService emailService)
@@ -105,9 +105,9 @@ public class AuthController : ControllerBase
             });
 
             _logger.LogInformation("LOGIN SUCCESS: User {Email} logged in successfully", login.Email);
-            return Ok(new LoginResponse 
-            { 
-                Token = token, 
+            return Ok(new LoginResponse
+            {
+                Token = token,
                 RefreshToken = refreshToken,
                 AvatarUrl = user.AvatarUrl,
                 FullName = user.FullName
@@ -116,9 +116,10 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "LOGIN CRITICAL ERROR: {Message}", ex.Message);
-            return StatusCode(500, new { 
-                message = "An error occurred during login.", 
-                error = ex.Message 
+            return StatusCode(500, new
+            {
+                message = "An error occurred during login.",
+                error = ex.Message
             });
         }
     }
@@ -175,8 +176,8 @@ public class AuthController : ControllerBase
 
         if (token == null) return Ok(new { message = "If the email exists, a reset link has been sent." });
 
-        var resetLink = $"https://tu-dominio.com/reset-password?token={token}&email={Uri.EscapeDataString(request.Email)}";      
-        var emailBody = $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 15 minutes.</p>"; 
+        var resetLink = $"https://tu-dominio.com/reset-password?token={token}&email={Uri.EscapeDataString(request.Email)}";
+        var emailBody = $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 15 minutes.</p>";
 
         await _emailService.SendEmailAsync(request.Email, "Reset Password", emailBody);
 

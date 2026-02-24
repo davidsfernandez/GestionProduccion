@@ -15,7 +15,7 @@ public class UserService : IUserService
     private readonly IUserRefreshTokenRepository _refreshTokenRepo;
 
     public UserService(
-        IUserRepository userRepository, 
+        IUserRepository userRepository,
         IProductionOrderRepository orderRepository,
         IPasswordResetTokenRepository passwordResetRepo,
         IUserRefreshTokenRepository refreshTokenRepo)
@@ -265,7 +265,7 @@ public class UserService : IUserService
 
     public async Task<bool> IsSetupRequiredAsync()
     {
-        var count = await _userRepository.CountAsync(); 
+        var count = await _userRepository.CountAsync();
         return count == 0;
     }
 }

@@ -16,7 +16,7 @@ public class ProductClient : IProductClient
 {
     private readonly HttpClient _httpClient;
     public ProductClient(HttpClient httpClient) => _httpClient = httpClient;
-    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default) => 
+    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default) =>
         await _httpClient.GetFromJsonAsync<List<ProductDto>>("api/Products", ct);
 }
 
@@ -29,6 +29,6 @@ public class SewingTeamClient : ISewingTeamClient
 {
     private readonly HttpClient _httpClient;
     public SewingTeamClient(HttpClient httpClient) => _httpClient = httpClient;
-    public async Task<ApiResponse<List<SewingTeamDto>>?> GetAllTeamsAsync(CancellationToken ct = default) => 
+    public async Task<ApiResponse<List<SewingTeamDto>>?> GetAllTeamsAsync(CancellationToken ct = default) =>
         await _httpClient.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", ct);
 }

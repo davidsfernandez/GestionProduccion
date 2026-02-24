@@ -27,7 +27,7 @@ public class ProductionOrderServiceTests : IDisposable
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<IProductRepository> _mockProductRepo;
     private readonly Mock<IFinancialCalculatorService> _mockFinancialCalc;
-    
+
     private readonly ProductionOrderQueryService _queryService;
     private readonly ProductionOrderMutationService _mutationService;
     private readonly ProductionOrderLifecycleService _lifecycleService;
@@ -61,20 +61,20 @@ public class ProductionOrderServiceTests : IDisposable
         _mockProductRepo.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product?)null);
 
         _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object);
-        
+
         _mutationService = new ProductionOrderMutationService(
-            orderRepo, 
-            userRepo, 
-            _mockProductRepo.Object, 
-            _mockHubContext.Object, 
+            orderRepo,
+            userRepo,
+            _mockProductRepo.Object,
+            _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
             _mockFinancialCalc.Object);
 
         _lifecycleService = new ProductionOrderLifecycleService(
-            orderRepo, 
-            userRepo, 
-            _mockProductRepo.Object, 
-            _mockHubContext.Object, 
+            orderRepo,
+            userRepo,
+            _mockProductRepo.Object,
+            _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
             _mockFinancialCalc.Object);
     }
@@ -143,6 +143,6 @@ public class ProductionOrderServiceTests : IDisposable
         var result = await _queryService.GetDashboardAsync();
 
         Assert.NotNull(result);
-        Assert.Equal(50.0m, result.CompletionRate); 
+        Assert.Equal(50.0m, result.CompletionRate);
     }
 }

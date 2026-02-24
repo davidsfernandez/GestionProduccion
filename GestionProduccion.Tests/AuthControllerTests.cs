@@ -37,25 +37,25 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            
-            var user = new User 
-            { 
+
+            var user = new User
+            {
                 Id = 1,
-                FullName = "Admin", 
-                Email = "admin@test.com", 
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
-                Role = Domain.Enums.UserRole.Administrator, 
-                IsActive = true 
+                FullName = "Admin",
+                Email = "admin@test.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
+                Role = Domain.Enums.UserRole.Administrator,
+                IsActive = true
             };
 
             mockUserService.Setup(s => s.GetUserByEmailAsync("admin@test.com")).ReturnsAsync(user);
 
             var controller = new AuthController(
-                config, 
-                mockUserService.Object, 
-                mockLogger.Object, 
-                mockRefreshTokenRepo.Object, 
-                mockPasswordResetRepo.Object, 
+                config,
+                mockUserService.Object,
+                mockLogger.Object,
+                mockRefreshTokenRepo.Object,
+                mockPasswordResetRepo.Object,
                 mockEmailService.Object
             );
 
@@ -76,25 +76,25 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            
-            var user = new User 
-            { 
+
+            var user = new User
+            {
                 Id = 1,
-                FullName = "User", 
-                Email = "user@test.com", 
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
-                Role = Domain.Enums.UserRole.Operator, 
-                IsActive = true 
+                FullName = "User",
+                Email = "user@test.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
+                Role = Domain.Enums.UserRole.Operator,
+                IsActive = true
             };
 
             mockUserService.Setup(s => s.GetUserByEmailAsync("user@test.com")).ReturnsAsync(user);
 
             var controller = new AuthController(
-                config, 
-                mockUserService.Object, 
-                mockLogger.Object, 
-                mockRefreshTokenRepo.Object, 
-                mockPasswordResetRepo.Object, 
+                config,
+                mockUserService.Object,
+                mockLogger.Object,
+                mockRefreshTokenRepo.Object,
+                mockPasswordResetRepo.Object,
                 mockEmailService.Object
             );
 
@@ -114,15 +114,15 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            
+
             mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
 
             var controller = new AuthController(
-                config, 
-                mockUserService.Object, 
-                mockLogger.Object, 
-                mockRefreshTokenRepo.Object, 
-                mockPasswordResetRepo.Object, 
+                config,
+                mockUserService.Object,
+                mockLogger.Object,
+                mockRefreshTokenRepo.Object,
+                mockPasswordResetRepo.Object,
                 mockEmailService.Object
             );
 

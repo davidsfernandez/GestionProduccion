@@ -59,7 +59,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>()
             .HasIndex(p => p.MainSku)
             .IsUnique();
-        
+
         modelBuilder.Entity<Product>()
             .HasIndex(p => p.InternalCode)
             .IsUnique();
@@ -72,7 +72,7 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         // --- ENUM TO STRING CONVERSION ---
-            
+
         // User Refresh Token
         modelBuilder.Entity<UserRefreshToken>()
             .HasIndex(rt => rt.Token)
@@ -106,7 +106,7 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(50);
-            
+
         // System Configuration
         modelBuilder.Entity<SystemConfiguration>()
             .HasIndex(sc => sc.Key)
@@ -151,7 +151,7 @@ public class AppDbContext : DbContext
             .Property(h => h.NewStatus)
             .HasConversion<string>()
             .HasMaxLength(50);
-            
+
         // --- INDEX AND CONSTRAINT CONFIGURATION ---
 
         // Ensures that the production order code is unique
@@ -174,7 +174,7 @@ public class AppDbContext : DbContext
             .WithMany(u => u.HistoryChanges)
             .HasForeignKey(h => h.UserId)
             .OnDelete(DeleteBehavior.Restrict);
-            
+
         // Relationship: ProductionOrder -> ProductionHistory (1 to N)
         modelBuilder.Entity<ProductionHistory>()
             .HasOne(h => h.ProductionOrder)

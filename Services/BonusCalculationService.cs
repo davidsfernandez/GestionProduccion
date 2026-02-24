@@ -31,12 +31,12 @@ public class BonusCalculationService : IBonusCalculationService
         if (team == null) throw new KeyNotFoundException("Team not found.");
 
         var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
-        
+
         // Query completed orders within range for this team (Server-Side Evaluation)
         var query = await _orderRepo.GetQueryableAsync();
         var teamOrders = await query
             .AsNoTracking()
-            .Where(o => o.SewingTeamId == teamId && 
+            .Where(o => o.SewingTeamId == teamId &&
                         o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
                         o.CompletedAt >= startDate && o.CompletedAt <= endDate)
             .ToListAsync();
@@ -55,24 +55,24 @@ public class BonusCalculationService : IBonusCalculationService
 
         int totalProduced = teamOrders.Sum(o => o.Quantity);
         int onTimeOrders = teamOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
-        
+
         // Sum defects from QA Service
         int totalDefects = 0;
-        foreach(var order in teamOrders)
+        foreach (var order in teamOrders)
         {
             var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
             totalDefects += defects.Sum(d => d.Quantity);
         }
 
         // --- CALCULATIONS ---
-        
+
         // 1. Productivity (Based on meta if available, else standard bonus if they produced anything)
         decimal productivityBonus = (decimal)rule.ProductivityPercentage;
 
         // 2. Deadline Performance
         decimal onTimeRatio = (decimal)onTimeOrders / teamOrders.Count;
         decimal deadlineBonus = onTimeRatio * 0; // rule.DeadlineBonusPercentage not available in standard entity yet?
-        
+
         // 3. Quality Penalty
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
         decimal finalBonus = productivityBonus + deadlineBonus;
@@ -80,7 +80,7 @@ public class BonusCalculationService : IBonusCalculationService
         // Simple placeholder logic as BonusRule entity might need update to support full properties
         if (defectRatio > 5) // 5% limit
         {
-            finalBonus = 0; 
+            finalBonus = 0;
         }
 
         if (finalBonus < 0) finalBonus = 0;

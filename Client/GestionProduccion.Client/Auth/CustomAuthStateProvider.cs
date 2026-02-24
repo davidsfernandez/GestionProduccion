@@ -66,7 +66,7 @@ namespace GestionProduccion.Client.Auth
             var claims = new List<Claim>();
             var payload = jwt.Split('.')[1];
             var jsonBytes = ParseBase64WithoutPadding(payload);
-            
+
             using var jsonDoc = JsonDocument.Parse(jsonBytes);
             foreach (var element in jsonDoc.RootElement.EnumerateObject())
             {
@@ -78,7 +78,7 @@ namespace GestionProduccion.Client.Auth
                 {
                     if (value.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var r in value.EnumerateArray()) 
+                        foreach (var r in value.EnumerateArray())
                         {
                             var roleStr = r.GetString();
                             if (!string.IsNullOrEmpty(roleStr))
@@ -87,7 +87,7 @@ namespace GestionProduccion.Client.Auth
                             }
                         }
                     }
-                    else 
+                    else
                     {
                         var roleValue = value.GetString() ?? value.ToString();
                         // Handle potential comma-separated roles in a single string

@@ -15,9 +15,9 @@ public class BonusRule
     public double ProductivityPercentage { get; set; }
 
     public decimal DeadlineBonusPercentage { get; set; }
-    
+
     public decimal DefectLimitPercentage { get; set; }
-    
+
     public decimal DelayPenaltyPercentage { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]

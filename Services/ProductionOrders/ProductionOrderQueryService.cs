@@ -68,7 +68,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
             if (filter.EndDate.HasValue)
                 query = query.Where(po => po.CreatedAt <= filter.EndDate.Value);
-            
+
             if (!string.IsNullOrWhiteSpace(filter.ClientName))
                 query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
 
@@ -86,7 +86,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(po => po.AssignedTeam)
             .OrderByDescending(po => po.CreatedAt)
             .ToListAsync(ct);
-            
+
         return ordersList.Select(MapToDto).ToList();
     }
 
@@ -94,7 +94,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     {
         var today = DateTime.UtcNow.Date;
         var query = await _orderRepository.GetQueryableAsync();
-        
+
         // Eager load related entities for the report and UI
         var ordersWithRelations = query
             .Include(o => o.AssignedUser)

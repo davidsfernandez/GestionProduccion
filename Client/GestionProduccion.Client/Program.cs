@@ -15,11 +15,18 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // --- 1. HTTP CLIENT CONFIGURATION (Dynamic BaseAddress) ---
 builder.Services.AddTransient<AuthHeaderHandler>();
 
-builder.Services.AddScoped(sp => 
+builder.Services.AddSingleton(new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    ReferenceHandler = ReferenceHandler.IgnoreCycles
+});
+
+builder.Services.AddScoped(sp =>
 {
     var handler = sp.GetRequiredService<AuthHeaderHandler>();
     handler.InnerHandler = new HttpClientHandler();
-    
+
     var client = new HttpClient(handler)
     {
         // Architect Rule 24: Dynamic assignment

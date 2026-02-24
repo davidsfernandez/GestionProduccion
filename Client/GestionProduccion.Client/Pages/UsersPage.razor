@@ -1,4 +1,4 @@
-@page "/users"
+@page "/usuarios"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using System.Text.Json
@@ -244,10 +244,15 @@
         _ => role
     };
 
+    private bool isSaving = false;
+
     private async Task HandleSubmit()
     {
+        if (isSaving) return;
+        
         try
         {
+            isSaving = true;
             errorMessage = null;
             HttpResponseMessage response;
 
@@ -283,13 +288,51 @@
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                errorMessage = $"{Portuguese.Msg_Error}: {error}";
+                var errorContent = await response.Content.ReadAsStringAsync();
+                string specificError = "Erro desconhecido";
+                
+                try 
+                {
+                    // Attempt to parse ApiResponse or ProblemDetails
+                    using var doc = JsonDocument.Parse(errorContent);
+                    if (doc.RootElement.TryGetProperty("message", out var msg))
+                    {
+                        specificError = msg.GetString() ?? specificError;
+                    }
+                    else if (doc.RootElement.TryGetProperty("detail", out var detail))
+                    {
+                        specificError = detail.GetString() ?? specificError;
+                    }
+                    else if (doc.RootElement.TryGetProperty("errors", out var errors))
+                    {
+                        specificError = errors.ToString();
+                    }
+                    else 
+                    {
+                        specificError = errorContent;
+                    }
+                }
+                catch 
+                {
+                    specificError = errorContent;
+                }
+
+                errorMessage = specificError;
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
             }
+        }
+        catch (HttpRequestException)
+        {
+            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
         }
         catch (Exception ex)
         {
             errorMessage = $"Erro inesperado: {ex.Message}";
+            ToastService.ShowToast(errorMessage, ToastLevel.Error);
+        }
+        finally
+        {
+            isSaving = false;
         }
     }
 

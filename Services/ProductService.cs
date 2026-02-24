@@ -65,7 +65,7 @@ public class ProductService : IProductService
         existing.MainSku = product.MainSku;
         existing.AverageProductionTimeMinutes = product.AverageProductionTimeMinutes;
         existing.EstimatedSalePrice = product.EstimatedSalePrice;
-        
+
         await _productRepository.UpdateAsync(existing);
         return existing;
     }

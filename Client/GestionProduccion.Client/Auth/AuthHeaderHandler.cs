@@ -30,7 +30,7 @@ namespace GestionProduccion.Client.Auth
             var response = await base.SendAsync(request, cancellationToken);
 
             // Check if unauthorized and not a refresh-token call itself to avoid infinite loop
-            if (response.StatusCode == HttpStatusCode.Unauthorized && 
+            if (response.StatusCode == HttpStatusCode.Unauthorized &&
                 !request.RequestUri!.ToString().Contains("api/Auth/refresh-token"))
             {
                 var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "refreshToken");
@@ -46,7 +46,7 @@ namespace GestionProduccion.Client.Auth
                     if (refreshResponse.IsSuccessStatusCode)
                     {
                         var loginResponse = await refreshResponse.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
-                        
+
                         if (loginResponse != null)
                         {
                             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", loginResponse.Token);

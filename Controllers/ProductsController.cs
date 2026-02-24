@@ -71,7 +71,7 @@ public class ProductsController : ControllerBase
             };
 
             var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
-            
+
             // Map back to DTO manually for simplicity
             var result = new ProductDto
             {
@@ -147,8 +147,8 @@ public class ProductsController : ControllerBase
         var product = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
         if (product == null) return NotFound();
 
-        return Ok(new 
-        { 
+        return Ok(new
+        {
             ProductId = product.Id,
             AverageMinutes = product.AverageProductionTimeMinutes,
             // Calculated estimation logic can be expanded here

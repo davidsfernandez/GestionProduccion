@@ -72,7 +72,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         {
             var today = DateTime.UtcNow;
             var prefix = $"OP-{today:yyyy-MM-dd}-";
-            
+
             // Find the max suffix for today
             var query = await _orderRepository.GetQueryableAsync();
             var todaysCodes = await query
@@ -89,7 +89,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
                     .Select(int.Parse)
                     .DefaultIfEmpty(0)
                     .Max();
-                
+
                 nextSequence = maxSuffix + 1;
             }
 
@@ -143,8 +143,8 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (order == null) return false;
 
         // Business Rule: block deletion if the order has passed the initial stage (Cutting) or is completed/finished
-        if (order.CurrentStage != ProductionStage.Cutting || 
-            order.CurrentStatus == ProductionStatus.Completed || 
+        if (order.CurrentStage != ProductionStage.Cutting ||
+            order.CurrentStatus == ProductionStatus.Completed ||
             order.CurrentStatus == ProductionStatus.Finished)
         {
             throw new InvalidOperationException($"{ErrorMessages.CannotDeleteByBusinessRules}: {ErrorMessages.OrderAlreadyInProgress}");

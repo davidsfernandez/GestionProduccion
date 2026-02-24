@@ -31,7 +31,7 @@ public class User
     // Navigation properties
     public virtual ICollection<ProductionOrder> AssignedOrders { get; set; } = new List<ProductionOrder>();
     public virtual ICollection<ProductionHistory> HistoryChanges { get; set; } = new List<ProductionHistory>();
-    
+
     // Many-to-Many relationship with SewingTeam
     public virtual ICollection<SewingTeam> Teams { get; set; } = new List<SewingTeam>();
 }

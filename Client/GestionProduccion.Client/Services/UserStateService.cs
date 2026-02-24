@@ -9,20 +9,20 @@ public class UserStateService
     private string? _avatarUrl;
     private string? _userName;
 
-    public string? AvatarUrl 
-    { 
-        get => _avatarUrl; 
-        private set 
+    public string? AvatarUrl
+    {
+        get => _avatarUrl;
+        private set
         {
             _avatarUrl = value;
             NotifyStateChanged();
         }
     }
 
-    public string? UserName 
-    { 
-        get => _userName; 
-        private set 
+    public string? UserName
+    {
+        get => _userName;
+        private set
         {
             _userName = value;
             NotifyStateChanged();

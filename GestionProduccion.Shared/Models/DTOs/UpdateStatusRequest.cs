@@ -7,6 +7,6 @@ public class UpdateStatusRequest
 {
     [Required]
     public ProductionStatus NewStatus { get; set; }
-    
+
     public string Note { get; set; } = string.Empty;
 }

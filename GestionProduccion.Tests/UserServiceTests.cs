@@ -68,7 +68,7 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
-            
+
             var newUser = new User { FullName = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operator };
 
             var result = await service.CreateUserAsync(newUser);
@@ -91,7 +91,7 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
-            
+
             user.FullName = "Updated Name";
 
             await service.UpdateUserAsync(user);

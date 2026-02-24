@@ -36,7 +36,7 @@ public class ReportService : IReportService
 
         if (!string.IsNullOrEmpty(logoBase64))
         {
-            try 
+            try
             {
                 var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
                 logoBytes = Convert.FromBase64String(base64Data);
@@ -108,7 +108,7 @@ public class ReportService : IReportService
 
                     // HISTORY / DETAILS TABLE
                     x.Item().PaddingTop(10).Text("Histórico de Movimentação").Bold().FontSize(12);
-                    
+
                     x.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
@@ -142,15 +142,15 @@ public class ReportService : IReportService
                 });
 
                 // FOOTER
-                page.Footer().AlignCenter().Row(row => 
+                page.Footer().AlignCenter().Row(row =>
                 {
-                    row.RelativeItem().Text(x => 
+                    row.RelativeItem().Text(x =>
                     {
                         x.Span("Gerado em: ");
                         x.Span(DateTime.Now.ToString("g"));
                     });
-                    
-                    row.RelativeItem().AlignRight().Text(x => 
+
+                    row.RelativeItem().AlignRight().Text(x =>
                     {
                         x.Span("Página ");
                         x.CurrentPageNumber();
@@ -170,7 +170,7 @@ public class ReportService : IReportService
 
         if (!string.IsNullOrEmpty(logoBase64))
         {
-            try 
+            try
             {
                 var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
                 logoBytes = Convert.FromBase64String(base64Data);
@@ -214,7 +214,7 @@ public class ReportService : IReportService
                             c.Item().Text("Resumo Estatístico").Bold();
                             c.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
                             c.Item().Text($"Taxa de Conclusão: {dashboard.CompletionRate}%");
-                            
+
                             var totalToday = dashboard.TodaysOrders.Count;
                             var efficiency = totalToday > 0 ? (decimal)dashboard.CompletedToday / totalToday * 100 : 0;
                             c.Item().Text($"Eficiência Global do Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
@@ -244,7 +244,7 @@ public class ReportService : IReportService
                             header.Cell().Element(HeaderStyle).Text("Status");
                             header.Cell().Element(HeaderStyle).Text("Custo Total");
 
-                            static IContainer HeaderStyle(IContainer container) => 
+                            static IContainer HeaderStyle(IContainer container) =>
                                 container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
                         });
 
@@ -260,7 +260,7 @@ public class ReportService : IReportService
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
                             table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.TotalCost:N2}");
 
-                            static IContainer CellStyle(IContainer container, string bgColor) => 
+                            static IContainer CellStyle(IContainer container, string bgColor) =>
                                 container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
                         }
                     });
@@ -287,7 +287,7 @@ public class ReportService : IReportService
         {
             var user = order.AssignedUserName ?? "N/A";
             var prod = (order.ProductName ?? "N/A").Replace(";", ",");
-            
+
             sb.AppendLine($"{order.LotCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedCompletionAt:dd/MM/yyyy};{user}");
         }
 

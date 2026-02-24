@@ -67,7 +67,7 @@
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="teams" @onclick="CollapseSidebar">
+                    <NavLink class="sidebar-link" href="equipes" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
                     </NavLink>
                 </li>
@@ -81,7 +81,7 @@
 
             <AuthorizeView Roles="Administrator">
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="bonus-report" @onclick="CollapseSidebar">
+                    <NavLink class="sidebar-link" href="relatorios" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-money-bill-trend-up"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
                     </NavLink>
                 </li>
@@ -98,7 +98,7 @@
             <AuthorizeView Roles="Administrator">
                 <li class="menu-label">Configurações</li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="users" @onclick="CollapseSidebar">
+                    <NavLink class="sidebar-link" href="usuarios" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
                     </NavLink>
                 </li>

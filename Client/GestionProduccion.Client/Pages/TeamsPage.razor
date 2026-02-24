@@ -1,14 +1,15 @@
-@page "/gestao-equipes"
+@page "/equipes"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Administrator")]
+@attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="h3 text-dark">Gestão de Equipes</h3>
         <button class="btn btn-primary" @onclick="ShowCreateModal">
-            <i class="fa-solid fa-plus me-2"></i>Nova Equipe
+            <i class="fa-solid fa-plus me-2"></i>Adicionar Equipe
         </button>
     </div>
 
@@ -20,26 +21,40 @@
     }
     else
     {
-        <div class="row">
-            @foreach (var team in teams)
-            {
-                <div class="col-md-4 mb-4" @key="team.Id">
-                    <div class="card shadow-sm h-100 @(team.IsActive ? "" : "opacity-50")">
-                        <div class="card-body">
-                            <h5 class="card-title fw-bold">@team.Name</h5>
-                            <p class="card-text text-muted">@team.MemberCount Membros</p>
-                            
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditTeam(team.Id)">Editar</button>
-                                <button class="btn btn-sm @(team.IsActive ? "btn-outline-danger" : "btn-outline-success")" 
-                                        @onclick="() => ToggleStatus(team)">
-                                    @(team.IsActive ? "Desativar" : "Ativar")
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var team in teams)
+                            {
+                                <tr @key="team.Id">
+                                    <td>@team.Name</td>
+                                    <td>
+                                        <span class="badge @(team.IsActive ? "bg-success" : "bg-danger")">
+                                            @(team.IsActive ? "Ativo" : "Inativo")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditTeam(team.Id)">Editar</button>
+                                        <button class="btn btn-sm @(team.IsActive ? "btn-outline-danger" : "btn-outline-success")" 
+                                                @onclick="() => ToggleStatus(team)">
+                                            @(team.IsActive ? "Desativar" : "Ativar")
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-            }
+            </div>
         </div>
     }
 </div>
@@ -54,15 +69,50 @@
 
     private async Task LoadTeams()
     {
-        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
-        if (response != null && response.Success) teams = response.Data;
+        try 
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+            if (response != null && response.Success) teams = response.Data;
+        }
+        catch (Exception)
+        {
+            // Error handling will be improved in Phase 2
+        }
     }
 
     private void ShowCreateModal() { /* Logic for modal */ }
     private void EditTeam(int id) { /* Logic for editing */ }
+    private bool isSaving = false;
+
     private async Task ToggleStatus(SewingTeamDto team)
     {
-        var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
-        if (response.IsSuccessStatusCode) await LoadTeams();
+        if (isSaving) return;
+        try
+        {
+            isSaving = true;
+            var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadTeams();
+                ToastService.ShowToast("Status da equipe atualizado", ToastLevel.Success);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ToastService.ShowToast($"Falha: {errorContent}", ToastLevel.Error, "Erro de API");
+            }
+        }
+        catch (HttpRequestException)
+        {
+            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro inesperado: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 }

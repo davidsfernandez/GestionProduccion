@@ -31,7 +31,7 @@ public class ExceptionMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        
+
         var statusCode = HttpStatusCode.InternalServerError;
         var message = "Internal Server Error. Please contact support.";
 
@@ -61,7 +61,7 @@ public class ExceptionMiddleware
         {
             Success = false,
             Message = message,
-            Data = exception.Message 
+            Data = exception.Message
         };
 
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };

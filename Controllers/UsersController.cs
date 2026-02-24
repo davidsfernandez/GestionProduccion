@@ -27,7 +27,7 @@ public class UsersController : ControllerBase
         try
         {
             var users = await _userService.GetActiveUsersAsync();
-            
+
             return Ok(users.Select(u => new UserDto
             {
                 Id = u.Id,
@@ -93,7 +93,7 @@ public class UsersController : ControllerBase
         {
             var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
             var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
-            
+
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -106,9 +106,9 @@ public class UsersController : ControllerBase
             }
 
             var newAvatarUrl = $"/img/avatars/{fileName}";
-            
+
             var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
-            
+
             if (!success) return StatusCode(500, "Failed to update user record in database.");
 
             return Ok(new { url = newAvatarUrl });

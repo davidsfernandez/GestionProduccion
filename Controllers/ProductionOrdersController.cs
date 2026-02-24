@@ -63,7 +63,7 @@ public class ProductionOrdersController : ControllerBase
             return StatusCode(500, new { message = "Error creating production order", error = ex.Message });
         }
     }
-    
+
     [HttpGet]
     public async Task<ActionResult<List<ProductionOrderDto>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter)
     {
@@ -234,7 +234,7 @@ public class ProductionOrdersController : ControllerBase
         }
         catch (Exception ex)
         {
-             return StatusCode(500, new { message = "Error changing stage", error = ex.Message });
+            return StatusCode(500, new { message = "Error changing stage", error = ex.Message });
         }
     }
 
@@ -308,7 +308,7 @@ public class ProductionOrdersController : ControllerBase
 
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
             if (pdfBytes == null) return NotFound(new { message = "Could not generate PDF." });
-            
+
             return File(pdfBytes, "application/pdf", $"Order_{order.LotCode}.pdf");
         }
         catch (Exception ex)
@@ -324,7 +324,7 @@ public class ProductionOrdersController : ControllerBase
         {
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
             if (pdfBytes == null) return NotFound();
-            
+
             return File(pdfBytes, "application/pdf", $"ProductionOrder_{id}.pdf");
         }
         catch (Exception ex)

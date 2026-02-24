@@ -9,12 +9,13 @@ namespace GestionProduccion.Client.Services
         public event Action? OnShow;
         public List<ToastMessage> Toasts { get; } = new();
 
-        public void ShowToast(string message, ToastLevel level)
+        public void ShowToast(string message, ToastLevel level, string? title = null)
         {
             var toast = new ToastMessage
             {
                 Message = message,
                 Level = level,
+                Title = title,
                 Timestamp = DateTime.Now
             };
 
@@ -25,7 +26,8 @@ namespace GestionProduccion.Client.Services
             if (level != ToastLevel.Error)
             {
                 var timer = new System.Timers.Timer(5000);
-                timer.Elapsed += (s, e) => {
+                timer.Elapsed += (s, e) =>
+                {
                     RemoveToast(toast);
                     timer.Dispose();
                 };
@@ -47,6 +49,7 @@ namespace GestionProduccion.Client.Services
     public class ToastMessage
     {
         public string Message { get; set; } = string.Empty;
+        public string? Title { get; set; }
         public ToastLevel Level { get; set; }
         public DateTime Timestamp { get; set; }
     }

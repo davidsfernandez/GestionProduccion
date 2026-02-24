@@ -29,7 +29,7 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)), 
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
         mysqlOptions => mysqlOptions.EnableRetryOnFailure(
             maxRetryCount: 10,
             maxRetryDelay: TimeSpan.FromSeconds(5),
@@ -83,7 +83,7 @@ builder.Services.AddAuthentication(options =>
     {
         if (isProduction)
             throw new InvalidOperationException("CRITICAL: JWT Key is missing in Production environment!");
-        
+
         jwtKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#"; // Dev fallback
     }
 
@@ -230,7 +230,7 @@ using (var scope = app.Services.CreateScope())
     var logger = services.GetRequiredService<ILogger<Program>>();
     var context = services.GetRequiredService<AppDbContext>();
 
-    int retries = 10; 
+    int retries = 10;
     while (retries > 0)
     {
         try
@@ -241,11 +241,11 @@ using (var scope = app.Services.CreateScope())
                 logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
                 await context.Database.MigrateAsync();
             }
-            
+
             logger.LogInformation("Database is up to date. Ensuring seed data...");
             await DbInitializer.SeedAsync(context, logger);
-            
-            break; 
+
+            break;
         }
         catch (Exception ex)
         {
@@ -253,7 +253,7 @@ using (var scope = app.Services.CreateScope())
             if (retries == 0)
             {
                 logger.LogCritical(ex, "FATAL: Database migration/seed failed after multiple attempts.");
-                throw; 
+                throw;
             }
             logger.LogWarning("DB Connection failed or busy. Retrying in 5 seconds... ({Retries} attempts left). Error: {Message}", retries, ex.Message);
             await Task.Delay(5000);

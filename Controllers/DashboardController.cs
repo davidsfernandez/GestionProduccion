@@ -26,7 +26,7 @@ public class DashboardController : ControllerBase
         if (!_cache.TryGetValue("DashboardComplete", out DashboardCompleteResponse? dashboard))
         {
             dashboard = await _dashboardService.GetCompleteDashboardAsync();
-            
+
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
 
@@ -35,7 +35,7 @@ public class DashboardController : ControllerBase
 
         return Ok(dashboard);
     }
-    
+
     [HttpPost("refresh")]
     [Authorize(Roles = "Administrator")]
     public IActionResult RefreshCache()

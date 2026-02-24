@@ -18,12 +18,12 @@ public class ProductionHistory
     public virtual ProductionOrder ProductionOrder { get; set; } = null!;
 
     public ProductionStage? PreviousStage { get; set; }
-    
+
     [Required]
     public ProductionStage NewStage { get; set; }
 
     public ProductionStatus? PreviousStatus { get; set; }
-    
+
     [Required]
     public ProductionStatus NewStatus { get; set; }
 

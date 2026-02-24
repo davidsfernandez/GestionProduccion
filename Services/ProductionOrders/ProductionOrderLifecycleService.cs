@@ -184,7 +184,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         var actionText = newStage < previousStage ? "Moved back to" : "Changed to";
         var historyNote = string.IsNullOrWhiteSpace(note) ? $"{actionText} {newStage}" : $"{actionText} {newStage}: {note}";
-        
+
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, historyNote);
         await _orderRepository.SaveChangesAsync();
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);

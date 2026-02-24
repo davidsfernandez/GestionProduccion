@@ -23,7 +23,7 @@ public class DashboardCompleteResponse
     public decimal MonthAverageCostPerPiece { get; set; }
     public decimal MonthAverageMargin { get; set; }
     public int DelayedOrdersCount { get; set; }
-    
+
     public List<WorkshopProductionDto> ProductionByWorkshop { get; set; } = new();
     public List<ProductProfitabilityDto> TopProfitableModels { get; set; } = new();
     public List<ProductProfitabilityDto> BottomProfitableModels { get; set; } = new();

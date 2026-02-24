@@ -7,6 +7,6 @@ public class ChangeStageRequest
 {
     [Required]
     public ProductionStage NewStage { get; set; }
-    
+
     public string Note { get; set; } = string.Empty;
 }
