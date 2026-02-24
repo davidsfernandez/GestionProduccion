@@ -4,6 +4,7 @@
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Resources
 @using System.Timers
+@using System.Globalization
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -69,7 +70,7 @@
                                         <td>@product.Name</td>
                                         <td>@product.FabricType</td>
                                         <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
-                                        <td>@product.EstimatedSalePrice.ToString("C")</td>
+                                        <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
                                                 <i class="fa-solid fa-pen"></i>

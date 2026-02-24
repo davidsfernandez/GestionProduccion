@@ -50,38 +50,38 @@
             <li class="menu-label">Principal</li>
 
             <li class="sidebar-item">
-                <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All">
+                <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All" @onclick="CollapseSidebar">
                     <i class="fa-solid fa-house"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
                 </NavLink>
             </li>
 
             <AuthorizeView Roles="Administrator,Leader">
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="orders">
+                    <NavLink class="sidebar-link" href="orders" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-list-check"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="catalogo">
+                    <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-tags"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="teams">
+                    <NavLink class="sidebar-link" href="teams" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
                     </NavLink>
                 </li>
             </AuthorizeView>
 
             <li class="sidebar-item">
-                <NavLink class="sidebar-link" href="minhas-tarefas">
+                <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
                     <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
                 </NavLink>
             </li>
 
             <AuthorizeView Roles="Administrator">
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="bonus-report">
+                    <NavLink class="sidebar-link" href="bonus-report" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-money-bill-trend-up"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
                     </NavLink>
                 </li>
@@ -90,7 +90,7 @@
             <li class="menu-label">Conta</li>
 
             <li class="sidebar-item">
-                <NavLink class="sidebar-link" href="profile">
+                <NavLink class="sidebar-link" href="profile" @onclick="CollapseSidebar">
                     <i class="fa-solid fa-user-gear"></i> <span class="align-middle">@Portuguese.Nav_Profile</span>
                 </NavLink>
             </li>
@@ -98,12 +98,12 @@
             <AuthorizeView Roles="Administrator">
                 <li class="menu-label">Configurações</li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="users">
+                    <NavLink class="sidebar-link" href="users" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="configuracoes">
+                    <NavLink class="sidebar-link" href="configuracoes" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-cogs"></i> <span class="align-middle">Configurações</span>
                     </NavLink>
                 </li>
@@ -117,6 +117,17 @@
 
     [Parameter]
     public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnSidebarCollapse { get; set; }
+
+    private async Task CollapseSidebar()
+    {
+        if (IsOpen)
+        {
+            await OnSidebarCollapse.InvokeAsync();
+        }
+    }
 
     private string GetAvatarUrl()
     {

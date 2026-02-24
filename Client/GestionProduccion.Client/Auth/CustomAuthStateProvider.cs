@@ -80,7 +80,11 @@ namespace GestionProduccion.Client.Auth
                     {
                         foreach (var r in value.EnumerateArray()) 
                         {
-                            claims.Add(new Claim(ClaimTypes.Role, r.GetString() ?? ""));
+                            var roleStr = r.GetString();
+                            if (!string.IsNullOrEmpty(roleStr))
+                            {
+                                claims.Add(new Claim(ClaimTypes.Role, roleStr));
+                            }
                         }
                     }
                     else 
@@ -91,10 +95,13 @@ namespace GestionProduccion.Client.Auth
                         {
                             foreach (var r in roleValue.Split(','))
                             {
-                                claims.Add(new Claim(ClaimTypes.Role, r.Trim()));
+                                if (!string.IsNullOrWhiteSpace(r))
+                                {
+                                    claims.Add(new Claim(ClaimTypes.Role, r.Trim()));
+                                }
                             }
                         }
-                        else
+                        else if (!string.IsNullOrWhiteSpace(roleValue))
                         {
                             claims.Add(new Claim(ClaimTypes.Role, roleValue));
                         }

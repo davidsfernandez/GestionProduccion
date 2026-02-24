@@ -71,25 +71,27 @@
                                         </td>
                                         <td>@user.Email</td>
                                         <td>
-                                            <span class="badge bg-primary-soft">@TranslateRole(user.Role)</span>
+                                            <span class="badge bg-primary-soft">@TranslateRole(user.Role.ToString())</span>
                                         </td>
                                         <td>
                                             @if (user.IsActive)
                                             {
-                                                <span class="badge bg-success-soft">@Portuguese.User_Active</span>
+                                                <span class="badge bg-success-soft">Ativo</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-danger-soft">@Portuguese.User_Inactive</span>
+                                                <span class="badge bg-danger-soft">Inativo</span>
                                             }
                                         </td>
                                         <td class="text-end text-nowrap">
                                             <button class="btn btn-sm btn-light me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
+                                            <AuthorizeView Roles="Administrator">
+                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </AuthorizeView>
                                         </td>
                                     </tr>
                                 }
@@ -187,7 +189,13 @@
         try
         {
             loading = true;
-            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var response = await Http.GetAsync("api/Users");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                users = JsonSerializer.Deserialize<List<UserDto>>(json, options);
+            }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -225,14 +233,15 @@
 
     private string? errorMessage;
 
-    private string TranslateRole(UserRole role) => role switch
+    private string TranslateRole(string role) => role switch
     {
-        UserRole.Administrator => Portuguese.Role_Admin,
-        UserRole.Leader => Portuguese.Role_Leader,
-        UserRole.Operator => Portuguese.Role_Operator,
-        UserRole.Sewer => Portuguese.Role_Operator,
-        UserRole.Workshop => Portuguese.Role_Workshop,
-        _ => role.ToString()
+        "Administrator" => "Administrador",
+        "Leader" => "Líder",
+        "Operator" => "Operador",
+        "Workshop" => "Oficina",
+        "Sewer" => "Costureiro(a)",
+        "Operational" => "Operacional",
+        _ => role
     };
 
     private async Task HandleSubmit()

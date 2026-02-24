@@ -8,7 +8,7 @@
 @implements IDisposable
 
 <div class="wrapper @(_isSidebarCollapsed ? "sidebar-closed" : "sidebar-open")">
-    <NavMenu IsOpen="!_isSidebarCollapsed" />
+    <NavMenu IsOpen="!_isSidebarCollapsed" OnSidebarCollapse="ToggleSidebar" />
 
     <div class="main">
         <nav class="navbar navbar-expand navbar-light navbar-bg">
