@@ -103,6 +103,10 @@ public class AppDbContext : DbContext
 
         // Converts UserRole enum in User entity
         modelBuilder.Entity<User>()
+            .HasIndex(u => u.ExternalId)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
             .Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(50);
