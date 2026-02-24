@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
+@inject JsonSerializerOptions JsonOptions
 
 <div class="container-fluid p-0">
     <h3 class="h3 mb-4 text-dark">Configuração de Bonificações</h3>
@@ -56,7 +57,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Http.GetFromJsonAsync<ApiResponse<BonusRuleDto>>("api/BonusRules");
+        var response = await Http.GetFromJsonAsync<ApiResponse<BonusRuleDto>>("api/BonusRules", JsonOptions);
         if (response != null && response.Success) rule = response.Data;
     }
 

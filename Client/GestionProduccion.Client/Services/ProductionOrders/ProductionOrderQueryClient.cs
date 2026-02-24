@@ -12,15 +12,17 @@ namespace GestionProduccion.Client.Services.ProductionOrders;
 public class ProductionOrderQueryClient : IProductionOrderQueryClient
 {
     private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _options;
 
-    public ProductionOrderQueryClient(HttpClient httpClient)
+    public ProductionOrderQueryClient(HttpClient httpClient, JsonSerializerOptions options)
     {
         _httpClient = httpClient;
+        _options = options;
     }
 
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<ProductionOrderDto>($"api/ProductionOrders/{id}", ct);
+        return await _httpClient.GetFromJsonAsync<ProductionOrderDto>($"api/ProductionOrders/{id}", _options, ct);
     }
 
     public async Task<List<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
@@ -37,16 +39,16 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
             if (!string.IsNullOrWhiteSpace(filter.Size)) queryParams.Add($"Size={filter.Size}");
         }
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        return await _httpClient.GetFromJsonAsync<List<ProductionOrderDto>>($"api/ProductionOrders{queryString}", ct);
+        return await _httpClient.GetFromJsonAsync<List<ProductionOrderDto>>($"api/ProductionOrders{queryString}", _options, ct);
     }
 
     public async Task<DashboardDto?> GetDashboardAsync(CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard", ct);
+        return await _httpClient.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard", _options, ct);
     }
 
     public async Task<List<ProductionHistoryDto>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<List<ProductionHistoryDto>>($"api/ProductionOrders/{orderId}/history", ct);
+        return await _httpClient.GetFromJsonAsync<List<ProductionHistoryDto>>($"api/ProductionOrders/{orderId}/history", _options, ct);
     }
 }

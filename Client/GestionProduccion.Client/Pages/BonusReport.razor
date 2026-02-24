@@ -5,6 +5,7 @@
 @using System.Globalization
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
+@inject JsonSerializerOptions JsonOptions
 
 <div class="container-fluid p-0">
     <h3 class="h3 mb-4 text-dark">Relatório Financeiro e Bonificações</h3>
@@ -101,7 +102,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
         if (response != null && response.Success) teams = response.Data;
     }
 
@@ -111,7 +112,7 @@
         var end = start.AddMonths(1).AddDays(-1);
         
         var url = $"api/BonusCalculation?teamId={selectedTeamId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
-        var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url);
+        var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url, JsonOptions);
         if (response != null && response.Success) report = response.Data;
     }
 }

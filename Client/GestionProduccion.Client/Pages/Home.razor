@@ -8,6 +8,7 @@
 @inject NavigationManager NavigationManager
 @inject SignalRService SignalR
 @inject IJSRuntime JSRuntime
+@inject JsonSerializerOptions JsonOptions
 @implements IAsyncDisposable
 
 @using GestionProduccion.Client.Resources
@@ -153,29 +154,18 @@
 
                     <!-- WORKSHOP PRODUCTION CHART -->
                     <div class="card flex-fill w-100 animate-fade-in-up delay-4">
-                        <div class="card-header border-0 pt-4 px-4">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Produção por Oficina</h5>
+                            <i class="fa-solid fa-chart-bar text-muted"></i>
                         </div>
                         <div class="card-body py-3">
-                            <div class="chart chart-sm chart-container">
-                                <!-- Placeholder for Chart Integration -->
-                                @if (dashboard.ProductionByWorkshop != null && dashboard.ProductionByWorkshop.Any())
-                                {
-                                    <ul class="list-group list-group-flush">
-                                        @foreach (var ws in dashboard.ProductionByWorkshop)
-                                        {
-                                            <li @key="ws.WorkshopName" class="list-group-item d-flex justify-content-between align-items-center">
-                                                @ws.WorkshopName
-                                                <span class="badge bg-primary rounded-pill">@ws.Quantity</span>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <div class="text-center text-muted">Sem dados de produção este mês.</div>
-                                }
+                            <div class="chart chart-sm" style="height: 250px;">
+                                <canvas id="workshopChart"></canvas>
                             </div>
+                            @if (dashboard.ProductionByWorkshop == null || !dashboard.ProductionByWorkshop.Any())
+                            {
+                                <div class="text-center text-muted small mt-2">Sem dados de produção este mês.</div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -315,13 +305,23 @@
         await LoadRanking();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (dashboard != null && dashboard.ProductionByWorkshop != null && dashboard.ProductionByWorkshop.Any())
+        {
+            var labels = dashboard.ProductionByWorkshop.Select(x => x.WorkshopName).ToArray();
+            var data = dashboard.ProductionByWorkshop.Select(x => x.Quantity).ToArray();
+            await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "workshopChart", data, labels);
+        }
+    }
+
     private async Task LoadDashboard()
     {
         try
         {
             if (dashboard == null) loading = true;
-            // Use new endpoint
-            dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo");
+            // Use new endpoint with options
+            dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo", JsonOptions);
             StateHasChanged();
         }
         catch (Exception)
@@ -338,7 +338,7 @@
     {
         try
         {
-            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RankingEntryDto>>>("api/Tasks/ranking");
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RankingEntryDto>>>("api/Tasks/ranking", JsonOptions);
             if (resp != null && resp.Success)
             {
                 ranking = resp.Data;
