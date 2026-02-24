@@ -29,7 +29,7 @@ public class DashboardDto
 public class StoppedOperationDto
 {
     public int Id { get; set; }
-    public string UniqueCode { get; set; } = string.Empty;
+    public string LotCode { get; set; } = string.Empty;
     public DateTime EstimatedDeliveryDate { get; set; }
 }
 
@@ -47,7 +47,7 @@ public class WorkerStatsDto
 public class RecentActivityDto
 {
     public int OrderId { get; set; }
-    public string UniqueCode { get; set; } = string.Empty;
+    public string LotCode { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public DateTime Date { get; set; }

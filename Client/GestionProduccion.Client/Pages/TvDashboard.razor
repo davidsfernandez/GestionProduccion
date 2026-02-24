@@ -123,7 +123,7 @@ else
                 @foreach (var activity in dashboard.RecentActivities.Take(5))
                 {
                     <div class="list-item" style="font-size: 1.2rem;" @key="activity.Date.Ticks">
-                        <span>@activity.UniqueCode</span>
+                        <span>@activity.LotCode</span>
                         <span class="text-muted">@activity.Action</span>
                     </div>
                 }

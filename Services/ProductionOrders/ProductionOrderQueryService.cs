@@ -125,7 +125,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var recentActivities = historyLogs.Select(h => new RecentActivityDto
         {
             OrderId = h.ProductionOrderId,
-            UniqueCode = h.ProductionOrder?.LotCode ?? "N/A",
+            LotCode = h.ProductionOrder?.LotCode ?? "N/A",
             UserName = h.ResponsibleUser?.FullName ?? "System",
             Action = h.Note ?? h.NewStatus.ToString(),
             Date = h.ChangedAt

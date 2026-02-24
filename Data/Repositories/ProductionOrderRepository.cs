@@ -26,7 +26,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
             .FirstOrDefaultAsync(po => po.Id == id);
     }
 
-    public async Task<ProductionOrder?> GetByUniqueCodeAsync(string lotCode)
+    public async Task<ProductionOrder?> GetByLotCodeAsync(string lotCode)
     {
         return await _context.ProductionOrders
             .FirstOrDefaultAsync(x => x.LotCode == lotCode);

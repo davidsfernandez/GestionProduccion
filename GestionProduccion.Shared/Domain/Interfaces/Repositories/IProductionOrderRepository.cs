@@ -6,7 +6,7 @@ namespace GestionProduccion.Domain.Interfaces.Repositories;
 public interface IProductionOrderRepository
 {
     Task<ProductionOrder?> GetByIdAsync(int id);
-    Task<ProductionOrder?> GetByUniqueCodeAsync(string uniqueCode);
+    Task<ProductionOrder?> GetByLotCodeAsync(string lotCode);
     Task<List<ProductionOrder>> GetAllAsync();
     Task<IQueryable<ProductionOrder>> GetQueryableAsync(); // For complex filtering in Service
     Task AddAsync(ProductionOrder order);

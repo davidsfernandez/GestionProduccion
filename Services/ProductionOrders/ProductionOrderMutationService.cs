@@ -19,6 +19,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
     private readonly IProductRepository _productRepository; // For validation
     private readonly IHubContext<ProductionHub> _hubContext; // For notifications
     private readonly IHttpContextAccessor _httpContextAccessor; // For GetCurrentUserId (e.g. for history)
+    private static readonly SemaphoreSlim _lotCodeSemaphore = new SemaphoreSlim(1, 1);
 
     // Secondary services not directly related to Order mutation but called by monolith
     private readonly IFinancialCalculatorService _financialCalculator;
@@ -59,78 +60,81 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (request.EstimatedCompletionAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Estimated delivery date must be in the future.");
 
+        if (string.IsNullOrWhiteSpace(request.Size))
+            throw new InvalidOperationException("Size is required.");
+
         var product = await _productRepository.GetByIdAsync(request.ProductId);
         if (product == null)
             throw new InvalidOperationException($"Product with ID {request.ProductId} not found.");
 
-        if (request.SewingTeamId.HasValue)
+        await _lotCodeSemaphore.WaitAsync(ct);
+        try
         {
-            // Optional team validation logic here
-        }
-
-        // Auto-generate Sequential Code (OP-YYYY-MM-DD-X)
-        // Logic implemented as requested.
-        
-        var today = DateTime.UtcNow;
-        var prefix = $"OP-{today:yyyy-MM-dd}-";
-        
-        // Find the max suffix for today
-        var query = await _orderRepository.GetQueryableAsync();
-        var todaysCodes = await query
-            .Where(o => o.LotCode.StartsWith(prefix))
-            .Select(o => o.LotCode)
-            .ToListAsync(ct);
-
-        int nextSequence = 1;
-        if (todaysCodes.Any())
-        {
-            var maxSuffix = todaysCodes
-                .Select(c => c.Replace(prefix, ""))
-                .Where(s => int.TryParse(s, out _))
-                .Select(int.Parse)
-                .DefaultIfEmpty(0)
-                .Max();
+            var today = DateTime.UtcNow;
+            var prefix = $"OP-{today:yyyy-MM-dd}-";
             
-            nextSequence = maxSuffix + 1;
+            // Find the max suffix for today
+            var query = await _orderRepository.GetQueryableAsync();
+            var todaysCodes = await query
+                .Where(o => o.LotCode.StartsWith(prefix))
+                .Select(o => o.LotCode)
+                .ToListAsync(ct);
+
+            int nextSequence = 1;
+            if (todaysCodes.Any())
+            {
+                var maxSuffix = todaysCodes
+                    .Select(c => c.Replace(prefix, ""))
+                    .Where(s => int.TryParse(s, out _))
+                    .Select(int.Parse)
+                    .DefaultIfEmpty(0)
+                    .Max();
+                
+                nextSequence = maxSuffix + 1;
+            }
+
+            var lotCode = $"{prefix}{nextSequence}";
+
+            var order = new ProductionOrder
+            {
+                LotCode = lotCode,
+                Quantity = request.Quantity,
+                EstimatedCompletionAt = request.EstimatedCompletionAt,
+                ClientName = request.ClientName,
+                Size = request.Size,
+                CurrentStage = ProductionStage.Cutting,
+                CurrentStatus = ProductionStatus.InProduction,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                UserId = request.UserId,
+                ProductId = request.ProductId,
+                SewingTeamId = request.SewingTeamId
+            };
+
+            await _orderRepository.AddAsync(order);
+            await _orderRepository.SaveChangesAsync();
+
+            var historyNote = "Production order created";
+            if (request.UserId.HasValue)
+            {
+                var assignedUser = await _userRepository.GetByIdAsync(request.UserId.Value);
+                if (assignedUser != null) historyNote += $" and assigned to {assignedUser.FullName}";
+            }
+
+            await AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
+            await _orderRepository.SaveChangesAsync(); // Save history
+
+            await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+
+            // Re-fetch to ensure all relations are loaded for DTO mapping
+            var createdOrder = await _orderRepository.GetByIdAsync(order.Id);
+
+            return MapToDto(createdOrder!);
         }
-
-        var lotCode = $"{prefix}{nextSequence}";
-
-        var order = new ProductionOrder
+        finally
         {
-            LotCode = lotCode,
-            Quantity = request.Quantity,
-            EstimatedCompletionAt = request.EstimatedCompletionAt,
-            ClientName = request.ClientName,
-            Size = request.Size,
-            CurrentStage = ProductionStage.Cutting,
-            CurrentStatus = ProductionStatus.InProduction,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            UserId = request.UserId,
-            ProductId = request.ProductId,
-            SewingTeamId = request.SewingTeamId
-        };
-
-        await _orderRepository.AddAsync(order);
-        await _orderRepository.SaveChangesAsync();
-
-        var historyNote = "Production order created";
-        if (request.UserId.HasValue)
-        {
-            var assignedUser = await _userRepository.GetByIdAsync(request.UserId.Value);
-            if (assignedUser != null) historyNote += $" and assigned to {assignedUser.FullName}";
+            _lotCodeSemaphore.Release();
         }
-
-        await AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
-        await _orderRepository.SaveChangesAsync(); // Save history
-
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
-
-        // Re-fetch to ensure all relations are loaded for DTO mapping
-        var createdOrder = await _orderRepository.GetByIdAsync(order.Id);
-
-        return MapToDto(createdOrder!);
     }
 
     public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
