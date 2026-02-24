@@ -100,8 +100,9 @@
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <EditForm Model="@editingProduct" OnValidSubmit="SaveProduct">
+                    <EditForm Model="@editingProduct" OnValidSubmit="SaveProduct" OnInvalidSubmit="HandleInvalidSubmit">
                         <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger small mb-3" />
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -124,14 +125,15 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Tempo Médio (minutos)</label>
-                                <InputNumber class="form-control" @bind-Value="averageTime" />
+                                <InputNumber class="form-control" @bind-Value="editingProduct.AverageProductionTimeMinutes" step="any" />
+                                <ValidationMessage For="@(() => editingProduct.AverageProductionTimeMinutes)" class="text-danger small" />
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Preço Estimado</label>
-                                <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" />
+                                <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" step="any" />
                                 <ValidationMessage For="@(() => editingProduct.EstimatedSalePrice)" class="text-danger small" />
                             </div>
                         </div>
@@ -165,9 +167,13 @@
     private bool loading = true;
     private bool isSaving = false;
     private CreateProductDto editingProduct = new();
-    private double averageTime = 0;
     private int editingId = 0;
     private Timer? debounceTimer;
+
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowToast("Erro de validação: Verifique os campos em vermelho", ToastLevel.Warning, "Erro de Validação");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -239,13 +245,11 @@
                 EstimatedSalePrice = product.EstimatedSalePrice,
                 AverageProductionTimeMinutes = product.AverageProductionTimeMinutes
             };
-            averageTime = product.AverageProductionTimeMinutes;
         }
         else
         {
             editingId = 0;
             editingProduct = new CreateProductDto();
-            averageTime = 0;
         }
         showModal = true;
     }
@@ -265,9 +269,8 @@
             isSaving = true;
             HttpResponseMessage response;
             
-            // Sync MainSku with InternalCode if not provided, or just keep it same as InternalCode
-            editingProduct.MainSku = editingProduct.InternalCode;
-            editingProduct.AverageProductionTimeMinutes = averageTime;
+            if(string.IsNullOrWhiteSpace(editingProduct.MainSku))
+                editingProduct.MainSku = editingProduct.InternalCode;
 
             if (editingId == 0)
             {
@@ -282,7 +285,7 @@
                     InternalCode = editingProduct.InternalCode,
                     FabricType = editingProduct.FabricType,
                     MainSku = editingProduct.MainSku,
-                    AverageProductionTimeMinutes = averageTime,
+                    AverageProductionTimeMinutes = editingProduct.AverageProductionTimeMinutes,
                     EstimatedSalePrice = editingProduct.EstimatedSalePrice
                 });
             }
@@ -291,6 +294,7 @@
             {
                 ToastService.ShowToast(editingId == 0 ? Portuguese.Cat_SuccessCreated : Portuguese.Cat_SuccessUpdated, ToastLevel.Success);
                 showModal = false;
+                editingProduct = new CreateProductDto();
                 await LoadProducts();
             }
             else
@@ -300,7 +304,7 @@
                 
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
                 {
-                    specificError = "O código do produto já existe";
+                    specificError = "O código interno já existe no sistema";
                 }
                 
                 ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
@@ -334,7 +338,7 @@
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
+                    ToastService.ShowToast("Não é posible excluir un produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
                 }
                 else
                 {

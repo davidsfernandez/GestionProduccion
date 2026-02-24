@@ -39,8 +39,9 @@
                     }
                     else
                     {
-                        <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
+                        <EditForm Model="createModel" OnValidSubmit="HandleSubmit" OnInvalidSubmit="HandleInvalidSubmit">
                             <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger small mb-3" />
 
                             <div class="row">
                                 <div class="col-12 mb-4">
@@ -193,6 +194,11 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialData();
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowToast("Erro de validação: Verifique os campos em vermelho", ToastLevel.Warning, "Erro de Validação");
     }
 
     private async Task LoadInitialData()
