@@ -13,6 +13,7 @@ public class DashboardDto
 
     // --- CHARTS DATA ---
     public List<int> WeeklyVolumeData { get; set; } = new(); // Exact 7 days array
+    public List<string> WeeklyLabels { get; set; } = new();
     public Dictionary<string, int> OrdersByStage { get; set; } = new();
     public List<WorkerStatsDto> WorkloadDistribution { get; set; } = new();
 

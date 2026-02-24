@@ -18,15 +18,17 @@ public class DashboardBIService : IDashboardBIService
     public async Task<DashboardCompleteResponse> GetCompleteDashboardAsync()
     {
         var now = DateTime.UtcNow;
+        var today = now.Date;
         var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
+        var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
-        // 1. Month Production (Valid items from completed orders this month)
+        // 1. Month Production (Completed this month)
         var monthProduction = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .SumAsync(o => o.Quantity);
 
-        // 2. Average Cost Per Piece (Global this month)
+        // 2. Average Cost & Margin
         var monthOrders = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
@@ -36,14 +38,14 @@ public class DashboardBIService : IDashboardBIService
         decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
         decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
 
-        // 3. Delayed Orders (Active with EstimatedDate < Now)
+        // 3. Delayed Orders (Pending/InProduction + Past Deadline)
         var delayedCount = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.EstimatedCompletionAt < now)
+            .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction) 
+                        && o.EstimatedCompletionAt < now)
             .CountAsync();
 
-        // 4. Production by Workshop (Group by User ID -> Role Workshop/Operator)
-        // Since we don't have explicit Workshop entity, we group by assigned user who is Operator/Workshop
+        // 4. Production by Workshop
         var prodByWorkshop = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.UserId.HasValue)
@@ -55,8 +57,23 @@ public class DashboardBIService : IDashboardBIService
             })
             .ToListAsync();
 
-        // 5. Top/Bottom Profitable Models (Based on historical completed orders)
-        // We need to group by ProductId
+        // 5. Weekly Production (Last 7 Days)
+        var weeklyData = new List<int>();
+        var weeklyLabels = new List<string>();
+        for (int i = 6; i >= 0; i--)
+        {
+            var date = today.AddDays(-i);
+            var nextDate = date.AddDays(1);
+            var count = await _context.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= date && o.CompletedAt < nextDate)
+                .SumAsync(o => (int?)o.Quantity) ?? 0;
+            
+            weeklyData.Add(count);
+            weeklyLabels.Add(date.ToString("ddd", ptBr).Replace(".", ""));
+        }
+
+        // 6. Profitable Models
         var productStats = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed)
@@ -85,7 +102,7 @@ public class DashboardBIService : IDashboardBIService
             .OrderByDescending(p => p.AverageMargin)
             .ToList();
 
-        // 6. Stalled Stock (No production in last 60 days)
+        // 7. Stalled Stock
         var sixtyDaysAgo = now.AddDays(-60);
         var activeProductIds = await _context.ProductionOrders
             .AsNoTracking()
@@ -101,7 +118,7 @@ public class DashboardBIService : IDashboardBIService
             {
                 Sku = p.MainSku,
                 Name = p.Name,
-                DaysSinceLastProduction = 60 // Placeholder, exact calculation requires max date per product query
+                DaysSinceLastProduction = 60
             })
             .Take(10)
             .ToListAsync();
@@ -115,7 +132,9 @@ public class DashboardBIService : IDashboardBIService
             ProductionByWorkshop = prodByWorkshop,
             TopProfitableModels = profitabilityList.Take(5).ToList(),
             BottomProfitableModels = profitabilityList.OrderBy(p => p.AverageMargin).Take(5).ToList(),
-            StalledStock = stalledProducts
+            StalledStock = stalledProducts,
+            WeeklyVolumeData = weeklyData,
+            WeeklyLabels = weeklyLabels
         };
     }
 }

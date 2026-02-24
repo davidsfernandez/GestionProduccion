@@ -25,6 +25,8 @@ public class DashboardCompleteResponse
     public int DelayedOrdersCount { get; set; }
 
     public List<WorkshopProductionDto> ProductionByWorkshop { get; set; } = new();
+    public List<int> WeeklyVolumeData { get; set; } = new();
+    public List<string> WeeklyLabels { get; set; } = new();
     public List<ProductProfitabilityDto> TopProfitableModels { get; set; } = new();
     public List<ProductProfitabilityDto> BottomProfitableModels { get; set; } = new();
     public List<StalledProductDto> StalledStock { get; set; } = new();
