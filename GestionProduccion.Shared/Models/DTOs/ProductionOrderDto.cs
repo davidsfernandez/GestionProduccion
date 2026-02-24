@@ -20,6 +20,7 @@ public class ProductionOrderDto
     public string? AssignedUserName { get; set; }
     public int? SewingTeamId { get; set; }
     public string? SewingTeamName { get; set; }
+    public bool IsTeamTask { get; set; }
     public decimal TotalCost { get; set; }
     public ProductDto? Product { get; set; }
     public List<ProductionHistoryDto> History { get; set; } = new();

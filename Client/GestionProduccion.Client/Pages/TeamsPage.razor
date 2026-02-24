@@ -107,28 +107,32 @@
                             <ValidationMessage For="@(() => createRequest.Name)" class="text-danger small" />
                         </div>
 
-                        @if (!isEditing)
-                        {
-                            <label class="form-label fw-bold small">Selecionar Membros Iniciais</label>
-                            <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
-                                @if (eligibleUsers != null)
+                        <label class="form-label fw-bold small">Gerenciar Membros</label>
+                        <div class="border rounded p-3 bg-light mb-3" style="max-height: 250px; overflow-y: auto;">
+                            @if (eligibleUsers != null)
+                            {
+                                @foreach (var user in eligibleUsers)
                                 {
-                                    @foreach (var user in eligibleUsers)
-                                    {
-                                        <div class="form-check mb-2">
-                                            <input class="form-check-input" type="checkbox" id="user-@user.Id" 
-                                                   checked="@createRequest.InitialUserIds.Contains(user.Id)"
-                                                   @onchange="@(e => OnUserToggled(user.Id, e))" />
-                                            <label class="form-check-label small" for="user-@user.Id">
-                                                @user.FullName <span class="text-muted">(@user.Role)</span>
-                                            </label>
-                                        </div>
-                                    }
+                                    bool isChecked = isEditing 
+                                        ? teamModel.SelectedUserIds.Contains(user.Id)
+                                        : createRequest.InitialUserIds.Contains(user.Id);
+
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="user-@user.Id" 
+                                               checked="@isChecked"
+                                               @onchange="@(e => OnUserToggled(user.Id, e))" />
+                                        <label class="form-check-label small" for="user-@user.Id">
+                                            @user.FullName <span class="text-muted">(@user.Role)</span>
+                                        </label>
+                                    </div>
                                 }
-                            </div>
-                            <div class="small text-muted mt-1">@createRequest.InitialUserIds.Count selecionado(s)</div>
-                        }
-                        else
+                            }
+                        </div>
+                        <div class="small text-muted mt-1 mb-3">
+                            @(isEditing ? teamModel.SelectedUserIds.Count : createRequest.InitialUserIds.Count) selecionado(s)
+                        </div>
+
+                        @if (isEditing)
                         {
                             <div class="form-check mb-3">
                                 <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
@@ -139,7 +143,7 @@
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                             <button type="button" class="btn btn-light px-4" @onclick="CloseModal">Cancelar</button>
                             <button type="submit" class="btn btn-primary px-4 shadow-sm" 
-                                    disabled="@(isSaving || (!isEditing && createRequest.InitialUserIds.Count == 0))">
+                                    disabled="@(isSaving || (isEditing && teamModel.SelectedUserIds.Count == 0) || (!isEditing && createRequest.InitialUserIds.Count == 0))">
                                 @(isSaving ? "Salvando..." : "Salvar Equipe")
                             </button>
                         </div>
@@ -203,7 +207,16 @@
 
     private void EditTeam(SewingTeamDto team)
     {
-        teamModel = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive };
+        // For editing, we load the team with its full member list to populate SelectedUserIds
+        // However, the 'team' parameter here comes from the table list.
+        // We'll fetch the detail to be safe and get current IDs.
+        teamModel = new SewingTeamDto 
+        { 
+            Id = team.Id, 
+            Name = team.Name, 
+            IsActive = team.IsActive,
+            SelectedUserIds = allUsers?.Where(u => u.SewingTeamId == team.Id).Select(u => u.Id).ToList() ?? new List<int>()
+        };
         createRequest = new CreateSewingTeamRequest { Name = team.Name };
         isEditing = true;
         showModal = true;
@@ -213,14 +226,28 @@
 
     private void OnUserToggled(int userId, ChangeEventArgs e)
     {
-        if ((bool)(e.Value ?? false))
+        bool isChecked = (bool)(e.Value ?? false);
+        if (isEditing)
         {
-            if (!createRequest.InitialUserIds.Contains(userId))
-                createRequest.InitialUserIds.Add(userId);
+            if (isChecked)
+            {
+                if (!teamModel.SelectedUserIds.Contains(userId)) teamModel.SelectedUserIds.Add(userId);
+            }
+            else
+            {
+                teamModel.SelectedUserIds.Remove(userId);
+            }
         }
         else
         {
-            createRequest.InitialUserIds.Remove(userId);
+            if (isChecked)
+            {
+                if (!createRequest.InitialUserIds.Contains(userId)) createRequest.InitialUserIds.Add(userId);
+            }
+            else
+            {
+                createRequest.InitialUserIds.Remove(userId);
+            }
         }
     }
 
@@ -234,12 +261,11 @@
             
             if (isEditing)
             {
-                var updateDto = new SewingTeamDto { Id = teamModel.Id, Name = createRequest.Name, IsActive = teamModel.IsActive };
-                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", updateDto);
+                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", teamModel, JsonOptions);
             }
             else
             {
-                response = await Http.PostAsJsonAsync("api/SewingTeams", createRequest);
+                response = await Http.PostAsJsonAsync("api/SewingTeams", createRequest, JsonOptions);
             }
 
             if (response.IsSuccessStatusCode)
@@ -250,7 +276,7 @@
                     await LoadData(); // Full reload to refresh member counts and eligible users
                 }
                 showModal = false;
-                ToastService.ShowToast("Equipe salva com sucesso", ToastLevel.Success);
+                ToastService.ShowToast(isEditing ? "Membros da equipe atualizados" : "Equipe salva com sucesso", ToastLevel.Success);
             }
             else
             {

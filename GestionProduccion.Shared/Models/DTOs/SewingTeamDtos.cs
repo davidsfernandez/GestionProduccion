@@ -10,6 +10,7 @@ public class SewingTeamDto
     public bool IsActive { get; set; }
     public int MemberCount { get; set; }
     public List<UserDto> Members { get; set; } = new();
+    public List<int> SelectedUserIds { get; set; } = new();
 }
 
 public class CreateSewingTeamRequest

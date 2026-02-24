@@ -179,21 +179,30 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     public async Task<List<ProductionOrderDto>> GetTeamProductionOrdersAsync(int userId, CancellationToken ct = default)
     {
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null || !user.SewingTeamId.HasValue)
+        if (user == null)
         {
             return new List<ProductionOrderDto>();
         }
 
         var query = await _orderRepository.GetQueryableAsync();
+        
+        // Condition: Assigned to user's team OR assigned directly to user
         var orders = await query
             .AsNoTracking()
             .Include(o => o.Product)
-            .Where(o => o.SewingTeamId == user.SewingTeamId && 
+            .Where(o => (o.SewingTeamId == user.SewingTeamId || o.UserId == userId) && 
                        (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction))
             .OrderBy(o => o.EstimatedCompletionAt)
             .ToListAsync(ct);
 
-        return orders.Select(MapToDto).ToList();
+        return orders.Select(o => 
+        {
+            var dto = MapToDto(o);
+            // If the order has a team ID and it matches the user's team, it's a team task.
+            // If it's only assigned to the user (no team or different team), it's individual.
+            dto.IsTeamTask = o.SewingTeamId.HasValue && o.SewingTeamId == user.SewingTeamId;
+            return dto;
+        }).ToList();
     }
 
     // --- Private mapping and utility methods ---

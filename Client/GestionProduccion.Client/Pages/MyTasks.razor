@@ -56,6 +56,14 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <span class="badge bg-primary-soft text-primary mb-2">@order.LotCode</span>
+                                    @if (order.IsTeamTask)
+                                    {
+                                        <span class="badge bg-info-soft text-info mb-2 ms-1">Tarefa da Equipe</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-soft text-success mb-2 ms-1">Tarefa Individual</span>
+                                    }
                                     <h5 class="fw-bold text-dark mb-1">@order.ProductName</h5>
                                 </div>
                                 @if (order.EstimatedCompletionAt < DateTime.Now && order.CurrentStatus != "Completed")

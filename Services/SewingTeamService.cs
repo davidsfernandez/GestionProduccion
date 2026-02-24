@@ -93,15 +93,50 @@ public class SewingTeamService : ISewingTeamService
 
     public async Task<SewingTeamDto> UpdateTeamAsync(int id, SewingTeamDto dto)
     {
-        var team = await _teamRepository.GetByIdAsync(id);
+        var team = await _teamRepository.GetTeamWithMembersAsync(id);
         if (team == null) throw new KeyNotFoundException("Team not found.");
+
+        if (dto.SelectedUserIds == null || !dto.SelectedUserIds.Any())
+        {
+            throw new DomainConstraintException("A team must have at least one member.");
+        }
 
         team.Name = dto.Name;
         team.IsActive = dto.IsActive;
 
+        // Synchronize Members
+        var currentMemberIds = team.Members.Select(m => m.Id).ToList();
+        
+        // 1. Members to remove (Existing in DB but NOT in SelectedUserIds)
+        var toRemoveIds = currentMemberIds.Except(dto.SelectedUserIds).ToList();
+        foreach (var userId in toRemoveIds)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user != null)
+            {
+                user.SewingTeamId = null;
+                await _userRepository.UpdateAsync(user);
+            }
+        }
+
+        // 2. Members to add (New in SelectedUserIds but NOT in DB)
+        var toAddIds = dto.SelectedUserIds.Except(currentMemberIds).ToList();
+        foreach (var userId in toAddIds)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user != null && (user.Role == UserRole.Leader || user.Role == UserRole.Operational))
+            {
+                user.SewingTeamId = id;
+                await _userRepository.UpdateAsync(user);
+            }
+        }
+
         await _teamRepository.UpdateAsync(team);
         await _teamRepository.SaveChangesAsync();
-        return MapToDto(team);
+        await _userRepository.SaveChangesAsync();
+
+        var updatedTeam = await _teamRepository.GetTeamWithMembersAsync(id);
+        return MapToDto(updatedTeam!);
     }
 
     /// <summary>
