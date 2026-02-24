@@ -613,9 +613,9 @@
         }
     }
 
-    private void ShowAssignModal()
+    private async Task ShowAssignModal()
     {
-        LoadUsers();
+        await LoadUsers();
         isAssigning = true;
     }
 

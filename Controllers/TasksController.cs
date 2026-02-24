@@ -5,6 +5,7 @@ using GestionProduccion.Domain.Enums;
 using GestionProduccion.Services.Interfaces;
 using System.Security.Claims;
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Services.ProductionOrders;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace GestionProduccion.Controllers;
