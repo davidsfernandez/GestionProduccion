@@ -16,16 +16,31 @@ public class QAController : ControllerBase
         _qaService = qaService;
     }
 
-    [HttpPost("defects")]
-    public async Task<ActionResult<QADefectDto>> RegisterDefect([FromBody] CreateQADefectDto dto)
+    [HttpPost]
+    public async Task<ActionResult<QADefectDto>> RegisterDefect([FromForm] int ProductionOrderId, [FromForm] string Reason, [FromForm] int Quantity, IFormFile? PhotoFile)
     {
-        var defect = await _qaService.RegisterDefectAsync(dto);
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var dto = new CreateQADefectDto
+        {
+            ProductionOrderId = ProductionOrderId,
+            Reason = Reason,
+            Quantity = Quantity,
+            ReportedByUserId = userId
+        };
+
+        var defect = await _qaService.RegisterDefectAsync(dto, PhotoFile);
         return Ok(new QADefectDto
         {
             Id = defect.Id,
             Reason = defect.Reason,
             Quantity = defect.Quantity,
-            ReportedAt = defect.ReportedAt
+            ReportedAt = defect.ReportedAt,
+            PhotoUrl = defect.PhotoUrl
         });
     }
 

@@ -16,9 +16,14 @@ public class QAService : IQAService
         _fileStorage = fileStorage;
     }
 
-    public async Task<QADefect> RegisterDefectAsync(CreateQADefectDto dto)
+    public async Task<QADefect> RegisterDefectAsync(CreateQADefectDto dto, IFormFile? photoFile = null)
     {
         string? photoUrl = null;
+
+        if (photoFile != null)
+        {
+            photoUrl = await _fileStorage.UploadAsync(photoFile, "defects");
+        }
 
         var defect = new QADefect
         {
