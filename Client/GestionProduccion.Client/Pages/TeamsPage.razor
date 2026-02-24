@@ -114,13 +114,8 @@
     {
         try 
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var response = await Http.GetAsync("api/SewingTeams");
-            if (response.IsSuccessStatusCode)
-            {
-                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<List<SewingTeamDto>>>(options);
-                teams = apiResponse?.Data;
-            }
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+            teams = response?.Data;
         }
         catch (Exception ex)
         {
@@ -158,7 +153,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>();
                 if (result?.Data != null)
                 {
                     if (isEditing)

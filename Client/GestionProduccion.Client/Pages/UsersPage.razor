@@ -50,6 +50,7 @@
                                 <tr>
                                     <th>@Portuguese.User_Name</th>
                                     <th>@Portuguese.User_Email</th>
+                                    <th>UUID</th>
                                     <th>@Portuguese.User_Role</th>
                                     <th>@Portuguese.User_Status</th>
                                     <th class="text-end text-nowrap">@Portuguese.Actions</th>
@@ -70,6 +71,7 @@
                                             </div>
                                         </td>
                                         <td>@user.Email</td>
+                                        <td><code class="small text-muted">@user.ExternalId.ToString().Substring(0, 8)...</code></td>
                                         <td>
                                             <span class="badge bg-primary-soft">@TranslateRole(user.Role.ToString())</span>
                                         </td>
@@ -189,21 +191,16 @@
         try
         {
             loading = true;
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var response = await Http.GetAsync("api/Users");
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                users = JsonSerializer.Deserialize<List<UserDto>>(json, options);
-            }
+            // GetFromJsonAsync uses the globally registered JsonSerializerOptions
+            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             NavigationManager.NavigateTo("/login");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            ToastService.ShowToast("Erro ao carregar usuários.", ToastLevel.Error);
+            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -281,7 +278,8 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var newUser = await response.Content.ReadFromJsonAsync<UserDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                // ReadFromJsonAsync uses the globally registered JsonSerializerOptions
+                var newUser = await response.Content.ReadFromJsonAsync<UserDto>();
                 if (newUser != null)
                 {
                     if (isEditing)

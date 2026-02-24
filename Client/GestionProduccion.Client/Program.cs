@@ -19,7 +19,8 @@ builder.Services.AddSingleton(new JsonSerializerOptions
 {
     PropertyNameCaseInsensitive = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    ReferenceHandler = ReferenceHandler.IgnoreCycles
+    ReferenceHandler = ReferenceHandler.IgnoreCycles,
+    Converters = { new JsonStringEnumConverter() }
 });
 
 builder.Services.AddScoped(sp =>

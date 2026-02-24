@@ -9,6 +9,8 @@ public class User
     [Key]
     public int Id { get; set; }
 
+    public Guid ExternalId { get; set; } = Guid.NewGuid();
+
     [Required]
     [StringLength(100)]
     public string FullName { get; set; } = string.Empty;

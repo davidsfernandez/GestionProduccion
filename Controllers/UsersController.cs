@@ -31,6 +31,7 @@ public class UsersController : ControllerBase
             return Ok(users.Select(u => new UserDto
             {
                 Id = u.Id,
+                ExternalId = u.ExternalId,
                 FullName = u.FullName,
                 Email = u.Email,
                 Role = u.Role,
@@ -62,6 +63,7 @@ public class UsersController : ControllerBase
             return Ok(new UserDto
             {
                 Id = user.Id,
+                ExternalId = user.ExternalId,
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role,
@@ -147,6 +149,7 @@ public class UsersController : ControllerBase
             var userDto = new UserDto
             {
                 Id = createdUser.Id,
+                ExternalId = createdUser.ExternalId,
                 FullName = createdUser.FullName,
                 Email = createdUser.Email,
                 Role = createdUser.Role,
