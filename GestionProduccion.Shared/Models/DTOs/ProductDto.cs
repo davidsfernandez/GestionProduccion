@@ -31,6 +31,8 @@ public class CreateProductDto
     [StringLength(50)]
     public string MainSku { get; set; } = string.Empty;
 
+    public double AverageProductionTimeMinutes { get; set; }
+
     public decimal EstimatedSalePrice { get; set; }
 }
 

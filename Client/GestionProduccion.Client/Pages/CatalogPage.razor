@@ -4,7 +4,7 @@
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Resources
 @using System.Timers
-@attribute [Authorize(Roles = "Administrator")]
+@attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject ToastService ToastService
@@ -47,29 +47,29 @@
                     <table class="table table-hover my-0">
                         <thead>
                             <tr>
-                                <th>@Portuguese.Cat_MainSku</th>
-                                <th>@Portuguese.User_Name</th>
-                                <th>@Portuguese.Cat_InternalCode</th>
+                                <th>Código</th>
+                                <th>Nome do Produto</th>
                                 <th>@Portuguese.Cat_FabricType</th>
                                 <th>@Portuguese.Cat_AvgTime</th>
+                                <th>Preço</th>
                                 <th class="text-end">@Portuguese.Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (filteredProducts == null || !filteredProducts.Any())
                             {
-                                <tr><td colspan="7" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
+                                <tr><td colspan="6" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
                             }
                             else
                             {
                                 @foreach (var product in filteredProducts)
                                 {
                                     <tr @key="product.Id">
-                                        <td><strong>@product.MainSku</strong></td>
+                                        <td><strong>@product.InternalCode</strong></td>
                                         <td>@product.Name</td>
-                                        <td>@product.InternalCode</td>
                                         <td>@product.FabricType</td>
                                         <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
+                                        <td>@product.EstimatedSalePrice.ToString("C")</td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
                                                 <i class="fa-solid fa-pen"></i>
@@ -109,28 +109,27 @@
                                 <ValidationMessage For="@(() => editingProduct.Name)" class="text-danger small" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">@Portuguese.Cat_MainSku</label>
-                                <InputText class="form-control" @bind-Value="editingProduct.MainSku" placeholder="Ex: CAM-BAS-001" />
-                                <ValidationMessage For="@(() => editingProduct.MainSku)" class="text-danger small" />
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">@Portuguese.Cat_InternalCode</label>
                                 <InputText class="form-control" @bind-Value="editingProduct.InternalCode" placeholder="Ex: 102030" />
                                 <ValidationMessage For="@(() => editingProduct.InternalCode)" class="text-danger small" />
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">@Portuguese.Cat_FabricType</label>
                                 <InputText class="form-control" @bind-Value="editingProduct.FabricType" placeholder="Ex: Algodão 30.1" />
                                 <ValidationMessage For="@(() => editingProduct.FabricType)" class="text-danger small" />
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Tempo Médio (minutos)</label>
+                                <InputNumber class="form-control" @bind-Value="averageTime" />
+                            </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">@Portuguese.Cat_EstSalePrice</label>
+                                <label class="form-label fw-bold">Preço Estimado</label>
                                 <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" />
                                 <ValidationMessage For="@(() => editingProduct.EstimatedSalePrice)" class="text-danger small" />
                             </div>
@@ -146,7 +145,7 @@
                                 }
                                 else
                                 {
-                                    <span><i class="fa-solid fa-save me-2"></i>@Portuguese.Save</span>
+                                    <span><i class="fa-solid fa-save me-2"></i>Salvar Produto</span>
                                 }
                             </button>
                         </div>
@@ -165,6 +164,7 @@
     private bool loading = true;
     private bool isSaving = false;
     private CreateProductDto editingProduct = new();
+    private double averageTime = 0;
     private int editingId = 0;
     private Timer? debounceTimer;
 
@@ -237,11 +237,13 @@
                 MainSku = product.MainSku,
                 EstimatedSalePrice = product.EstimatedSalePrice
             };
+            averageTime = product.AverageProductionTimeMinutes;
         }
         else
         {
             editingId = 0;
             editingProduct = new CreateProductDto();
+            averageTime = 0;
         }
         showModal = true;
     }
@@ -260,6 +262,11 @@
         {
             isSaving = true;
             HttpResponseMessage response;
+            
+            // Sync MainSku with InternalCode if not provided, or just keep it same as InternalCode
+            editingProduct.MainSku = editingProduct.InternalCode;
+            editingProduct.AverageProductionTimeMinutes = averageTime;
+
             if (editingId == 0)
             {
                 response = await Http.PostAsJsonAsync("api/Products", editingProduct);
@@ -273,6 +280,7 @@
                     InternalCode = editingProduct.InternalCode,
                     FabricType = editingProduct.FabricType,
                     MainSku = editingProduct.MainSku,
+                    AverageProductionTimeMinutes = averageTime,
                     EstimatedSalePrice = editingProduct.EstimatedSalePrice
                 });
             }
@@ -285,8 +293,22 @@
             }
             else
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                ToastService.ShowToast($"{Portuguese.Msg_Error}: {errorBody}", ToastLevel.Error);
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    if (errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ToastService.ShowToast("O código do produto já existe", ToastLevel.Error);
+                    }
+                    else
+                    {
+                        ToastService.ShowToast($"{Portuguese.Msg_Error}: {errorBody}", ToastLevel.Error);
+                    }
+                }
+                else
+                {
+                    ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+                }
             }
         }
         catch (Exception ex)
@@ -313,7 +335,7 @@
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    ToastService.ShowToast(Portuguese.Cat_ErrDeleteLinked, ToastLevel.Error);
+                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error);
                 }
                 else
                 {
@@ -332,5 +354,3 @@
         debounceTimer?.Dispose();
     }
 }
-
-

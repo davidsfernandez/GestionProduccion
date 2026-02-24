@@ -63,6 +63,7 @@ public class ProductService : IProductService
         existing.InternalCode = product.InternalCode;
         existing.FabricType = product.FabricType;
         existing.MainSku = product.MainSku;
+        existing.AverageProductionTimeMinutes = product.AverageProductionTimeMinutes;
         existing.EstimatedSalePrice = product.EstimatedSalePrice;
         
         await _productRepository.UpdateAsync(existing);

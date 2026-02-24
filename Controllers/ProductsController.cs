@@ -66,6 +66,7 @@ public class ProductsController : ControllerBase
                 InternalCode = dto.InternalCode,
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
+                AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
                 EstimatedSalePrice = dto.EstimatedSalePrice
             };
 
@@ -103,6 +104,7 @@ public class ProductsController : ControllerBase
                 InternalCode = dto.InternalCode,
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
+                AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
                 EstimatedSalePrice = dto.EstimatedSalePrice
             };
 

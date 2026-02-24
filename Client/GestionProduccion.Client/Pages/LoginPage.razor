@@ -116,7 +116,7 @@
                 if (result != null && !string.IsNullOrEmpty(result.Token))
                 {
                     // Update global state immediately
-                    UserState.SetUser(result.UserName ?? "Usuário", result.AvatarUrl);
+                    UserState.SetUser(result.FullName ?? "Usuário", result.AvatarUrl);
                     
                     await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token, result.RefreshToken);
                     NavigationManager.NavigateTo("/");

@@ -23,10 +23,12 @@ namespace GestionProduccion.Client.Resources
         public const string ConfirmDeactivate = "Tem certeza que deseja desativar este usuário?";
         
         // Navigation
-        public const string Nav_Dashboard = "Dashboard";
+        public const string Nav_Dashboard = "Início";
         public const string Nav_Orders = "Ordens de Produção";
         public const string Nav_Profile = "Meu Perfil";
         public const string Nav_Users = "Usuários";
+        public const string Nav_Teams = "Equipes";
+        public const string Nav_Reports = "Relatórios";
         
         // Dashboard
         public const string Dash_Title = "Dashboard de Produção";

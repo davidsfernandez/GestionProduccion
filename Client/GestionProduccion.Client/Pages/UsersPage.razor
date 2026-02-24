@@ -141,7 +141,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
                                 <InputText type="password" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
-                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em blanco para manter</small> }
+                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em branco para manter a atual</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
 
@@ -280,7 +280,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Unexpected Error: {ex.Message}";
+            errorMessage = $"Erro inesperado: {ex.Message}";
         }
     }
 
