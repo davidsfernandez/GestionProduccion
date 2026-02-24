@@ -621,10 +621,18 @@
 
     private async Task LoadUsers()
     {
-        var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users");
-        if (response != null && response.Success && response.Data != null)
+        try 
         {
-            assignableUsers = response.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+            // The assignable endpoint already filters for Operational and Leader roles on the server
+            var response = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable", _jsonOptions);
+            if (response != null)
+            {
+                assignableUsers = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
         }
     }
 

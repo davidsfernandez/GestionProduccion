@@ -190,6 +190,7 @@ public class SewingTeamService : ISewingTeamService
             Members = team.Members?.Select(m => new UserDto
             {
                 Id = m.Id,
+                ExternalId = m.ExternalId,
                 FullName = m.FullName,
                 Email = m.Email,
                 Role = m.Role,

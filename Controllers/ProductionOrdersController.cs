@@ -89,6 +89,7 @@ public class ProductionOrdersController : ControllerBase
                 .Select(u => new UserDto
                 {
                     Id = u.Id,
+                    ExternalId = u.ExternalId,
                     FullName = u.FullName,
                     Email = u.Email,
                     Role = u.Role,

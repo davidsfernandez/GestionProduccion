@@ -57,11 +57,11 @@ public class ExceptionMiddleware
 
         context.Response.StatusCode = (int)statusCode;
 
-        var response = new ApiResponse<string>
+        var response = new ApiResponse<object>
         {
             Success = false,
             Message = message,
-            Data = exception.Message
+            Data = null
         };
 
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };

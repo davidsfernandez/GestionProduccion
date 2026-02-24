@@ -26,7 +26,7 @@ public class SewingTeamsController : ControllerBase
     public async Task<ActionResult<ApiResponse<SewingTeamDto>>> GetById(int id)
     {
         var team = await _teamService.GetTeamByIdAsync(id);
-        if (team == null) return NotFound(new ApiResponse<string> { Success = false, Message = "Equipe não encontrada." });
+        if (team == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
 
         return Ok(new ApiResponse<SewingTeamDto> { Success = true, Data = team });
     }
@@ -41,11 +41,11 @@ public class SewingTeamsController : ControllerBase
         }
         catch (GestionProduccion.Domain.Exceptions.DomainConstraintException ex)
         {
-            return BadRequest(new ApiResponse<string> { Success = false, Message = ex.Message });
+            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, new ApiResponse<string> { Success = false, Message = "Erro interno ao criar equipe.", Data = ex.Message });
+            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro interno ao criar equipe.", Data = null });
         }
     }
 
@@ -59,11 +59,11 @@ public class SewingTeamsController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new ApiResponse<string> { Success = false, Message = "Equipe não encontrada." });
+            return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, new ApiResponse<string> { Success = false, Message = "Erro ao atualizar equipe.", Data = ex.Message });
+            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro ao atualizar equipe.", Data = null });
         }
     }
 
@@ -73,17 +73,17 @@ public class SewingTeamsController : ControllerBase
         try
         {
             var result = await _teamService.DeleteTeamAsync(id);
-            if (!result) return NotFound(new ApiResponse<string> { Success = false, Message = "Equipe no encontrada." });
+            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe no encontrada." });
 
             return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
         catch (GestionProduccion.Domain.Exceptions.DomainConstraintException ex)
         {
-            return Conflict(new ApiResponse<string> { Success = false, Message = ex.Message });
+            return Conflict(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, new ApiResponse<string> { Success = false, Message = "Erro ao excluir equipe.", Data = ex.Message });
+            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro ao excluir equipe.", Data = null });
         }
     }
 
@@ -91,7 +91,7 @@ public class SewingTeamsController : ControllerBase
     public async Task<IActionResult> ToggleStatus(int id)
     {
         var result = await _teamService.ToggleTeamStatusAsync(id);
-        if (!result) return NotFound(new ApiResponse<string> { Success = false, Message = "Equipe não encontrada." });
+        if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
 
         return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }
