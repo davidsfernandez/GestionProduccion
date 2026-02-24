@@ -152,7 +152,7 @@
                                 <InputSelect class="form-select form-select-lg" @bind-Value="userModel.Role">
                                     @foreach (var role in Enum.GetValues<UserRole>())
                                     {
-                                        <option @key="role" value="@role">@TranslateRole(role)</option>
+                                        <option @key="role" value="@role">@TranslateRole(role.ToString())</option>
                                     }
                                 </InputSelect>
                             </div>
