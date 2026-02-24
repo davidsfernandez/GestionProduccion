@@ -1,14 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using GestionProduccion.Domain.Entities;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GestionProduccion.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
 public class QAController : ControllerBase
 {
     private readonly IQAService _qaService;
@@ -18,50 +16,38 @@ public class QAController : ControllerBase
         _qaService = qaService;
     }
 
-    [HttpPost]
-    [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<ApiResponse<QADefectDto>>> RegisterDefect([FromForm] CreateQADefectDto dto)
+    [HttpPost("defects")]
+    public async Task<ActionResult<QADefectDto>> RegisterDefect([FromBody] CreateQADefectDto dto)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        dto.ReportedByUserId = userId;
-
         var defect = await _qaService.RegisterDefectAsync(dto);
-        
-        var result = new QADefectDto
+        return Ok(new QADefectDto
         {
             Id = defect.Id,
-            ProductionOrderId = defect.ProductionOrderId,
             Reason = defect.Reason,
             Quantity = defect.Quantity,
-            PhotoUrl = defect.PhotoUrl,
-            RegistrationDate = defect.RegistrationDate
-        };
-
-        return Ok(new ApiResponse<QADefectDto> { Success = true, Message = "Defect registered successfully", Data = result });
+            ReportedAt = defect.ReportedAt
+        });
     }
 
-    [HttpGet("order/{orderId}")]
-    public async Task<ActionResult<ApiResponse<List<QADefectDto>>>> GetByOrder(int orderId)
+    [HttpGet("orders/{orderId}/defects")]
+    public async Task<ActionResult<ApiResponse<List<QADefectDto>>>> GetDefectsByOrder(int orderId)
     {
         var defects = await _qaService.GetDefectsByOrderAsync(orderId);
-        var result = defects.Select(d => new QADefectDto
+        var dtos = defects.Select(d => new QADefectDto
         {
             Id = d.Id,
-            ProductionOrderId = d.ProductionOrderId,
             Reason = d.Reason,
             Quantity = d.Quantity,
-            PhotoUrl = d.PhotoUrl,
-            RegistrationDate = d.RegistrationDate
+            ReportedAt = d.ReportedAt
         }).ToList();
 
-        return Ok(new ApiResponse<List<QADefectDto>> { Success = true, Data = result });
+        return Ok(new ApiResponse<List<QADefectDto>> { Success = true, Data = dtos });
     }
 
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<ApiResponse<string>>> Delete(int id)
+    [HttpDelete("defects/{id}")]
+    public async Task<IActionResult> DeleteDefect(int id)
     {
         await _qaService.DeleteDefectAsync(id);
-        return Ok(new ApiResponse<string> { Success = true, Message = "Defect deleted" });
+        return NoContent();
     }
 }

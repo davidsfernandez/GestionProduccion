@@ -7,17 +7,16 @@ public class CreateProductionOrderRequestValidator : AbstractValidator<CreatePro
 {
     public CreateProductionOrderRequestValidator()
     {
-        RuleFor(x => x.UniqueCode)
-            .NotEmpty().WithMessage("Unique Code is required.")
-            .MaximumLength(50).WithMessage("Unique Code cannot exceed 50 characters.");
-
         RuleFor(x => x.ProductId)
-            .GreaterThan(0).WithMessage("Product ID is required.");
+            .NotEmpty().WithMessage("Product is required.")
+            .GreaterThan(0).WithMessage("Valid Product ID is required.");
 
         RuleFor(x => x.Quantity)
+            .NotEmpty().WithMessage("Quantity is required.")
             .GreaterThan(0).WithMessage("Quantity must be greater than 0.");
 
-        RuleFor(x => x.EstimatedDeliveryDate)
-            .GreaterThan(DateTime.UtcNow).WithMessage("Delivery date must be in the future.");
+        RuleFor(x => x.EstimatedCompletionAt)
+            .NotEmpty().WithMessage("Estimated completion date is required.")
+            .Must(date => date > DateTime.Now).WithMessage("Completion date must be in the future.");
     }
 }

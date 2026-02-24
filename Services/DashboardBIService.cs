@@ -23,23 +23,23 @@ public class DashboardBIService : IDashboardBIService
         // 1. Month Production (Valid items from completed orders this month)
         var monthProduction = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.ActualEndDate >= firstDayOfMonth)
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .SumAsync(o => o.Quantity);
 
         // 2. Average Cost Per Piece (Global this month)
         var monthOrders = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.ActualEndDate >= firstDayOfMonth)
-            .Select(o => new { o.AverageCostPerPiece, o.EstimatedProfitMargin })
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
+            .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
             .ToListAsync();
 
         decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
-        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.EstimatedProfitMargin) : 0;
+        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
 
         // 3. Delayed Orders (Active with EstimatedDate < Now)
         var delayedCount = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.EstimatedDeliveryDate < now)
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.EstimatedCompletionAt < now)
             .CountAsync();
 
         // 4. Production by Workshop (Group by User ID -> Role Workshop/Operator)
@@ -47,7 +47,7 @@ public class DashboardBIService : IDashboardBIService
         var prodByWorkshop = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.UserId.HasValue)
-            .GroupBy(o => o.AssignedUser!.Name)
+            .GroupBy(o => o.AssignedUser!.FullName)
             .Select(g => new WorkshopProductionDto
             {
                 WorkshopName = g.Key,
@@ -64,7 +64,7 @@ public class DashboardBIService : IDashboardBIService
             .Select(g => new 
             {
                 ProductId = g.Key,
-                AvgMargin = g.Average(x => x.EstimatedProfitMargin)
+                AvgMargin = g.Average(x => x.ProfitMargin)
             })
             .ToListAsync();
 
@@ -89,7 +89,7 @@ public class DashboardBIService : IDashboardBIService
         var sixtyDaysAgo = now.AddDays(-60);
         var activeProductIds = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CreationDate >= sixtyDaysAgo)
+            .Where(o => o.CreatedAt >= sixtyDaysAgo)
             .Select(o => o.ProductId)
             .Distinct()
             .ToListAsync();

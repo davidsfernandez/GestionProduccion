@@ -65,8 +65,7 @@
                                                     <i class="fa-solid fa-user text-primary opacity-50"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="fw-bold text-dark">@user.Name</div>
-                                                    <small class="text-muted xsmall">ID: @user.PublicId</small>
+                                                    <div class="fw-bold text-dark">@user.FullName</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -129,8 +128,8 @@
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Name</label>
-                                <InputText class="form-control form-control-lg" @bind-Value="userModel.Name" placeholder="Nome completo" />
-                                <ValidationMessage For="@(() => userModel.Name)" class="text-danger xsmall mt-1" />
+                                <InputText class="form-control form-control-lg" @bind-Value="userModel.FullName" placeholder="Nome completo" />
+                                <ValidationMessage For="@(() => userModel.FullName)" class="text-danger xsmall mt-1" />
                             </div>
 
                             <div class="col-md-12 mb-3">
@@ -139,21 +138,10 @@
                                 <ValidationMessage For="@(() => userModel.Email)" class="text-danger xsmall mt-1" />
                             </div>
 
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label small fw-bold text-muted">@Portuguese.User_PublicId (@Portuguese.User_Active)</label>
-                                <div class="input-group input-group-lg">
-                                    <InputText class="form-control" @bind-Value="userModel.PublicId" placeholder="ID de acesso" />
-                                    <button type="button" class="btn btn-secondary px-3 shadow-none" @onclick="GenerateUuid" title="Gerar ID">
-                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                    </button>
-                                </div>
-                                <ValidationMessage For="@(() => userModel.PublicId)" class="text-danger xsmall mt-1" />
-                            </div>
-
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
                                 <InputText type="password" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
-                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em branco para manter</small> }
+                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em blanco para manter</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
 
@@ -199,7 +187,6 @@
         try
         {
             loading = true;
-            // Use GetFromJsonAsync which uses default web options (camelCase, case-insensitive)
             users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -229,9 +216,8 @@
         editingUserId = user.Id;
         userModel = new UserFormModel
         {
-            Name = user.Name,
+            FullName = user.FullName,
             Email = user.Email,
-            PublicId = user.PublicId,
             Role = user.Role
         };
         showModal = true;
@@ -244,26 +230,15 @@
         UserRole.Administrator => Portuguese.Role_Admin,
         UserRole.Leader => Portuguese.Role_Leader,
         UserRole.Operator => Portuguese.Role_Operator,
-        UserRole.Sewer => Portuguese.Role_Operator, // Legacy mapping
+        UserRole.Sewer => Portuguese.Role_Operator,
         UserRole.Workshop => Portuguese.Role_Workshop,
         _ => role.ToString()
     };
-
-    private void GenerateUuid()
-    {
-        userModel.PublicId = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
-    }
 
     private async Task HandleSubmit()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(userModel.PublicId))
-            {
-                errorMessage = Portuguese.User_UUIDRequired;
-                return;
-            }
-
             errorMessage = null;
             HttpResponseMessage response;
 
@@ -271,7 +246,7 @@
             {
                 var request = new UpdateUserRequest
                 {
-                    Name = userModel.Name,
+                    FullName = userModel.FullName,
                     Email = userModel.Email,
                     Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password,
                     Role = userModel.Role
@@ -282,10 +257,9 @@
             {
                 var request = new CreateUserRequest
                 {
-                    Name = userModel.Name,
+                    FullName = userModel.FullName,
                     Email = userModel.Email,
                     Password = userModel.Password,
-                    PublicId = userModel.PublicId,
                     Role = userModel.Role
                 };
                 response = await Http.PostAsJsonAsync("api/Users", request);
@@ -326,13 +300,11 @@
     public class UserFormModel
     {
         [System.ComponentModel.DataAnnotations.Required]
-        public string Name { get; set; } = "";
+        public string FullName { get; set; } = "";
         
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.EmailAddress]
         public string Email { get; set; } = "";
-        
-        public string PublicId { get; set; } = "";
         
         [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
         public string Password { get; set; } = "";

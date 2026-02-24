@@ -1,23 +1,20 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using GestionProduccion.Domain.Entities;
-using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Domain.Interfaces.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestionProduccion.Controllers;
 
-[Authorize(Roles = "Administrator")]
-[ApiController]
 [Route("api/[controller]")]
+[ApiController]
 public class SewingTeamsController : ControllerBase
 {
     private readonly ISewingTeamRepository _teamRepo;
-    private readonly IUserRepository _userRepo;
 
-    public SewingTeamsController(ISewingTeamRepository teamRepo, IUserRepository userRepo)
+    public SewingTeamsController(ISewingTeamRepository teamRepo)
     {
         _teamRepo = teamRepo;
-        _userRepo = userRepo;
     }
 
     [HttpGet]
@@ -29,7 +26,7 @@ public class SewingTeamsController : ControllerBase
             Id = t.Id,
             Name = t.Name,
             IsActive = t.IsActive,
-            MemberCount = 0 // Needs Include for detail
+            MemberCount = t.Members.Count
         }).ToList();
 
         return Ok(new ApiResponse<List<SewingTeamDto>> { Success = true, Data = dtos });
@@ -39,77 +36,35 @@ public class SewingTeamsController : ControllerBase
     public async Task<ActionResult<ApiResponse<SewingTeamDto>>> GetById(int id)
     {
         var team = await _teamRepo.GetTeamWithMembersAsync(id);
-        if (team == null) return NotFound(new ApiResponse<SewingTeamDto> { Success = false, Message = "Equipe não encontrada" });
+        if (team == null) return NotFound();
 
         var dto = new SewingTeamDto
         {
             Id = team.Id,
             Name = team.Name,
             IsActive = team.IsActive,
-            Members = team.Members.Select(m => new UserSummaryDto { Id = m.Id, Name = m.Name }).ToList(),
-            MemberCount = team.Members.Count
+            Members = team.Members.Select(m => new UserDto
+            {
+                Id = m.Id,
+                FullName = m.FullName,
+                Email = m.Email,
+                Role = m.Role
+            }).ToList()
         };
 
         return Ok(new ApiResponse<SewingTeamDto> { Success = true, Data = dto });
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<SewingTeamDto>>> Create(CreateSewingTeamDto dto)
+    public async Task<IActionResult> Create(SewingTeamDto dto)
     {
         var team = new SewingTeam
         {
             Name = dto.Name,
-            IsActive = true,
-            CreationDate = DateTime.UtcNow
+            IsActive = true
         };
-
-        if (dto.MemberIds.Any())
-        {
-            foreach (var userId in dto.MemberIds)
-            {
-                var user = await _userRepo.GetByIdAsync(userId);
-                if (user != null) team.Members.Add(user);
-            }
-        }
-
         await _teamRepo.AddAsync(team);
         await _teamRepo.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = team.Id }, new ApiResponse<SewingTeamDto> { Success = true, Message = "Equipe criada com sucesso" });
-    }
-
-    [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<bool>>> Update(int id, CreateSewingTeamDto dto)
-    {
-        var team = await _teamRepo.GetTeamWithMembersAsync(id);
-        if (team == null) return NotFound(new ApiResponse<bool> { Success = false, Message = "Equipe não encontrada" });
-
-        team.Name = dto.Name;
-        
-        // Update members
-        team.Members.Clear();
-        foreach (var userId in dto.MemberIds)
-        {
-            var user = await _userRepo.GetByIdAsync(userId);
-            if (user != null) team.Members.Add(user);
-        }
-
-        await _teamRepo.UpdateAsync(team);
-        await _teamRepo.SaveChangesAsync();
-
-        return Ok(new ApiResponse<bool> { Success = true, Message = "Equipe atualizada" });
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<bool>>> ToggleActive(int id)
-    {
-        var team = await _teamRepo.GetByIdAsync(id);
-        if (team == null) return NotFound(new ApiResponse<bool> { Success = false });
-
-        team.IsActive = !team.IsActive;
-        await _teamRepo.UpdateAsync(team);
-        await _teamRepo.SaveChangesAsync();
-
-        return Ok(new ApiResponse<bool> { Success = true, Message = team.IsActive ? "Equipe ativada" : "Equipe desativada" });
+        return Ok(new ApiResponse<int> { Success = true, Data = team.Id });
     }
 }

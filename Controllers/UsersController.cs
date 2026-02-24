@@ -26,16 +26,13 @@ public class UsersController : ControllerBase
     {
         try
         {
-            // Note: .AsNoTracking() is implemented inside UserService.GetActiveUsersAsync()
             var users = await _userService.GetActiveUsersAsync();
             
-            // Map to DTO (Architect Rule 4 & 5)
             return Ok(users.Select(u => new UserDto
             {
                 Id = u.Id,
-                Name = u.Name,
+                FullName = u.FullName,
                 Email = u.Email,
-                PublicId = u.PublicId,
                 Role = u.Role,
                 AvatarUrl = u.AvatarUrl,
                 IsActive = u.IsActive
@@ -65,9 +62,8 @@ public class UsersController : ControllerBase
             return Ok(new UserDto
             {
                 Id = user.Id,
-                Name = user.Name,
+                FullName = user.FullName,
                 Email = user.Email,
-                PublicId = user.PublicId,
                 Role = user.Role,
                 AvatarUrl = user.AvatarUrl,
                 IsActive = user.IsActive
@@ -101,7 +97,6 @@ public class UsersController : ControllerBase
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            // GUID Naming (Architect Rule 33)
             var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
@@ -112,7 +107,6 @@ public class UsersController : ControllerBase
 
             var newAvatarUrl = $"/img/avatars/{fileName}";
             
-            // EXPLICIT PERSISTENCE (Architect Rule 35)
             var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
             
             if (!success) return StatusCode(500, "Failed to update user record in database.");
@@ -133,7 +127,6 @@ public class UsersController : ControllerBase
 
         try
         {
-            // Email Conflict Check (Architect Rule 7)
             var existingUser = await _userService.GetUserByEmailAsync(request.Email);
             if (existingUser != null)
             {
@@ -142,28 +135,24 @@ public class UsersController : ControllerBase
 
             var user = new User
             {
-                Name = request.Name,
+                FullName = request.FullName,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
-                PublicId = request.PublicId,
                 IsActive = true
             };
 
-            // Persistence handled by CreateUserAsync via SaveChangesAsync() (Architect Rule 8)
             var createdUser = await _userService.CreateUserAsync(user);
 
             var userDto = new UserDto
             {
                 Id = createdUser.Id,
-                Name = createdUser.Name,
+                FullName = createdUser.FullName,
                 Email = createdUser.Email,
-                PublicId = createdUser.PublicId,
                 Role = createdUser.Role,
                 IsActive = createdUser.IsActive
             };
 
-            // Return CreatedAtAction (Architect Rule 9)
             return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, userDto);
         }
         catch (Exception ex)
@@ -181,7 +170,7 @@ public class UsersController : ControllerBase
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null) return NotFound(new { message = "User not found" });
 
-            user.Name = request.Name;
+            user.FullName = request.FullName;
             user.Email = request.Email;
             user.Role = request.Role;
 

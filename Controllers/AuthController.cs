@@ -91,12 +91,10 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = "Inactive user." });
             }
 
-            // Generate JWT (Long duration if RememberMe is true)
             var tokenDuration = login.RememberMe ? TimeSpan.FromDays(30) : TimeSpan.FromHours(8);
             var token = GenerateJwtToken(user, tokenDuration);
             var refreshToken = GenerateRefreshToken();
 
-            // Save Refresh Token
             await _refreshTokenRepo.AddAsync(new UserRefreshToken
             {
                 UserId = user.Id,
@@ -112,7 +110,7 @@ public class AuthController : ControllerBase
                 Token = token, 
                 RefreshToken = refreshToken,
                 AvatarUrl = user.AvatarUrl,
-                UserName = user.Name
+                FullName = user.FullName
             });
         }
         catch (Exception ex)
@@ -145,7 +143,6 @@ public class AuthController : ControllerBase
         var newToken = GenerateJwtToken(user, TimeSpan.FromHours(8));
         var newRefreshToken = GenerateRefreshToken();
 
-        // Rotate Refresh Token
         storedToken.IsRevoked = true;
         await _refreshTokenRepo.UpdateAsync(storedToken);
 
@@ -163,46 +160,46 @@ public class AuthController : ControllerBase
             Token = newToken,
             RefreshToken = newRefreshToken,
             AvatarUrl = user.AvatarUrl,
-            UserName = user.Name
+            FullName = user.FullName
         });
     }
 
-        [HttpPost("forgot-password")]
-        [AllowAnonymous]
-        [EnableRateLimiting("LoginPolicy")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("LoginPolicy")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var token = await _userService.RequestPasswordResetAsync(request.Email);
+
+        if (token == null) return Ok(new { message = "If the email exists, a reset link has been sent." });
+
+        var resetLink = $"https://tu-dominio.com/reset-password?token={token}&email={Uri.EscapeDataString(request.Email)}";      
+        var emailBody = $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 15 minutes.</p>"; 
+
+        await _emailService.SendEmailAsync(request.Email, "Reset Password", emailBody);
+
+        return Ok(new { message = "If the email exists, a reset link has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("LoginPolicy")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var success = await _userService.CompletePasswordResetAsync(request.Email, request.Token, request.NewPassword);
+
+        if (!success)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-    
-            var token = await _userService.RequestPasswordResetAsync(request.Email);
-    
-            // Prevent user enumeration
-            if (token == null) return Ok(new { message = "If the email exists, a reset link has been sent." });
-    
-            // Send Email
-            var resetLink = $"https://tu-dominio.com/reset-password?token={token}&email={Uri.EscapeDataString(request.Email)}";      
-            var emailBody = $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 15 minutes.</p>"; 
-    
-            await _emailService.SendEmailAsync(request.Email, "Reset Password", emailBody);
-    
-            return Ok(new { message = "If the email exists, a reset link has been sent." });
+            return BadRequest(new { message = "Invalid or expired token, or user mismatch." });
         }
-        [HttpPost("reset-password")]
-        [AllowAnonymous]
-        [EnableRateLimiting("LoginPolicy")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-    
-            var success = await _userService.CompletePasswordResetAsync(request.Email, request.Token, request.NewPassword);
-    
-            if (!success)
-            {
-                return BadRequest(new { message = "Invalid or expired token, or user mismatch." });
-            }
-    
-            return Ok(new { message = "Password reset successfully." });
-        }
+
+        return Ok(new { message = "Password reset successfully." });
+    }
+
     [AllowAnonymous]
     [HttpGet("setup-required")]
     public async Task<ActionResult<bool>> IsSetupRequired()
@@ -223,7 +220,7 @@ public class AuthController : ControllerBase
         {
             var user = new Domain.Entities.User
             {
-                Name = request.Name,
+                FullName = request.FullName,
                 Email = request.Email,
                 Role = Domain.Enums.UserRole.Administrator,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
@@ -255,7 +252,7 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("AvatarUrl", user.AvatarUrl ?? ""),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

@@ -26,18 +26,12 @@ public class UserService : IUserService
         _refreshTokenRepo = refreshTokenRepo;
     }
 
-    /// <summary>
-    /// Gets an active user by their ID.
-    /// </summary>
     public async Task<User?> GetUserByIdAsync(int userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         return user != null && user.IsActive ? user : null;
     }
 
-    /// <summary>
-    /// Gets an active user by their email address.
-    /// </summary>
     public async Task<User?> GetUserByEmailAsync(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -49,17 +43,11 @@ public class UserService : IUserService
         return user != null && user.IsActive ? user : null;
     }
 
-    /// <summary>
-    /// Gets all active users in the system.
-    /// </summary>
     public async Task<List<User>> GetActiveUsersAsync()
     {
         return await _userRepository.GetAllActiveAsync();
     }
 
-    /// <summary>
-    /// Gets all users with a specific role.
-    /// </summary>
     public async Task<List<User>> GetUsersByRoleAsync(string role)
     {
         if (string.IsNullOrWhiteSpace(role))
@@ -70,9 +58,6 @@ public class UserService : IUserService
         return await _userRepository.GetByRoleAsync(role);
     }
 
-    /// <summary>
-    /// Verifies if a user is assigned to a specific production order.
-    /// </summary>
     public async Task<bool> IsUserAssignedToOrderAsync(int userId, int orderId)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
@@ -83,9 +68,6 @@ public class UserService : IUserService
         return true;
     }
 
-    /// <summary>
-    /// Gets all production orders assigned to a user.
-    /// </summary>
     public async Task<List<ProductionOrder>> GetUserAssignedOrdersAsync(int userId)
     {
         var user = await GetUserByIdAsync(userId);
@@ -97,9 +79,6 @@ public class UserService : IUserService
         return await _orderRepository.GetAssignedToUserAsync(userId);
     }
 
-    /// <summary>
-    /// Creates a new user (admin only).
-    /// </summary>
     public async Task<User> CreateUserAsync(User user)
     {
         if (user == null)
@@ -107,8 +86,7 @@ public class UserService : IUserService
             throw new ArgumentNullException(nameof(user));
         }
 
-        // Validate user data
-        if (string.IsNullOrWhiteSpace(user.Name))
+        if (string.IsNullOrWhiteSpace(user.FullName))
         {
             throw new InvalidOperationException("User name cannot be empty.");
         }
@@ -123,7 +101,6 @@ public class UserService : IUserService
             throw new InvalidOperationException("User password hash cannot be empty.");
         }
 
-        // Check if email already exists
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
         if (existingUser != null)
         {
@@ -147,9 +124,6 @@ public class UserService : IUserService
         return true;
     }
 
-    /// <summary>
-    /// Updates an existing user.
-    /// </summary>
     public async Task<User> UpdateUserAsync(User user)
     {
         if (user == null)
@@ -163,10 +137,9 @@ public class UserService : IUserService
             throw new KeyNotFoundException("User not found.");
         }
 
-        existingUser.Name = user.Name;
+        existingUser.FullName = user.FullName;
         existingUser.Email = user.Email;
         existingUser.Role = user.Role;
-        existingUser.PublicId = user.PublicId;
         existingUser.AvatarUrl = user.AvatarUrl;
         existingUser.IsActive = user.IsActive;
 
@@ -175,9 +148,6 @@ public class UserService : IUserService
         return existingUser;
     }
 
-    /// <summary>
-    /// Deactivates a user (soft delete).
-    /// </summary>
     public async Task<bool> DeactivateUserAsync(int userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -243,16 +213,13 @@ public class UserService : IUserService
             return false;
         }
 
-        // Update password
         var user = resetToken.User;
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _userRepository.UpdateAsync(user);
 
-        // Mark token used
         resetToken.IsUsed = true;
         await _passwordResetRepo.UpdateAsync(resetToken);
 
-        // Revoke all sessions for security
         await _refreshTokenRepo.RevokeAllUserTokensAsync(user.Id);
 
         await _userRepository.SaveChangesAsync();
@@ -285,17 +252,11 @@ public class UserService : IUserService
         return Convert.ToBase64String(bytes);
     }
 
-    /// <summary>
-    /// Counts total active users in the system.
-    /// </summary>
     public async Task<int> CountActiveUsersAsync()
     {
         return await _userRepository.CountActiveAsync();
     }
 
-    /// <summary>
-    /// Gets the workload (count of assigned orders) for a specific user.
-    /// </summary>
     public async Task<int> GetUserWorkloadAsync(int userId)
     {
         var orders = await _orderRepository.GetAssignedToUserAsync(userId);

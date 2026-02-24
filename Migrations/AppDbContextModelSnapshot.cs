@@ -25,23 +25,31 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<decimal>("BonusAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("DeadlineBonusPercentage")
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<decimal>("DefectLimitPercentage")
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<decimal>("DelayPenaltyPercentage")
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<DateTime>("LastUpdate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
-                    b.Property<decimal>("ProductivityPercentage")
-                        .HasColumnType("decimal(5,2)");
+                    b.Property<double>("ProductivityPercentage")
+                        .HasColumnType("double");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -54,13 +62,13 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("AssignedUserId")
+                    b.Property<int?>("AssignedUserId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("CompletionDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime>("CreationDate")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("Deadline")
@@ -68,12 +76,12 @@ namespace GestionProduccion.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
+                    b.Property<int>("Status")
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -169,7 +177,7 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ModificationDate")
+                    b.Property<DateTime>("ChangedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("NewStage")
@@ -216,23 +224,17 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ActualEndDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("ActualStartDate")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<decimal>("AverageCostPerPiece")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CalculatedTotalCost")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ClientName")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<DateTime>("CreationDate")
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("CurrentStage")
@@ -245,17 +247,19 @@ namespace GestionProduccion.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<DateTime>("EstimatedDeliveryDate")
+                    b.Property<DateTime>("EstimatedCompletionAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<decimal>("EstimatedProfitMargin")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("ModificationDate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("LotCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("ProfitMargin")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -263,26 +267,30 @@ namespace GestionProduccion.Migrations
                     b.Property<int?>("SewingTeamId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Tamanho")
+                    b.Property<string>("Size")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("UniqueCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LotCode")
+                        .IsUnique();
+
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SewingTeamId");
-
-                    b.HasIndex("UniqueCode")
-                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -295,8 +303,12 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("PhotoUrl")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int>("ProductionOrderId")
                         .HasColumnType("int");
@@ -306,20 +318,15 @@ namespace GestionProduccion.Migrations
 
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime>("RegistrationDate")
+                    b.Property<DateTime>("ReportedAt")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("ReportedByUserId")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProductionOrderId");
-
-                    b.HasIndex("ReportedByUserId");
 
                     b.ToTable("QADefects");
                 });
@@ -329,9 +336,6 @@ namespace GestionProduccion.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("CreationDate")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -387,30 +391,24 @@ namespace GestionProduccion.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("AvatarUrl")
-                        .HasMaxLength(250)
-                        .HasColumnType("varchar(250)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -475,8 +473,7 @@ namespace GestionProduccion.Migrations
                     b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
                         .WithMany()
                         .HasForeignKey("AssignedUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("AssignedUser");
                 });
@@ -544,13 +541,7 @@ namespace GestionProduccion.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("GestionProduccion.Domain.Entities.User", "ReportedBy")
-                        .WithMany()
-                        .HasForeignKey("ReportedByUserId");
-
                     b.Navigation("ProductionOrder");
-
-                    b.Navigation("ReportedBy");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.UserRefreshToken", b =>

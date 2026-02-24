@@ -2,17 +2,16 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
-using GestionProduccion.Services.ProductionOrders; // New using directive
+using GestionProduccion.Services.ProductionOrders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace GestionProduccion.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Requires authentication for all controller endpoints
+[Authorize]
 public class ProductionOrdersController : ControllerBase
 {
     private readonly IProductionOrderQueryService _queryService;
@@ -36,7 +35,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Administrator,Leader")] // Only specific roles can create
+    [Authorize(Roles = "Administrator,Leader")]
     public async Task<IActionResult> CreateProductionOrder([FromBody] CreateProductionOrderRequest request)
     {
         if (!ModelState.IsValid)
@@ -90,7 +89,7 @@ public class ProductionOrdersController : ControllerBase
                 .Select(u => new UserDto
                 {
                     Id = u.Id,
-                    Name = u.Name,
+                    FullName = u.FullName,
                     Email = u.Email,
                     Role = u.Role,
                     IsActive = u.IsActive
@@ -295,7 +294,6 @@ public class ProductionOrdersController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<DashboardDto>> GetTvStats()
     {
-        // Optimized endpoint for TV Kiosk (can be cached later)
         var dashboardData = await _queryService.GetDashboardAsync(HttpContext.RequestAborted);
         return Ok(dashboardData);
     }
@@ -311,7 +309,7 @@ public class ProductionOrdersController : ControllerBase
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
             if (pdfBytes == null) return NotFound(new { message = "Could not generate PDF." });
             
-            return File(pdfBytes, "application/pdf", $"Orden_{order.UniqueCode}.pdf");
+            return File(pdfBytes, "application/pdf", $"Order_{order.LotCode}.pdf");
         }
         catch (Exception ex)
         {

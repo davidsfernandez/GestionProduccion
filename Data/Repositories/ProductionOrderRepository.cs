@@ -26,10 +26,10 @@ public class ProductionOrderRepository : IProductionOrderRepository
             .FirstOrDefaultAsync(po => po.Id == id);
     }
 
-    public async Task<ProductionOrder?> GetByUniqueCodeAsync(string uniqueCode)
+    public async Task<ProductionOrder?> GetByUniqueCodeAsync(string lotCode)
     {
         return await _context.ProductionOrders
-            .FirstOrDefaultAsync(x => x.UniqueCode == uniqueCode);
+            .FirstOrDefaultAsync(x => x.LotCode == lotCode);
     }
 
     public async Task<List<ProductionOrder>> GetAllAsync()
@@ -37,17 +37,18 @@ public class ProductionOrderRepository : IProductionOrderRepository
         return await _context.ProductionOrders
             .Include(po => po.AssignedUser)
             .Include(po => po.Product)
-            .OrderByDescending(po => po.CreationDate)
+            .OrderByDescending(po => po.CreatedAt)
             .ToListAsync();
     }
 
-        public Task<IQueryable<ProductionOrder>> GetQueryableAsync()
-        {
-            // Return Queryable for complex filtering in service layer if needed,
-            // though ideally all filtering moves here.
-            // For now, to ease refactoring, we expose IQueryable.
-            return Task.FromResult(_context.ProductionOrders.Include(po => po.AssignedUser).Include(po => po.Product).AsQueryable());
-        }
+    public Task<IQueryable<ProductionOrder>> GetQueryableAsync()
+    {
+        // Return Queryable for complex filtering in service layer if needed,
+        // though ideally all filtering moves here.
+        // For now, to ease refactoring, we expose IQueryable.
+        return Task.FromResult(_context.ProductionOrders.Include(po => po.AssignedUser).Include(po => po.Product).AsQueryable());
+    }
+
     public async Task AddAsync(ProductionOrder order)
     {
         await _context.ProductionOrders.AddAsync(order);
@@ -73,7 +74,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
     {
         return await _context.ProductionOrders
             .Where(po => po.UserId == userId)
-            .OrderByDescending(po => po.CreationDate)
+            .OrderByDescending(po => po.CreatedAt)
             .ToListAsync();
     }
 
@@ -87,7 +88,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
         return await _context.ProductionHistories
             .Where(h => h.ProductionOrderId == orderId)
             .Include(h => h.ResponsibleUser)
-            .OrderByDescending(h => h.ModificationDate)
+            .OrderByDescending(h => h.ChangedAt)
             .ToListAsync();
     }
 
@@ -96,7 +97,7 @@ public class ProductionOrderRepository : IProductionOrderRepository
         return await _context.ProductionHistories
             .Include(h => h.ResponsibleUser)
             .Include(h => h.ProductionOrder)
-            .OrderByDescending(h => h.ModificationDate)
+            .OrderByDescending(h => h.ChangedAt)
             .Take(count)
             .ToListAsync();
     }

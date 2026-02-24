@@ -24,10 +24,8 @@ public class Product
     [StringLength(50)]
     public string MainSku { get; set; } = string.Empty;
 
-    // Phase 2: Memory Production
     public double AverageProductionTimeMinutes { get; set; }
 
-    // Phase 3: Financial Module
     [Column(TypeName = "decimal(18,2)")]
     public decimal EstimatedSalePrice { get; set; }
 }

@@ -3,27 +3,27 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestionProduccion.Domain.Entities;
 
-/// <summary>
-/// Represents a dynamic configuration for the bonus system (Singleton in practice).
-/// </summary>
 public class BonusRule
 {
     [Key]
     public int Id { get; set; }
 
-    [Column(TypeName = "decimal(5,2)")]
-    public decimal ProductivityPercentage { get; set; }
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = string.Empty;
 
-    [Column(TypeName = "decimal(5,2)")]
+    public double ProductivityPercentage { get; set; }
+
     public decimal DeadlineBonusPercentage { get; set; }
-
-    [Column(TypeName = "decimal(5,2)")]
+    
     public decimal DefectLimitPercentage { get; set; }
-
-    [Column(TypeName = "decimal(5,2)")]
+    
     public decimal DelayPenaltyPercentage { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal BonusAmount { get; set; }
+
     public bool IsActive { get; set; } = true;
-    
-    public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

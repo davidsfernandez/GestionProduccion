@@ -19,16 +19,13 @@ public class QAService : IQAService
     public async Task<QADefect> RegisterDefectAsync(CreateQADefectDto dto)
     {
         string? photoUrl = null;
-        // Photo upload logic removed from DTO to support Blazor sharing. 
-        // File should be handled separately in the controller.
 
         var defect = new QADefect
         {
             ProductionOrderId = dto.ProductionOrderId,
             Reason = dto.Reason,
             Quantity = dto.Quantity,
-            PhotoUrl = photoUrl,
-            ReportedByUserId = dto.ReportedByUserId
+            PhotoUrl = photoUrl
         };
 
         await _defectRepo.AddAsync(defect);

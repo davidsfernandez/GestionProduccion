@@ -31,7 +31,6 @@ namespace GestionProduccion.Tests
         [Fact]
         public async Task Login_ShouldReturnToken_WhenCredentialsAreValid()
         {
-            // Arrange
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
             var mockLogger = new Mock<ILogger<AuthController>>();
@@ -42,7 +41,7 @@ namespace GestionProduccion.Tests
             var user = new User 
             { 
                 Id = 1,
-                Name = "Admin", 
+                FullName = "Admin", 
                 Email = "admin@test.com", 
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
                 Role = Domain.Enums.UserRole.Administrator, 
@@ -62,10 +61,8 @@ namespace GestionProduccion.Tests
 
             var loginDto = new LoginDto { Email = "admin@test.com", Password = "password123" };
 
-            // Act
             var result = await controller.Login(loginDto);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(okResult.Value);
         }
@@ -73,7 +70,6 @@ namespace GestionProduccion.Tests
         [Fact]
         public async Task Login_ShouldReturnUnauthorized_WhenPasswordIsWrong()
         {
-            // Arrange
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
             var mockLogger = new Mock<ILogger<AuthController>>();
@@ -84,7 +80,7 @@ namespace GestionProduccion.Tests
             var user = new User 
             { 
                 Id = 1,
-                Name = "User", 
+                FullName = "User", 
                 Email = "user@test.com", 
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), 
                 Role = Domain.Enums.UserRole.Operator, 
@@ -104,17 +100,14 @@ namespace GestionProduccion.Tests
 
             var loginDto = new LoginDto { Email = "user@test.com", Password = "wrongpassword" };
 
-            // Act
             var result = await controller.Login(loginDto);
 
-            // Assert
             Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
         [Fact]
         public async Task Login_ShouldReturnUnauthorized_WhenUserNotFound()
         {
-            // Arrange
             var config = GetMockConfiguration();
             var mockUserService = new Mock<IUserService>();
             var mockLogger = new Mock<ILogger<AuthController>>();
@@ -122,7 +115,7 @@ namespace GestionProduccion.Tests
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
             
-            mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null);
+            mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
 
             var controller = new AuthController(
                 config, 
@@ -135,10 +128,8 @@ namespace GestionProduccion.Tests
 
             var loginDto = new LoginDto { Email = "nonexistent@test.com", Password = "password123" };
 
-            // Act
             var result = await controller.Login(loginDto);
 
-            // Assert
             Assert.IsType<UnauthorizedObjectResult>(result);
         }
     }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Services.Interfaces;
 using System.Security.Claims;
 using GestionProduccion.Domain.Entities;
@@ -71,7 +72,6 @@ public class TasksController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to calculate performance ranking");
-            // Return empty list instead of 500 to prevent Dashboard crash
             return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = new List<RankingEntryDto>() });
         }
     }

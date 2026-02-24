@@ -13,26 +13,18 @@ public class OperationalTask
     [StringLength(100)]
     public string Title { get; set; } = string.Empty;
 
-    [Required]
+    [StringLength(500)]
     public string Description { get; set; } = string.Empty;
 
-    public int AssignedUserId { get; set; }
-    [ForeignKey("AssignedUserId")]
-    public virtual User AssignedUser { get; set; } = null!;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime CreationDate { get; set; } = DateTime.UtcNow;
-    
     public DateTime? Deadline { get; set; }
+
+    public DateTime? CompletionDate { get; set; }
 
     public OpTaskStatus Status { get; set; } = OpTaskStatus.Pending;
 
-    public DateTime? CompletionDate { get; set; }
-}
-
-public enum OpTaskStatus
-{
-    Pending,
-    InProgress,
-    Completed,
-    Cancelled
+    public int? AssignedUserId { get; set; }
+    [ForeignKey("AssignedUserId")]
+    public virtual User? AssignedUser { get; set; }
 }

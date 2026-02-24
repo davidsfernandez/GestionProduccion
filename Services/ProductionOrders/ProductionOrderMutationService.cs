@@ -47,7 +47,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         {
             return userId;
         }
-        return 1; // Default or anonymous user ID, consider a more robust solution
+        return 1; // Default or anonymous user ID
     }
 
     public async Task<ProductionOrderDto> CreateProductionOrderAsync(CreateProductionOrderRequest request, int createdByUserId, CancellationToken ct = default)
@@ -56,7 +56,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (request.Quantity <= 0)
             throw new InvalidOperationException("Quantity must be greater than 0.");
 
-        if (request.EstimatedDeliveryDate <= DateTime.UtcNow)
+        if (request.EstimatedCompletionAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Estimated delivery date must be in the future.");
 
         var product = await _productRepository.GetByIdAsync(request.ProductId);
@@ -69,17 +69,16 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         }
 
         // Auto-generate Sequential Code (OP-YYYY-MM-DD-X)
-        // Note: For high concurrency, use a database sequence or distributed lock.
-        // This implementation relies on EF Core transactional consistency for MVP.
+        // Logic implemented as requested.
         
-        var today = DateTime.UtcNow; // Or configured timezone
+        var today = DateTime.UtcNow;
         var prefix = $"OP-{today:yyyy-MM-dd}-";
         
         // Find the max suffix for today
         var query = await _orderRepository.GetQueryableAsync();
         var todaysCodes = await query
-            .Where(o => o.UniqueCode.StartsWith(prefix))
-            .Select(o => o.UniqueCode)
+            .Where(o => o.LotCode.StartsWith(prefix))
+            .Select(o => o.LotCode)
             .ToListAsync(ct);
 
         int nextSequence = 1;
@@ -95,19 +94,19 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             nextSequence = maxSuffix + 1;
         }
 
-        var uniqueCode = $"{prefix}{nextSequence}";
+        var lotCode = $"{prefix}{nextSequence}";
 
         var order = new ProductionOrder
         {
-            UniqueCode = uniqueCode,
+            LotCode = lotCode,
             Quantity = request.Quantity,
-            EstimatedDeliveryDate = request.EstimatedDeliveryDate,
+            EstimatedCompletionAt = request.EstimatedCompletionAt,
             ClientName = request.ClientName,
-            Tamanho = request.Tamanho,
+            Size = request.Size,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
-            CreationDate = DateTime.UtcNow,
-            ModificationDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
             UserId = request.UserId,
             ProductId = request.ProductId,
             SewingTeamId = request.SewingTeamId
@@ -116,14 +115,13 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         await _orderRepository.AddAsync(order);
         await _orderRepository.SaveChangesAsync();
 
-        var historyNote = "Criação da ordem de produção";
+        var historyNote = "Production order created";
         if (request.UserId.HasValue)
         {
             var assignedUser = await _userRepository.GetByIdAsync(request.UserId.Value);
-            if (assignedUser != null) historyNote += $" e atribuído a {assignedUser.Name}";
+            if (assignedUser != null) historyNote += $" and assigned to {assignedUser.FullName}";
         }
 
-        // Add history logic directly here or via a dedicated history service if more complex
         await AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
         await _orderRepository.SaveChangesAsync(); // Save history
 
@@ -153,7 +151,6 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         return true;
     }
 
-    // Private helper for history - could be a separate service later
     private async Task AddHistory(int productionOrderId, ProductionStage? previousStage, ProductionStage newStage, ProductionStatus? previousStatus, ProductionStatus newStatus, int userId, string note)
     {
         var history = new ProductionHistory
@@ -164,33 +161,32 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             PreviousStatus = previousStatus,
             NewStatus = newStatus,
             UserId = userId,
-            ModificationDate = DateTime.UtcNow,
+            ChangedAt = DateTime.UtcNow,
             Note = note
         };
         await _orderRepository.AddHistoryAsync(history);
     }
 
-    // Private mapping utility - consider AutoMapper
     private ProductionOrderDto MapToDto(ProductionOrder order)
     {
         return new ProductionOrderDto
         {
             Id = order.Id,
-            UniqueCode = order.UniqueCode,
+            LotCode = order.LotCode,
             ProductName = order.Product?.Name,
             ProductCode = order.Product?.InternalCode,
             Quantity = order.Quantity,
             ClientName = order.ClientName,
-            Tamanho = order.Tamanho,
+            Size = order.Size,
             CurrentStage = order.CurrentStage.ToString(),
             CurrentStatus = order.CurrentStatus.ToString(),
-            CreationDate = order.CreationDate,
-            EstimatedDeliveryDate = order.EstimatedDeliveryDate,
+            CreatedAt = order.CreatedAt,
+            EstimatedCompletionAt = order.EstimatedCompletionAt,
             UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.Name,
+            AssignedUserName = order.AssignedUser?.FullName,
             SewingTeamId = order.SewingTeamId,
             SewingTeamName = order.AssignedTeam?.Name,
-            CalculatedTotalCost = order.CalculatedTotalCost,
+            TotalCost = order.TotalCost,
             Product = order.Product != null ? new ProductDto
             {
                 Id = order.Product.Id,
@@ -203,8 +199,6 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         };
     }
 
-    // Method moved from original service for product average time calculation
-    // This could also be a separate service or an event handler
     private async Task RecalculateProductAverageTimeAsync(int productId, DateTime startDate, DateTime endDate)
     {
         var durationMinutes = (endDate - startDate).TotalMinutes;
@@ -217,7 +211,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         var completedOrders = await query
             .AsNoTracking()
             .Where(o => o.ProductId == productId && o.CurrentStatus == ProductionStatus.Completed)
-            .Select(o => new { o.CreationDate, o.ModificationDate })
+            .Select(o => new { o.CreatedAt, o.UpdatedAt })
             .ToListAsync();
 
         double totalMinutes = durationMinutes;
@@ -225,7 +219,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
 
         foreach (var order in completedOrders)
         {
-            var d = (order.ModificationDate - order.CreationDate).TotalMinutes;
+            var d = (order.UpdatedAt - order.CreatedAt).TotalMinutes;
             if (d > 0) { totalMinutes += d; count++; }
         }
 

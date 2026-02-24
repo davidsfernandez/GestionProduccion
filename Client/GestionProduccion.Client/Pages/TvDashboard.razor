@@ -100,7 +100,7 @@ else
                 @foreach (var order in dashboard.TodaysOrders.Take(5)) 
                 {
                     <div class="list-item" @key="order.Id">
-                        <span>@order.UniqueCode</span>
+                        <span>@order.LotCode</span>
                         <span class="text-info">@order.CurrentStage</span>
                     </div>
                 }

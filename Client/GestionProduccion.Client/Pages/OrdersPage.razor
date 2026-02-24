@@ -138,7 +138,7 @@
                                         <td>
                                             <input type="checkbox" class="form-check-input" checked="@selectedOrderIds.Contains(order.Id)" @onchange="@(() => ToggleSelection(order.Id))" @onclick:stopPropagation="true" />
                                         </td>
-                                        <td><strong class="text-dark">@order.UniqueCode</strong></td>
+                                        <td><strong class="text-dark">@order.LotCode</strong></td>
                                         <td class="text-muted d-none d-md-table-cell">
                                             @if (!string.IsNullOrEmpty(order.ProductName))
                                             {
@@ -151,7 +151,7 @@
                                             }
                                         </td>
                                         <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
-                                        <td><span class="badge bg-secondary">@order.Tamanho</span></td>
+                                        <td><span class="badge bg-secondary">@order.Size</span></td>
                                         <td>
                                             <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
                                         </td>
@@ -163,7 +163,7 @@
                                         <td class="d-none d-lg-table-cell">
                                             <span class="text-muted small">@(order.SewingTeamName ?? "-")</span>
                                         </td>
-                                        <td class="d-none d-lg-table-cell">@order.EstimatedDeliveryDate.ToString("dd/MM")</td>
+                                        <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
                                         <td class="d-none d-xl-table-cell">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
@@ -240,7 +240,7 @@
             var filter = new FilterProductionOrderDto
             {
                 ClientName = filterClient,
-                Tamanho = filterTamanho,
+                Size = filterTamanho,
                 // Add Product search by searchTerm if needed
             };
 
@@ -261,7 +261,7 @@
 
     private async Task DeleteOrder(ProductionOrderDto order)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.UniqueCode}? Esta ação alterará as métricas de produção."))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta ação alterará as métricas de produção."))
         {
             try
             {
@@ -399,7 +399,7 @@
             var filter = new FilterProductionOrderDto
             {
                 ClientName = filterClient,
-                Tamanho = filterTamanho,
+                Size = filterTamanho,
                 // Add Product search by searchTerm if needed
             };
             var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);

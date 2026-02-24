@@ -1,4 +1,5 @@
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Services.Interfaces;

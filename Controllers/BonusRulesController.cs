@@ -1,14 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using GestionProduccion.Domain.Entities;
-using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Domain.Interfaces.Repositories;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GestionProduccion.Controllers;
 
-[Authorize(Roles = "Administrator")]
-[ApiController]
 [Route("api/[controller]")]
+[ApiController]
 public class BonusRulesController : ControllerBase
 {
     private readonly IBonusRuleRepository _ruleRepo;
@@ -18,53 +16,57 @@ public class BonusRulesController : ControllerBase
         _ruleRepo = ruleRepo;
     }
 
-    [HttpGet]
+    [HttpGet("active")]
     public async Task<ActionResult<ApiResponse<BonusRuleDto>>> GetActive()
     {
         var rule = await _ruleRepo.GetActiveRuleAsync();
         if (rule == null)
         {
-            // Seed default if none
+            // Default rule if none exists
             rule = new BonusRule
             {
+                Name = "Default Rules",
                 ProductivityPercentage = 10,
                 DeadlineBonusPercentage = 5,
                 DefectLimitPercentage = 2,
                 DelayPenaltyPercentage = 5,
                 IsActive = true
             };
-            await _ruleRepo.AddAsync(rule);
-            await _ruleRepo.SaveChangesAsync();
         }
 
         var dto = new BonusRuleDto
         {
             Id = rule.Id,
-            ProductivityPercentage = rule.ProductivityPercentage,
+            ProductivityPercentage = (decimal)rule.ProductivityPercentage,
             DeadlineBonusPercentage = rule.DeadlineBonusPercentage,
             DefectLimitPercentage = rule.DefectLimitPercentage,
             DelayPenaltyPercentage = rule.DelayPenaltyPercentage,
-            LastUpdate = rule.LastUpdate
+            LastUpdate = rule.UpdatedAt
         };
 
         return Ok(new ApiResponse<BonusRuleDto> { Success = true, Data = dto });
     }
 
-    [HttpPut]
-    public async Task<ActionResult<ApiResponse<bool>>> Update(UpdateBonusRuleDto dto)
+    [HttpPost]
+    public async Task<IActionResult> Update(BonusRuleDto dto)
     {
-        var rule = await _ruleRepo.GetActiveRuleAsync();
-        if (rule == null) return BadRequest(new ApiResponse<bool> { Success = false });
+        var existing = await _ruleRepo.GetActiveRuleAsync();
+        if (existing == null)
+        {
+            existing = new BonusRule();
+            await _ruleRepo.AddAsync(existing);
+        }
 
-        rule.ProductivityPercentage = dto.ProductivityPercentage;
-        rule.DeadlineBonusPercentage = dto.DeadlineBonusPercentage;
-        rule.DefectLimitPercentage = dto.DefectLimitPercentage;
-        rule.DelayPenaltyPercentage = dto.DelayPenaltyPercentage;
-        rule.LastUpdate = DateTime.UtcNow;
+        existing.Name = "Production Rules";
+        existing.ProductivityPercentage = (double)dto.ProductivityPercentage;
+        existing.DeadlineBonusPercentage = dto.DeadlineBonusPercentage;
+        existing.DefectLimitPercentage = dto.DefectLimitPercentage;
+        existing.DelayPenaltyPercentage = dto.DelayPenaltyPercentage;
+        existing.UpdatedAt = DateTime.UtcNow;
 
-        await _ruleRepo.UpdateAsync(rule);
+        await _ruleRepo.UpdateAsync(existing);
         await _ruleRepo.SaveChangesAsync();
 
-        return Ok(new ApiResponse<bool> { Success = true, Message = "Regras atualizadas com sucesso" });
+        return Ok(new ApiResponse<bool> { Success = true });
     }
 }

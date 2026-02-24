@@ -32,7 +32,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         {
             return userId;
         }
-        return 1; // Default or anonymous user ID, consider a more robust solution
+        return 1; // Default or anonymous user ID
     }
 
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
@@ -64,16 +64,16 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
                 query = query.Where(po => po.UserId == filter.UserId.Value);
 
             if (filter.StartDate.HasValue)
-                query = query.Where(po => po.CreationDate >= filter.StartDate.Value);
+                query = query.Where(po => po.CreatedAt >= filter.StartDate.Value);
 
             if (filter.EndDate.HasValue)
-                query = query.Where(po => po.CreationDate <= filter.EndDate.Value);
+                query = query.Where(po => po.CreatedAt <= filter.EndDate.Value);
             
             if (!string.IsNullOrWhiteSpace(filter.ClientName))
                 query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
 
-            if (!string.IsNullOrWhiteSpace(filter.Tamanho))
-                query = query.Where(po => po.Tamanho != null && po.Tamanho.Contains(filter.Tamanho));
+            if (!string.IsNullOrWhiteSpace(filter.Size))
+                query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
         }
 
         // Optimize: do not track entities for read operations, include necessary relations
@@ -84,7 +84,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(po => po.Product)
             .Include(po => po.AssignedUser)
             .Include(po => po.AssignedTeam)
-            .OrderByDescending(po => po.CreationDate)
+            .OrderByDescending(po => po.CreatedAt)
             .ToListAsync(ct);
             
         return ordersList.Select(MapToDto).ToList();
@@ -102,7 +102,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .AsNoTracking();
 
         var totalActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
-        var completedToday = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed && o.ActualEndDate >= today);
+        var completedToday = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today);
 
         var activeOrdersList = ordersWithRelations
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
@@ -112,7 +112,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .GroupBy(o => o.UserId!.Value)
             .Select((g, index) => new WorkerStatsDto
             {
-                Name = g.First().AssignedUser?.Name ?? "Unknown",
+                Name = g.First().AssignedUser?.FullName ?? "Unknown",
                 AvatarUrl = g.First().AssignedUser?.AvatarUrl ?? "/img/avatars/avatar.jpg",
                 ActiveCount = g.Count(),
                 EfficiencyScore = 95.0, // Placeholder
@@ -125,10 +125,10 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var recentActivities = historyLogs.Select(h => new RecentActivityDto
         {
             OrderId = h.ProductionOrderId,
-            UniqueCode = h.ProductionOrder?.UniqueCode ?? "N/A",
-            UserName = h.ResponsibleUser?.Name ?? "System",
+            UniqueCode = h.ProductionOrder?.LotCode ?? "N/A",
+            UserName = h.ResponsibleUser?.FullName ?? "System",
             Action = h.Note ?? h.NewStatus.ToString(),
-            Date = h.ModificationDate
+            Date = h.ChangedAt
         }).ToList();
 
         var ordersByStage = query.Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled)
@@ -140,7 +140,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var totalComp = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
-        var todaysOrdersList = ordersWithRelations.Where(o => o.CreationDate >= today || (o.ActualEndDate != null && o.ActualEndDate >= today)).OrderByDescending(o => o.CreationDate).ToList();
+        var todaysOrdersList = ordersWithRelations.Where(o => o.CreatedAt >= today || (o.CompletedAt != null && o.CompletedAt >= today)).OrderByDescending(o => o.CreatedAt).ToList();
         var todaysOrdersDtos = todaysOrdersList.Select(MapToDto).ToList();
 
         return new DashboardDto
@@ -170,8 +170,8 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             PreviousStatus = h.PreviousStatus?.ToString() ?? "",
             NewStatus = h.NewStatus.ToString(),
             UserId = h.UserId,
-            UserName = h.ResponsibleUser?.Name ?? "Unknown",
-            ModificationDate = h.ModificationDate,
+            UserName = h.ResponsibleUser?.FullName ?? "Unknown",
+            ChangedAt = h.ChangedAt,
             Note = h.Note ?? ""
         }).ToList();
     }
@@ -182,21 +182,21 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         return new ProductionOrderDto
         {
             Id = order.Id,
-            UniqueCode = order.UniqueCode,
+            LotCode = order.LotCode,
             ProductName = order.Product?.Name,
             ProductCode = order.Product?.InternalCode,
             Quantity = order.Quantity,
             ClientName = order.ClientName,
-            Tamanho = order.Tamanho,
+            Size = order.Size,
             CurrentStage = order.CurrentStage.ToString(),
             CurrentStatus = order.CurrentStatus.ToString(),
-            CreationDate = order.CreationDate,
-            EstimatedDeliveryDate = order.EstimatedDeliveryDate,
+            CreatedAt = order.CreatedAt,
+            EstimatedCompletionAt = order.EstimatedCompletionAt,
             UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.Name,
+            AssignedUserName = order.AssignedUser?.FullName,
             SewingTeamId = order.SewingTeamId,
             SewingTeamName = order.AssignedTeam?.Name,
-            CalculatedTotalCost = order.CalculatedTotalCost,
+            TotalCost = order.TotalCost,
             Product = order.Product != null ? new ProductDto
             {
                 Id = order.Product.Id,

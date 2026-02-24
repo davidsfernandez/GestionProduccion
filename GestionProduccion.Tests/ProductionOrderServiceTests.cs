@@ -44,27 +44,22 @@ public class ProductionOrderServiceTests : IDisposable
         _mockProductRepo = new Mock<IProductRepository>();
         _mockFinancialCalc = new Mock<IFinancialCalculatorService>();
 
-        // Setup mock SignalR
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
         mockClients.Setup(clients => clients.All).Returns(mockClientProxy.Object);
         _mockHubContext.Setup(hub => hub.Clients).Returns(mockClients.Object);
 
-        // Setup Mock HttpContext
         var context = new DefaultHttpContext();
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "1") };
         var identity = new ClaimsIdentity(claims, "TestAuth");
         context.User = new ClaimsPrincipal(identity);
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(context);
 
-        // Repositories
         var orderRepo = new ProductionOrderRepository(_context);
         var userRepo = new UserRepository(_context);
 
-        // Mock Product Repository
         _mockProductRepo.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product?)null);
 
-        // Segregated Services
         _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object);
         
         _mutationService = new ProductionOrderMutationService(
@@ -98,16 +93,15 @@ public class ProductionOrderServiceTests : IDisposable
 
         var request = new CreateProductionOrderRequest
         {
-            UniqueCode = "OP-TEST-001",
             ProductId = 1,
             Quantity = 100,
-            EstimatedDeliveryDate = DateTime.UtcNow.AddDays(7)
+            EstimatedCompletionAt = DateTime.UtcNow.AddDays(7)
         };
 
         var result = await _mutationService.CreateProductionOrderAsync(request, 1);
 
         Assert.NotNull(result);
-        Assert.Equal(request.UniqueCode, result.UniqueCode);
+        Assert.StartsWith("OP-", result.LotCode);
     }
 
     [Fact]
@@ -116,12 +110,13 @@ public class ProductionOrderServiceTests : IDisposable
         var order = new ProductionOrder
         {
             Id = 1,
-            UniqueCode = "OP-ADV-001",
+            LotCode = "OP-ADV-001",
             ProductId = 1,
             Quantity = 50,
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
-            CreationDate = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
         _context.ProductionOrders.Add(order);
         await _context.SaveChangesAsync();
@@ -138,8 +133,8 @@ public class ProductionOrderServiceTests : IDisposable
     {
         var orders = new List<ProductionOrder>
         {
-            new() { Id = 101, UniqueCode = "OP-DB-1", Quantity = 100, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.Completed, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(1), ActualEndDate = DateTime.UtcNow },
-            new() { Id = 102, UniqueCode = "OP-DB-2", Quantity = 50, CurrentStage = ProductionStage.Sewing, CurrentStatus = ProductionStatus.InProduction, CreationDate = DateTime.UtcNow, EstimatedDeliveryDate = DateTime.UtcNow.AddDays(2) }
+            new() { Id = 101, LotCode = "OP-DB-1", Quantity = 100, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.Completed, CreatedAt = DateTime.UtcNow, EstimatedCompletionAt = DateTime.UtcNow.AddDays(1), CompletedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" } },
+            new() { Id = 102, LotCode = "OP-DB-2", Quantity = 50, CurrentStage = ProductionStage.Sewing, CurrentStatus = ProductionStatus.InProduction, CreatedAt = DateTime.UtcNow, EstimatedCompletionAt = DateTime.UtcNow.AddDays(2), UpdatedAt = DateTime.UtcNow, Product = new Product { Id = 2, Name = "P2", InternalCode = "C2", FabricType = "F2", MainSku = "S2" } }
         };
 
         _context.ProductionOrders.AddRange(orders);

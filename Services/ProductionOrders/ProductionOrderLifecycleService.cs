@@ -4,9 +4,9 @@ using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Hubs;
 using GestionProduccion.Models.DTOs;
-using GestionProduccion.Services.Interfaces; // For IFinancialCalculatorService
+using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore; // Added missing using
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading;
 
@@ -16,11 +16,10 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 {
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
-    private readonly IProductRepository _productRepository; // For RecalculateProductAverageTimeAsync
+    private readonly IProductRepository _productRepository;
     private readonly IHubContext<ProductionHub> _hubContext;
-    private readonly IHttpContextAccessor _httpContextAccessor; // For GetCurrentUserId (e.g. for history)
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    // Secondary services not directly related to Order lifecycle but called by monolith
     private readonly IFinancialCalculatorService _financialCalculator;
 
     public ProductionOrderLifecycleService(
@@ -47,7 +46,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         {
             return userId;
         }
-        return 1; // Default or anonymous user ID, consider a more robust solution
+        return 1;
     }
 
     public async Task<bool> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
@@ -59,10 +58,11 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (user == null || (user.Role != UserRole.Operator && user.Role != UserRole.Workshop)) return false;
 
         order.UserId = userId;
+        order.UpdatedAt = DateTime.UtcNow;
         await _orderRepository.UpdateAsync(order);
 
         var currentUserId = GetCurrentUserId();
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, currentUserId, $"Atribuído a {user.Name}");
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, currentUserId, $"Assigned to {user.FullName}");
         await _orderRepository.SaveChangesAsync();
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
@@ -77,7 +77,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode atualizar o status de ordens atribuídas a você.");
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only update status of orders assigned to you.");
         }
 
         if (newStatus == ProductionStatus.Completed && order.CurrentStage != ProductionStage.Packaging) return false;
@@ -85,29 +85,26 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         var previousStatus = order.CurrentStatus;
         order.CurrentStatus = newStatus;
+        order.UpdatedAt = DateTime.UtcNow;
 
-        // Timestamp Logic
-        if (newStatus == ProductionStatus.InProduction && previousStatus != ProductionStatus.InProduction && order.ActualStartDate == null)
+        if (newStatus == ProductionStatus.InProduction && previousStatus != ProductionStatus.InProduction && order.StartedAt == null)
         {
-            order.ActualStartDate = DateTime.UtcNow;
+            order.StartedAt = DateTime.UtcNow;
         }
         else if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
-            order.ActualEndDate = DateTime.UtcNow;
+            order.CompletedAt = DateTime.UtcNow;
         }
 
         await _orderRepository.UpdateAsync(order);
 
-        var completeNote = string.IsNullOrWhiteSpace(note) ? $"Status alterado de {previousStatus} para {newStatus}" : note;
+        var completeNote = string.IsNullOrWhiteSpace(note) ? $"Status changed from {previousStatus} to {newStatus}" : note;
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, completeNote);
 
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
-            // Financial Calculation - Delegated to a specific service
             await _financialCalculator.CalculateFinalOrderCostAsync(order);
-
-            // Product average time calculation - consider moving to an event handler or dedicated service
-            await RecalculateProductAverageTimeAsync(order.ProductId, order.CreationDate, DateTime.UtcNow);
+            await RecalculateProductAverageTimeAsync(order.ProductId, order.CreatedAt, DateTime.UtcNow);
         }
 
         await _orderRepository.SaveChangesAsync();
@@ -139,7 +136,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode avançar a etapa de ordens atribuídas a você.");
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only advance stage of orders assigned to you.");
         }
 
         if (order.CurrentStatus == ProductionStatus.Completed) return false;
@@ -155,9 +152,10 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         order.CurrentStage = newStage;
         order.CurrentStatus = ProductionStatus.InProduction;
+        order.UpdatedAt = DateTime.UtcNow;
 
         await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Avançou para {newStage}");
+        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
         await _orderRepository.SaveChangesAsync();
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
@@ -170,20 +168,21 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return false;
 
         if (newStage < order.CurrentStage && string.IsNullOrWhiteSpace(note))
-            throw new InvalidOperationException("É obrigatório fornecer um comentário ao retornar para uma etapa anterior.");
+            throw new InvalidOperationException("Note is required when moving back to a previous stage.");
 
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
         {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("Você só pode alterar o estágio de ordens atribuídas a você.");
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only change stage of orders assigned to you.");
         }
 
         var previousStage = order.CurrentStage;
         order.CurrentStage = newStage;
         order.CurrentStatus = ProductionStatus.InProduction;
+        order.UpdatedAt = DateTime.UtcNow;
 
         await _orderRepository.UpdateAsync(order);
-        var actionText = newStage < previousStage ? "Retornou para" : "Alterou para";
+        var actionText = newStage < previousStage ? "Moved back to" : "Changed to";
         var historyNote = string.IsNullOrWhiteSpace(note) ? $"{actionText} {newStage}" : $"{actionText} {newStage}: {note}";
         
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, historyNote);
@@ -193,7 +192,6 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         return true;
     }
 
-    // Private helper for history - could be a separate service later
     private async Task AddHistory(int productionOrderId, ProductionStage? previousStage, ProductionStage newStage, ProductionStatus? previousStatus, ProductionStatus newStatus, int userId, string note)
     {
         var history = new ProductionHistory
@@ -204,14 +202,12 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             PreviousStatus = previousStatus,
             NewStatus = newStatus,
             UserId = userId,
-            ModificationDate = DateTime.UtcNow,
+            ChangedAt = DateTime.UtcNow,
             Note = note
         };
         await _orderRepository.AddHistoryAsync(history);
     }
 
-    // Method moved from original service for product average time calculation
-    // This could also be a separate service or an event handler
     private async Task RecalculateProductAverageTimeAsync(int productId, DateTime startDate, DateTime endDate)
     {
         var durationMinutes = (endDate - startDate).TotalMinutes;
@@ -224,7 +220,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var completedOrders = await query
             .AsNoTracking()
             .Where(o => o.ProductId == productId && o.CurrentStatus == ProductionStatus.Completed)
-            .Select(o => new { o.CreationDate, o.ModificationDate })
+            .Select(o => new { o.CreatedAt, o.UpdatedAt })
             .ToListAsync();
 
         double totalMinutes = durationMinutes;
@@ -232,7 +228,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         foreach (var order in completedOrders)
         {
-            var d = (order.ModificationDate - order.CreationDate).TotalMinutes;
+            var d = (order.UpdatedAt - order.CreatedAt).TotalMinutes;
             if (d > 0) { totalMinutes += d; count++; }
         }
 

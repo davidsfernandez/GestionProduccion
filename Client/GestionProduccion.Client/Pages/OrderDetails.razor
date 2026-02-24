@@ -17,7 +17,7 @@
 
 @using GestionProduccion.Client.Resources
 
-<PageTitle>@Portuguese.OP_Details_Title - @order?.UniqueCode</PageTitle>
+<PageTitle>@Portuguese.OP_Details_Title - @order?.LotCode</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     @if (loading)
@@ -40,7 +40,7 @@
                 <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <h3 class="d-inline-block align-middle text-dark mb-0">@Portuguese.OP_Code: @order.UniqueCode</h3>
+                <h3 class="d-inline-block align-middle text-dark mb-0">@Portuguese.OP_Code: @order.LotCode</h3>
             </div>
             <div class="col-auto ms-auto">
                 <span class="badge @GetStatusSoftClass(order.CurrentStatus) fs-sm px-3 py-2">
@@ -93,7 +93,7 @@
                                     </div>
                                     <div>
                                         <div class="text-muted small uppercase">@Portuguese.OP_CreationDate</div>
-                                        <div class="fw-bold">@order.CreationDate.ToShortDateString()</div>
+                                        <div class="fw-bold">@order.CreatedAt.ToShortDateString()</div>
                                     </div>
                                 </div>
                             </div>
@@ -104,7 +104,7 @@
                                     </div>
                                     <div>
                                         <div class="text-muted small uppercase">@Portuguese.OP_EstimatedDelivery</div>
-                                        <div class="fw-bold">@order.EstimatedDeliveryDate.ToShortDateString()</div>
+                                        <div class="fw-bold">@order.EstimatedCompletionAt.ToShortDateString()</div>
                                     </div>
                                 </div>
                             </div>
@@ -114,7 +114,7 @@
 
                 <!-- Financial Analysis (Admin Only) -->
                 <AuthorizeView Roles="Administrator" Context="financialContext">
-                    @if (order.CalculatedTotalCost > 0)
+                    @if (order.TotalCost > 0)
                     {
                         <div class="card mb-4 bg-light border-primary border-opacity-25">
                             <div class="card-header border-0 pt-4 px-4 bg-transparent">
@@ -124,11 +124,11 @@
                                 <div class="row text-center">
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
                                         <div class="text-muted small uppercase mb-1">@Portuguese.OP_TotalCost</div>
-                                        <div class="h3 mb-0 text-dark">R$ @order.CalculatedTotalCost.ToString("N2")</div>
+                                        <div class="h3 mb-0 text-dark">R$ @order.TotalCost.ToString("N2")</div>
                                     </div>
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
                                         <div class="text-muted small uppercase mb-1">@Portuguese.OP_CostPerPiece</div>
-                                        <div class="h3 mb-0 text-dark">R$ @(order.Quantity > 0 ? (order.CalculatedTotalCost / order.Quantity).ToString("N2") : "0,00")</div>
+                                        <div class="h3 mb-0 text-dark">R$ @(order.Quantity > 0 ? (order.TotalCost / order.Quantity).ToString("N2") : "0,00")</div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="text-muted small uppercase mb-1">@Portuguese.OP_ProfitMargin</div>
@@ -200,14 +200,14 @@
                             <div class="timeline animate-fade-in">
                                 @if (history != null)
                                 {
-                                    @foreach (var log in history.OrderByDescending(h => h.ModificationDate))
+                                    @foreach (var log in history.OrderByDescending(h => h.ChangedAt))
                                     {
                                         <div class="timeline-item pb-4">
                                             <div class="timeline-marker bg-primary"></div>
                                             <div class="timeline-content">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <h6 class="mb-0 fw-bold">@TranslateStage(log.NewStage)</h6>
-                                                    <span class="text-muted small">@log.ModificationDate.ToString("g")</span>
+                                                    <span class="text-muted small">@log.ChangedAt.ToString("g")</span>
                                                 </div>
                                                 <div class="mb-1">
                                                     <span class="badge @GetStatusSoftClass(log.NewStatus) fs-xs">@TranslateStatus(log.NewStatus)</span>
@@ -368,7 +368,7 @@
                         {
                             @foreach (var u in assignableUsers)
                             {
-                                <option value="@u.Id">@u.Name (@u.Role)</option>
+                                <option value="@u.Id">@u.FullName (@u.Role)</option>
                             }
                         }
                     </select>
@@ -431,7 +431,7 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseCompleteModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p>Tem certeza que deseja finalizar a produção da ordem <strong>@order?.UniqueCode</strong>?</p>
+                    <p>Tem certeza que deseja finalizar a produção da ordem <strong>@order?.LotCode</strong>?</p>
                     <p>Esta ação irá:</p>
                     <ul>
                         <li>Encerrar o cronômetro de produção.</li>
@@ -504,7 +504,7 @@
                 var fileStream = await response.Content.ReadAsStreamAsync();
                 using var streamRef = new DotNetStreamReference(stream: fileStream);
 
-                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orden_{order.UniqueCode}.pdf", streamRef);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Order_{order.LotCode}.pdf", streamRef);
                 ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
             }
             else

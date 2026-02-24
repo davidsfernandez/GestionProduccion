@@ -79,8 +79,8 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Data Estimada de Entrega</label>
-                                    <InputDate @bind-Value="createModel.EstimatedDeliveryDate" class="form-control form-control-lg" />
-                                    <ValidationMessage For="@(() => createModel.EstimatedDeliveryDate)" class="text-danger small" />
+                                    <InputDate @bind-Value="createModel.EstimatedCompletionAt" class="form-control form-control-lg" />
+                                    <ValidationMessage For="@(() => createModel.EstimatedCompletionAt)" class="text-danger small" />
                                 </div>
 
                                 <div class="col-md-6 mb-4">
@@ -90,7 +90,7 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Tamanho</label>
-                                    <InputSelect @bind-Value="createModel.Tamanho" class="form-select">
+                                    <InputSelect @bind-Value="createModel.Size" class="form-select">
                                         <option value="">-- Selecione --</option>
                                         @foreach (var s in availableSizes)
                                         {
@@ -121,7 +121,7 @@
                                         {
                                             @foreach (var user in users)
                                             {
-                                                <option value="@user.Id">@user.Name (@user.Role)</option>
+                                                <option value="@user.Id">@user.FullName (@user.Role)</option>
                                             }
                                         }
                                     </InputSelect>
@@ -151,7 +151,7 @@
                     <div class="mt-4">
                         <div class="d-flex justify-content-between mb-2">
                             <span>Código:</span>
-                            <span class="fw-bold">@createModel.UniqueCode</span>
+                            <span class="fw-bold">Gerado ao Salvar</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Quantidade:</span>
@@ -159,7 +159,7 @@
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Entrega:</span>
-                            <span class="fw-bold">@createModel.EstimatedDeliveryDate.ToShortDateString()</span>
+                            <span class="fw-bold">@createModel.EstimatedCompletionAt.ToShortDateString()</span>
                         </div>
                     </div>
                 </div>
@@ -181,10 +181,10 @@
 @code {
     private CreateProductionOrderRequest createModel = new() 
     { 
-        UniqueCode = "AUTO-GENERATED", // Placeholder for client validation
-        EstimatedDeliveryDate = DateTime.Now.AddDays(7),
+        // LotCode is auto-generated
+        EstimatedCompletionAt = DateTime.Now.AddDays(7),
         Quantity = 1,
-        Tamanho = ""
+        Size = ""
     };
     private List<UserDto>? users;
     private List<ProductDto>? products;

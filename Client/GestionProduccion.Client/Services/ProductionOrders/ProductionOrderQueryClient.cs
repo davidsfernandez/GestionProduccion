@@ -34,7 +34,7 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
             if (filter.StartDate.HasValue) queryParams.Add($"StartDate={filter.StartDate.Value:yyyy-MM-dd}");
             if (filter.EndDate.HasValue) queryParams.Add($"EndDate={filter.EndDate.Value:yyyy-MM-dd}");
             if (!string.IsNullOrWhiteSpace(filter.ClientName)) queryParams.Add($"ClientName={filter.ClientName}");
-            if (!string.IsNullOrWhiteSpace(filter.Tamanho)) queryParams.Add($"Tamanho={filter.Tamanho}");
+            if (!string.IsNullOrWhiteSpace(filter.Size)) queryParams.Add($"Size={filter.Size}");
         }
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         return await _httpClient.GetFromJsonAsync<List<ProductionOrderDto>>($"api/ProductionOrders{queryString}", ct);

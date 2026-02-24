@@ -9,7 +9,7 @@ using GestionProduccion.Models.DTOs;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using QRCoder; // Using our Mock/Helper namespace
+using QRCoder;
 
 namespace GestionProduccion.Services;
 
@@ -27,9 +27,6 @@ public class ReportService : IReportService
 
     public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId)
     {
-        // This is the implementation of the requested "GenerateProductionOrderPdf" logic
-        // but mapped to the existing interface method name to avoid breaking changes unless strictly necessary.
-        
         var order = await _queryService.GetProductionOrderByIdAsync(orderId);
         if (order == null) return Array.Empty<byte>();
 
@@ -47,7 +44,7 @@ public class ReportService : IReportService
             catch { /* Ignore invalid logo */ }
         }
 
-        // QR Code Generation (Using Real QRCoder library)
+        // QR Code Generation
         var qrUrl = $"https://tu-dominio.com/orders/{order.Id}";
         using var qrGenerator = new QRCodeGenerator();
         using var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
@@ -66,7 +63,6 @@ public class ReportService : IReportService
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
                 {
-                    // Left: Title and Logo/Company Name
                     row.RelativeItem().Column(col =>
                     {
                         if (logoBytes != null)
@@ -77,7 +73,6 @@ public class ReportService : IReportService
                         col.Item().Text("Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
                     });
 
-                    // Right: QR Code
                     row.ConstantItem(80).Column(col =>
                     {
                         col.Item().Width(2, Unit.Centimetre).Height(2, Unit.Centimetre).Image(qrCodeBytes);
@@ -90,7 +85,7 @@ public class ReportService : IReportService
                 {
                     x.Spacing(15);
 
-                    // INFO PRINCIPAL TABLE (Replacing obsolete Grid)
+                    // INFO PRINCIPAL TABLE
                     x.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
@@ -100,12 +95,12 @@ public class ReportService : IReportService
                         });
 
                         // Row 1
-                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.UniqueCode).FontSize(14); });
-                        table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedDeliveryDate.ToShortDateString()); });
+                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode).FontSize(14); });
+                        table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedCompletionAt.ToShortDateString()); });
 
                         // Row 2
                         var productDesc = order.ProductName ?? "Elemento Desconocido";
-                        var sizeDesc = order.Tamanho ?? "N/A";
+                        var sizeDesc = order.Size ?? "N/A";
 
                         table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{productDesc} (Tam: {sizeDesc})"); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
@@ -134,9 +129,9 @@ public class ReportService : IReportService
                             static IContainer CellStyle(IContainer container) => container.Background(Colors.Grey.Lighten4).Padding(5).BorderBottom(1).BorderColor(Colors.Black);
                         });
 
-                        foreach (var item in history.OrderBy(h => h.ModificationDate))
+                        foreach (var item in history.OrderBy(h => h.ChangedAt))
                         {
-                            table.Cell().Element(CellStyle).Text(item.ModificationDate.ToString("dd/MM HH:mm"));
+                            table.Cell().Element(CellStyle).Text(item.ChangedAt.ToString("dd/MM HH:mm"));
                             table.Cell().Element(CellStyle).Text(item.NewStage);
                             table.Cell().Element(CellStyle).Text(item.UserName);
                             table.Cell().Element(CellStyle).Text(item.Note ?? "-");
@@ -220,7 +215,6 @@ public class ReportService : IReportService
                             c.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
                             c.Item().Text($"Taxa de Conclusão: {dashboard.CompletionRate}%");
                             
-                            // Efficiency Calculation (Completed vs Total Today)
                             var totalToday = dashboard.TodaysOrders.Count;
                             var efficiency = totalToday > 0 ? (decimal)dashboard.CompletedToday / totalToday * 100 : 0;
                             c.Item().Text($"Eficiência Global do Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
@@ -260,11 +254,11 @@ public class ReportService : IReportService
                             var order = dashboard.TodaysOrders[i];
                             var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
 
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.UniqueCode);
+                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.LotCode);
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
-                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.CalculatedTotalCost:N2}");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.TotalCost:N2}");
 
                             static IContainer CellStyle(IContainer container, string bgColor) => 
                                 container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
@@ -292,14 +286,12 @@ public class ReportService : IReportService
         foreach (var order in orders)
         {
             var user = order.AssignedUserName ?? "N/A";
-            // Sanitize CSV fields
             var prod = (order.ProductName ?? "N/A").Replace(";", ",");
             
-            sb.AppendLine($"{order.UniqueCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedDeliveryDate:dd/MM/yyyy};{user}");
+            sb.AppendLine($"{order.LotCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedCompletionAt:dd/MM/yyyy};{user}");
         }
 
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-        // Add BOM for Excel compatibility
         var bom = System.Text.Encoding.UTF8.GetPreamble();
         var result = new byte[bom.Length + bytes.Length];
         System.Buffer.BlockCopy(bom, 0, result, 0, bom.Length);

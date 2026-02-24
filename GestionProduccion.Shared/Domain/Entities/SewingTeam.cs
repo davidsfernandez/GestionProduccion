@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GestionProduccion.Domain.Entities;
 
-/// <summary>
-/// Represents a sewing team in the production floor.
-/// </summary>
 public class SewingTeam
 {
     [Key]
@@ -14,11 +11,11 @@ public class SewingTeam
     [StringLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    public DateTime CreationDate { get; set; } = DateTime.UtcNow;
-
     public bool IsActive { get; set; } = true;
 
-    // Relationships
+    // Navigation property for members (Users)
     public virtual ICollection<User> Members { get; set; } = new List<User>();
+
+    // Navigation property for assigned orders
     public virtual ICollection<ProductionOrder> AssignedOrders { get; set; } = new List<ProductionOrder>();
 }

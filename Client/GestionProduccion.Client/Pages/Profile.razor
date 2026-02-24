@@ -169,7 +169,6 @@
         {
             return "/img/avatars/avatar.jpg";
         }
-        // Ensure leading slash for consistency
         var finalUrl = url.StartsWith("/") ? url : "/" + url;
         return $"{finalUrl}?t={DateTime.Now.Ticks}";
     }
@@ -184,12 +183,9 @@
                  if (userDto != null)
                  {
                      avatarUrl = userDto.AvatarUrl;
-                     userName = userDto.Name; // Ensure name is populated from DB
-                     userRole = userDto.Role.ToString(); // Ensure role is populated from DB
-                     
-                     // Synchronize global state
-                     UserState.SetUser(userDto.Name, userDto.AvatarUrl);
-                     
+                     userName = userDto.FullName;
+                     userRole = userDto.Role.ToString();
+                     UserState.SetUser(userDto.FullName, userDto.AvatarUrl);
                      StateHasChanged();
                  }
             }
@@ -220,17 +216,13 @@
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-                // Prompt specified return object property as 'url'
                 if (jsonResponse.TryGetProperty("url", out var urlProperty))
                 {
                     var newAvatarUrl = urlProperty.GetString();
                     if (!string.IsNullOrEmpty(newAvatarUrl))
                     {
-                        // Update local state
                         avatarUrl = newAvatarUrl;
-                        // Update global state (Service)
                         UserState.UpdateAvatar(newAvatarUrl);
-                        
                         ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
                         StateHasChanged();
                     }

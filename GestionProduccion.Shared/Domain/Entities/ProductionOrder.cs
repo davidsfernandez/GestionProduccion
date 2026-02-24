@@ -12,12 +12,9 @@ public class ProductionOrder
     [Key]
     public int Id { get; set; }
 
-    // NOTE: To ensure uniqueness of 'UniqueCode' at database level,
-    // it is recommended to configure a unique index in DbContext:
-    // modelBuilder.Entity<ProductionOrder>().HasIndex(po => po.UniqueCode).IsUnique();
     [Required]
     [StringLength(50)]
-    public string UniqueCode { get; set; } = string.Empty;
+    public string LotCode { get; set; } = string.Empty;
 
     // Foreign Key for Product
     [Required]
@@ -35,31 +32,30 @@ public class ProductionOrder
     public ProductionStatus CurrentStatus { get; set; }
 
     [Required]
-    public DateTime CreationDate { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     [Required]
-    public DateTime ModificationDate { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
-    public DateTime EstimatedDeliveryDate { get; set; }
+    public DateTime EstimatedCompletionAt { get; set; }
 
-    // Phase 3: Financial Tracking & Actual Dates
-    public DateTime? ActualStartDate { get; set; }
-    public DateTime? ActualEndDate { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
-    public decimal CalculatedTotalCost { get; set; }
+    public decimal TotalCost { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal AverageCostPerPiece { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
-    public decimal EstimatedProfitMargin { get; set; }
+    public decimal ProfitMargin { get; set; }
 
     [StringLength(100)]
     public string? ClientName { get; set; }
 
     [StringLength(20)]
-    public string? Tamanho { get; set; }
+    public string? Size { get; set; }
 
     // Relationship with User (can be null)
     public int? UserId { get; set; }

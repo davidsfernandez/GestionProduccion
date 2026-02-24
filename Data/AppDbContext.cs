@@ -20,7 +20,6 @@ public class AppDbContext : DbContext
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<Product> Products { get; set; }
-    // public DbSet<ProductSize> ProductSizes { get; set; } // Removed
     public DbSet<SewingTeam> SewingTeams { get; set; }
     public DbSet<BonusRule> BonusRules { get; set; }
     public DbSet<QADefect> QADefects { get; set; }
@@ -48,7 +47,6 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<OperationalTask>()
             .Property(t => t.Status)
-            .HasConversion<string>()
             .HasMaxLength(50);
 
         // --- PRODUCT CONFIGURATION ---
@@ -61,7 +59,6 @@ public class AppDbContext : DbContext
             .IsUnique();
 
         // Relationship: ProductionOrder -> Product (N to 1)
-        // Prevents deleting a Product if there are associated production orders.
         modelBuilder.Entity<ProductionOrder>()
             .HasOne(po => po.Product)
             .WithMany()
@@ -153,13 +150,12 @@ public class AppDbContext : DbContext
 
         // Ensures that the production order code is unique
         modelBuilder.Entity<ProductionOrder>()
-            .HasIndex(po => po.UniqueCode)
+            .HasIndex(po => po.LotCode)
             .IsUnique();
 
         // --- RELATIONSHIP AND DELETE BEHAVIOR CONFIGURATION ---
 
         // Relationship: User -> ProductionOrder (1 to N)
-        // Prevents deleting a User if they have assigned production orders.
         modelBuilder.Entity<ProductionOrder>()
             .HasOne(po => po.AssignedUser)
             .WithMany(u => u.AssignedOrders)
@@ -167,7 +163,6 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         // Relationship: User -> ProductionHistory (1 to N)
-        // Prevents deleting a User if they have made changes in history.
         modelBuilder.Entity<ProductionHistory>()
             .HasOne(h => h.ResponsibleUser)
             .WithMany(u => u.HistoryChanges)
@@ -175,16 +170,11 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
             
         // Relationship: ProductionOrder -> ProductionHistory (1 to N)
-        // Deletes all history records when a ProductionOrder is deleted (cascade).
         modelBuilder.Entity<ProductionHistory>()
             .HasOne(h => h.ProductionOrder)
             .WithMany(po => po.History)
             .HasForeignKey(h => h.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // --- SEED DATA REMOVED FOR PRODUCTION READINESS ---
-        // The system now uses a Setup Wizard flow. If no users exist,
-        // the frontend will redirect to /setup to create the first admin.
 
         // --- SEWING TEAM AND BONUS RULES ---
         modelBuilder.Entity<SewingTeam>()

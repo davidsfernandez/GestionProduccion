@@ -1,5 +1,6 @@
 using GestionProduccion.Data;
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,7 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(int id)
     {
         return await _context.Users
-            .Include(u => u.AssignedOrders)
-            .Include(u => u.HistoryChanges)
+            .Include(u => u.Teams)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
@@ -33,17 +33,29 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .AsNoTracking()
             .Where(u => u.IsActive)
-            .OrderBy(u => u.Name)
             .ToListAsync();
     }
 
     public async Task<List<User>> GetByRoleAsync(string role)
     {
+        if (Enum.TryParse<UserRole>(role, true, out var userRole))
+        {
+            return await _context.Users
+                .Where(u => u.Role == userRole && u.IsActive)
+                .ToListAsync();
+        }
+        return new List<User>();
+    }
+
+    public async Task<bool> ExistsAsync(string email)
+    {
         return await _context.Users
-            .AsNoTracking()
-            .Where(u => u.IsActive && u.Role.ToString() == role)
-            .OrderBy(u => u.Name)
-            .ToListAsync();
+            .AnyAsync(u => u.Email == email);
+    }
+
+    public async Task<int> CountActiveAsync()
+    {
+        return await _context.Users.CountAsync(u => u.IsActive);
     }
 
     public async Task AddAsync(User user)
@@ -60,10 +72,5 @@ public class UserRepository : IUserRepository
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
-    }
-
-    public async Task<int> CountActiveAsync()
-    {
-        return await _context.Users.CountAsync(u => u.IsActive);
     }
 }

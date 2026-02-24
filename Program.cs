@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
@@ -145,8 +146,8 @@ builder.Services.AddControllersWithViews()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         // Fix for Enums as strings (Architect Rule 9)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        // Maintain PascalCase for consistency but allow case-insensitivity for incoming data
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+        // Maintain CamelCase for consistency with JavaScript
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         // Safeguard against nulls (Architect Rule 48)
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
