@@ -52,7 +52,6 @@
                                 <th>@Portuguese.Cat_InternalCode</th>
                                 <th>@Portuguese.Cat_FabricType</th>
                                 <th>@Portuguese.Cat_AvgTime</th>
-                                <th class="d-none d-md-table-cell">@Portuguese.Cat_Sizes</th>
                                 <th class="text-end">@Portuguese.Actions</th>
                             </tr>
                         </thead>
@@ -71,14 +70,6 @@
                                         <td>@product.InternalCode</td>
                                         <td>@product.FabricType</td>
                                         <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
-                                        <td class="d-none d-md-table-cell">
-                                            <div class="d-flex flex-wrap gap-1">
-                                                @foreach (var s in product.Sizes)
-                                                {
-                                                    <span class="badge bg-info-subtle text-info">@s.Size</span>
-                                                }
-                                            </div>
-                                        </td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
                                                 <i class="fa-solid fa-pen"></i>
@@ -145,36 +136,6 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">@Portuguese.Cat_AvailSizes</label>
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                @foreach (var brSize in new[] { "PP", "P", "M", "G", "GG", "XG", "U" })
-                                {
-                                    <button type="button" class="btn btn-sm @(editingProduct.Sizes.Contains(brSize) ? "btn-primary" : "btn-outline-secondary")"
-                                            @onclick="() => ToggleSize(brSize)">
-                                        @brSize
-                                    </button>
-                                }
-                            </div>
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control" placeholder="Outro... Ex: 42" @bind="newSize" @onkeyup="@(e => { if (e.Key == "Enter") AddSize(); })" />
-                                <button type="button" class="btn btn-secondary" @onclick="AddSize">@Portuguese.Cat_AddSize</button>
-                            </div>
-                            <div class="d-flex flex-wrap gap-1 mt-2">
-                                @foreach (var size in editingProduct.Sizes)
-                                {
-                                    <span class="badge bg-primary d-flex align-items-center py-2 px-3 shadow-sm" @key="size">
-                                        @size
-                                        <i class="fa-solid fa-xmark ms-2" style="cursor: pointer;" @onclick="() => RemoveSize(size)"></i>
-                                    </span>
-                                }
-                                @if (!editingProduct.Sizes.Any())
-                                {
-                                    <span class="text-muted small italic">@Portuguese.Cat_NoSizes</span>
-                                }
-                            </div>
-                        </div>
-
                         <div class="modal-footer border-0 px-0 pb-0 mt-4">
                             <button type="button" class="btn btn-light" @onclick="CloseModal" disabled="@isSaving">@Portuguese.Cancel</button>
                             <button type="submit" class="btn btn-primary px-4" disabled="@isSaving">
@@ -205,7 +166,6 @@
     private bool isSaving = false;
     private CreateProductDto editingProduct = new();
     private int editingId = 0;
-    private string newSize = "";
     private Timer? debounceTimer;
 
     protected override async Task OnInitializedAsync()
@@ -275,8 +235,7 @@
                 InternalCode = product.InternalCode,
                 FabricType = product.FabricType,
                 MainSku = product.MainSku,
-                EstimatedSalePrice = product.EstimatedSalePrice,
-                Sizes = product.Sizes.Select(s => s.Size).ToList()
+                EstimatedSalePrice = product.EstimatedSalePrice
             };
         }
         else
@@ -293,32 +252,6 @@
         {
             showModal = false;
         }
-    }
-
-    private void AddSize()
-    {
-        if (!string.IsNullOrWhiteSpace(newSize))
-        {
-            var sizeToAdd = newSize.Trim().ToUpper();
-            if (!editingProduct.Sizes.Contains(sizeToAdd))
-            {
-                editingProduct.Sizes.Add(sizeToAdd);
-            }
-            newSize = "";
-        }
-    }
-
-    private void ToggleSize(string size)
-    {
-        if (editingProduct.Sizes.Contains(size))
-            editingProduct.Sizes.Remove(size);
-        else
-            editingProduct.Sizes.Add(size);
-    }
-
-    private void RemoveSize(string size)
-    {
-        editingProduct.Sizes.Remove(size);
     }
 
     private async Task SaveProduct()
@@ -340,8 +273,7 @@
                     InternalCode = editingProduct.InternalCode,
                     FabricType = editingProduct.FabricType,
                     MainSku = editingProduct.MainSku,
-                    EstimatedSalePrice = editingProduct.EstimatedSalePrice,
-                    Sizes = editingProduct.Sizes
+                    EstimatedSalePrice = editingProduct.EstimatedSalePrice
                 });
             }
 

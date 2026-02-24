@@ -20,7 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<Product> Products { get; set; }
-    public DbSet<ProductSize> ProductSizes { get; set; }
+    // public DbSet<ProductSize> ProductSizes { get; set; } // Removed
     public DbSet<SewingTeam> SewingTeams { get; set; }
     public DbSet<BonusRule> BonusRules { get; set; }
     public DbSet<QADefect> QADefects { get; set; }
@@ -59,18 +59,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>()
             .HasIndex(p => p.InternalCode)
             .IsUnique();
-
-        modelBuilder.Entity<Product>()
-            .HasMany(p => p.Sizes)
-            .WithOne(s => s.Product)
-            .HasForeignKey(s => s.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<ProductSize>(entity =>
-        {
-            entity.ToTable("ProductSizes");
-            entity.Property(s => s.Size).HasColumnName("Size").IsRequired().HasMaxLength(10);
-        });
 
         // Relationship: ProductionOrder -> Product (N to 1)
         // Prevents deleting a Product if there are associated production orders.

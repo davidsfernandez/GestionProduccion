@@ -16,25 +16,19 @@ public class ProductRepository : IProductRepository
     public async Task<Product?> GetByIdAsync(int id)
     {
         return await _context.Products
-            .Include(p => p.Sizes)
-            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<Product?> GetBySkuAsync(string sku)
     {
         return await _context.Products
-            .Include(p => p.Sizes)
-            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.MainSku == sku);
     }
 
     public async Task<List<Product>> GetAllAsync()
     {
         return await _context.Products
-            .Include(p => p.Sizes)
             .AsNoTracking()
-            .AsSplitQuery()
             .ToListAsync();
     }
 

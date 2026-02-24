@@ -30,21 +30,4 @@ public class Product
     // Phase 3: Financial Module
     [Column(TypeName = "decimal(18,2)")]
     public decimal EstimatedSalePrice { get; set; }
-
-    public virtual ICollection<ProductSize> Sizes { get; set; } = new List<ProductSize>();
-}
-
-public class ProductSize
-{
-    [Key]
-    public int Id { get; set; }
-
-    [Required]
-    [StringLength(10)]
-    public string Size { get; set; } = string.Empty; // P, M, G, GG, etc.
-
-    public int ProductId { get; set; }
-    
-    [ForeignKey("ProductId")]
-    public virtual Product Product { get; set; } = null!;
 }

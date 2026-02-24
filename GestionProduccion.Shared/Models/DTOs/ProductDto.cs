@@ -11,7 +11,6 @@ public class ProductDto
     public string MainSku { get; set; } = string.Empty;
     public double AverageProductionTimeMinutes { get; set; }
     public decimal EstimatedSalePrice { get; set; }
-    public List<ProductSizeDto> Sizes { get; set; } = new();
 }
 
 public class CreateProductDto
@@ -33,17 +32,9 @@ public class CreateProductDto
     public string MainSku { get; set; } = string.Empty;
 
     public decimal EstimatedSalePrice { get; set; }
-
-    public List<string> Sizes { get; set; } = new();
 }
 
 public class UpdateProductDto : CreateProductDto
 {
     public int Id { get; set; }
-}
-
-public class ProductSizeDto
-{
-    public int Id { get; set; }
-    public string Size { get; set; } = string.Empty;
 }

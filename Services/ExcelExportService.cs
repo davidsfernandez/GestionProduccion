@@ -31,7 +31,7 @@ public class ExcelExportService : IExcelExportService
             worksheet.Cell(1, 2).Value = "Product";
             worksheet.Cell(1, 3).Value = "Quantity";
             worksheet.Cell(1, 4).Value = "Client";
-            worksheet.Cell(1, 5).Value = "Size";
+            worksheet.Cell(1, 5).Value = "Tamanho";
             worksheet.Cell(1, 6).Value = "Current Stage";
             worksheet.Cell(1, 7).Value = "Current Status";
             worksheet.Cell(1, 8).Value = "Creation Date";
@@ -50,7 +50,7 @@ public class ExcelExportService : IExcelExportService
                 worksheet.Cell(row, 2).Value = order.ProductName ?? "N/A";
                 worksheet.Cell(row, 3).Value = order.Quantity;
                 worksheet.Cell(row, 4).Value = order.ClientName ?? "N/A";
-                worksheet.Cell(row, 5).Value = order.Size ?? "N/A";
+                worksheet.Cell(row, 5).Value = order.Tamanho ?? "N/A";
                 worksheet.Cell(row, 6).Value = order.CurrentStage;
                 worksheet.Cell(row, 7).Value = order.CurrentStatus;
                 worksheet.Cell(row, 8).Value = order.CreationDate;

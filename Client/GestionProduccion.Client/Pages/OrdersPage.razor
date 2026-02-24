@@ -47,7 +47,7 @@
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Cliente..." @bind="filterClient" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
-                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterSize" style="border-radius: 10px;" />
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterTamanho" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
                                     <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
@@ -121,7 +121,8 @@
                                     </th>
                                     <th>@Portuguese.OP_Code</th>
                                     <th class="d-none d-md-table-cell">@Portuguese.OP_Product</th>
-                                    <th class="d-none d-sm-table-cell">@Portuguese.OP_Qty</th>
+                                    <th>@Portuguese.OP_Qty</th>
+                                    <th>Tam.</th>
                                     <th>@Portuguese.OP_Stage</th>
                                     <th>@Portuguese.OP_Status</th>
                                     <th class="d-none d-lg-table-cell">Equipe</th>
@@ -150,6 +151,7 @@
                                             }
                                         </td>
                                         <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
+                                        <td><span class="badge bg-secondary">@order.Tamanho</span></td>
                                         <td>
                                             <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
                                         </td>
@@ -206,7 +208,7 @@
     private bool loading = true;
     private string searchTerm = "";
     private string filterClient = "";
-    private string filterSize = "";
+    private string filterTamanho = "";
 
     private List<ProductionOrderDto>? FilteredOrders => orders;
 
@@ -238,7 +240,7 @@
             var filter = new FilterProductionOrderDto
             {
                 ClientName = filterClient,
-                Size = filterSize,
+                Tamanho = filterTamanho,
                 // Add Product search by searchTerm if needed
             };
 
@@ -397,7 +399,7 @@
             var filter = new FilterProductionOrderDto
             {
                 ClientName = filterClient,
-                Size = filterSize,
+                Tamanho = filterTamanho,
                 // Add Product search by searchTerm if needed
             };
             var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);

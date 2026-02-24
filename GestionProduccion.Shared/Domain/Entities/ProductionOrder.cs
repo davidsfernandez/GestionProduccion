@@ -59,7 +59,7 @@ public class ProductionOrder
     public string? ClientName { get; set; }
 
     [StringLength(20)]
-    public string? Size { get; set; }
+    public string? Tamanho { get; set; }
 
     // Relationship with User (can be null)
     public int? UserId { get; set; }

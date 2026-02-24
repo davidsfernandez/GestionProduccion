@@ -105,8 +105,9 @@ public class ReportService : IReportService
 
                         // Row 2
                         var productDesc = order.ProductName ?? "Elemento Desconocido";
+                        var sizeDesc = order.Tamanho ?? "N/A";
 
-                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span(productDesc); });
+                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{productDesc} (Tam: {sizeDesc})"); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
                     });
 

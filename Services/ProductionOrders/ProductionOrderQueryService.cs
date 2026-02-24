@@ -72,8 +72,8 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             if (!string.IsNullOrWhiteSpace(filter.ClientName))
                 query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
 
-            if (!string.IsNullOrWhiteSpace(filter.Size))
-                query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
+            if (!string.IsNullOrWhiteSpace(filter.Tamanho))
+                query = query.Where(po => po.Tamanho != null && po.Tamanho.Contains(filter.Tamanho));
         }
 
         // Optimize: do not track entities for read operations, include necessary relations
@@ -187,7 +187,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             ProductCode = order.Product?.InternalCode,
             Quantity = order.Quantity,
             ClientName = order.ClientName,
-            Size = order.Size,
+            Tamanho = order.Tamanho,
             CurrentStage = order.CurrentStage.ToString(),
             CurrentStatus = order.CurrentStatus.ToString(),
             CreationDate = order.CreationDate,

@@ -8,6 +8,6 @@ namespace GestionProduccion.Models.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? ClientName { get; set; }
-        public string? Size { get; set; }
+        public string? Tamanho { get; set; }
     }
 }

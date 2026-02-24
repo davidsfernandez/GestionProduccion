@@ -90,14 +90,11 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Tamanho</label>
-                                    <InputSelect @bind-Value="createModel.Size" class="form-select" disabled="@(createModel.ProductId == 0)">
-                                        <option value="">N/A</option>
-                                        @if (availableSizes != null)
+                                    <InputSelect @bind-Value="createModel.Tamanho" class="form-select">
+                                        <option value="">-- Selecione --</option>
+                                        @foreach (var s in availableSizes)
                                         {
-                                            @foreach (var s in availableSizes)
-                                            {
-                                                <option value="@s.Size">@s.Size</option>
-                                            }
+                                            <option value="@s">@s</option>
                                         }
                                     </InputSelect>
                                 </div>
@@ -186,12 +183,13 @@
     { 
         UniqueCode = "AUTO-GENERATED", // Placeholder for client validation
         EstimatedDeliveryDate = DateTime.Now.AddDays(7),
-        Quantity = 1
+        Quantity = 1,
+        Tamanho = ""
     };
     private List<UserDto>? users;
     private List<ProductDto>? products;
     private List<SewingTeamDto>? teams;
-    private List<ProductSizeDto>? availableSizes;
+    private List<string> availableSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
     private bool isSubmitting = false;
     private bool isInitialLoading = true;
 
@@ -239,17 +237,6 @@
     private void OnProductChanged(int productId)
     {
         createModel.ProductId = productId;
-        if (productId > 0 && products != null)
-        {
-            var selectedProduct = products.FirstOrDefault(p => p.Id == productId);
-            availableSizes = selectedProduct?.Sizes;
-            createModel.Size = "";
-        }
-        else
-        {
-            availableSizes = null;
-            createModel.Size = "";
-        }
     }
 
     private async Task HandleSubmit()
