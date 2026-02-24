@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionProduccion.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260222012015_AddFinancialModule")]
-    partial class AddFinancialModule
+    [Migration("20260224020245_InitialEnglishSchema")]
+    partial class InitialEnglishSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,6 +21,82 @@ namespace GestionProduccion.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.BonusRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BonusAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DeadlineBonusPercentage")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("DefectLimitPercentage")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("DelayPenaltyPercentage")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<double>("ProductivityPercentage")
+                        .HasColumnType("double");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BonusRules");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AssignedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletionDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("Deadline")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedUserId");
+
+                    b.ToTable("OperationalTasks");
+                });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.PasswordResetToken", b =>
                 {
@@ -98,34 +174,13 @@ namespace GestionProduccion.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductSize", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SizeName")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductSizes");
-                });
-
             modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionHistory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ModificationDate")
+                    b.Property<DateTime>("ChangedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("NewStage")
@@ -172,23 +227,17 @@ namespace GestionProduccion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ActualEndDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("ActualStartDate")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<decimal>("AverageCostPerPiece")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CalculatedTotalCost")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ClientName")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<DateTime>("CreationDate")
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("CurrentStage")
@@ -201,48 +250,112 @@ namespace GestionProduccion.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<DateTime>("EstimatedDeliveryDate")
+                    b.Property<DateTime>("EstimatedCompletionAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<decimal>("EstimatedProfitMargin")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("ModificationDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ProductDescription")
+                    b.Property<string>("LotCode")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
-                    b.Property<int?>("ProductId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("ProfitMargin")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SewingTeamId")
                         .HasColumnType("int");
 
                     b.Property<string>("Size")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("UniqueCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LotCode")
+                        .IsUnique();
+
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("UniqueCode")
-                        .IsUnique();
+                    b.HasIndex("SewingTeamId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("ProductionOrders");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.QADefect", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("ProductionOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("ReportedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.ToTable("QADefects");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.SewingTeam", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SewingTeams");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.SystemConfiguration", b =>
@@ -286,30 +399,24 @@ namespace GestionProduccion.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("AvatarUrl")
-                        .HasMaxLength(250)
-                        .HasColumnType("varchar(250)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -354,6 +461,31 @@ namespace GestionProduccion.Migrations
                     b.ToTable("UserRefreshTokens");
                 });
 
+            modelBuilder.Entity("SewingTeamUser", b =>
+                {
+                    b.Property<int>("MembersId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeamsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("MembersId", "TeamsId");
+
+                    b.HasIndex("TeamsId");
+
+                    b.ToTable("SewingTeamMembers", (string)null);
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTask", b =>
+                {
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedUser");
+                });
+
             modelBuilder.Entity("GestionProduccion.Domain.Entities.PasswordResetToken", b =>
                 {
                     b.HasOne("GestionProduccion.Domain.Entities.User", "User")
@@ -363,17 +495,6 @@ namespace GestionProduccion.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductSize", b =>
-                {
-                    b.HasOne("GestionProduccion.Domain.Entities.Product", "Product")
-                        .WithMany("Sizes")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionHistory", b =>
@@ -400,6 +521,12 @@ namespace GestionProduccion.Migrations
                     b.HasOne("GestionProduccion.Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GestionProduccion.Domain.Entities.SewingTeam", "AssignedTeam")
+                        .WithMany("AssignedOrders")
+                        .HasForeignKey("SewingTeamId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GestionProduccion.Domain.Entities.User", "AssignedUser")
@@ -407,9 +534,30 @@ namespace GestionProduccion.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("AssignedTeam");
+
                     b.Navigation("AssignedUser");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.QADefect", b =>
+                {
+                    b.HasOne("GestionProduccion.Domain.Entities.ProductionOrder", "ProductionOrder")
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "ReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductionOrder");
+
+                    b.Navigation("ReportedByUser");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.UserRefreshToken", b =>
@@ -423,14 +571,29 @@ namespace GestionProduccion.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.Product", b =>
+            modelBuilder.Entity("SewingTeamUser", b =>
                 {
-                    b.Navigation("Sizes");
+                    b.HasOne("GestionProduccion.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("MembersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionProduccion.Domain.Entities.SewingTeam", null)
+                        .WithMany()
+                        .HasForeignKey("TeamsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.ProductionOrder", b =>
                 {
                     b.Navigation("History");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.SewingTeam", b =>
+                {
+                    b.Navigation("AssignedOrders");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.User", b =>

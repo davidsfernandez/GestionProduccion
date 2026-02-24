@@ -324,9 +324,14 @@ namespace GestionProduccion.Migrations
                     b.Property<DateTime>("ReportedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("ReportedByUserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("ReportedByUserId");
 
                     b.ToTable("QADefects");
                 });
@@ -541,7 +546,15 @@ namespace GestionProduccion.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "ReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("ProductionOrder");
+
+                    b.Navigation("ReportedByUser");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.UserRefreshToken", b =>

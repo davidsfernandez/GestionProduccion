@@ -21,6 +21,10 @@ public class QADefect
     [StringLength(500)]
     public string? PhotoUrl { get; set; }
 
+    public int ReportedByUserId { get; set; }
+    [ForeignKey("ReportedByUserId")]
+    public virtual User? ReportedByUser { get; set; }
+
     public DateTime ReportedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsResolved { get; set; }

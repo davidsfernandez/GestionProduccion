@@ -230,17 +230,21 @@ using (var scope = app.Services.CreateScope())
     var logger = services.GetRequiredService<ILogger<Program>>();
     var context = services.GetRequiredService<AppDbContext>();
 
-    int retries = 6; // Total 30 seconds wait
+    int retries = 10; 
     while (retries > 0)
     {
         try
         {
-            if (context.Database.GetPendingMigrations().Any())
+            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+            if (pendingMigrations.Any())
             {
-                logger.LogInformation("Applying pending migrations...");
-                context.Database.Migrate();
-                logger.LogInformation("Database is up to date.");
+                logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+                await context.Database.MigrateAsync();
             }
+            
+            logger.LogInformation("Database is up to date. Ensuring seed data...");
+            await DbInitializer.SeedAsync(context, logger);
+            
             break; 
         }
         catch (Exception ex)
@@ -248,11 +252,11 @@ using (var scope = app.Services.CreateScope())
             retries--;
             if (retries == 0)
             {
-                logger.LogCritical(ex, "FATAL: Database migration failed after multiple attempts.");
+                logger.LogCritical(ex, "FATAL: Database migration/seed failed after multiple attempts.");
                 throw; 
             }
-            logger.LogWarning("DB Connection failed. DB may be initializing. Retrying in 5 seconds... ({Retries} attempts left)", retries);
-            System.Threading.Thread.Sleep(5000);
+            logger.LogWarning("DB Connection failed or busy. Retrying in 5 seconds... ({Retries} attempts left). Error: {Message}", retries, ex.Message);
+            await Task.Delay(5000);
         }
     }
 }

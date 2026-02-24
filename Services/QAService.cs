@@ -25,7 +25,8 @@ public class QAService : IQAService
             ProductionOrderId = dto.ProductionOrderId,
             Reason = dto.Reason,
             Quantity = dto.Quantity,
-            PhotoUrl = photoUrl
+            PhotoUrl = photoUrl,
+            ReportedByUserId = dto.ReportedByUserId
         };
 
         await _defectRepo.AddAsync(defect);

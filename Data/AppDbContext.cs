@@ -39,6 +39,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(d => d.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<QADefect>()
+            .HasOne(d => d.ReportedByUser)
+            .WithMany()
+            .HasForeignKey(d => d.ReportedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<OperationalTask>()
             .HasOne(t => t.AssignedUser)
             .WithMany()
