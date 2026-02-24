@@ -115,6 +115,11 @@
                                 <InputText class="form-control" @bind-Value="editingProduct.InternalCode" placeholder="Ex: 102030" />
                                 <ValidationMessage For="@(() => editingProduct.InternalCode)" class="text-danger small" />
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">SKU Principal</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.MainSku" placeholder="Ex: SKU-123" />
+                                <ValidationMessage For="@(() => editingProduct.MainSku)" class="text-danger small" />
+                            </div>
                         </div>
 
                         <div class="row">

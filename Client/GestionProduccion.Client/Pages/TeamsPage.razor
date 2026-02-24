@@ -6,6 +6,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject ToastService ToastService
+@inject JsonSerializerOptions JsonOptions
 
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -114,7 +115,7 @@
     {
         try 
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
             teams = response?.Data;
         }
         catch (Exception ex)
@@ -153,7 +154,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>(JsonOptions);
                 if (result?.Data != null)
                 {
                     if (isEditing)

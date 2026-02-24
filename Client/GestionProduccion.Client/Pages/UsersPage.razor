@@ -8,6 +8,7 @@
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
+@inject JsonSerializerOptions JsonOptions
 
 @using GestionProduccion.Client.Resources
 
@@ -191,8 +192,8 @@
         try
         {
             loading = true;
-            // GetFromJsonAsync uses the globally registered JsonSerializerOptions
-            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users");
+            // Pass the injected JsonOptions to use the JsonStringEnumConverter
+            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -278,8 +279,8 @@
 
             if (response.IsSuccessStatusCode)
             {
-                // ReadFromJsonAsync uses the globally registered JsonSerializerOptions
-                var newUser = await response.Content.ReadFromJsonAsync<UserDto>();
+                // Pass the injected JsonOptions to use the JsonStringEnumConverter
+                var newUser = await response.Content.ReadFromJsonAsync<UserDto>(JsonOptions);
                 if (newUser != null)
                 {
                     if (isEditing)
