@@ -12,4 +12,5 @@ public interface IUserRepository
     Task UpdateAsync(User user);
     Task SaveChangesAsync();
     Task<int> CountActiveAsync();
+    Task<int> CountAsync();
 }

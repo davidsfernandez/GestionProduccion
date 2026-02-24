@@ -58,6 +58,11 @@ public class UserRepository : IUserRepository
         return await _context.Users.CountAsync(u => u.IsActive);
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await _context.Users.CountAsync();
+    }
+
     public async Task AddAsync(User user)
     {
         await _context.Users.AddAsync(user);

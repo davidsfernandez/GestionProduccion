@@ -28,23 +28,7 @@ public static class DbInitializer
                 });
             }
 
-            // 2. Ensure at least one Administrator exists (Fase 2: 102, 103, 104)
-            if (!await context.Users.AnyAsync(u => u.Role == UserRole.Administrator))
-            {
-                logger.LogInformation("Seeding default administrator...");
-                var admin = new User
-                {
-                    FullName = "System Administrator",
-                    Email = "admin@local.host",
-                    Role = UserRole.Administrator,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
-                    IsActive = true,
-                    AvatarUrl = "/img/avatars/avatar.jpg"
-                };
-                await context.Users.AddAsync(admin);
-            }
-
-            // 3. Ensure default Bonus Rules exist (Fase 2: 105)
+            // 2. Ensure default Bonus Rules exist (Fase 2: 105)
             if (!await context.BonusRules.AnyAsync())
             {
                 logger.LogInformation("Seeding default bonus rules...");

@@ -265,7 +265,7 @@ public class UserService : IUserService
 
     public async Task<bool> IsSetupRequiredAsync()
     {
-        var count = await _userRepository.CountActiveAsync(); 
+        var count = await _userRepository.CountAsync(); 
         return count == 0;
     }
 }
