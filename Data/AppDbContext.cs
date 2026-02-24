@@ -117,7 +117,7 @@ public class AppDbContext : DbContext
             .IsUnique();
         modelBuilder.Entity<SystemConfiguration>()
             .Property(sc => sc.Key)
-            .IsRequired()
+            .IsRequired(false)
             .HasMaxLength(50);
 
         modelBuilder.Entity<SystemConfiguration>()

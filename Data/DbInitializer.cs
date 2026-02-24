@@ -20,6 +20,7 @@ public static class DbInitializer
                 logger.LogInformation("Seeding default system configuration...");
                 await context.SystemConfigurations.AddAsync(new SystemConfiguration
                 {
+                    Key = "MainConfig",
                     CompanyName = "Minha Fábrica",
                     CompanyTaxId = "00.000.000/0001-00",
                     LogoBase64 = "",
