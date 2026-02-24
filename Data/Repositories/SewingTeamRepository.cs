@@ -19,4 +19,9 @@ public class SewingTeamRepository : Repository<SewingTeam>, ISewingTeamRepositor
     {
         return await _dbSet.Include(t => t.Members).FirstOrDefaultAsync(t => t.Id == id);
     }
+
+    public override async Task<List<SewingTeam>> GetAllAsync()
+    {
+        return await _dbSet.Include(t => t.Members).ToListAsync();
+    }
 }

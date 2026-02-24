@@ -52,6 +52,7 @@
                                     <th>@Portuguese.User_Name</th>
                                     <th>@Portuguese.User_Email</th>
                                     <th>UUID</th>
+                                    <th>Equipe</th>
                                     <th>@Portuguese.User_Role</th>
                                     <th>@Portuguese.User_Status</th>
                                     <th class="text-end text-nowrap">@Portuguese.Actions</th>
@@ -73,6 +74,7 @@
                                         </td>
                                         <td>@user.Email</td>
                                         <td><code class="small text-muted">@user.ExternalId.ToString().Substring(0, 8)...</code></td>
+                                        <td><span class="badge bg-info-soft">@(user.SewingTeamName ?? "-")</span></td>
                                         <td>
                                             <span class="badge bg-primary-soft">@TranslateRole(user.Role.ToString())</span>
                                         </td>
@@ -159,6 +161,20 @@
                                     }
                                 </InputSelect>
                             </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-bold text-muted">Equipe de Costura (Opcional)</label>
+                                <InputSelect class="form-select form-select-lg" @bind-Value="userModel.SewingTeamId">
+                                    <option value="">Nenhuma equipe</option>
+                                    @if (teams != null)
+                                    {
+                                        @foreach (var team in teams)
+                                        {
+                                            <option value="@team.Id">@team.Name</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
@@ -176,6 +192,7 @@
 
 @code {
     private List<UserDto>? users;
+    private List<SewingTeamDto>? teams;
     private bool loading = true;
     private bool showModal = false;
     private bool isEditing = false;
@@ -184,7 +201,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUsers();
+        await Task.WhenAll(LoadUsers(), LoadTeams());
+    }
+
+    private async Task LoadTeams()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
+            if (response != null && response.Success)
+            {
+                teams = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar equipes: {ex.Message}");
+        }
     }
 
     private async Task LoadUsers()
@@ -224,7 +257,8 @@
         {
             FullName = user.FullName,
             Email = user.Email,
-            Role = user.Role
+            Role = user.Role,
+            SewingTeamId = user.SewingTeamId
         };
         showModal = true;
     }
@@ -235,10 +269,8 @@
     {
         "Administrator" => "Administrador",
         "Leader" => "Líder",
-        "Operator" => "Operador",
-        "Workshop" => "Oficina",
-        "Sewer" => "Costureiro(a)",
         "Operational" => "Operacional",
+        "Office" => "Escritório",
         _ => role
     };
 
@@ -261,7 +293,8 @@
                     FullName = userModel.FullName,
                     Email = userModel.Email,
                     Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password,
-                    Role = userModel.Role
+                    Role = userModel.Role,
+                    SewingTeamId = userModel.SewingTeamId
                 };
                 response = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", request);
             }
@@ -272,7 +305,8 @@
                     FullName = userModel.FullName,
                     Email = userModel.Email,
                     Password = userModel.Password,
-                    Role = userModel.Role
+                    Role = userModel.Role,
+                    SewingTeamId = userModel.SewingTeamId
                 };
                 response = await Http.PostAsJsonAsync("api/Users", request);
             }
@@ -390,6 +424,8 @@
         [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
         public string Password { get; set; } = "";
         
-        public UserRole Role { get; set; } = UserRole.Operator;
+        public UserRole Role { get; set; } = UserRole.Operational;
+
+        public int? SewingTeamId { get; set; }
     }
 }

@@ -55,7 +55,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return false;
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null || (user.Role != UserRole.Operator && user.Role != UserRole.Workshop)) return false;
+        if (user == null || (user.Role != UserRole.Operational)) return false;
 
         order.UserId = userId;
         order.UpdatedAt = DateTime.UtcNow;
@@ -75,7 +75,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return false;
 
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
+        if (user != null && (user.Role == UserRole.Operational))
         {
             if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only update status of orders assigned to you.");
         }
@@ -134,7 +134,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return false;
 
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
+        if (user != null && (user.Role == UserRole.Operational))
         {
             if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only advance stage of orders assigned to you.");
         }
@@ -171,7 +171,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             throw new InvalidOperationException("Note is required when moving back to a previous stage.");
 
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operator || user.Role == UserRole.Workshop))
+        if (user != null && (user.Role == UserRole.Operational))
         {
             if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only change stage of orders assigned to you.");
         }

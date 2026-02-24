@@ -18,19 +18,21 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(int id)
     {
         return await _context.Users
-            .Include(u => u.Teams)
+            .Include(u => u.SewingTeam)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await _context.Users
+            .Include(u => u.SewingTeam)
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task<List<User>> GetAllActiveAsync()
     {
         return await _context.Users
+            .Include(u => u.SewingTeam)
             .AsNoTracking()
             .Where(u => u.IsActive)
             .ToListAsync();

@@ -187,10 +187,11 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         // --- SEWING TEAM AND BONUS RULES ---
-        modelBuilder.Entity<SewingTeam>()
-            .HasMany(t => t.Members)
-            .WithMany(u => u.Teams)
-            .UsingEntity(j => j.ToTable("SewingTeamMembers"));
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.SewingTeam)
+            .WithMany(t => t.Members)
+            .HasForeignKey(u => u.SewingTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<ProductionOrder>()
             .HasOne(po => po.AssignedTeam)

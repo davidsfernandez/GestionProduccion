@@ -5,10 +5,8 @@ namespace GestionProduccion.Domain.Enums;
 /// </summary>
 public enum UserRole
 {
-    Administrator, // Role with all permissions
-    Leader,        // Team leader role
-    Operator,      // Production operator role
-    Workshop,      // Role representing an external workshop or provider
-    Sewer,         // Legacy role (now mapped to Operator in UI)
-    Operational    // New role for basic operational tasks
+    Administrator = 0, // Role with all permissions
+    Leader = 1,        // Team leader role
+    Operational = 2,   // Production operator role
+    Office = 3         // Administrative/Office role
 }

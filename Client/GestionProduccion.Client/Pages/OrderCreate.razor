@@ -216,7 +216,7 @@
             var userResp = await usersTask;
             if (userResp?.Success == true && userResp.Data != null)
             {
-                users = userResp.Data.Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop).ToList();
+                users = userResp.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
             }
 
             products = await productsTask;

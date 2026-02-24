@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using GestionProduccion.Domain.Enums;
 
@@ -30,10 +31,12 @@ public class User
 
     public string? AvatarUrl { get; set; }
 
+    // Relationship with SewingTeam (1-N)
+    public int? SewingTeamId { get; set; }
+    [ForeignKey("SewingTeamId")]
+    public virtual SewingTeam? SewingTeam { get; set; }
+
     // Navigation properties
     public virtual ICollection<ProductionOrder> AssignedOrders { get; set; } = new List<ProductionOrder>();
     public virtual ICollection<ProductionHistory> HistoryChanges { get; set; } = new List<ProductionHistory>();
-
-    // Many-to-Many relationship with SewingTeam
-    public virtual ICollection<SewingTeam> Teams { get; set; } = new List<SewingTeam>();
 }

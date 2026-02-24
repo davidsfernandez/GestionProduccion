@@ -36,7 +36,9 @@ public class UsersController : ControllerBase
                 Email = u.Email,
                 Role = u.Role,
                 AvatarUrl = u.AvatarUrl,
-                IsActive = u.IsActive
+                IsActive = u.IsActive,
+                SewingTeamId = u.SewingTeamId,
+                SewingTeamName = u.SewingTeam?.Name
             }).ToList());
         }
         catch (Exception ex)
@@ -68,7 +70,9 @@ public class UsersController : ControllerBase
                 Email = user.Email,
                 Role = user.Role,
                 AvatarUrl = user.AvatarUrl,
-                IsActive = user.IsActive
+                IsActive = user.IsActive,
+                SewingTeamId = user.SewingTeamId,
+                SewingTeamName = user.SewingTeam?.Name
             });
         }
         catch (Exception ex)
@@ -141,7 +145,8 @@ public class UsersController : ControllerBase
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
-                IsActive = true
+                IsActive = true,
+                SewingTeamId = request.SewingTeamId
             };
 
             var createdUser = await _userService.CreateUserAsync(user);
@@ -153,7 +158,8 @@ public class UsersController : ControllerBase
                 FullName = createdUser.FullName,
                 Email = createdUser.Email,
                 Role = createdUser.Role,
-                IsActive = createdUser.IsActive
+                IsActive = createdUser.IsActive,
+                SewingTeamId = createdUser.SewingTeamId
             };
 
             return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, userDto);
@@ -176,6 +182,7 @@ public class UsersController : ControllerBase
             user.FullName = request.FullName;
             user.Email = request.Email;
             user.Role = request.Role;
+            user.SewingTeamId = request.SewingTeamId;
 
             if (!string.IsNullOrEmpty(request.Password))
             {

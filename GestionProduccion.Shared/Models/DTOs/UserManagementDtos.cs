@@ -12,6 +12,8 @@ public class UserDto
     public string? AvatarUrl { get; set; }
     public UserRole Role { get; set; }
     public bool IsActive { get; set; }
+    public int? SewingTeamId { get; set; }
+    public string? SewingTeamName { get; set; }
 }
 
 public class CreateUserRequest
@@ -25,6 +27,7 @@ public class CreateUserRequest
     [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
     public string Password { get; set; } = string.Empty;
     public UserRole Role { get; set; }
+    public int? SewingTeamId { get; set; }
 }
 
 public class UpdateUserRequest
@@ -34,4 +37,5 @@ public class UpdateUserRequest
     [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
     public string? Password { get; set; } // Optional
     public UserRole Role { get; set; }
+    public int? SewingTeamId { get; set; }
 }

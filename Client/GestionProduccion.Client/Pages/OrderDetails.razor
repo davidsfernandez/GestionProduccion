@@ -624,7 +624,7 @@
         var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users");
         if (response != null && response.Success && response.Data != null)
         {
-            assignableUsers = response.Data.Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop).ToList();
+            assignableUsers = response.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
         }
     }
 

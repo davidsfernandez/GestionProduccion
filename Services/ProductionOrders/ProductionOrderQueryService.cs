@@ -47,7 +47,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var currentUserId = GetCurrentUserId();
         var currentUser = await _userRepository.GetByIdAsync(currentUserId);
 
-        if (currentUser != null && (currentUser.Role == UserRole.Operator || currentUser.Role == UserRole.Workshop))
+        if (currentUser != null && (currentUser.Role == UserRole.Operational))
         {
             query = query.Where(po => po.UserId == currentUserId);
         }

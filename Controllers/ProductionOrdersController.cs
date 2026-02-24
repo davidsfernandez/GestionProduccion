@@ -85,7 +85,7 @@ public class ProductionOrdersController : ControllerBase
         {
             var users = await _userService.GetActiveUsersAsync();
             var assignable = users
-                .Where(u => u.Role == UserRole.Operator || u.Role == UserRole.Workshop || u.Role == UserRole.Leader)
+                .Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader)
                 .Select(u => new UserDto
                 {
                     Id = u.Id,

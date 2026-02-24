@@ -11,10 +11,12 @@ namespace GestionProduccion.Controllers;
 public class SewingTeamsController : ControllerBase
 {
     private readonly ISewingTeamRepository _teamRepo;
+    private readonly IUserRepository _userRepo;
 
-    public SewingTeamsController(ISewingTeamRepository teamRepo)
+    public SewingTeamsController(ISewingTeamRepository teamRepo, IUserRepository userRepo)
     {
         _teamRepo = teamRepo;
+        _userRepo = userRepo;
     }
 
     [HttpGet]
@@ -48,7 +50,9 @@ public class SewingTeamsController : ControllerBase
                 Id = m.Id,
                 FullName = m.FullName,
                 Email = m.Email,
-                Role = m.Role
+                Role = m.Role,
+                SewingTeamId = m.SewingTeamId,
+                SewingTeamName = team.Name
             }).ToList()
         };
 
@@ -56,24 +60,36 @@ public class SewingTeamsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(SewingTeamDto dto)
+    public async Task<IActionResult> Create(CreateSewingTeamRequest request)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest(new ApiResponse<string> { Success = false, Message = "Nome da equipe é obrigatório." });
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse<object> { Success = false, Message = "Dados inválidos." });
 
         var existing = await _teamRepo.GetAllAsync();
-        if (existing.Any(t => t.Name.Equals(dto.Name, StringComparison.OrdinalIgnoreCase)))
+        if (existing.Any(t => t.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)))
             return BadRequest(new ApiResponse<string> { Success = false, Message = "Já existe una equipe com este nome." });
 
         var team = new SewingTeam
         {
-            Name = dto.Name,
+            Name = request.Name,
             IsActive = true
         };
+
         await _teamRepo.AddAsync(team);
         await _teamRepo.SaveChangesAsync();
+
+        foreach (var userId in request.InitialUserIds)
+        {
+            var user = await _userRepo.GetByIdAsync(userId);
+            if (user != null)
+            {
+                user.SewingTeamId = team.Id;
+                await _userRepo.UpdateAsync(user);
+            }
+        }
+        await _userRepo.SaveChangesAsync();
         
-        var responseDto = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive };
+        var responseDto = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive, MemberCount = request.InitialUserIds.Count };
         return CreatedAtAction(nameof(GetById), new { id = team.Id }, new ApiResponse<SewingTeamDto> { Success = true, Data = responseDto });
     }
 
