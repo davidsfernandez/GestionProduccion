@@ -23,9 +23,9 @@ namespace GestionProduccion.Tests
         public async Task GetActiveUsersAsync_ShouldReturnActiveUsers()
         {
             using var context = GetInMemoryDbContext();
-            context.Users.Add(new User { FullName = "User 1", Email = "user1@test.com", Role = UserRole.Operator, IsActive = true });
+            context.Users.Add(new User { FullName = "User 1", Email = "user1@test.com", Role = UserRole.Operational, IsActive = true });
             context.Users.Add(new User { FullName = "User 2", Email = "user2@test.com", Role = UserRole.Leader, IsActive = true });
-            context.Users.Add(new User { FullName = "Inactive", Email = "inactive@test.com", Role = UserRole.Operator, IsActive = false });
+            context.Users.Add(new User { FullName = "Inactive", Email = "inactive@test.com", Role = UserRole.Operational, IsActive = false });
             await context.SaveChangesAsync();
 
             var userRepo = new UserRepository(context);
@@ -43,7 +43,7 @@ namespace GestionProduccion.Tests
         public async Task GetUserByIdAsync_ShouldReturnCorrectUser()
         {
             using var context = GetInMemoryDbContext();
-            var user = new User { FullName = "Test User", Email = "test@test.com", Role = UserRole.Operator, IsActive = true };
+            var user = new User { FullName = "Test User", Email = "test@test.com", Role = UserRole.Operational, IsActive = true };
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
@@ -69,7 +69,7 @@ namespace GestionProduccion.Tests
             var refreshRepo = new UserRefreshTokenRepository(context);
             var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo);
 
-            var newUser = new User { FullName = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operator };
+            var newUser = new User { FullName = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operational };
 
             var result = await service.CreateUserAsync(newUser);
 
@@ -82,7 +82,7 @@ namespace GestionProduccion.Tests
         public async Task UpdateUserAsync_ShouldModifyUser_WhenExists()
         {
             using var context = GetInMemoryDbContext();
-            var user = new User { FullName = "Old Name", Email = "update@test.com", Role = UserRole.Operator, IsActive = true };
+            var user = new User { FullName = "Old Name", Email = "update@test.com", Role = UserRole.Operational, IsActive = true };
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
@@ -104,7 +104,7 @@ namespace GestionProduccion.Tests
         public async Task DeactivateUserAsync_ShouldSetIsActiveFalse_WhenExists()
         {
             using var context = GetInMemoryDbContext();
-            var user = new User { FullName = "Delete Me", Email = "delete@test.com", Role = UserRole.Operator, IsActive = true };
+            var user = new User { FullName = "Delete Me", Email = "delete@test.com", Role = UserRole.Operational, IsActive = true };
             context.Users.Add(user);
             await context.SaveChangesAsync();
 

@@ -83,7 +83,7 @@ namespace GestionProduccion.Tests
                 FullName = "User",
                 Email = "user@test.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
-                Role = Domain.Enums.UserRole.Operator,
+                Role = Domain.Enums.UserRole.Operational,
                 IsActive = true
             };
 

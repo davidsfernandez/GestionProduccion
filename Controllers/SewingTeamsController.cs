@@ -88,7 +88,7 @@ public class SewingTeamsController : ControllerBase
             }
         }
         await _userRepo.SaveChangesAsync();
-        
+
         var responseDto = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive, MemberCount = request.InitialUserIds.Count };
         return CreatedAtAction(nameof(GetById), new { id = team.Id }, new ApiResponse<SewingTeamDto> { Success = true, Data = responseDto });
     }
@@ -124,7 +124,7 @@ public class SewingTeamsController : ControllerBase
         // In a real scenario, we'd check _context.ProductionOrders.Any(o => o.SewingTeamId == id)
         // For now, let's assume the repository or a service check is needed.
         // I will assume the requirement 98-99 is to be strictly followed.
-        
+
         // Since I don't have direct context access here easily without injecting DB or using a more complex repo,
         // I will use the team's orders collection if it's loaded.
         if (team.AssignedOrders.Any())
