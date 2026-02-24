@@ -5,6 +5,7 @@
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Services.ProductionOrders
 @using GestionProduccion.Domain.Enums
+@using System.Text.Json
 @inject IProductionOrderQueryClient QueryClient
 @inject IProductionOrderMutationClient MutationClient
 @inject IProductionOrderLifecycleClient LifecycleClient
@@ -13,6 +14,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
+@inject JsonSerializerOptions JsonOptions
 
 @using GestionProduccion.Client.Resources
 
@@ -57,12 +59,12 @@
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Produto</label>
                                     <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
-                                        <option value="0">-- Selecione un produto --</option>
+                                        <option value="0" disabled>Selecione um Produto...</option>
                                         @if (products != null)
                                         {
                                             @foreach (var prod in products)
                                             {
-                                                <option value="@prod.Id">@prod.Name (@prod.InternalCode)</option>
+                                                <option value="@prod.Id">@prod.InternalCode - @prod.Name</option>
                                             }
                                         }
                                     </InputSelect>
@@ -72,7 +74,7 @@
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Tamanho</label>
                                     <InputSelect @bind-Value="createModel.Size" class="form-select form-select-lg">
-                                        <option value="">-- Selecione um tamanho --</option>
+                                        <option value="">Selecione um Tamanho...</option>
                                         @foreach (var s in BrazilianSizes)
                                         {
                                             <option value="@s">@s</option>
@@ -99,9 +101,9 @@
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Equipe de Costura</label>
+                                    <label class="form-label fw-bold">Equipe de Costura (Opcional)</label>
                                     <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select form-select-lg">
-                                        <option value="">-- Nenhuma equipe --</option>
+                                        <option value="">Atribuir Equipe (Opcional)...</option>
                                         @if (teams != null)
                                         {
                                             @foreach (var team in teams)
@@ -115,12 +117,12 @@
                                 <div class="col-md-12 mb-4">
                                     <label class="form-label fw-bold">Atribuir Operador (Opcional)</label>
                                     <InputSelect @bind-Value="createModel.UserId" class="form-select form-select-lg">
-                                        <option value="">-- Não atribuir agora --</option>
+                                        <option value="">Atribuir Operador (Opcional)...</option>
                                         @if (users != null)
                                         {
                                             @foreach (var user in users)
                                             {
-                                                <option value="@user.Id">@user.FullName (@user.Role)</option>
+                                                <option value="@user.Id">@user.FullName</option>
                                             }
                                         }
                                     </InputSelect>
@@ -128,13 +130,17 @@
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-2">
-                                <button type="button" class="btn btn-light px-4" @onclick="Cancel">Cancelar</button>
+                                <button type="button" class="btn btn-light px-4" @onclick="Cancel" disabled="@isSubmitting">Cancelar</button>
                                 <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="@isSubmitting">
                                     @if (isSubmitting)
                                     {
                                         <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>Salvando...</span>
                                     }
-                                    Salvar Ordem
+                                    else
+                                    {
+                                        <span>Salvar Ordem</span>
+                                    }
                                 </button>
                             </div>
                         </EditForm>
@@ -184,9 +190,9 @@
         Quantity = 1,
         Size = ""
     };
-    private List<UserDto>? users;
-    private List<ProductDto>? products;
-    private List<SewingTeamDto>? teams;
+    private List<UserDto> users = new();
+    private List<ProductDto> products = new();
+    private List<SewingTeamDto> teams = new();
     private readonly List<string> BrazilianSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
     private bool isSubmitting = false;
     private bool isInitialLoading = true;
@@ -207,28 +213,35 @@
         {
             isInitialLoading = true;
             
-            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users"); 
+            // Parallel loading
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions); 
             var productsTask = ProductClient.GetAllProductsAsync();
             var teamsTask = SewingTeamClient.GetAllTeamsAsync();
 
             await Task.WhenAll(usersTask, productsTask, teamsTask);
 
-            var userResp = await usersTask;
-            if (userResp?.Success == true && userResp.Data != null)
+            var allUsers = await usersTask;
+            if (allUsers != null)
             {
-                users = userResp.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                users = allUsers.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
             }
 
-            products = await productsTask;
-            var teamResp = await teamsTask;
-            if (teamResp?.Success == true && teamResp.Data != null)
+            var allProducts = await productsTask;
+            if (allProducts != null)
             {
-                teams = teamResp.Data.Where(t => t.IsActive).ToList();
+                products = allProducts;
+            }
+
+            var teamsResp = await teamsTask;
+            if (teamsResp?.Success == true && teamsResp.Data != null)
+            {
+                teams = teamsResp.Data.Where(t => t.IsActive).ToList();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            ToastService.ShowToast("Falha ao carregar produtos", ToastLevel.Error);
+            Console.Error.WriteLine(ex);
+            ToastService.ShowToast("Erro ao carregar dados para o formulário. Verifique sua conexão.", ToastLevel.Error);
         }
         finally
         {
@@ -239,20 +252,10 @@
     private async Task HandleSubmit()
     {
         if (isSubmitting) return;
-
-        if (createModel.ProductId == 0)
-        {
-            ToastService.ShowToast("O produto é obrigatório", ToastLevel.Warning);
-            return;
-        }
-
-        if (string.IsNullOrEmpty(createModel.Size))
-        {
-            ToastService.ShowToast("Selecione um tamanho", ToastLevel.Warning);
-            return;
-        }
         
         isSubmitting = true;
+        StateHasChanged();
+
         try
         {
             var result = await MutationClient.CreateProductionOrderAsync(createModel);
@@ -260,7 +263,13 @@
             if (result != null)
             {
                 ToastService.ShowToast("Ordem de Produção gerada com sucesso!", ToastLevel.Success);
-                NavigationManager.NavigateTo($"/orders/{result.Id}");
+                createModel = new CreateProductionOrderRequest 
+                { 
+                    EstimatedCompletionAt = DateTime.Now.AddDays(7),
+                    Quantity = 1,
+                    Size = ""
+                };
+                NavigationManager.NavigateTo($"/orders");
             }
             else
             {
@@ -274,6 +283,7 @@
         finally
         {
             isSubmitting = false;
+            StateHasChanged();
         }
     }
 
