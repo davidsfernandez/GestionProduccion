@@ -18,11 +18,24 @@ public class BonusCalculationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int teamId, DateTime startDate, DateTime endDate)
+    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int? teamId, int? userId, DateTime startDate, DateTime endDate)
     {
         try
         {
-            var report = await _bonusService.CalculateTeamBonusAsync(teamId, startDate, endDate);
+            BonusReportDto report;
+            if (userId.HasValue)
+            {
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startDate, endDate);
+            }
+            else if (teamId.HasValue)
+            {
+                report = await _bonusService.CalculateTeamBonusAsync(teamId.Value, startDate, endDate);
+            }
+            else
+            {
+                return BadRequest(new ApiResponse<BonusReportDto> { Success = false, Message = "Either teamId or userId must be provided." });
+            }
+
             return Ok(new ApiResponse<BonusReportDto> { Success = true, Data = report });
         }
         catch (Exception ex)

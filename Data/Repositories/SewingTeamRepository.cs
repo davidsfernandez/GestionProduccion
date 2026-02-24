@@ -24,4 +24,11 @@ public class SewingTeamRepository : Repository<SewingTeam>, ISewingTeamRepositor
     {
         return await _dbSet.Include(t => t.Members).ToListAsync();
     }
+
+    public async Task<User?> GetMemberByIdAsync(int userId)
+    {
+        return await _context.Users
+            .Include(u => u.SewingTeam)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+    }
 }

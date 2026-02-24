@@ -107,4 +107,62 @@ public class BonusCalculationService : IBonusCalculationService
             }).ToList()
         };
     }
+
+    public async Task<BonusReportDto> CalculateUserBonusAsync(int userId, DateTime startDate, DateTime endDate)
+    {
+        var user = await _teamRepo.GetMemberByIdAsync(userId);
+        if (user == null) throw new KeyNotFoundException("User not found.");
+
+        var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
+        var query = await _orderRepo.GetQueryableAsync();
+
+        // 1. Get Individual Orders
+        var userOrders = await query
+            .AsNoTracking()
+            .Where(o => o.UserId == userId &&
+                        o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
+                        o.CompletedAt >= startDate && o.CompletedAt <= endDate)
+            .ToListAsync();
+
+        int totalProduced = userOrders.Sum(o => o.Quantity);
+        int onTimeOrders = userOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
+
+        int totalDefects = 0;
+        foreach (var order in userOrders)
+        {
+            var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
+            totalDefects += defects.Sum(d => d.Quantity);
+        }
+
+        decimal productivityBonus = userOrders.Any() ? (decimal)rule.ProductivityPercentage : 0;
+        decimal onTimeRatio = userOrders.Any() ? (decimal)onTimeOrders / userOrders.Count : 0;
+        decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
+
+        decimal individualBonus = productivityBonus;
+        if (defectRatio > 5) individualBonus = 0;
+
+        // 2. Get Team Bonus Share (if part of a team)
+        decimal teamShare = 0;
+        if (user.SewingTeamId.HasValue)
+        {
+            var teamReport = await CalculateTeamBonusAsync(user.SewingTeamId.Value, startDate, endDate);
+            var team = await _teamRepo.GetTeamWithMembersAsync(user.SewingTeamId.Value);
+            int teamMembersCount = team?.Members.Count ?? 1;
+            teamShare = teamReport.FinalBonusPercentage / Math.Max(1, teamMembersCount);
+        }
+
+        decimal finalBonus = individualBonus + teamShare;
+
+        return new BonusReportDto
+        {
+            TeamName = user.FullName, // Using TeamName field for the User's name
+            ProductivityPercentage = individualBonus,
+            DeadlinePerformance = Math.Round(onTimeRatio * 100, 2),
+            DefectPercentage = Math.Round(defectRatio, 2),
+            FinalBonusPercentage = Math.Round(finalBonus, 2),
+            CompletedOrders = userOrders.Count,
+            TotalProduced = totalProduced,
+            TotalDefects = totalDefects
+        };
+    }
 }

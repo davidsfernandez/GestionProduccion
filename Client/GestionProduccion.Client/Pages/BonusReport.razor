@@ -7,30 +7,62 @@
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 @inject JsonSerializerOptions JsonOptions
+@inject ToastService ToastService
 
-<div class="container-fluid p-0">
+<div class="container-fluid p-0 animate-fade-in">
     <h3 class="h3 mb-4 text-dark">Relatório Financeiro e Bonificações</h3>
 
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-4">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label small fw-bold">Selecione a Equipe</label>
-                    <select class="form-select" @bind="selectedTeamId">
-                        <option value="0">Selecione uma equipe...</option>
-                        @foreach (var team in teams ?? new())
-                        {
-                            <option value="@team.Id">@team.Name</option>
-                        }
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Modo de Análise</label>
+                    <select class="form-select" @onchange="OnModeChanged">
+                        <option value="team">Análise por Equipe</option>
+                        <option value="user">Análise por Funcionário</option>
                     </select>
                 </div>
+
+                <div class="col-md-4">
+                    @if (reportMode == "team")
+                    {
+                        <label class="form-label small fw-bold">Selecione a Equipe</label>
+                        <select class="form-select" @bind="selectedId">
+                            <option value="0">Selecione una equipe...</option>
+                            @if (teams != null)
+                            {
+                                @foreach (var team in teams)
+                                {
+                                    <option value="@team.Id">@team.Name</option>
+                                }
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <label class="form-label small fw-bold">Selecione o Funcionário</label>
+                        <select class="form-select" @bind="selectedId">
+                            <option value="0">Selecione un funcionário...</option>
+                            @if (users != null)
+                            {
+                                @foreach (var user in users)
+                                {
+                                    <option value="@user.Id">@user.FullName (@user.Role)</option>
+                                }
+                            }
+                        </select>
+                    }
+                </div>
+
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Mês de Referência</label>
                     <input type="month" class="form-control" @bind="selectedMonth" />
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" @onclick="Calculate" disabled="@(selectedTeamId == 0)">
-                        Calcular Bônus
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100 shadow-sm" @onclick="Calculate" disabled="@(selectedId == 0 || isLoading)">
+                        @if (isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        Calcular
                     </button>
                 </div>
             </div>
@@ -39,35 +71,36 @@
 
     @if (report != null)
     {
-        <div class="row">
+        <div class="row animate-fade-in-up">
             <div class="col-md-4">
-                <div class="card shadow-sm border-0 text-center p-4 @(report.FinalBonusPercentage == 0 ? "bg-danger bg-opacity-10" : "bg-success bg-opacity-10")">
+                <div class="card shadow-sm border-0 text-center p-4 rounded-4 @(report.FinalBonusPercentage == 0 ? "bg-danger bg-opacity-10" : "bg-success bg-opacity-10")">
                     <h1 class="display-4 fw-bold @(report.FinalBonusPercentage == 0 ? "text-danger" : "text-success")">
                         @report.FinalBonusPercentage.ToString("F1")%
                     </h1>
-                    <p class="mb-0 fw-bold uppercase small text-muted">Bonificação Final do Mês</p>
+                    <p class="mb-0 fw-bold uppercase small text-muted">Bonificação Final</p>
+                    <small class="text-muted">@(reportMode == "team" ? "Desempenho Coletivo" : "Individual + Proporcional Equipe")</small>
                 </div>
             </div>
             
             <div class="col-md-8">
-                <div class="row">
+                <div class="row h-100">
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3">
-                            <small class="text-muted d-block mb-1">PRODUTIVIDADE</small>
+                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
+                            <small class="text-muted d-block mb-1 uppercase">Produtividade</small>
                             <h4 class="mb-0 fw-bold">@report.ProductivityPercentage.ToString("F1")%</h4>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3">
-                            <small class="text-muted d-block mb-1">TAXA DE DEFEITOS</small>
-                            <h4 class="mb-0 fw-bold @(report.DefectPercentage > 2 ? "text-danger" : "text-success")">
-                                @report.DefectPercentage.ToString("F1")%
+                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
+                            <small class="text-muted d-block mb-1 uppercase">Qualidade</small>
+                            <h4 class="mb-0 fw-bold @(report.DefectPercentage > 5 ? "text-danger" : "text-success")">
+                                @report.DefectPercentage.ToString("F1")% <small class="fs-xs">def.</small>
                             </h4>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3">
-                            <small class="text-muted d-block mb-1">EFICIÊNCIA (PRAZO)</small>
+                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
+                            <small class="text-muted d-block mb-1 uppercase">Prazo (Efi.)</small>
                             <h4 class="mb-0 fw-bold">@report.DeadlinePerformance.ToString("F1")%</h4>
                         </div>
                     </div>
@@ -75,20 +108,40 @@
             </div>
         </div>
 
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Detalhamento Financeiro</h5>
+        <div class="card shadow-sm border-0 mt-4 rounded-4 overflow-hidden animate-fade-in-up delay-1">
+            <div class="card-header bg-white py-3 border-0 pt-4 px-4">
+                <h5 class="mb-0 fw-bold">Detalhamento da Produção - @report.TeamName</h5>
             </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-6 border-end">
-                        <p class="text-muted mb-1">Valor Total de Bônus</p>
-                        <h2 class="text-primary fw-bold">@report.TotalAmount.ToString("C", new CultureInfo("pt-BR"))</h2>
+            <div class="card-body p-4">
+                <div class="row text-center g-4">
+                    <div class="col-md-3 border-end">
+                        <p class="text-muted mb-1 small uppercase fw-bold">Lotes Concluídos</p>
+                        <h3 class="text-dark fw-bold">@report.CompletedOrders</h3>
                     </div>
-                    <div class="col-md-6">
-                        <p class="text-muted mb-1">Ordens Concluídas</p>
-                        <h2 class="text-dark fw-bold">@report.CompletedOrders</h2>
+                    <div class="col-md-3 border-end">
+                        <p class="text-muted mb-1 small uppercase fw-bold">Total Produzido</p>
+                        <h3 class="text-primary fw-bold">@report.TotalProduced <small class="fs-xs text-muted">un.</small></h3>
                     </div>
+                    <div class="col-md-3 border-end">
+                        <p class="text-muted mb-1 small uppercase fw-bold">Total Defeitos</p>
+                        <h3 class="@(report.TotalDefects > 0 ? "text-danger" : "text-success") fw-bold">@report.TotalDefects</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1 small uppercase fw-bold">Bônus Estimado</p>
+                        <h3 class="text-success fw-bold">@report.TotalAmount.ToString("C", new CultureInfo("pt-BR"))</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!isLoading && hasSearched)
+    {
+        <div class="alert alert-info border-0 shadow-sm p-4 rounded-4 mt-4 animate-fade-in">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-circle-info fa-2x me-3 opacity-50"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Nenhum dado encontrado</h6>
+                    <p class="mb-0 small">Nenhuma produção registrada para o período e alvo selecionados.</p>
                 </div>
             </div>
         </div>
@@ -97,23 +150,88 @@
 
 @code {
     private List<SewingTeamDto>? teams;
-    private int selectedTeamId;
+    private List<UserDto>? users;
+    private int selectedId;
+    private string reportMode = "team";
     private DateTime selectedMonth = DateTime.Now;
     private BonusReportDto? report;
+    private bool isLoading = false;
+    private bool hasSearched = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-        if (response != null && response.Success) teams = response.Data;
+        await LoadInitialData();
+    }
+
+    private async Task LoadInitialData()
+    {
+        try
+        {
+            var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+
+            await Task.WhenAll(teamsTask, usersTask);
+
+            var teamsResp = await teamsTask;
+            if (teamsResp?.Success == true) teams = teamsResp.Data;
+
+            users = await usersTask;
+            // Filter only operational/leaders for individual report
+            if (users != null)
+            {
+                users = users.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast("Erro ao carregar dados auxiliares.", ToastLevel.Error);
+        }
+    }
+
+    private void OnModeChanged(ChangeEventArgs e)
+    {
+        reportMode = e.Value?.ToString() ?? "team";
+        selectedId = 0;
+        report = null;
+        hasSearched = false;
     }
 
     private async Task Calculate()
     {
-        var start = new DateTime(selectedMonth.Year, selectedMonth.Month, 1);
-        var end = start.AddMonths(1).AddDays(-1);
-        
-        var url = $"api/BonusCalculation?teamId={selectedTeamId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
-        var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url, JsonOptions);
-        if (response != null && response.Success) report = response.Data;
+        if (selectedId == 0) return;
+
+        isLoading = true;
+        report = null;
+        hasSearched = true;
+        StateHasChanged();
+
+        try
+        {
+            var start = new DateTime(selectedMonth.Year, selectedMonth.Month, 1);
+            var end = start.AddMonths(1).AddDays(-1);
+            
+            string url = reportMode == "team" 
+                ? $"api/BonusCalculation?teamId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}"
+                : $"api/BonusCalculation?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
+
+            var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url, JsonOptions);
+            if (response != null && response.Success)
+            {
+                report = response.Data;
+            }
+            else
+            {
+                ToastService.ShowToast(response?.Message ?? "Erro ao calcular bônus.", ToastLevel.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro de conexão: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 }
