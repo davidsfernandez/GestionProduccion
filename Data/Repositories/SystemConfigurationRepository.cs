@@ -13,6 +13,24 @@ public class SystemConfigurationRepository : ISystemConfigurationRepository
         _context = context;
     }
 
+    public async Task<SystemConfiguration?> GetAsync()
+    {
+        return await _context.SystemConfigurations.FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateAsync(SystemConfiguration config)
+    {
+        if (config.Id == 0)
+        {
+            await _context.SystemConfigurations.AddAsync(config);
+        }
+        else
+        {
+            _context.SystemConfigurations.Update(config);
+        }
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<string?> GetValueAsync(string key)
     {
         var config = await _context.SystemConfigurations.FirstOrDefaultAsync(c => c.Key == key);

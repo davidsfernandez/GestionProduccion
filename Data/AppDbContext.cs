@@ -121,7 +121,7 @@ public class AppDbContext : DbContext
             .HasMaxLength(50);
 
         modelBuilder.Entity<SystemConfiguration>()
-            .Property(sc => sc.Logo)
+            .Property(sc => sc.LogoBase64)
             .HasColumnType("longtext"); // For base64 storage
 
         // Converts enums in ProductionOrder entity

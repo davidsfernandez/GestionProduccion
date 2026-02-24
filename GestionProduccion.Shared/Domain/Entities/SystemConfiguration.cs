@@ -8,21 +8,25 @@ public class SystemConfiguration
     [Key]
     public int Id { get; set; }
 
-    [Required]
-    [StringLength(50)]
-    public string Key { get; set; } = string.Empty;
+    // Company Information
+    [StringLength(100)]
+    public string? CompanyName { get; set; }
 
-    public string? Value { get; set; }
-
-    public string? Description { get; set; }
+    [StringLength(20)]
+    public string? CompanyTaxId { get; set; } // CNPJ in Brazil
 
     /// <summary>
-    /// Stores the company logo as a base64 string or file path.
-    /// Added to satisfy the Global Configuration (Logo) requirement.
+    /// Stores the company logo as a base64 string.
     /// </summary>
-    public string? Logo { get; set; }
+    public string? LogoBase64 { get; set; }
 
-    // Phase 3: Financial Module
+    // Legacy/Generic fields
+    [StringLength(50)]
+    public string? Key { get; set; }
+    public string? Value { get; set; }
+    public string? Description { get; set; }
+
+    // Financial Module
     [Column(TypeName = "decimal(18,2)")]
     public decimal DailyFixedCost { get; set; }
 

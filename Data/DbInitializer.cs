@@ -15,14 +15,14 @@ public static class DbInitializer
             logger.LogInformation("Checking if database needs seeding...");
 
             // 1. Ensure any default configuration exists
-            if (!await context.SystemConfigurations.AnyAsync(sc => sc.Key == "CompanyLogo"))
+            if (!await context.SystemConfigurations.AnyAsync())
             {
                 logger.LogInformation("Seeding default system configuration...");
                 await context.SystemConfigurations.AddAsync(new SystemConfiguration
                 {
-                    Key = "CompanyLogo",
-                    Value = "",
-                    Description = "Base64 Company Logo",
+                    CompanyName = "Minha Fábrica",
+                    CompanyTaxId = "00.000.000/0001-00",
+                    LogoBase64 = "",
                     DailyFixedCost = 500.00m,
                     OperationalHourlyCost = 45.00m
                 });

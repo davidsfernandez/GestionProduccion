@@ -3,6 +3,7 @@
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using System.Globalization
+@using System.Text.Json
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 @inject JsonSerializerOptions JsonOptions

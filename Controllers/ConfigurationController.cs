@@ -7,6 +7,7 @@ namespace GestionProduccion.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class ConfigurationController : ControllerBase
 {
     private readonly ISystemConfigurationService _configService;
@@ -16,26 +17,21 @@ public class ConfigurationController : ControllerBase
         _configService = configService;
     }
 
-    [HttpGet("logo")]
-    [AllowAnonymous]
-    public async Task<ActionResult<LogoDto>> GetLogo()
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<SystemConfigurationDto>> Get()
     {
-        var logo = await _configService.GetLogoAsync();
-        return Ok(new LogoDto { Base64Image = logo });
+        var config = await _configService.GetConfigurationAsync();
+        return Ok(config);
     }
 
-    [HttpPost("logo")]
+    [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> UpdateLogo([FromBody] LogoDto request)
+    public async Task<IActionResult> Save([FromBody] SystemConfigurationDto request)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.Base64Image))
-        {
-            return BadRequest("Invalid logo data.");
-        }
-
         try
         {
-            await _configService.UpdateLogoAsync(request.Base64Image);
+            await _configService.SaveConfigurationAsync(request);
             return Ok();
         }
         catch (ArgumentException ex)
@@ -44,11 +40,11 @@ public class ConfigurationController : ControllerBase
         }
     }
 
-    [HttpPost("financial")]
-    [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> UpdateFinancial([FromBody] UpdateFinancialConfigDto request)
+    [HttpGet("logo")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LogoDto>> GetLogo()
     {
-        await _configService.UpdateFinancialConfigAsync(request.DailyFixedCost, request.OperationalHourlyCost);
-        return Ok();
+        var logo = await _configService.GetLogoAsync();
+        return Ok(new LogoDto { Base64Image = logo });
     }
 }

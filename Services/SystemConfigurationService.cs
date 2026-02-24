@@ -1,4 +1,6 @@
+using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
+using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using System.Text.RegularExpressions;
 
@@ -13,38 +15,75 @@ public class SystemConfigurationService : ISystemConfigurationService
         _repo = repo;
     }
 
-    public async Task<string> GetLogoAsync()
+    public async Task<SystemConfigurationDto> GetConfigurationAsync()
     {
-        return await _repo.GetValueAsync("LogoBase64") ?? string.Empty;
-    }
-
-    public async Task UpdateLogoAsync(string base64Logo)
-    {
-        if (string.IsNullOrEmpty(base64Logo))
+        var config = await _repo.GetAsync();
+        if (config == null)
         {
-            await _repo.SetValueAsync("LogoBase64", null);
-            return;
+            return new SystemConfigurationDto
+            {
+                CompanyName = "My Factory",
+                DailyFixedCost = 0,
+                OperationalHourlyCost = 0
+            };
         }
 
-        // Validate format (PNG/JPG) using magic numbers or headers in Base64
-        if (!IsValidImage(base64Logo))
+        return new SystemConfigurationDto
+        {
+            CompanyName = config.CompanyName,
+            CompanyTaxId = config.CompanyTaxId,
+            LogoBase64 = config.LogoBase64,
+            DailyFixedCost = config.DailyFixedCost,
+            OperationalHourlyCost = config.OperationalHourlyCost
+        };
+    }
+
+    public async Task SaveConfigurationAsync(SystemConfigurationDto dto)
+    {
+        var config = await _repo.GetAsync();
+        if (config == null)
+        {
+            config = new SystemConfiguration();
+        }
+
+        // Validation for Logo Base64 (Basic safety check)
+        if (!string.IsNullOrEmpty(dto.LogoBase64) && !IsValidImage(dto.LogoBase64))
         {
             throw new ArgumentException("Invalid image format. Only PNG and JPG are allowed.");
         }
 
-        await _repo.SetValueAsync("LogoBase64", base64Logo);
+        config.CompanyName = dto.CompanyName;
+        config.CompanyTaxId = dto.CompanyTaxId;
+        config.LogoBase64 = dto.LogoBase64;
+        config.DailyFixedCost = dto.DailyFixedCost;
+        config.OperationalHourlyCost = dto.OperationalHourlyCost;
+
+        await _repo.UpdateAsync(config);
     }
 
-    public async Task UpdateFinancialConfigAsync(decimal dailyFixed, decimal hourlyOp)
+    public async Task<string> GetLogoAsync()
     {
-        await _repo.SetValueAsync("DailyFixedCost", dailyFixed.ToString());
-        await _repo.SetValueAsync("OperationalHourlyCost", hourlyOp.ToString());
+        var config = await _repo.GetAsync();
+        return config?.LogoBase64 ?? string.Empty;
+    }
+
+    public async Task UpdateLogoAsync(string base64Logo)
+    {
+        var config = await _repo.GetAsync();
+        if (config == null) config = new SystemConfiguration();
+
+        if (!string.IsNullOrEmpty(base64Logo) && !IsValidImage(base64Logo))
+        {
+            throw new ArgumentException("Invalid image format.");
+        }
+
+        config.LogoBase64 = base64Logo;
+        await _repo.UpdateAsync(config);
     }
 
     private bool IsValidImage(string base64)
     {
-        // Simple regex check for data URI scheme
-        var match = Regex.Match(base64, @"^data:image/(png|jpeg|jpg);base64,");
-        return match.Success;
+        // Check for common data URI schemes for images
+        return Regex.IsMatch(base64, @"^data:image/(png|jpeg|jpg);base64,");
     }
 }

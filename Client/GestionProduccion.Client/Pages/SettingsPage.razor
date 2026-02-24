@@ -3,64 +3,184 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
-@inject IJSRuntime JS
+@inject ToastService ToastService
 
-<h3>Configurações do Sistema</h3>
+<PageTitle>Configurações do Sistema</PageTitle>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title">Parâmetros Financeiros</h5>
-            </div>
-            <div class="card-body">
-                <EditForm Model="financialModel" OnValidSubmit="SaveFinancialSettings">
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="h3 text-dark mb-0">Configurações do Sistema</h3>
+    </div>
+
+    @if (model == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12 col-lg-8">
+                <EditForm Model="model" OnValidSubmit="HandleSave">
                     <DataAnnotationsValidator />
                     
-                    <div class="mb-3">
-                        <label class="form-label">Custo Fixo Diário (R$)</label>
-                        <InputNumber class="form-control" @bind-Value="financialModel.DailyFixedCost" />
+                    <div class="card shadow-sm border-0 mb-4 rounded-4">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 fw-bold">Informações da Empresa</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label fw-bold">Nome da Empresa</label>
+                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyName" placeholder="Ex: Serona Confecções" />
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">CNPJ / Documento</label>
+                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyTaxId" placeholder="00.000.000/0001-00" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Custo Operacional Hora (R$)</label>
-                        <InputNumber class="form-control" @bind-Value="financialModel.OperationalHourlyCost" />
+                    <div class="card shadow-sm border-0 mb-4 rounded-4">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 fw-bold">Identidade Visual (Logo)</h5>
+                        </div>
+                        <div class="card-body p-4 text-center">
+                            @if (!string.IsNullOrEmpty(model.LogoBase64))
+                            {
+                                <div class="mb-4">
+                                    <img src="@model.LogoBase64" alt="Preview Logo" class="img-thumbnail shadow-sm" style="max-height: 120px; object-fit: contain;" />
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveLogo">Remover Logo</button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="py-4 border-2 border-dashed rounded-3 mb-4 bg-light">
+                                    <i class="fa-solid fa-image fa-3x text-muted opacity-25 mb-2"></i>
+                                    <p class="text-muted small">Nenhum logotipo carregado.</p>
+                                </div>
+                            }
+
+                            <div class="col-md-6 mx-auto">
+                                <label class="form-label small text-muted">Carregar novo logotipo (PNG o JPG, máx. 1MB)</label>
+                                <InputFile class="form-control" OnChange="OnLogoFileChange" accept="image/png, image/jpeg" />
+                            </div>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <div class="card shadow-sm border-0 mb-4 rounded-4">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 fw-bold">Parâmetros Financeiros</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Custo Fixo Diário (R$)</label>
+                                    <InputNumber class="form-control" @bind-Value="model.DailyFixedCost" />
+                                    <small class="text-muted">Gastos de aluguel, luz, adm, etc.</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Custo Hora Operacional (R$)</label>
+                                    <InputNumber class="form-control" @bind-Value="model.OperationalHourlyCost" />
+                                    <small class="text-muted">Valor médio pago por hora aos operários.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary px-5 py-2 shadow-sm" disabled="@isSaving">
+                            @if (isSaving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <i class="fa-solid fa-save me-2"></i> Salvar Configurações
+                        </button>
+                    </div>
                 </EditForm>
             </div>
+
+            <div class="col-12 col-lg-4">
+                <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-circle-info me-2"></i>Importante</h6>
+                    <p class="small mb-0 opacity-75">
+                        Essas informações serão utilizadas no cabeçalho de todos os relatórios PDF gerados pelo sistema.
+                        Certifique-se de usar uma imagem de alta qualidade com fundo transparente (PNG) para melhores resultados.
+                    </p>
+                </div>
+            </div>
         </div>
-    </div>
+    }
 </div>
 
 @code {
-    private UpdateFinancialConfigDto financialModel = new();
+    private SystemConfigurationDto? model;
+    private bool isSaving = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load current settings (Simulated or fetch via separate GET endpoint if created)
-        // For MVP, we assume backend handles this via ConfigurationController endpoints we need to update/verify.
-    }
-
-    private async Task SaveFinancialSettings()
-    {
-        await Task.Yield();
         try
         {
-            var response = await Http.PostAsJsonAsync("api/Configuration/financial", financialModel);
+            model = await Http.GetFromJsonAsync<SystemConfigurationDto>("api/Configuration");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro ao carregar configurações: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task OnLogoFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            if (file.Size > 1048576)
+            {
+                ToastService.ShowToast("O arquivo é muito grande. Máximo 1MB.", ToastLevel.Warning);
+                return;
+            }
+
+            try
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(1048576).ReadAsync(buffer);
+                var base64String = Convert.ToBase64String(buffer);
+                model!.LogoBase64 = $"data:{file.ContentType};base64,{base64String}";
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Erro ao ler imagem: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
+
+    private void RemoveLogo() => model!.LogoBase64 = null;
+
+    private async Task HandleSave()
+    {
+        if (isSaving) return;
+        isSaving = true;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Configuration", model);
             if (response.IsSuccessStatusCode)
             {
-                await JS.InvokeVoidAsync("alert", "Configurações salvas com sucesso!");
+                ToastService.ShowToast("Configurações salvas com sucesso!", ToastLevel.Success);
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", "Erro ao salvar.");
+                ToastService.ShowToast("Erro ao salvar no servidor.", ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Erro: {ex.Message}");
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isSaving = false;
         }
     }
 }

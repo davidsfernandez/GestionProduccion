@@ -3,6 +3,7 @@ using GestionProduccion.Models.DTOs; // From Shared
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
