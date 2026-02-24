@@ -73,11 +73,13 @@
                 </li>
             </AuthorizeView>
 
-            <li class="sidebar-item">
-                <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
-                    <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
-                </NavLink>
-            </li>
+            <AuthorizeView Roles="Leader,Operational">
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
 
             <AuthorizeView Roles="Administrator">
                 <li class="sidebar-item">

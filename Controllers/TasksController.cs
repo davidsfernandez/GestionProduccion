@@ -15,22 +15,24 @@ namespace GestionProduccion.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
+    private readonly IProductionOrderQueryService _orderQueryService;
     private readonly IMemoryCache _cache;
     private readonly ILogger<TasksController> _logger;
 
-    public TasksController(ITaskService taskService, IMemoryCache cache, ILogger<TasksController> logger)
+    public TasksController(ITaskService taskService, IProductionOrderQueryService orderQueryService, IMemoryCache cache, ILogger<TasksController> logger)
     {
         _taskService = taskService;
+        _orderQueryService = orderQueryService;
         _cache = cache;
         _logger = logger;
     }
 
     [HttpGet("my")]
-    public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetMyTasks()
+    public async Task<ActionResult<ApiResponse<List<ProductionOrderDto>>>> GetMyTasks()
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        var tasks = await _taskService.GetUserTasksAsync(userId);
-        return Ok(new ApiResponse<List<TaskDto>> { Success = true, Data = tasks });
+        var orders = await _orderQueryService.GetTeamProductionOrdersAsync(userId);
+        return Ok(new ApiResponse<List<ProductionOrderDto>> { Success = true, Data = orders });
     }
 
     [HttpGet]

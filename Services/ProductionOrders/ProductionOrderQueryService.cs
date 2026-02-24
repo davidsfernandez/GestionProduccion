@@ -176,6 +176,26 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         }).ToList();
     }
 
+    public async Task<List<ProductionOrderDto>> GetTeamProductionOrdersAsync(int userId, CancellationToken ct = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null || !user.SewingTeamId.HasValue)
+        {
+            return new List<ProductionOrderDto>();
+        }
+
+        var query = await _orderRepository.GetQueryableAsync();
+        var orders = await query
+            .AsNoTracking()
+            .Include(o => o.Product)
+            .Where(o => o.SewingTeamId == user.SewingTeamId && 
+                       (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction))
+            .OrderBy(o => o.EstimatedCompletionAt)
+            .ToListAsync(ct);
+
+        return orders.Select(MapToDto).ToList();
+    }
+
     // --- Private mapping and utility methods ---
     private ProductionOrderDto MapToDto(ProductionOrder order)
     {
