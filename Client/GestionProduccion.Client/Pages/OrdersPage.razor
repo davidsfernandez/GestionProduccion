@@ -39,7 +39,7 @@
                                 <div class="col-md-5">
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto o Código..."
+                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
                                                @bind="searchTerm" />
                                     </div>
                                 </div>
@@ -119,16 +119,13 @@
                                     <th style="width: 40px;">
                                         <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll" checked="@AllSelected" />
                                     </th>
-                                    <th>@Portuguese.OP_Code</th>
-                                    <th class="d-none d-md-table-cell">@Portuguese.OP_Product</th>
-                                    <th>@Portuguese.OP_Qty</th>
-                                    <th>Tam.</th>
-                                    <th>@Portuguese.OP_Stage</th>
-                                    <th>@Portuguese.OP_Status</th>
-                                    <th class="d-none d-lg-table-cell">Equipe</th>
-                                    <th class="d-none d-lg-table-cell">@Portuguese.OP_Delivery</th>
-                                    <th class="d-none d-xl-table-cell">@Portuguese.OP_AssignedTo</th>
-                                    <th class="text-end text-nowrap">@Portuguese.Actions</th>
+                                    <th>Lote</th>
+                                    <th class="d-none d-md-table-cell">Produto</th>
+                                    <th>Tamanho</th>
+                                    <th>Equipe</th>
+                                    <th>Status</th>
+                                    <th class="d-none d-lg-table-cell">Entrega</th>
+                                    <th class="text-end text-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -150,33 +147,21 @@
                                                 <span class="text-danger small"><i>@Portuguese.Cat_NoLinkedProduct</i></span>
                                             }
                                         </td>
-                                        <td class="d-none d-sm-table-cell"><span class="fw-bold">@order.Quantity</span></td>
                                         <td><span class="badge bg-secondary">@order.Size</span></td>
-                                        <td>
-                                            <span class="badge bg-light text-dark border">@TranslateStage(order.CurrentStage)</span>
+                                        <td class="d-none d-lg-table-cell">
+                                            <span class="text-muted small">@(order.SewingTeamName ?? "-")</span>
                                         </td>
                                         <td>
                                             <span class="badge @GetStatusSoftClass(order.CurrentStatus)">
                                                 @TranslateStatus(order.CurrentStatus)
                                             </span>
                                         </td>
-                                        <td class="d-none d-lg-table-cell">
-                                            <span class="text-muted small">@(order.SewingTeamName ?? "-")</span>
-                                        </td>
                                         <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
-                                        <td class="d-none d-xl-table-cell">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
-                                                    <i class="fa-solid fa-user text-muted opacity-50" style="font-size: 0.7rem;"></i>
-                                                </div>
-                                                <span class="small text-muted">@(order.AssignedUserName ?? Portuguese.OP_Unassigned)</span>
-                                            </div>
-                                        </td>
                                         <td class="text-end text-nowrap">
-                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="Detalhes">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
+                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="Relatório">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                             <AuthorizeView Roles="Administrator">
@@ -241,7 +226,6 @@
             {
                 ClientName = filterClient,
                 Size = filterTamanho,
-                // Add Product search by searchTerm if needed
             };
 
             orders = (await ProductionOrderQueryClient.ListProductionOrdersAsync(filter))?.ToList();
@@ -298,11 +282,12 @@
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
-        "inproduction" => Portuguese.Status_InProduction,
-        "stopped" => Portuguese.Status_Stopped,
-        "completed" => Portuguese.Status_Completed,
-        "paused" => Portuguese.Status_Paused,
-        "finished" => Portuguese.Status_Finished,
+        "pending" => "Pendente",
+        "inproduction" => "Em Produção",
+        "stopped" => "Parado",
+        "completed" => "Finalizado",
+        "paused" => "Pausado",
+        "finished" => "Concluído",
         _ => status ?? ""
     };
 

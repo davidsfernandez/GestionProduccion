@@ -1,17 +1,18 @@
 @page "/bonus-report"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
+@using System.Globalization
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 
 <div class="container-fluid p-0">
-    <h3 class="h3 mb-4 text-dark">Relatório de Bonificação</h3>
+    <h3 class="h3 mb-4 text-dark">Relatório Financeiro e Bonificações</h3>
 
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label small fw-bold">EQUIPE</label>
+                    <label class="form-label small fw-bold">Selecione a Equipe</label>
                     <select class="form-select" @bind="selectedTeamId">
                         <option value="0">Selecione uma equipe...</option>
                         @foreach (var team in teams ?? new())
@@ -21,7 +22,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">MÊS</label>
+                    <label class="form-label small fw-bold">Mês de Referência</label>
                     <input type="month" class="form-control" @bind="selectedMonth" />
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -55,7 +56,7 @@
                     </div>
                     <div class="col-sm-4">
                         <div class="card shadow-sm border-0 p-3 mb-3">
-                            <small class="text-muted d-block mb-1">QUALIDADE (DEFEITOS)</small>
+                            <small class="text-muted d-block mb-1">TAXA DE DEFEITOS</small>
                             <h4 class="mb-0 fw-bold @(report.DefectPercentage > 2 ? "text-danger" : "text-success")">
                                 @report.DefectPercentage.ToString("F1")%
                             </h4>
@@ -63,9 +64,27 @@
                     </div>
                     <div class="col-sm-4">
                         <div class="card shadow-sm border-0 p-3 mb-3">
-                            <small class="text-muted d-block mb-1">ORDENS NO PRAZO</small>
+                            <small class="text-muted d-block mb-1">EFICIÊNCIA (PRAZO)</small>
                             <h4 class="mb-0 fw-bold">@report.DeadlinePerformance.ToString("F1")%</h4>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">Detalhamento Financeiro</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-6 border-end">
+                        <p class="text-muted mb-1">Valor Total de Bônus</p>
+                        <h2 class="text-primary fw-bold">@report.TotalAmount.ToString("C", new CultureInfo("pt-BR"))</h2>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="text-muted mb-1">Ordens Concluídas</p>
+                        <h2 class="text-dark fw-bold">@report.CompletedOrders</h2>
                     </div>
                 </div>
             </div>

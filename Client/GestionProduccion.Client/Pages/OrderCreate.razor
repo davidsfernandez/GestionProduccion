@@ -44,21 +44,18 @@
 
                             <div class="row">
                                 <div class="col-12 mb-4">
-                                    <div class="alert alert-primary d-flex align-items-center" role="alert">
+                                    <div class="alert alert-success d-flex align-items-center" role="alert">
                                         <i class="fa-solid fa-wand-magic-sparkles me-3 fs-4"></i>
                                         <div>
                                             <strong>Geração Automática</strong>
-                                            <div class="small">O código do lote (OP) será gerado sequencialmente pelo sistema ao salvar.</div>
+                                            <div class="small">O código do lote (OP) será gerado automaticamente pelo sistema após salvar.</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Produto</label>
-                                    <InputSelect ValueExpression="@(()=>createModel.ProductId)" 
-                                                 Value="@createModel.ProductId" 
-                                                 ValueChanged="@((int value) => OnProductChanged(value))"
-                                                 class="form-select form-select-lg">
+                                    <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
                                         <option value="0">-- Selecione un produto --</option>
                                         @if (products != null)
                                         {
@@ -69,6 +66,18 @@
                                         }
                                     </InputSelect>
                                     <ValidationMessage For="@(() => createModel.ProductId)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Tamanho</label>
+                                    <InputSelect @bind-Value="createModel.Size" class="form-select form-select-lg">
+                                        <option value="">-- Selecione um tamanho --</option>
+                                        @foreach (var s in BrazilianSizes)
+                                        {
+                                            <option value="@s">@s</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => createModel.Size)" class="text-danger small" />
                                 </div>
 
                                 <div class="col-md-6 mb-4">
@@ -85,23 +94,12 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Cliente (Opcional)</label>
-                                    <InputText @bind-Value="createModel.ClientName" class="form-control" />
+                                    <InputText @bind-Value="createModel.ClientName" class="form-control form-control-lg" />
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Tamanho</label>
-                                    <InputSelect @bind-Value="createModel.Size" class="form-select">
-                                        <option value="">-- Selecione --</option>
-                                        @foreach (var s in availableSizes)
-                                        {
-                                            <option value="@s">@s</option>
-                                        }
-                                    </InputSelect>
-                                </div>
-
-                                <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Atribuir Equipe (Opcional)</label>
-                                    <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select">
+                                    <label class="form-label fw-bold">Equipe de Costura</label>
+                                    <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select form-select-lg">
                                         <option value="">-- Nenhuma equipe --</option>
                                         @if (teams != null)
                                         {
@@ -113,9 +111,9 @@
                                     </InputSelect>
                                 </div>
 
-                                <div class="col-md-6 mb-4">
+                                <div class="col-md-12 mb-4">
                                     <label class="form-label fw-bold">Atribuir Operador (Opcional)</label>
-                                    <InputSelect @bind-Value="createModel.UserId" class="form-select">
+                                    <InputSelect @bind-Value="createModel.UserId" class="form-select form-select-lg">
                                         <option value="">-- Não atribuir agora --</option>
                                         @if (users != null)
                                         {
@@ -135,7 +133,7 @@
                                     {
                                         <span class="spinner-border spinner-border-sm me-2"></span>
                                     }
-                                    Criar Ordem
+                                    Salvar Ordem
                                 </button>
                             </div>
                         </EditForm>
@@ -170,7 +168,7 @@
                     <i class="fa-solid fa-circle-info fa-2x me-3"></i>
                     <div>
                         <h6 class="fw-bold mb-1">Dica de Produção</h6>
-                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estágio de <strong>Corte</strong> com status <strong>Em Produção</strong>.</p>
+                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estágio de <strong>Corte</strong> con status <strong>Em Produção</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -181,7 +179,6 @@
 @code {
     private CreateProductionOrderRequest createModel = new() 
     { 
-        // LotCode is auto-generated
         EstimatedCompletionAt = DateTime.Now.AddDays(7),
         Quantity = 1,
         Size = ""
@@ -189,7 +186,7 @@
     private List<UserDto>? users;
     private List<ProductDto>? products;
     private List<SewingTeamDto>? teams;
-    private List<string> availableSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
+    private readonly List<string> BrazilianSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
     private bool isSubmitting = false;
     private bool isInitialLoading = true;
 
@@ -204,7 +201,6 @@
         {
             isInitialLoading = true;
             
-            // Parallel loading using specialized clients
             var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users"); 
             var productsTask = ProductClient.GetAllProductsAsync();
             var teamsTask = SewingTeamClient.GetAllTeamsAsync();
@@ -226,7 +222,7 @@
         }
         catch (Exception)
         {
-            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            ToastService.ShowToast("Falha ao carregar produtos", ToastLevel.Error);
         }
         finally
         {
@@ -234,14 +230,21 @@
         }
     }
 
-    private void OnProductChanged(int productId)
-    {
-        createModel.ProductId = productId;
-    }
-
     private async Task HandleSubmit()
     {
         if (isSubmitting) return;
+
+        if (createModel.ProductId == 0)
+        {
+            ToastService.ShowToast("O produto é obrigatório", ToastLevel.Warning);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(createModel.Size))
+        {
+            ToastService.ShowToast("Selecione um tamanho", ToastLevel.Warning);
+            return;
+        }
         
         isSubmitting = true;
         try
@@ -250,7 +253,7 @@
             
             if (result != null)
             {
-                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+                ToastService.ShowToast("Ordem de Produção gerada com sucesso!", ToastLevel.Success);
                 NavigationManager.NavigateTo($"/orders/{result.Id}");
             }
             else
