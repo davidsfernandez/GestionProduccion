@@ -281,10 +281,23 @@
 
             if (response.IsSuccessStatusCode)
             {
+                var newUser = await response.Content.ReadFromJsonAsync<UserDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (newUser != null)
+                {
+                    if (isEditing)
+                    {
+                        var index = users?.FindIndex(u => u.Id == newUser.Id) ?? -1;
+                        if (index != -1) users![index] = newUser;
+                    }
+                    else
+                    {
+                        users?.Add(newUser);
+                    }
+                }
+
                 ToastService.ShowToast(isEditing ? Portuguese.Msg_UserUpdated : Portuguese.Msg_UserCreated, ToastLevel.Success);
                 showModal = false;
-                await LoadUsers();
-                await InvokeAsync(StateHasChanged);
+                StateHasChanged();
             }
             else
             {
@@ -340,8 +353,25 @@
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", Portuguese.ConfirmDeactivate))
         {
-            await Http.DeleteAsync($"api/Users/{id}");
-            await LoadUsers();
+            try 
+            {
+                var response = await Http.DeleteAsync($"api/Users/{id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var user = users?.FirstOrDefault(u => u.Id == id);
+                    if (user != null) users?.Remove(user);
+                    ToastService.ShowToast("Usuário desativado com sucesso", ToastLevel.Success);
+                    StateHasChanged();
+                }
+                else 
+                {
+                    ToastService.ShowToast("Erro ao desativar usuário", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            }
         }
     }
 

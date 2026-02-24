@@ -1,6 +1,7 @@
 @page "/equipes"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
@@ -17,8 +18,14 @@
     @if (teams == null)
     {
         <div class="d-flex justify-content-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
         </div>
+    }
+    else if (teams.Count == 0)
+    {
+        <div class="alert alert-info">Nenhuma equipe encontrada.</div>
     }
     else
     {
@@ -28,7 +35,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Nome</th>
+                                <th>Nome da Equipe</th>
                                 <th>Status</th>
                                 <th class="text-end">Ações</th>
                             </tr>
@@ -44,11 +51,8 @@
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditTeam(team.Id)">Editar</button>
-                                        <button class="btn btn-sm @(team.IsActive ? "btn-outline-danger" : "btn-outline-success")" 
-                                                @onclick="() => ToggleStatus(team)">
-                                            @(team.IsActive ? "Desativar" : "Ativar")
-                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditTeam(team)">Editar</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteTeam(team)">Excluir</button>
                                     </td>
                                 </tr>
                             }
@@ -60,8 +64,46 @@
     }
 </div>
 
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Editar Equipe" : "Nova Equipe")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <EditForm Model="teamModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nome da Equipe</label>
+                            <InputText class="form-control" @bind-Value="teamModel.Name" placeholder="Ex: Equipe A" />
+                            <ValidationMessage For="@(() => teamModel.Name)" class="text-danger small" />
+                        </div>
+                        <div class="mb-3 form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
+                            <label class="form-check-label" for="activeCheck">Ativo</label>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" @onclick="CloseModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                @(isSaving ? "Salvando..." : "Salvar")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<SewingTeamDto>? teams;
+    private SewingTeamDto teamModel = new();
+    private bool showModal = false;
+    private bool isEditing = false;
+    private bool isSaving = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,48 +114,110 @@
     {
         try 
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams");
-            if (response != null && response.Success) teams = response.Data;
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var response = await Http.GetAsync("api/SewingTeams");
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<List<SewingTeamDto>>>(options);
+                teams = apiResponse?.Data;
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error handling will be improved in Phase 2
+            ToastService.ShowToast($"Erro ao carregar: {ex.Message}", ToastLevel.Error);
         }
     }
 
-    private void ShowCreateModal() { /* Logic for modal */ }
-    private void EditTeam(int id) { /* Logic for editing */ }
-    private bool isSaving = false;
+    private void ShowCreateModal()
+    {
+        teamModel = new SewingTeamDto { IsActive = true };
+        isEditing = false;
+        showModal = true;
+    }
 
-    private async Task ToggleStatus(SewingTeamDto team)
+    private void EditTeam(SewingTeamDto team)
+    {
+        teamModel = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive };
+        isEditing = true;
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private async Task HandleSubmit()
     {
         if (isSaving) return;
         try
         {
             isSaving = true;
-            var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
+            HttpResponseMessage response;
+            if (isEditing)
+                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", teamModel);
+            else
+                response = await Http.PostAsJsonAsync("api/SewingTeams", teamModel);
+
             if (response.IsSuccessStatusCode)
             {
-                await LoadTeams();
-                ToastService.ShowToast("Status da equipe atualizado", ToastLevel.Success);
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (result?.Data != null)
+                {
+                    if (isEditing)
+                    {
+                        var index = teams?.FindIndex(t => t.Id == result.Data.Id) ?? -1;
+                        if (index != -1) teams![index] = result.Data;
+                    }
+                    else
+                    {
+                        teams?.Add(result.Data);
+                    }
+                }
+                showModal = false;
+                ToastService.ShowToast("Equipe salva com sucesso", ToastLevel.Success);
+                StateHasChanged();
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                ToastService.ShowToast($"Falha: {errorContent}", ToastLevel.Error, "Erro de API");
+                var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error);
             }
-        }
-        catch (HttpRequestException)
-        {
-            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro inesperado: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private async Task DeleteTeam(SewingTeamDto team)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Deseja excluir esta equipe ({team.Name})?"))
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    teams?.Remove(team);
+                    ToastService.ShowToast("Equipe excluída", ToastLevel.Success);
+                    StateHasChanged();
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                    ToastService.ShowToast(error?.Message ?? "Conflito ao excluir", ToastLevel.Error);
+                }
+                else
+                {
+                    ToastService.ShowToast("Erro ao excluir equipe", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            }
         }
     }
 }
