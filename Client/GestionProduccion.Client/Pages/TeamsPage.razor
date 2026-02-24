@@ -11,12 +11,21 @@
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="h3 text-dark">Gestão de Equipes</h3>
-        <button class="btn btn-primary" @onclick="ShowCreateModal">
-            <i class="fa-solid fa-plus me-2"></i>Adicionar Equipe
-        </button>
+        <div>
+            @if (!HasEligibleUsers && !loading)
+            {
+                <div class="alert alert-warning py-2 px-3 mb-0 d-inline-block me-3 small">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                    Não é possível criar equipes. Cadastre usuários com cargo Líder ou Operacional primeiro.
+                </div>
+            }
+            <button class="btn btn-primary" @onclick="ShowCreateModal" disabled="@(!HasEligibleUsers)">
+                <i class="fa-solid fa-plus me-2"></i>Adicionar Equipe
+            </button>
+        </div>
     </div>
 
-    @if (teams == null)
+    @if (loading)
     {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -24,7 +33,7 @@
             </div>
         </div>
     }
-    else if (teams.Count == 0)
+    else if (teams == null || teams.Count == 0)
     {
         <div class="alert alert-info">Nenhuma equipe encontrada.</div>
     }
@@ -37,6 +46,7 @@
                         <thead>
                             <tr>
                                 <th>Nome da Equipe</th>
+                                <th>Membros</th>
                                 <th>Status</th>
                                 <th class="text-end">Ações</th>
                             </tr>
@@ -47,13 +57,20 @@
                                 <tr @key="team.Id">
                                     <td>@team.Name</td>
                                     <td>
+                                        <span class="badge bg-info-soft text-info">@team.MemberCount</span>
+                                    </td>
+                                    <td>
                                         <span class="badge @(team.IsActive ? "bg-success" : "bg-danger")">
                                             @(team.IsActive ? "Ativo" : "Inativo")
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditTeam(team)">Editar</button>
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteTeam(team)">Excluir</button>
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => EditTeam(team)" title="Editar">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteTeam(team)" title="Excluir">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -67,29 +84,63 @@
 
 @if (showModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(isEditing ? "Editar Equipe" : "Nova Equipe")</h5>
+                    <h5 class="modal-title fw-bold">@(isEditing ? "Editar Equipe" : "Nova Equipe")</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <EditForm Model="teamModel" OnValidSubmit="HandleSubmit">
+                    @if (!isEditing)
+                    {
+                        <p class="small text-muted mb-4">Selecione pelo menos un membro para criar a equipe.</p>
+                    }
+                    
+                    <EditForm Model="createRequest" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Nome da Equipe</label>
-                            <InputText class="form-control" @bind-Value="teamModel.Name" placeholder="Ex: Equipe A" />
-                            <ValidationMessage For="@(() => teamModel.Name)" class="text-danger small" />
+                        <ValidationSummary class="text-danger small mb-3" />
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Nome da Equipe</label>
+                            <InputText class="form-control form-control-lg" @bind-Value="createRequest.Name" placeholder="Ex: Equipe de Costura A" />
+                            <ValidationMessage For="@(() => createRequest.Name)" class="text-danger small" />
                         </div>
-                        <div class="mb-3 form-check">
-                            <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
-                            <label class="form-check-label" for="activeCheck">Ativo</label>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <button type="button" class="btn btn-light" @onclick="CloseModal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                                @(isSaving ? "Salvando..." : "Salvar")
+
+                        @if (!isEditing)
+                        {
+                            <label class="form-label fw-bold small">Selecionar Membros Iniciais</label>
+                            <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                                @if (eligibleUsers != null)
+                                {
+                                    @foreach (var user in eligibleUsers)
+                                    {
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="user-@user.Id" 
+                                                   checked="@createRequest.InitialUserIds.Contains(user.Id)"
+                                                   @onchange="@(e => OnUserToggled(user.Id, e))" />
+                                            <label class="form-check-label small" for="user-@user.Id">
+                                                @user.FullName <span class="text-muted">(@user.Role)</span>
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            <div class="small text-muted mt-1">@createRequest.InitialUserIds.Count selecionado(s)</div>
+                        }
+                        else
+                        {
+                            <div class="form-check mb-3">
+                                <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
+                                <label class="form-check-label" for="activeCheck">Equipe Ativa</label>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary px-4 shadow-sm" 
+                                    disabled="@(isSaving || (!isEditing && createRequest.InitialUserIds.Count == 0))">
+                                @(isSaving ? "Salvando..." : "Salvar Equipe")
                             </button>
                         </div>
                     </EditForm>
@@ -101,32 +152,51 @@
 
 @code {
     private List<SewingTeamDto>? teams;
+    private List<UserDto>? allUsers;
+    private List<UserDto>? eligibleUsers;
+    private CreateSewingTeamRequest createRequest = new();
     private SewingTeamDto teamModel = new();
     private bool showModal = false;
     private bool isEditing = false;
     private bool isSaving = false;
+    private bool loading = true;
+
+    private bool HasEligibleUsers => eligibleUsers?.Any() == true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTeams();
+        await LoadData();
     }
 
-    private async Task LoadTeams()
+    private async Task LoadData()
     {
+        loading = true;
         try 
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-            teams = response?.Data;
+            var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+
+            await Task.WhenAll(teamsTask, usersTask);
+
+            var teamsResponse = await teamsTask;
+            teams = teamsResponse?.Data;
+
+            allUsers = await usersTask;
+            eligibleUsers = allUsers?.Where(u => u.Role.ToString() == "Leader" || u.Role.ToString() == "Operational").ToList();
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro ao carregar dados: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            loading = false;
         }
     }
 
     private void ShowCreateModal()
     {
-        teamModel = new SewingTeamDto { IsActive = true };
+        createRequest = new CreateSewingTeamRequest();
         isEditing = false;
         showModal = true;
     }
@@ -134,11 +204,25 @@
     private void EditTeam(SewingTeamDto team)
     {
         teamModel = new SewingTeamDto { Id = team.Id, Name = team.Name, IsActive = team.IsActive };
+        createRequest = new CreateSewingTeamRequest { Name = team.Name };
         isEditing = true;
         showModal = true;
     }
 
     private void CloseModal() => showModal = false;
+
+    private void OnUserToggled(int userId, ChangeEventArgs e)
+    {
+        if ((bool)(e.Value ?? false))
+        {
+            if (!createRequest.InitialUserIds.Contains(userId))
+                createRequest.InitialUserIds.Add(userId);
+        }
+        else
+        {
+            createRequest.InitialUserIds.Remove(userId);
+        }
+    }
 
     private async Task HandleSubmit()
     {
@@ -147,34 +231,31 @@
         {
             isSaving = true;
             HttpResponseMessage response;
+            
             if (isEditing)
-                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", teamModel);
+            {
+                var updateDto = new SewingTeamDto { Id = teamModel.Id, Name = createRequest.Name, IsActive = teamModel.IsActive };
+                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", updateDto);
+            }
             else
-                response = await Http.PostAsJsonAsync("api/SewingTeams", teamModel);
+            {
+                response = await Http.PostAsJsonAsync("api/SewingTeams", createRequest);
+            }
 
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>(JsonOptions);
                 if (result?.Data != null)
                 {
-                    if (isEditing)
-                    {
-                        var index = teams?.FindIndex(t => t.Id == result.Data.Id) ?? -1;
-                        if (index != -1) teams![index] = result.Data;
-                    }
-                    else
-                    {
-                        teams?.Add(result.Data);
-                    }
+                    await LoadData(); // Full reload to refresh member counts and eligible users
                 }
                 showModal = false;
                 ToastService.ShowToast("Equipe salva com sucesso", ToastLevel.Success);
-                StateHasChanged();
             }
             else
             {
                 var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error);
+                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error, "Erro de Negócio");
             }
         }
         catch (Exception ex)
@@ -189,21 +270,22 @@
 
     private async Task DeleteTeam(SewingTeamDto team)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Deseja excluir esta equipe ({team.Name})?"))
+        var msg = "ATENÇÃO: Ao excluir esta equipe, todos os seus membros serão transferidos automaticamente para outras equipes ativas baseando-se na carga de trabalho. Deseja continuar?";
+        
+        if (await JSRuntime.InvokeAsync<bool>("confirm", msg))
         {
             try
             {
                 var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
                 if (response.IsSuccessStatusCode)
                 {
-                    teams?.Remove(team);
-                    ToastService.ShowToast("Equipe excluída", ToastLevel.Success);
-                    StateHasChanged();
+                    await LoadData();
+                    ToastService.ShowToast("Equipe excluída e membros reatribuídos", ToastLevel.Success);
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                    ToastService.ShowToast(error?.Message ?? "Conflito ao excluir", ToastLevel.Error);
+                    ToastService.ShowToast(error?.Message ?? "Erro: Não há otras equipes para receber os funcionários.", ToastLevel.Error, "Bloqueio de Reatribuição");
                 }
                 else
                 {
