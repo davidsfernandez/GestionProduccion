@@ -190,13 +190,23 @@ public class SewingTeamService : ISewingTeamService
             }
         }
 
-        // 5. Finalize deletion (Fase 2: 95-96)
-        // Check if there are orders linked to this team even if no users
-        // Requirement 98-99 of previous prompt mentioned checking historical orders
-        // Here I will follow 95: mark as inactive or delete.
-        // Given historical integrity, I'll set IsActive = false or delete if no orders.
+        // 5. Finalize deletion (Soft Delete if orders exist, else Physical Delete)
+        var queryableOrders = await _orderRepository.GetQueryableAsync();
+        bool hasOrders = await queryableOrders.AnyAsync(o => o.SewingTeamId == id);
 
-        await _teamRepository.DeleteAsync(teamToDelete);
+        if (hasOrders)
+        {
+            // If team has historical or active orders, we cannot physically delete it due to FK RESTRICT.
+            // We perform a Soft Delete by marking it inactive.
+            teamToDelete.IsActive = false;
+            await _teamRepository.UpdateAsync(teamToDelete);
+        }
+        else
+        {
+            // No orders linked, we can safely delete the record.
+            await _teamRepository.DeleteAsync(teamToDelete);
+        }
+
         await _teamRepository.SaveChangesAsync();
         await _userRepository.SaveChangesAsync();
 

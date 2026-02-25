@@ -23,7 +23,7 @@
         </button>
     </div>
 
-    @if (orders == null || adminTasks == null)
+    @if (isLoading)
     {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -40,14 +40,14 @@
                         <button class="nav-link py-3 @(activeTab == "production" ? "active fw-bold" : "")" 
                                 @onclick='() => activeTab = "production"'>
                             <i class="fa-solid fa-shirt me-2"></i> Lotes de Costura
-                            @if(orders.Any()) { <span class="badge bg-primary ms-2">@orders.Count</span> }
+                            <span class="badge bg-primary ms-2">@orders.Count</span>
                         </button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link py-3 @(activeTab == "admin" ? "active fw-bold" : "")" 
                                 @onclick='() => activeTab = "admin"'>
                             <i class="fa-solid fa-clipboard-list me-2"></i> Tarefas Administrativas
-                            @if(adminTasks.Any()) { <span class="badge bg-warning ms-2 text-dark">@adminTasks.Count</span> }
+                            <span class="badge bg-warning ms-2 text-dark">@adminTasks.Count</span>
                         </button>
                     </li>
                 </ul>
@@ -203,9 +203,10 @@
 </div>
 
 @code {
-    private List<ProductionOrderDto>? orders;
-    private List<TaskDto>? adminTasks;
+    private List<ProductionOrderDto> orders = new();
+    private List<TaskDto> adminTasks = new();
     private bool isProcessing = false;
+    private bool isLoading = true;
     private int processingId = 0;
     private string activeTab = "production";
 
@@ -218,34 +219,29 @@
     {
         try
         {
+            isLoading = true;
+            StateHasChanged();
+
             var ordersTask = Http.GetFromJsonAsync<ApiResponse<List<ProductionOrderDto>>>("api/Tasks/my", JsonOptions);
-            // The endpoint for admin tasks needs to be implemented or differentiated
-            // We'll assume api/Tasks/my returns ProductionOrderDto now based on previous refactor
-            // But we need a way to get admin tasks.
-            // Let's assume we reverted api/Tasks/my to return TaskDto? No, we changed it to ProductionOrderDto.
-            // We need a NEW endpoint for Admin Tasks or adjust the existing one.
-            // Given the prompt, I should have two lists.
-            // I will assume I need to fetch admin tasks from a specific endpoint. 
-            // Let's try 'api/Tasks/admin-assigned' (need to ensure backend supports this)
-            // Wait, I updated TasksController to return ProductionOrderDto on 'my'. 
-            // I need to add 'GetMyAdminTasks' to TasksController.
-            
-            // For now, to make it compile and work with current backend, I will assume I need to add an endpoint.
-            // I will act as if I added 'api/Tasks/my-admin' which returns List<TaskDto>.
             var adminTasksTask = Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks/my-admin", JsonOptions);
 
             await Task.WhenAll(ordersTask, adminTasksTask);
 
             var ordersResp = await ordersTask;
-            if (ordersResp?.Success == true) orders = ordersResp.Data;
+            orders = ordersResp?.Data ?? new();
 
             var adminResp = await adminTasksTask;
-            if (adminResp?.Success == true) adminTasks = adminResp.Data;
+            adminTasks = adminResp?.Data ?? new();
         }
         catch (Exception ex)
         {
-            // Fallback or error handling
-            Console.WriteLine(ex.Message);
+            Console.WriteLine($"Error loading tasks: {ex.Message}");
+            ToastService.ShowToast("Erro ao carregar suas tarefas.", ToastLevel.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -264,7 +260,7 @@
                 ToastService.ShowToast("Ordem atualizada!", ToastLevel.Success);
                 await LoadAllTasks();
             }
-            else ToastService.ShowToast("Erro ao atualizar.", ToastLevel.Error);
+            else ToastService.ShowToast("Erro al actualizar.", ToastLevel.Error);
         }
         catch (Exception ex)
         {
