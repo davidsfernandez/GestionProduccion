@@ -36,7 +36,7 @@ public class OperationalTaskService : ITaskService
     {
         return await _context.OperationalTasks
             .AsNoTracking()
-            .Where(t => t.AssignedUserId == userId)
+            .Where(t => t.AssignedUserId == userId && t.Status != OpTaskStatus.Completed)
             .OrderBy(t => t.Deadline)
             .Select(t => MapToDto(t))
             .ToListAsync();
@@ -61,6 +61,11 @@ public class OperationalTaskService : ITaskService
             if (status == OpTaskStatus.Completed) task.CompletionDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task CompleteTaskAsync(int taskId)
+    {
+        await UpdateTaskStatusAsync(taskId, OpTaskStatus.Completed);
     }
 
     public async Task<List<RankingEntryDto>> GetPerformanceRankingAsync(CancellationToken cancellationToken = default)

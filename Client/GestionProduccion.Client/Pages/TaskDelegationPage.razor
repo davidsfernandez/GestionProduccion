@@ -1,0 +1,190 @@
+@page "/delegar-tarefas"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@inject HttpClient Http
+@inject ToastService ToastService
+@inject JsonSerializerOptions JsonOptions
+
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="h3 text-dark mb-0">Delegar Tarefas Administrativas</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-5 mb-4">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="card-title fw-bold mb-0">Nova Tarefa</h5>
+                </div>
+                <div class="card-body p-4">
+                    <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Título da Tarefa</label>
+                            <InputText class="form-control" @bind-Value="createModel.Title" placeholder="Ex: Comprar linhas" />
+                            <ValidationMessage For="@(() => createModel.Title)" class="text-danger small" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Descrição</label>
+                            <InputTextArea class="form-control" @bind-Value="createModel.Description" rows="3" placeholder="Detalhes da tarefa..." />
+                            <ValidationMessage For="@(() => createModel.Description)" class="text-danger small" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Responsável</label>
+                            <InputSelect class="form-select" @bind-Value="createModel.AssignedUserId">
+                                <option value="0">Selecione um usuário...</option>
+                                @if (users != null)
+                                {
+                                    @foreach (var user in users)
+                                    {
+                                        <option value="@user.Id">@user.FullName (@user.Role)</option>
+                                    }
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createModel.AssignedUserId)" class="text-danger small" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">Prazo Limite</label>
+                            <InputDate class="form-control" @bind-Value="createModel.Deadline" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm" disabled="@isSubmitting">
+                            @if (isSubmitting) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            Delegar Tarefa
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="card-title fw-bold mb-0">Tarefas Delegadas Recentes</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Tarefa</th>
+                                    <th>Responsável</th>
+                                    <th>Prazo</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (tasks != null)
+                                {
+                                    @foreach (var task in tasks)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 fw-bold">@task.Title</td>
+                                            <td>@task.AssignedUserName</td>
+                                            <td>@(task.Deadline?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                            <td>
+                                                <span class="badge @GetStatusClass(task.Status)">@TranslateStatus(task.Status)</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">Carregando...</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateTaskDto createModel = new() { Deadline = DateTime.Now.AddDays(1) };
+    private List<UserDto>? users;
+    private List<TaskDto>? tasks;
+    private bool isSubmitting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var tasksTask = Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks", JsonOptions);
+
+            await Task.WhenAll(usersTask, tasksTask);
+
+            users = await usersTask;
+            var tasksResp = await tasksTask;
+            if (tasksResp?.Success == true) tasks = tasksResp.Data;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast("Erro ao carregar dados.", ToastLevel.Error);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (createModel.AssignedUserId == 0)
+        {
+            ToastService.ShowToast("Selecione um responsável.", ToastLevel.Warning);
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Tasks", createModel, JsonOptions);
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Tarefa delegada com sucesso!", ToastLevel.Success);
+                createModel = new CreateTaskDto { Deadline = DateTime.Now.AddDays(1) };
+                await LoadData(); // Refresh list
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao criar tarefa.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Pending" => "bg-warning-soft text-warning",
+        "InProgress" => "bg-primary-soft text-primary",
+        "Completed" => "bg-success-soft text-success",
+        _ => "bg-secondary-soft text-secondary"
+    };
+
+    private string TranslateStatus(string status) => status switch
+    {
+        "Pending" => "Pendente",
+        "InProgress" => "Em Andamento",
+        "Completed" => "Concluída",
+        _ => status
+    };
+}

@@ -36,6 +36,14 @@ public class TasksController : ControllerBase
         return Ok(new ApiResponse<List<ProductionOrderDto>> { Success = true, Data = orders });
     }
 
+    [HttpGet("my-admin")]
+    public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetMyAdminTasks()
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var tasks = await _taskService.GetUserTasksAsync(userId);
+        return Ok(new ApiResponse<List<TaskDto>> { Success = true, Data = tasks });
+    }
+
     [HttpGet]
     [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetAll()
@@ -57,6 +65,13 @@ public class TasksController : ControllerBase
     {
         await _taskService.UpdateTaskStatusAsync(id, status);
         return Ok(new ApiResponse<string> { Success = true, Message = "Status updated" });
+    }
+
+    [HttpPatch("{id}/complete")]
+    public async Task<ActionResult<ApiResponse<string>>> Complete(int id)
+    {
+        await _taskService.CompleteTaskAsync(id);
+        return Ok(new ApiResponse<string> { Success = true, Message = "Task completed" });
     }
 
     [HttpGet("ranking")]

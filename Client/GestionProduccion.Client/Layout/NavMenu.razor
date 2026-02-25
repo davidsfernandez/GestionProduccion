@@ -71,6 +71,11 @@
                         <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
                     </NavLink>
                 </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="delegar-tarefas" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-list-check"></i> <span class="align-middle">Delegar Tarefas</span>
+                    </NavLink>
+                </li>
             </AuthorizeView>
 
             <AuthorizeView Roles="Leader,Operational">

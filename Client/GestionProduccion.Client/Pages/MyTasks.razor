@@ -17,13 +17,13 @@
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark mb-0">Minhas Tarefas (Equipe)</h3>
-        <button class="btn btn-light shadow-sm" @onclick="LoadTasks">
+        <h3 class="h3 text-dark mb-0">Minhas Tarefas</h3>
+        <button class="btn btn-light shadow-sm" @onclick="LoadAllTasks">
             <i class="fa-solid fa-arrows-rotate me-2"></i> Atualizar
         </button>
     </div>
 
-    @if (orders == null)
+    @if (orders == null || adminTasks == null)
     {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -31,134 +31,227 @@
             </div>
         </div>
     }
-    else if (!orders.Any())
-    {
-        <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body text-center py-5">
-                <div class="mb-4">
-                    <i class="fa-solid fa-clipboard-check text-success opacity-25" style="font-size: 5rem;"></i>
-                </div>
-                <h4 class="fw-bold">Ótimo trabalho!</h4>
-                <p class="text-muted mx-auto" style="max-width: 400px;">
-                    Você não tem ordens de produção pendentes no momento para sua equipe. Aproveite para organizar seu espaço de trabalho!
-                </p>
-            </div>
-        </div>
-    }
     else
     {
-        <div class="row">
-            @foreach (var order in orders)
-            {
-                <div class="col-12 col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-sm h-100 border-0 rounded-4 overflow-hidden animate-fade-in-up">
-                        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <span class="badge bg-primary-soft text-primary mb-2">@order.LotCode</span>
-                                    @if (order.IsTeamTask)
-                                    {
-                                        <span class="badge bg-info-soft text-info mb-2 ms-1">Tarefa da Equipe</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-success-soft text-success mb-2 ms-1">Tarefa Individual</span>
-                                    }
-                                    <h5 class="fw-bold text-dark mb-1">@order.ProductName</h5>
-                                </div>
-                                @if (order.EstimatedCompletionAt < DateTime.Now && order.CurrentStatus != "Completed")
-                                {
-                                    <span class="badge bg-danger">Atrasado</span>
-                                }
-                            </div>
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-0 p-0">
+                <ul class="nav nav-tabs nav-fill" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link py-3 @(activeTab == "production" ? "active fw-bold" : "")" 
+                                @onclick='() => activeTab = "production"'>
+                            <i class="fa-solid fa-shirt me-2"></i> Lotes de Costura
+                            @if(orders.Any()) { <span class="badge bg-primary ms-2">@orders.Count</span> }
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-3 @(activeTab == "admin" ? "active fw-bold" : "")" 
+                                @onclick='() => activeTab = "admin"'>
+                            <i class="fa-solid fa-clipboard-list me-2"></i> Tarefas Administrativas
+                            @if(adminTasks.Any()) { <span class="badge bg-warning ms-2 text-dark">@adminTasks.Count</span> }
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body p-4 bg-light">
+                
+                @if (activeTab == "production")
+                {
+                    @if (!orders.Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="fa-solid fa-check-circle text-success opacity-25 fa-4x mb-3"></i>
+                            <h5 class="text-muted">Sem lotes pendentes!</h5>
                         </div>
-                        <div class="card-body px-4 py-3">
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <div class="bg-light p-2 rounded-3">
-                                        <small class="text-muted d-block uppercase fs-xs" style="font-size: 0.65rem;">TAMANHO</small>
-                                        <span class="fw-bold">@order.Size</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="bg-light p-2 rounded-3">
-                                        <small class="text-muted d-block uppercase fs-xs" style="font-size: 0.65rem;">QUANTIDADE</small>
-                                        <span class="fw-bold">@order.Quantity</span>
-                                    </div>
-                                </div>
-                            </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var order in orders)
+                            {
+                                <div class="col-12 col-md-6 col-lg-4 mb-4">
+                                    <div class="card shadow-sm h-100 border-0 rounded-4 overflow-hidden animate-fade-in-up">
+                                        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <span class="badge bg-primary-soft text-primary mb-2">@order.LotCode</span>
+                                                    @if (order.IsTeamTask)
+                                                    {
+                                                        <span class="badge bg-info-soft text-info mb-2 ms-1">Equipe</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-success-soft text-success mb-2 ms-1">Individual</span>
+                                                    }
+                                                    <h5 class="fw-bold text-dark mb-1">@order.ProductName</h5>
+                                                </div>
+                                                @if (order.EstimatedCompletionAt < DateTime.Now && order.CurrentStatus != "Completed")
+                                                {
+                                                    <span class="badge bg-danger pulse-red">Atrasado</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="card-body px-4 py-3">
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-6">
+                                                    <div class="bg-light p-2 rounded-3">
+                                                        <small class="text-muted d-block uppercase fs-xs">TAMANHO</small>
+                                                        <span class="fw-bold">@order.Size</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="bg-light p-2 rounded-3">
+                                                        <small class="text-muted d-block uppercase fs-xs">QUANTIDADE</small>
+                                                        <span class="fw-bold">@order.Quantity</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small text-muted">Estágio Atual:</span>
-                                    <span class="badge bg-info-subtle text-info">@TranslateStage(order.CurrentStage)</span>
+                                            <div class="mb-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="small text-muted">Estágio Atual:</span>
+                                                    <span class="badge bg-info-subtle text-info">@TranslateStage(order.CurrentStage)</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="small text-muted">Entrega:</span>
+                                                    <span class="small fw-bold @(order.EstimatedCompletionAt < DateTime.Now ? "text-danger" : "text-dark")">
+                                                        @order.EstimatedCompletionAt.ToString("dd/MM HH:mm")
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-light border-0 p-3">
+                                            @if (order.CurrentStatus == "Pending")
+                                            {
+                                                <button class="btn btn-primary w-100 shadow-sm py-2" 
+                                                        @onclick='() => UpdateStatus(order.Id, ProductionStatus.InProduction)'
+                                                        disabled="@isProcessing">
+                                                    @if(processingId == order.Id) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                                    <i class="fa-solid fa-play me-2"></i> Iniciar Produção
+                                                </button>
+                                            }
+                                            else if (order.CurrentStatus == "InProduction")
+                                            {
+                                                <button class="btn btn-success w-100 shadow-sm py-2" 
+                                                        @onclick='() => UpdateStatus(order.Id, ProductionStatus.Completed)'
+                                                        disabled="@isProcessing">
+                                                    @if(processingId == order.Id) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                                                    <i class="fa-solid fa-check-double me-2"></i> Finalizar Ordem
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="small text-muted">Entrega:</span>
-                                    <span class="small fw-bold @(order.EstimatedCompletionAt < DateTime.Now ? "text-danger" : "text-dark")">
-                                        @order.EstimatedCompletionAt.ToString("dd/MM HH:mm")
-                                    </span>
+                            }
+                        </div>
+                    }
+                }
+                
+                @if (activeTab == "admin")
+                {
+                    @if (!adminTasks.Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="fa-solid fa-clipboard-check text-warning opacity-25 fa-4x mb-3"></i>
+                            <h5 class="text-muted">Nenhuma tarefa administrativa pendente!</h5>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var task in adminTasks)
+                            {
+                                <div class="col-12 col-md-6 col-lg-4 mb-4">
+                                    <div class="card shadow-sm h-100 border-start border-4 border-warning">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <h5 class="card-title fw-bold mb-0">@task.Title</h5>
+                                                @if (task.Deadline < DateTime.Now)
+                                                {
+                                                    <span class="badge bg-danger">Atrasado</span>
+                                                }
+                                            </div>
+                                            <p class="card-text text-muted small mb-3">@task.Description</p>
+                                            
+                                            <div class="mb-3">
+                                                <div class="d-flex justify-content-between small mb-1">
+                                                    <span>Prazo</span>
+                                                    <span class="@(task.Deadline < DateTime.Now ? "text-danger" : "")">
+                                                        @(task.Deadline?.ToString("dd/MM HH:mm") ?? "-")
+                                                    </span>
+                                                </div>
+                                                <div class="progress" style="height: 6px;">
+                                                    <div class="progress-bar @(task.ProgressPercentage > 90 ? "bg-danger" : "bg-warning")" 
+                                                         role="progressbar" 
+                                                         style="width: @task.ProgressPercentage.ToString("F0")%"></div>
+                                                </div>
+                                            </div>
+
+                                            <button class="btn btn-outline-success w-100 btn-sm" @onclick="() => CompleteAdminTask(task.Id)">
+                                                <i class="fa-solid fa-check me-2"></i> Marcar Concluída
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-light border-0 p-3">
-                            @if (order.CurrentStatus == "Pending")
-                            {
-                                <button class="btn btn-primary w-100 shadow-sm py-2" 
-                                        @onclick='() => UpdateStatus(order.Id, ProductionStatus.InProduction)'
-                                        disabled="@isProcessing">
-                                    @if(processingId == order.Id) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                                    <i class="fa-solid fa-play me-2"></i> Iniciar Produção
-                                </button>
-                            }
-                            else if (order.CurrentStatus == "InProduction")
-                            {
-                                <button class="btn btn-success w-100 shadow-sm py-2" 
-                                        @onclick='() => UpdateStatus(order.Id, ProductionStatus.Completed)'
-                                        disabled="@isProcessing">
-                                    @if(processingId == order.Id) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                                    <i class="fa-solid fa-check-double me-2"></i> Finalizar Ordem
-                                </button>
                             }
                         </div>
-                    </div>
-                </div>
-            }
+                    }
+                }
+
+            </div>
         </div>
     }
 </div>
 
 @code {
     private List<ProductionOrderDto>? orders;
+    private List<TaskDto>? adminTasks;
     private bool isProcessing = false;
     private int processingId = 0;
+    private string activeTab = "production";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTasks();
+        await LoadAllTasks();
     }
 
-    private async Task LoadTasks()
+    private async Task LoadAllTasks()
     {
-        orders = null;
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<ProductionOrderDto>>>("api/Tasks/my", JsonOptions);
-            if (response != null && response.Success)
-            {
-                orders = response.Data;
-            }
+            var ordersTask = Http.GetFromJsonAsync<ApiResponse<List<ProductionOrderDto>>>("api/Tasks/my", JsonOptions);
+            // The endpoint for admin tasks needs to be implemented or differentiated
+            // We'll assume api/Tasks/my returns ProductionOrderDto now based on previous refactor
+            // But we need a way to get admin tasks.
+            // Let's assume we reverted api/Tasks/my to return TaskDto? No, we changed it to ProductionOrderDto.
+            // We need a NEW endpoint for Admin Tasks or adjust the existing one.
+            // Given the prompt, I should have two lists.
+            // I will assume I need to fetch admin tasks from a specific endpoint. 
+            // Let's try 'api/Tasks/admin-assigned' (need to ensure backend supports this)
+            // Wait, I updated TasksController to return ProductionOrderDto on 'my'. 
+            // I need to add 'GetMyAdminTasks' to TasksController.
+            
+            // For now, to make it compile and work with current backend, I will assume I need to add an endpoint.
+            // I will act as if I added 'api/Tasks/my-admin' which returns List<TaskDto>.
+            var adminTasksTask = Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks/my-admin", JsonOptions);
+
+            await Task.WhenAll(ordersTask, adminTasksTask);
+
+            var ordersResp = await ordersTask;
+            if (ordersResp?.Success == true) orders = ordersResp.Data;
+
+            var adminResp = await adminTasksTask;
+            if (adminResp?.Success == true) adminTasks = adminResp.Data;
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar tarefas: {ex.Message}", ToastLevel.Error);
+            // Fallback or error handling
+            Console.WriteLine(ex.Message);
         }
     }
 
     private async Task UpdateStatus(int orderId, ProductionStatus status)
     {
         if (isProcessing) return;
-        
         isProcessing = true;
         processingId = orderId;
         StateHasChanged();
@@ -168,23 +261,37 @@
             var success = await LifecycleClient.UpdateStatusAsync(orderId, status, "Atualizado via Minhas Tarefas");
             if (success)
             {
-                ToastService.ShowToast("Status da ordem atualizado com sucesso!", ToastLevel.Success);
-                await LoadTasks();
+                ToastService.ShowToast("Ordem atualizada!", ToastLevel.Success);
+                await LoadAllTasks();
             }
-            else
-            {
-                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
-            }
+            else ToastService.ShowToast("Erro ao atualizar.", ToastLevel.Error);
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
             isProcessing = false;
             processingId = 0;
             StateHasChanged();
+        }
+    }
+
+    private async Task CompleteAdminTask(int taskId)
+    {
+        try
+        {
+            var response = await Http.PatchAsync($"api/Tasks/{taskId}/complete", null);
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Tarefa concluída!", ToastLevel.Success);
+                await LoadAllTasks();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
         }
     }
 
