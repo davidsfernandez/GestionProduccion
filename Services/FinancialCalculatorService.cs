@@ -41,13 +41,13 @@ public class FinancialCalculatorService : IFinancialCalculatorService
         decimal hourlyCost = config?.OperationalHourlyCost ?? 0m;
 
         // 4. Step 3 of Algorithm: Labor Cost calculation
-        decimal totalLaborCost = (decimal)totalHours * hourlyCost;
+        decimal totalLaborCost = Math.Round((decimal)totalHours * hourlyCost, 2);
         order.TotalCost = totalLaborCost;
 
         // 5. Step 4 of Algorithm: Unit / Real Cost
         // Prevent division by zero
         int quantity = order.Quantity > 0 ? order.Quantity : 1;
-        decimal realCost = totalLaborCost / quantity;
+        decimal realCost = Math.Round(totalLaborCost / quantity, 2);
         
         order.AverageCostPerPiece = realCost;
 

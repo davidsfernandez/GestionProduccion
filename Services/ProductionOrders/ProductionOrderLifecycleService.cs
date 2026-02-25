@@ -19,6 +19,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     private readonly IProductRepository _productRepository;
     private readonly IHubContext<ProductionHub> _hubContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IProductService _productService;
 
     private readonly IFinancialCalculatorService _financialCalculator;
 
@@ -28,7 +29,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         IProductRepository productRepository,
         IHubContext<ProductionHub> hubContext,
         IHttpContextAccessor httpContextAccessor,
-        IFinancialCalculatorService financialCalculator)
+        IFinancialCalculatorService financialCalculator,
+        IProductService productService)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
@@ -36,6 +38,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         _hubContext = hubContext;
         _httpContextAccessor = httpContextAccessor;
         _financialCalculator = financialCalculator;
+        _productService = productService;
     }
 
     private int GetCurrentUserId()
@@ -104,7 +107,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
             await _financialCalculator.CalculateFinalOrderCostAsync(order);
-            await RecalculateProductAverageTimeAsync(order.ProductId, order.CreatedAt, DateTime.UtcNow);
+            await _productService.RecalculateAverageTimeAsync(order.ProductId, ct);
         }
 
         await _orderRepository.SaveChangesAsync();
@@ -206,36 +209,5 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             Note = note
         };
         await _orderRepository.AddHistoryAsync(history);
-    }
-
-    private async Task RecalculateProductAverageTimeAsync(int productId, DateTime startDate, DateTime endDate)
-    {
-        var durationMinutes = (endDate - startDate).TotalMinutes;
-        if (durationMinutes < 0) durationMinutes = 0;
-
-        var product = await _productRepository.GetByIdAsync(productId);
-        if (product == null) return;
-
-        var query = await _orderRepository.GetQueryableAsync();
-        var completedOrders = await query
-            .AsNoTracking()
-            .Where(o => o.ProductId == productId && o.CurrentStatus == ProductionStatus.Completed)
-            .Select(o => new { o.CreatedAt, o.UpdatedAt })
-            .ToListAsync();
-
-        double totalMinutes = durationMinutes;
-        int count = 1;
-
-        foreach (var order in completedOrders)
-        {
-            var d = (order.UpdatedAt - order.CreatedAt).TotalMinutes;
-            if (d > 0) { totalMinutes += d; count++; }
-        }
-
-        if (count > 0)
-        {
-            product.AverageProductionTimeMinutes = totalMinutes / count;
-            await _productRepository.UpdateAsync(product);
-        }
     }
 }

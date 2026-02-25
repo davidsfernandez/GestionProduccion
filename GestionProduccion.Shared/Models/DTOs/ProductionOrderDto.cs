@@ -23,6 +23,7 @@ public class ProductionOrderDto
     public bool IsTeamTask { get; set; }
     public decimal TotalCost { get; set; }
     public decimal AverageCostPerPiece { get; set; }
+    public decimal ProfitMargin { get; set; }
     public ProductDto? Product { get; set; }
     public List<ProductionHistoryDto> History { get; set; } = new();
 }

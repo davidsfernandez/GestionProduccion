@@ -60,7 +60,7 @@ public class ReportService : IReportService
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
                 // Standard fonts for Linux compatibility
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Helvetica));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -204,7 +204,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Helvetica));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
 
                 // HEADER
                 page.Header().Row(row =>

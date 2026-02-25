@@ -202,35 +202,4 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             } : null
         };
     }
-
-    private async Task RecalculateProductAverageTimeAsync(int productId, DateTime startDate, DateTime endDate)
-    {
-        var durationMinutes = (endDate - startDate).TotalMinutes;
-        if (durationMinutes < 0) durationMinutes = 0;
-
-        var product = await _productRepository.GetByIdAsync(productId);
-        if (product == null) return;
-
-        var query = await _orderRepository.GetQueryableAsync();
-        var completedOrders = await query
-            .AsNoTracking()
-            .Where(o => o.ProductId == productId && o.CurrentStatus == ProductionStatus.Completed)
-            .Select(o => new { o.CreatedAt, o.UpdatedAt })
-            .ToListAsync();
-
-        double totalMinutes = durationMinutes;
-        int count = 1;
-
-        foreach (var order in completedOrders)
-        {
-            var d = (order.UpdatedAt - order.CreatedAt).TotalMinutes;
-            if (d > 0) { totalMinutes += d; count++; }
-        }
-
-        if (count > 0)
-        {
-            product.AverageProductionTimeMinutes = totalMinutes / count;
-            await _productRepository.UpdateAsync(product);
-        }
-    }
 }

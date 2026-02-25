@@ -27,6 +27,7 @@ public class ProductionOrderServiceTests : IDisposable
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<IProductRepository> _mockProductRepo;
     private readonly Mock<IFinancialCalculatorService> _mockFinancialCalc;
+    private readonly Mock<IProductService> _mockProductService;
 
     private readonly ProductionOrderQueryService _queryService;
     private readonly ProductionOrderMutationService _mutationService;
@@ -43,6 +44,7 @@ public class ProductionOrderServiceTests : IDisposable
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockProductRepo = new Mock<IProductRepository>();
         _mockFinancialCalc = new Mock<IFinancialCalculatorService>();
+        _mockProductService = new Mock<IProductService>();
 
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
@@ -76,7 +78,8 @@ public class ProductionOrderServiceTests : IDisposable
             _mockProductRepo.Object,
             _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
-            _mockFinancialCalc.Object);
+            _mockFinancialCalc.Object,
+            _mockProductService.Object);
     }
 
     public void Dispose()

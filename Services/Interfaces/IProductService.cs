@@ -10,4 +10,5 @@ public interface IProductService
     Task<Product> CreateProductAsync(Product product, CancellationToken ct = default);
     Task<Product> UpdateProductAsync(Product product, CancellationToken ct = default);
     Task DeleteProductAsync(int id, CancellationToken ct = default);
+    Task RecalculateAverageTimeAsync(int productId, CancellationToken ct = default);
 }
