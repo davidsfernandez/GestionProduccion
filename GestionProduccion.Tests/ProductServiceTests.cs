@@ -22,10 +22,10 @@ public class ProductServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        
+
         _productRepo = new ProductRepository(_context);
         _orderRepo = new ProductionOrderRepository(_context);
-        
+
         _service = new ProductService(_productRepo, _orderRepo);
     }
 

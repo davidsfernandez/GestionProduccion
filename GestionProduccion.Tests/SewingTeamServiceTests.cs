@@ -25,11 +25,11 @@ public class SewingTeamServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        
+
         _teamRepo = new SewingTeamRepository(_context);
         _userRepo = new UserRepository(_context);
         _orderRepo = new ProductionOrderRepository(_context);
-        
+
         _service = new SewingTeamService(_teamRepo, _userRepo, _orderRepo);
     }
 
@@ -52,10 +52,10 @@ public class SewingTeamServiceTests : IDisposable
         _context.Users.AddRange(user1, user2);
         await _context.SaveChangesAsync();
 
-        var updateDto = new SewingTeamDto 
-        { 
-            Id = team.Id, 
-            Name = "Team Alpha Updated", 
+        var updateDto = new SewingTeamDto
+        {
+            Id = team.Id,
+            Name = "Team Alpha Updated",
             IsActive = true,
             SelectedUserIds = new List<int> { 1 } // Only keep user 1
         };
@@ -66,7 +66,7 @@ public class SewingTeamServiceTests : IDisposable
         // Assert
         var dbUser2 = await _context.Users.FindAsync(2);
         dbUser2!.SewingTeamId.Should().BeNull();
-        
+
         var dbUser1 = await _context.Users.FindAsync(1);
         dbUser1!.SewingTeamId.Should().Be(team.Id);
     }
@@ -84,12 +84,12 @@ public class SewingTeamServiceTests : IDisposable
         _context.Users.AddRange(user1, user2);
         await _context.SaveChangesAsync();
 
-        var updateDto = new SewingTeamDto 
-        { 
-            Id = team.Id, 
-            Name = "Team Beta", 
+        var updateDto = new SewingTeamDto
+        {
+            Id = team.Id,
+            Name = "Team Beta",
             IsActive = true,
-            SelectedUserIds = new List<int> { 1, 2 } 
+            SelectedUserIds = new List<int> { 1, 2 }
         };
 
         // Act
@@ -106,9 +106,9 @@ public class SewingTeamServiceTests : IDisposable
     public async Task CreateTeamAsync_ShouldThrowException_WhenNoMembersProvided()
     {
         // Arrange
-        var request = new CreateSewingTeamRequest 
-        { 
-            Name = "Empty Team", 
+        var request = new CreateSewingTeamRequest
+        {
+            Name = "Empty Team",
             InitialUserIds = new List<int>() // Empty
         };
 
@@ -127,10 +127,10 @@ public class SewingTeamServiceTests : IDisposable
         var teamA = new SewingTeam { Id = 1, Name = "Team A", IsActive = true };
         var teamB = new SewingTeam { Id = 2, Name = "Team B", IsActive = true };
         _context.SewingTeams.AddRange(teamA, teamB);
-        
+
         var userA = new User { Id = 1, FullName = "User A", Email = "a@test.com", Role = UserRole.Operational, SewingTeamId = 1 };
         _context.Users.Add(userA);
-        
+
         await _context.SaveChangesAsync();
 
         // Act

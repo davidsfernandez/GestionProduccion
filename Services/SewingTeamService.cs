@@ -106,7 +106,7 @@ public class SewingTeamService : ISewingTeamService
 
         // Synchronize Members
         var currentMemberIds = team.Members.Select(m => m.Id).ToList();
-        
+
         // 1. Members to remove (Existing in DB but NOT in SelectedUserIds)
         var toRemoveIds = currentMemberIds.Except(dto.SelectedUserIds).ToList();
         foreach (var userId in toRemoveIds)
@@ -191,8 +191,8 @@ public class SewingTeamService : ISewingTeamService
         }
 
         // 5. Finalize deletion (Soft Delete if orders exist, else Physical Delete)
-        var queryableOrders = await _orderRepository.GetQueryableAsync();
-        bool hasOrders = await queryableOrders.AnyAsync(o => o.SewingTeamId == id);
+        var checkOrdersQuery = await _orderRepository.GetQueryableAsync();
+        bool hasOrders = await checkOrdersQuery.AnyAsync(o => o.SewingTeamId == id);
 
         if (hasOrders)
         {

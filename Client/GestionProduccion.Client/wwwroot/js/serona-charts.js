@@ -75,6 +75,10 @@ window.seronaCharts = {
         });
     },
 
+    renderDashboardChart: function (canvasId, dataPoints, labels) {
+        this.renderRevenueChart(canvasId, dataPoints, labels);
+    },
+
     renderDoughnutChart: function (canvasId, data, labels, colors) {
         if (this.charts[canvasId]) {
             this.charts[canvasId].destroy();

@@ -14,19 +14,18 @@ using Xunit;
 
 namespace GestionProduccion.Tests.Components;
 
-public class TaskDelegationTests : TestContext
+public class TeamsPageTests : TestContext
 {
     private readonly Mock<HttpMessageHandler> _mockHttpHandler;
-    private readonly HttpClient _httpClient;
 
-    public TaskDelegationTests()
+    public TeamsPageTests()
     {
-        this.AddTestAuthorization().SetAuthorized("Manager").SetRoles("Administrator");
+        this.AddTestAuthorization().SetAuthorized("Admin").SetRoles("Administrator");
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         _mockHttpHandler = new Mock<HttpMessageHandler>();
-        _httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
-        Services.AddSingleton(_httpClient);
+        var httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
+        Services.AddSingleton(httpClient);
         Services.AddSingleton(new ToastService());
 
         var jsonOptions = new JsonSerializerOptions
@@ -38,24 +37,24 @@ public class TaskDelegationTests : TestContext
     }
 
     [Fact]
-    public void DelegationForm_ShouldShowValidationErrors_WhenFieldsAreEmpty()
+    public void TeamsPage_ShouldDisableCreateButton_WhenNoEligibleUsers()
     {
         // Arrange
-        // Mock initial load calls to avoid errors
+        // Return 0 eligible users
         SetupMockJsonResponse("api/Users", new List<UserDto>());
-        SetupMockJsonResponse("api/Tasks", new ApiResponse<List<TaskDto>> { Success = true, Data = new List<TaskDto>() });
-
-        var cut = RenderComponent<TaskDelegationPage>();
+        SetupMockJsonResponse("api/SewingTeams", new ApiResponse<List<SewingTeamDto>> { Success = true, Data = new List<SewingTeamDto>() });
 
         // Act
-        // Initial state is empty. Click submit directly.
-        cut.Find("button[type=submit]").Click();
+        var cut = RenderComponent<TeamsPage>();
 
         // Assert
-        // Validation messages usually have class 'validation-message' or are inside 'li.validation-message'
-        cut.WaitForState(() => cut.FindAll(".text-danger").Count > 0);
-        var errors = cut.FindAll(".text-danger");
-        errors.Should().NotBeEmpty();
+        cut.WaitForState(() => cut.FindAll("button").Count > 0);
+
+        // Button "Adicionar Equipe" should be disabled
+        var btn = cut.Find("button.btn-primary");
+        btn.HasAttribute("disabled").Should().BeTrue("Create button should be disabled if no users exist");
+
+        cut.Markup.Should().Contain("Não é possível criar equipes", "Warning message should be displayed");
     }
 
     private void SetupMockJsonResponse<T>(string url, T response)
@@ -66,10 +65,6 @@ public class TaskDelegationTests : TestContext
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith(url) && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(json)
-            });
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
     }
 }

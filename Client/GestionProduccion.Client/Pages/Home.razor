@@ -337,7 +337,7 @@
             {
                 var labels = dashboard.WeeklyLabels.ToArray();
                 var data = dashboard.WeeklyVolumeData.ToArray();
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "weeklyProductionChart", data, labels);
+                await JSRuntime.InvokeVoidAsync("seronaCharts.renderDashboardChart", "weeklyProductionChart", data, labels);
             }
         }
     }

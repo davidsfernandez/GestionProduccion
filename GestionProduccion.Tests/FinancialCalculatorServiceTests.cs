@@ -74,7 +74,7 @@ public class FinancialCalculatorServiceTests
         // Assert
         // Logic treats Quantity 0 as 1 to avoid crash
         order.TotalCost.Should().Be(100m);
-        order.AverageCostPerPiece.Should().Be(100m); 
+        order.AverageCostPerPiece.Should().Be(100m);
     }
 
     [Fact]

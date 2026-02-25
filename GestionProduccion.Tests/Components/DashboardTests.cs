@@ -31,7 +31,7 @@ public class DashboardTests : TestContext
         Services.AddSingleton(_httpClient);
 
         Services.AddSingleton(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        
+
         _mockSignalR = new Mock<ISignalRService>();
         Services.AddSingleton(_mockSignalR.Object);
     }
@@ -39,12 +39,10 @@ public class DashboardTests : TestContext
     [Fact]
     public void Dashboard_ShouldRender_FinancialMetrics_InBrazilianFormat()
     {
-        // Set culture
         var culture = new CultureInfo("pt-BR");
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-        // Arrange
         var dashboardDto = new DashboardCompleteResponse
         {
             MonthAverageCostPerPiece = 15.5m,
@@ -62,35 +60,25 @@ public class DashboardTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
 
-        // Act
         var cut = RenderComponent<Home>();
 
-        // Assert
-        // Wait for loading to finish (cards appear)
         cut.WaitForState(() => cut.FindAll(".card-body h3").Count > 0);
-        
-        // Use more specific selectors based on the card content structure in Home.razor
-        // Card 1: Cost, Card 2: Margin, Card 3: Production, Card 4: Delayed
+
         var cards = cut.FindAll(".card-body h3");
-        
-        // Validating Card 1 (Cost)
-        cards[0].TextContent.Should().Contain("15,50"); 
-        
-        // Validating Card 2 (Margin)
+        cards[0].TextContent.Should().Contain("15,50");
         cards[1].TextContent.Should().Contain("45,2");
     }
 
     [Fact]
     public void Dashboard_ShouldRender_DeadStockAndDelayedOrders_Counters()
     {
-        // Arrange
         var dashboardDto = new DashboardCompleteResponse
         {
             DelayedOrdersCount = 3,
-            StalledStock = new List<StalledProductDto> { new(), new() } // Count = 2
+            StalledStock = new List<StalledProductDto> { new(), new() }
         };
-        
-         var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -98,14 +86,43 @@ public class DashboardTests : TestContext
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
 
-        // Act
         var cut = RenderComponent<Home>();
 
-        // Assert
         cut.WaitForState(() => cut.FindAll(".card-body h3").Count > 0);
         var cards = cut.FindAll(".card-body h3");
-        
-        // Delayed Orders is the 4th card (index 3)
         cards[3].TextContent.Should().Contain("3");
+    }
+
+    [Fact]
+    public void Dashboard_ShouldInvokeJS_ToRenderChart()
+    {
+        // Arrange
+        var dashboardDto = new DashboardCompleteResponse
+        {
+            WeeklyLabels = new List<string> { "Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom" },
+            WeeklyVolumeData = new List<int> { 10, 20, 15, 30, 25, 40, 35 },
+            // Populate other fields to avoid null refs if any
+            StalledStock = new List<StalledProductDto>(),
+            ProductionByWorkshop = new List<WorkshopProductionDto>(),
+            TopProfitableModels = new List<ProductProfitabilityDto>(),
+            BottomProfitableModels = new List<ProductProfitabilityDto>()
+        };
+
+        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        _mockHttpHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith("api/Dashboard/completo") && r.Method == HttpMethod.Get),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
+
+        // Setup the expected JS call
+        JSInterop.SetupVoid("seronaCharts.renderDashboardChart", _ => true);
+
+        // Act
+        RenderComponent<Home>();
+
+        // Assert
+        JSInterop.VerifyInvoke("seronaCharts.renderDashboardChart", 1);
     }
 }

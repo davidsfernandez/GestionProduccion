@@ -56,7 +56,7 @@ public class OrderDetailsTests : TestContext
             LotCode = "OP-FIN-1",
             CurrentStatus = "Completed",
             TotalCost = 500m,
-            AverageCostPerPiece = 10m,
+            AverageCostPerPiece = 25.50m, // Specific value for test
             Quantity = 50,
             EstimatedCompletionAt = DateTime.Now,
             CreatedAt = DateTime.Now
@@ -72,8 +72,8 @@ public class OrderDetailsTests : TestContext
 
         // Assert
         cut.WaitForState(() => cut.FindAll("h5.card-title").Count > 0);
-        cut.Markup.Should().Contain("Análise Financeira"); // Match UI text
-        cut.Markup.Should().Contain("R$ 500,00");
+        cut.Markup.Should().Contain("Análise Financeira");
+        cut.Markup.Should().Contain("R$ 25,50"); // Specific check
     }
 
     [Fact]

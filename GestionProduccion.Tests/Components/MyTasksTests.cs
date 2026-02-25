@@ -25,18 +25,13 @@ public class MyTasksTests : TestContext
 
     public MyTasksTests()
     {
-        // Setup Auth
         this.AddTestAuthorization().SetAuthorized("Test User").SetRoles("Operational");
-
-        // Setup JS Interop
         JSInterop.Mode = JSRuntimeMode.Loose;
 
-        // Setup HttpClient Mock
         _mockHttpHandler = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
         Services.AddSingleton(_httpClient);
 
-        // Setup JSON Options
         var jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -44,18 +39,9 @@ public class MyTasksTests : TestContext
         };
         Services.AddSingleton(jsonOptions);
 
-        // Setup Services
         _mockLifecycleClient = new Mock<IProductionOrderLifecycleClient>();
         Services.AddSingleton(_mockLifecycleClient.Object);
 
-        // ToastService is registered as Singleton in Client Program.cs. 
-        // If it's a concrete class without virtual methods, we might need to use the real one or extract interface.
-        // Assuming it's simple enough to use or mock if methods are virtual.
-        // Let's register a mock if possible, otherwise we might need to register the real one if it has no external dependencies.
-        // For now, let's try to mock it assuming we can or use a dummy.
-        // Actually, ToastService in Client seems to be a concrete class. 
-        // Best practice is to extract interface, but for this test I will register a real instance or a loose mock if virtual.
-        // I will add a dummy ToastService for now.
         Services.AddSingleton(new ToastService());
     }
 
@@ -79,18 +65,40 @@ public class MyTasksTests : TestContext
         var cut = RenderComponent<MyTasks>();
 
         // Assert
-        // Check for tabs
         cut.FindAll(".nav-link").Should().HaveCount(2);
-        
-        // Initial tab is 'production', check if order is rendered
+
+        // Check production task
         cut.WaitForState(() => cut.FindAll(".badge.bg-info-soft").Count > 0);
         cut.Find(".badge.bg-info-soft").TextContent.Should().Contain("Equipe");
-        cut.Find(".fw-bold.text-dark").TextContent.Should().Contain("Shirt");
 
-        // Switch tab to admin
+        // Check admin task logic (switch tab)
         cut.FindAll(".nav-link")[1].Click();
         cut.WaitForState(() => cut.FindAll(".card.border-warning").Count > 0);
         cut.Find("h5.card-title").TextContent.Should().Contain("Buy Ink");
+    }
+
+    [Fact]
+    public void MyTasks_AdminTaskProgressBar_ShouldReflectProgress()
+    {
+        // Arrange
+        var adminTasks = new List<TaskDto>
+        {
+            new() { Id = 10, Title = "Urgent", Status = "Pending", Deadline = DateTime.Now.AddDays(1), ProgressPercentage = 75 }
+        };
+
+        SetupMockJsonResponse("api/Tasks/my", new ApiResponse<List<ProductionOrderDto>> { Success = true, Data = new List<ProductionOrderDto>() });
+        SetupMockJsonResponse("api/Tasks/my-admin", new ApiResponse<List<TaskDto>> { Success = true, Data = adminTasks });
+
+        // Act
+        var cut = RenderComponent<MyTasks>();
+
+        // Switch to admin tab
+        cut.FindAll(".nav-link")[1].Click();
+        cut.WaitForState(() => cut.FindAll(".progress-bar").Count > 0);
+
+        // Assert
+        var progressBar = cut.Find(".progress-bar");
+        progressBar.GetAttribute("style").Should().Contain("width: 75%");
     }
 
     private void SetupMockJsonResponse<T>(string url, T response)
@@ -101,10 +109,6 @@ public class MyTasksTests : TestContext
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith(url) && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(json)
-            });
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
     }
 }

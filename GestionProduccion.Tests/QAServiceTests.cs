@@ -52,10 +52,10 @@ public class QAServiceTests : IDisposable
         result.Should().NotBeNull();
         result.PhotoUrl.Should().Be("http://storage/img.jpg");
         result.Reason.Should().Be("Torn Fabric");
-        
+
         var dbDefect = await _context.QADefects.FindAsync(result.Id);
         dbDefect.Should().NotBeNull();
-        
+
         _mockFileStorage.Verify(fs => fs.UploadAsync(mockFile.Object, "defects"), Times.Once);
     }
 
@@ -63,13 +63,13 @@ public class QAServiceTests : IDisposable
     public async Task DeleteDefect_ShouldRemoveRecord_AndTriggerFileDeletion()
     {
         // Arrange
-        var defect = new QADefect 
-        { 
-            ProductionOrderId = 1, 
-            Reason = "Stain", 
-            Quantity = 1, 
+        var defect = new QADefect
+        {
+            ProductionOrderId = 1,
+            Reason = "Stain",
+            Quantity = 1,
             ReportedByUserId = 1,
-            PhotoUrl = "http://storage/stain.jpg" 
+            PhotoUrl = "http://storage/stain.jpg"
         };
         _context.QADefects.Add(defect);
         await _context.SaveChangesAsync();

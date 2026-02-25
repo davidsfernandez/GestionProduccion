@@ -7,6 +7,7 @@ using GestionProduccion.Models.DTOs;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Moq.Protected;
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,19 +15,18 @@ using Xunit;
 
 namespace GestionProduccion.Tests.Components;
 
-public class TaskDelegationTests : TestContext
+public class CatalogPageTests : TestContext
 {
     private readonly Mock<HttpMessageHandler> _mockHttpHandler;
-    private readonly HttpClient _httpClient;
 
-    public TaskDelegationTests()
+    public CatalogPageTests()
     {
-        this.AddTestAuthorization().SetAuthorized("Manager").SetRoles("Administrator");
+        this.AddTestAuthorization().SetAuthorized("Admin").SetRoles("Administrator");
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         _mockHttpHandler = new Mock<HttpMessageHandler>();
-        _httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
-        Services.AddSingleton(_httpClient);
+        var httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
+        Services.AddSingleton(httpClient);
         Services.AddSingleton(new ToastService());
 
         var jsonOptions = new JsonSerializerOptions
@@ -38,24 +38,32 @@ public class TaskDelegationTests : TestContext
     }
 
     [Fact]
-    public void DelegationForm_ShouldShowValidationErrors_WhenFieldsAreEmpty()
+    public void CatalogPage_ShouldHandleDecimalInput_WithPtBRCulture()
     {
-        // Arrange
-        // Mock initial load calls to avoid errors
-        SetupMockJsonResponse("api/Users", new List<UserDto>());
-        SetupMockJsonResponse("api/Tasks", new ApiResponse<List<TaskDto>> { Success = true, Data = new List<TaskDto>() });
+        // Set culture
+        var culture = new CultureInfo("pt-BR");
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-        var cut = RenderComponent<TaskDelegationPage>();
+        // Arrange
+        SetupMockJsonResponse("api/Products", new ApiResponse<List<ProductDto>> { Success = true, Data = new List<ProductDto>() });
+
+        var cut = RenderComponent<CatalogPage>();
 
         // Act
-        // Initial state is empty. Click submit directly.
-        cut.Find("button[type=submit]").Click();
+        // Open modal
+        cut.Find("button.btn-primary").Click();
+
+        // Find price input (EstimatedSalePrice)
+        // Blazor input number handles culture. "10,50" -> 10.50
+        var input = cut.Find("input[type=number]"); // Or step="0.01"
+        input.Change("10,50");
 
         // Assert
-        // Validation messages usually have class 'validation-message' or are inside 'li.validation-message'
-        cut.WaitForState(() => cut.FindAll(".text-danger").Count > 0);
-        var errors = cut.FindAll(".text-danger");
-        errors.Should().NotBeEmpty();
+        // We verify that no validation error occurs for "The field EstimatedSalePrice must be a number."
+        // And internal model is updated.
+        // We can check validation message absence.
+        cut.FindAll(".validation-message").Should().BeEmpty();
     }
 
     private void SetupMockJsonResponse<T>(string url, T response)
@@ -66,10 +74,6 @@ public class TaskDelegationTests : TestContext
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith(url) && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(json)
-            });
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
     }
 }

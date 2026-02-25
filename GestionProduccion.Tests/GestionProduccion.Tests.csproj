@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GestionProduccion.csproj" />
+    <ProjectReference Include="..\Client\GestionProduccion.Client\GestionProduccion.Client.csproj" />
   </ItemGroup>
 
 </Project>

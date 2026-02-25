@@ -32,7 +32,7 @@ public class FinancialCalculatorService : IFinancialCalculatorService
         // Fallback to CreatedAt if StartedAt was never marked (safety rule)
         var startTime = order.StartedAt ?? order.CreatedAt;
         var duration = order.CompletedAt.Value - startTime;
-        
+
         // Ensure total hours is at least 1 to avoid zero or negative costs due to rapid completions
         double totalHours = duration.TotalHours > 0 ? duration.TotalHours : 1.0;
 
@@ -48,7 +48,7 @@ public class FinancialCalculatorService : IFinancialCalculatorService
         // Prevent division by zero
         int quantity = order.Quantity > 0 ? order.Quantity : 1;
         decimal realCost = Math.Round(totalLaborCost / quantity, 2);
-        
+
         order.AverageCostPerPiece = realCost;
 
         // 6. Profit Margin Calculation (Business Rule)

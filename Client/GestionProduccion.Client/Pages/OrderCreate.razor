@@ -73,7 +73,7 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">Tamanho</label>
-                                    <InputSelect @bind-Value="createModel.Size" class="form-select form-select-lg">
+                                    <InputSelect id="size" @bind-Value="createModel.Size" class="form-select form-select-lg">
                                         <option value="">Selecione um Tamanho...</option>
                                         @foreach (var s in BrazilianSizes)
                                         {

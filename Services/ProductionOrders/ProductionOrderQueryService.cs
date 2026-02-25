@@ -185,17 +185,17 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         }
 
         var query = await _orderRepository.GetQueryableAsync();
-        
+
         // Condition: Assigned to user's team OR assigned directly to user
         var orders = await query
             .AsNoTracking()
             .Include(o => o.Product)
-            .Where(o => (o.SewingTeamId == user.SewingTeamId || o.UserId == userId) && 
+            .Where(o => (o.SewingTeamId == user.SewingTeamId || o.UserId == userId) &&
                        (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction))
             .OrderBy(o => o.EstimatedCompletionAt)
             .ToListAsync(ct);
 
-        return orders.Select(o => 
+        return orders.Select(o =>
         {
             var dto = MapToDto(o);
             // If the order has a team ID and it matches the user's team, it's a team task.

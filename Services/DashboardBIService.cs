@@ -41,7 +41,7 @@ public class DashboardBIService : IDashboardBIService
         // 3. Delayed Orders (Pending/InProduction + Past Deadline)
         var delayedCount = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction) 
+            .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
                         && o.EstimatedCompletionAt < now)
             .CountAsync();
 
@@ -68,7 +68,7 @@ public class DashboardBIService : IDashboardBIService
                 .AsNoTracking()
                 .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= date && o.CompletedAt < nextDate)
                 .SumAsync(o => (int?)o.Quantity) ?? 0;
-            
+
             weeklyData.Add(count);
             weeklyLabels.Add(date.ToString("ddd", ptBr).Replace(".", ""));
         }

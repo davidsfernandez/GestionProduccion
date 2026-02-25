@@ -38,19 +38,27 @@ public class DashboardBIServiceTests : IDisposable
         var productB = new Product { Id = 2, Name = "Product B", MainSku = "SKU-B", InternalCode = "C-B", FabricType = "F" };
         // Product C: Order 5 days ago (Active)
         var productC = new Product { Id = 3, Name = "Product C", MainSku = "SKU-C", InternalCode = "C-C", FabricType = "F" };
-        
+
         _context.Products.AddRange(productA, productB, productC);
 
         var now = DateTime.UtcNow;
-        var oldOrder = new ProductionOrder 
-        { 
-            LotCode = "OLD", ProductId = 2, Quantity = 10, CreatedAt = now.AddDays(-65), 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging 
+        var oldOrder = new ProductionOrder
+        {
+            LotCode = "OLD",
+            ProductId = 2,
+            Quantity = 10,
+            CreatedAt = now.AddDays(-65),
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging
         };
-        var recentOrder = new ProductionOrder 
-        { 
-            LotCode = "RECENT", ProductId = 3, Quantity = 10, CreatedAt = now.AddDays(-5), 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging 
+        var recentOrder = new ProductionOrder
+        {
+            LotCode = "RECENT",
+            ProductId = 3,
+            Quantity = 10,
+            CreatedAt = now.AddDays(-5),
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging
         };
 
         _context.ProductionOrders.AddRange(oldOrder, recentOrder);
@@ -72,16 +80,22 @@ public class DashboardBIServiceTests : IDisposable
     {
         // Arrange
         var now = DateTime.UtcNow;
-        var delayedOrder = new ProductionOrder 
-        { 
-            LotCode = "DELAYED", ProductId = 1, Quantity = 10, 
-            CurrentStatus = ProductionStatus.InProduction, CurrentStage = ProductionStage.Sewing,
+        var delayedOrder = new ProductionOrder
+        {
+            LotCode = "DELAYED",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStatus = ProductionStatus.InProduction,
+            CurrentStage = ProductionStage.Sewing,
             EstimatedCompletionAt = now.AddDays(-1) // Yesterday
         };
-        var onTimeOrder = new ProductionOrder 
-        { 
-            LotCode = "ONTIME", ProductId = 1, Quantity = 10, 
-            CurrentStatus = ProductionStatus.InProduction, CurrentStage = ProductionStage.Sewing,
+        var onTimeOrder = new ProductionOrder
+        {
+            LotCode = "ONTIME",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStatus = ProductionStatus.InProduction,
+            CurrentStage = ProductionStage.Sewing,
             EstimatedCompletionAt = now.AddDays(1) // Tomorrow
         };
 
@@ -104,18 +118,26 @@ public class DashboardBIServiceTests : IDisposable
         _context.Products.AddRange(productA, productB);
 
         // Model A: Margin 40%
-        var orderA = new ProductionOrder 
-        { 
-            LotCode = "OA", ProductId = 1, Quantity = 10, 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging,
-            AverageCostPerPiece = 10, ProfitMargin = 40
+        var orderA = new ProductionOrder
+        {
+            LotCode = "OA",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging,
+            AverageCostPerPiece = 10,
+            ProfitMargin = 40
         };
         // Model B: Margin 20%
-        var orderB = new ProductionOrder 
-        { 
-            LotCode = "OB", ProductId = 2, Quantity = 10, 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging,
-            AverageCostPerPiece = 10, ProfitMargin = 20
+        var orderB = new ProductionOrder
+        {
+            LotCode = "OB",
+            ProductId = 2,
+            Quantity = 10,
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging,
+            AverageCostPerPiece = 10,
+            ProfitMargin = 20
         };
 
         _context.ProductionOrders.AddRange(orderA, orderB);
@@ -152,23 +174,32 @@ public class DashboardBIServiceTests : IDisposable
         var product = new Product { Id = 1, Name = "P", MainSku = "S", InternalCode = "C", FabricType = "F" };
         _context.Products.Add(product);
 
-        var order1 = new ProductionOrder 
-        { 
-            LotCode = "O1", ProductId = 1, Quantity = 5, 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging,
-            CompletedAt = now.AddDays(-2) 
+        var order1 = new ProductionOrder
+        {
+            LotCode = "O1",
+            ProductId = 1,
+            Quantity = 5,
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging,
+            CompletedAt = now.AddDays(-2)
         };
-        var order2 = new ProductionOrder 
-        { 
-            LotCode = "O2", ProductId = 1, Quantity = 3, 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging,
-            CompletedAt = now 
+        var order2 = new ProductionOrder
+        {
+            LotCode = "O2",
+            ProductId = 1,
+            Quantity = 3,
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging,
+            CompletedAt = now
         };
-        var order3 = new ProductionOrder 
-        { 
-            LotCode = "O3", ProductId = 1, Quantity = 7, 
-            CurrentStatus = ProductionStatus.Completed, CurrentStage = ProductionStage.Packaging,
-            CompletedAt = now 
+        var order3 = new ProductionOrder
+        {
+            LotCode = "O3",
+            ProductId = 1,
+            Quantity = 7,
+            CurrentStatus = ProductionStatus.Completed,
+            CurrentStage = ProductionStage.Packaging,
+            CompletedAt = now
         };
 
         _context.ProductionOrders.AddRange(order1, order2, order3);

@@ -26,10 +26,10 @@ public class ReportServiceTests
     {
         // Arrange
         var orderId = 1;
-        var orderDto = new ProductionOrderDto 
-        { 
-            Id = orderId, 
-            LotCode = "OP-TEST", 
+        var orderDto = new ProductionOrderDto
+        {
+            Id = orderId,
+            LotCode = "OP-TEST",
             ProductName = "Camisa Teste",
             CurrentStatus = "Completed",
             TotalCost = 500,
@@ -38,7 +38,7 @@ public class ReportServiceTests
 
         _mockQuery.Setup(s => s.GetProductionOrderByIdAsync(orderId, It.IsAny<CancellationToken>()))
                   .ReturnsAsync(orderDto);
-        
+
         _mockQuery.Setup(s => s.GetHistoryByProductionOrderIdAsync(orderId, It.IsAny<CancellationToken>()))
                   .ReturnsAsync(new List<ProductionHistoryDto>());
 

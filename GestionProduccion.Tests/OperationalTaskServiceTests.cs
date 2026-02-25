@@ -35,7 +35,7 @@ public class OperationalTaskServiceTests
         // Assert
         result.Status.Should().Be(OpTaskStatus.Pending);
         result.CompletionDate.Should().BeNull();
-        
+
         var dbTask = await _context.OperationalTasks.FindAsync(result.Id);
         dbTask.Should().NotBeNull();
     }

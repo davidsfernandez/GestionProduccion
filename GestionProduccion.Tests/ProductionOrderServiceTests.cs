@@ -121,7 +121,7 @@ public class ProductionOrderServiceTests : IDisposable
 
         var user = new User { Id = 1, FullName = "Tester", Email = "test@test.com", Role = UserRole.Operational, IsActive = true };
         _context.Users.Add(user);
-        
+
         await _context.SaveChangesAsync();
 
         var order = new ProductionOrder

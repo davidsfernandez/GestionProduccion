@@ -53,13 +53,13 @@ public class BonusCalculationServiceTests : IDisposable
         var fixedDate = new DateTime(2026, 1, 15, 12, 0, 0, DateTimeKind.Utc);
         var team = new SewingTeam { Id = 1, Name = "Alpha", IsActive = true };
         _context.SewingTeams.Add(team);
-        
-        var order = new ProductionOrder 
-        { 
+
+        var order = new ProductionOrder
+        {
             Id = 1,
-            SewingTeamId = 1, 
-            Quantity = 100, 
-            CurrentStatus = ProductionStatus.Completed, 
+            SewingTeamId = 1,
+            Quantity = 100,
+            CurrentStatus = ProductionStatus.Completed,
             CompletedAt = fixedDate,
             EstimatedCompletionAt = fixedDate.AddHours(1), // On Time
             ProductId = 1
@@ -70,7 +70,7 @@ public class BonusCalculationServiceTests : IDisposable
         // 100 base + 20% for deadline
         var rule = new BonusRule { ProductivityPercentage = 100.0, DeadlineBonusPercentage = 20.0m };
         _mockRuleRepo.Setup(r => r.GetActiveRuleAsync()).ReturnsAsync(rule);
-        
+
         _mockQaService.Setup(qa => qa.GetDefectsByOrderAsync(It.IsAny<int>())).ReturnsAsync(new List<QADefect>());
 
         // Act
@@ -92,13 +92,13 @@ public class BonusCalculationServiceTests : IDisposable
         var fixedDate = new DateTime(2026, 1, 15, 12, 0, 0, DateTimeKind.Utc);
         var team = new SewingTeam { Id = 2, Name = "Beta", IsActive = true };
         _context.SewingTeams.Add(team);
-        
-        var order = new ProductionOrder 
-        { 
+
+        var order = new ProductionOrder
+        {
             Id = 2,
-            SewingTeamId = 2, 
-            Quantity = 100, 
-            CurrentStatus = ProductionStatus.Completed, 
+            SewingTeamId = 2,
+            Quantity = 100,
+            CurrentStatus = ProductionStatus.Completed,
             CompletedAt = fixedDate,
             EstimatedCompletionAt = fixedDate.AddHours(1),
             ProductId = 1
@@ -139,19 +139,19 @@ public class BonusCalculationServiceTests : IDisposable
         _context.Users.AddRange(user, user2, user3, user4);
 
         // Team Order (Bonus Source)
-        var teamOrder = new ProductionOrder 
-        { 
+        var teamOrder = new ProductionOrder
+        {
             Id = 10,
-            SewingTeamId = 3, 
-            Quantity = 100, 
-            CurrentStatus = ProductionStatus.Completed, 
+            SewingTeamId = 3,
+            Quantity = 100,
+            CurrentStatus = ProductionStatus.Completed,
             CompletedAt = fixedDate,
             EstimatedCompletionAt = fixedDate.AddHours(1),
             ProductId = 1
         };
         // Individual Order
-        var userOrder = new ProductionOrder 
-        { 
+        var userOrder = new ProductionOrder
+        {
             Id = 11,
             UserId = 1, // Worker A
             Quantity = 50,
@@ -160,7 +160,7 @@ public class BonusCalculationServiceTests : IDisposable
             EstimatedCompletionAt = fixedDate.AddHours(1),
             ProductId = 1
         };
-        
+
         _context.ProductionOrders.AddRange(teamOrder, userOrder);
         await _context.SaveChangesAsync();
 
