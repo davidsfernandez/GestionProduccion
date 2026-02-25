@@ -47,4 +47,11 @@ public class ConfigurationController : ControllerBase
         var logo = await _configService.GetLogoAsync();
         return Ok(new LogoDto { Base64Image = logo });
     }
+
+    [HttpGet("test-exception")]
+    [AllowAnonymous]
+    public IActionResult TestException()
+    {
+        throw new System.Exception("Integration Test Exception");
+    }
 }

@@ -15,7 +15,7 @@ public class SystemConfigurationRepository : ISystemConfigurationRepository
 
     public async Task<SystemConfiguration?> GetAsync()
     {
-        return await _context.SystemConfigurations.FirstOrDefaultAsync();
+        return await _context.SystemConfigurations.OrderBy(c => c.Id).FirstOrDefaultAsync();
     }
 
     public async Task UpdateAsync(SystemConfiguration config)

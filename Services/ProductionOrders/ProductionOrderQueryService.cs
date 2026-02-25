@@ -226,6 +226,8 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             SewingTeamId = order.SewingTeamId,
             SewingTeamName = order.AssignedTeam?.Name,
             TotalCost = order.TotalCost,
+            AverageCostPerPiece = order.AverageCostPerPiece,
+            ProfitMargin = order.ProfitMargin,
             Product = order.Product != null ? new ProductDto
             {
                 Id = order.Product.Id,

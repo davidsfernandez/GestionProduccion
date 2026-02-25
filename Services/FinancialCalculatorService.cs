@@ -38,7 +38,7 @@ public class FinancialCalculatorService : IFinancialCalculatorService
 
         // 3. Step 2 of Algorithm: Extract costs from configuration
         var config = await _configRepo.GetAsync();
-        decimal hourlyCost = config?.OperationalHourlyCost ?? 0m;
+        decimal hourlyCost = config?.OperationalHourlyCost ?? 45.0m; // Fallback to 45.0 if not set
 
         // 4. Step 3 of Algorithm: Labor Cost calculation
         decimal totalLaborCost = Math.Round((decimal)totalHours * hourlyCost, 2);

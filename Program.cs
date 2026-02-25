@@ -28,14 +28,22 @@ if (string.IsNullOrEmpty(connectionString))
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
-builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
-        mysqlOptions => mysqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 10,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null)),
-    poolSize: 128
-);
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
+}
+else
+{
+    builder.Services.AddDbContextPool<AppDbContext>(options =>
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
+            mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null)),
+        poolSize: 128
+    );
+}
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
 builder.Services.AddHttpContextAccessor();
@@ -51,8 +59,7 @@ builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISys
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<ISewingTeamService, SewingTeamService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRefreshTokenRepository, GestionProduccion.Data.Repositories.UserRefreshTokenRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data
-.Repositories.PasswordResetTokenRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data.Repositories.PasswordResetTokenRepository>();
 builder.Services.AddMemoryCache(); // TV Dashboard optimization
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductRepository, GestionProduccion.Data.Repositories.ProductRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISewingTeamRepository, GestionProduccion.Data.Repositories.SewingTeamRepository>();
@@ -225,39 +232,42 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // --- 9. AUTOMATIC MIGRATIONS (Architect Rule 5) ---
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    var context = services.GetRequiredService<AppDbContext>();
-
-    int retries = 10;
-    while (retries > 0)
+    using (var scope = app.Services.CreateScope())
     {
-        try
-        {
-            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            if (pendingMigrations.Any())
-            {
-                logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
-                await context.Database.MigrateAsync();
-            }
+        var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        var context = services.GetRequiredService<AppDbContext>();
 
-            logger.LogInformation("Database is up to date. Ensuring seed data...");
-            await DbInitializer.SeedAsync(context, logger);
-
-            break;
-        }
-        catch (Exception ex)
+        int retries = 10;
+        while (retries > 0)
         {
-            retries--;
-            if (retries == 0)
+            try
             {
-                logger.LogCritical(ex, "FATAL: Database migration/seed failed after multiple attempts.");
-                throw;
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+                    await context.Database.MigrateAsync();
+                }
+
+                logger.LogInformation("Database is up to date. Ensuring seed data...");
+                await DbInitializer.SeedAsync(context, logger);
+
+                break;
             }
-            logger.LogWarning("DB Connection failed or busy. Retrying in 5 seconds... ({Retries} attempts left). Error: {Message}", retries, ex.Message);
-            await Task.Delay(5000);
+            catch (Exception ex)
+            {
+                retries--;
+                if (retries == 0)
+                {
+                    logger.LogCritical(ex, "FATAL: Database migration/seed failed after multiple attempts.");
+                    throw;
+                }
+                logger.LogWarning("DB Connection failed or busy. Retrying in 5 seconds... ({Retries} attempts left). Error: {Message}", retries, ex.Message);
+                await Task.Delay(5000);
+            }
         }
     }
 }
@@ -268,3 +278,5 @@ app.MapHub<ProductionHub>("/productionHub");
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+public partial class Program { }

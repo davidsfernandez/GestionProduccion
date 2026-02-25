@@ -1,11 +1,13 @@
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GestionProduccion.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class SewingTeamsController : ControllerBase
 {
     private readonly ISewingTeamService _teamService;
@@ -32,6 +34,7 @@ public class SewingTeamsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Create(CreateSewingTeamRequest request)
     {
         try
@@ -50,6 +53,7 @@ public class SewingTeamsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Update(int id, SewingTeamDto dto)
     {
         try
@@ -68,12 +72,13 @@ public class SewingTeamsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Delete(int id)
     {
         try
         {
             var result = await _teamService.DeleteTeamAsync(id);
-            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe no encontrada." });
+            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
 
             return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
@@ -88,10 +93,11 @@ public class SewingTeamsController : ControllerBase
     }
 
     [HttpPatch("{id}/toggle-status")]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
         var result = await _teamService.ToggleTeamStatusAsync(id);
-        if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
+        if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe no encontrada." });
 
         return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }

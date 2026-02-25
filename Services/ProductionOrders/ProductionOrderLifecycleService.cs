@@ -107,6 +107,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
             await _financialCalculator.CalculateFinalOrderCostAsync(order);
+            await _orderRepository.UpdateAsync(order); // Persistir costos calculados
             await _productService.RecalculateAverageTimeAsync(order.ProductId, ct);
         }
 
