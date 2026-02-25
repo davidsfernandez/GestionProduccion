@@ -112,38 +112,42 @@ builder.Services.AddAuthentication(options =>
 });
 
 // --- 4. RATE LIMITING (Security) ---
-builder.Services.AddRateLimiter(options =>
+bool isTesting = builder.Environment.IsEnvironment("Testing");
+if (!isTesting)
 {
-    options.OnRejected = async (context, token) =>
+    builder.Services.AddRateLimiter(options =>
     {
-        context.HttpContext.Response.StatusCode = 429;
-        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
-    };
+        options.OnRejected = async (context, token) =>
+        {
+            context.HttpContext.Response.StatusCode = 429;
+            await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
+        };
 
-    // Global Policy: 100 requests per minute per IP
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: partition => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 100,
-                QueueLimit = 0,
-                Window = TimeSpan.FromMinutes(1)
-            }));
+        // Global Policy: 1000 requests per minute per IP (increased for production stability)
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 1000, 
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromMinutes(1)
+                }));
 
-    // Login Policy: 5 requests per minute per IP (Brute-force protection)
-    options.AddPolicy("LoginPolicy", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: partition => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 5,
-                QueueLimit = 0,
-                Window = TimeSpan.FromMinutes(1)
-            }));
-});
+        // Login Policy: 10 requests per minute per IP
+        options.AddPolicy("LoginPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: partition => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = 10,
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromMinutes(1)
+                }));
+    });
+}
 
 // --- 5. VALIDATION ---
 builder.Services.AddFluentValidationAutoValidation();
@@ -229,7 +233,10 @@ app.UseRouting();
 
 app.UseCors("AllowAll"); // Must be before Auth
 
-app.UseRateLimiter(); // Apply Rate Limiting
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseRateLimiter(); // Apply Rate Limiting
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

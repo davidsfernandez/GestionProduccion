@@ -22,6 +22,7 @@ public class ReportService : IReportService
     {
         _queryService = queryService;
         _configService = configService;
+        try { QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community; } catch { }
     }
 
     public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId)
@@ -45,11 +46,16 @@ public class ReportService : IReportService
         }
 
         // QR Code Generation
-        var qrUrl = $"https://tu-dominio.com/orders/{order.Id}";
-        using var qrGenerator = new QRCodeGenerator();
-        using var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
-        using var qrCode = new PngByteQRCode(qrCodeData);
-        var qrCodeBytes = qrCode.GetGraphic(20);
+        byte[]? qrCodeBytes = null;
+        try
+        {
+            var qrUrl = $"https://tu-dominio.com/orders/{order.Id}";
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            qrCodeBytes = qrCode.GetGraphic(20);
+        }
+        catch { /* QR fail should not break report */ }
 
         var document = Document.Create(container =>
         {
@@ -58,8 +64,8 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                // Standard fonts for cross-platform compatibility
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+                // Using a direct string for font to avoid constant mismatches and provide more flexibility
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Verdana"));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -74,11 +80,14 @@ public class ReportService : IReportService
                         col.Item().Text(config.CompanyName ?? "Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
                     });
 
-                    row.ConstantItem(80).Column(col =>
+                    if (qrCodeBytes != null)
                     {
-                        col.Item().Width(2, Unit.Centimetre).Height(2, Unit.Centimetre).Image(qrCodeBytes);
-                        col.Item().AlignCenter().Text("Escanear").FontSize(8).FontColor(Colors.White);
-                    });
+                        row.ConstantItem(80).Column(col =>
+                        {
+                            col.Item().Width(2, Unit.Centimetre).Height(2, Unit.Centimetre).Image(qrCodeBytes);
+                            col.Item().AlignCenter().Text("Escanear").FontSize(8).FontColor(Colors.White);
+                        });
+                    }
                 });
 
                 // CONTENT
@@ -203,7 +212,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Verdana"));
 
                 // HEADER
                 page.Header().Row(row =>
