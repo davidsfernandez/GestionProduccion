@@ -71,7 +71,7 @@ public class BonusCalculationService : IBonusCalculationService
 
         // 2. Deadline Performance
         decimal onTimeRatio = (decimal)onTimeOrders / teamOrders.Count;
-        decimal deadlineBonus = onTimeRatio * 0; // rule.DeadlineBonusPercentage not available in standard entity yet?
+        decimal deadlineBonus = onTimeRatio * rule.DeadlineBonusPercentage;
 
         // 3. Quality Penalty
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
