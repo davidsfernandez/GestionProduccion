@@ -21,6 +21,9 @@ using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 0. PDF ENGINE LICENSE ---
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 // --- 1. DATABASE CONFIGURATION ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))

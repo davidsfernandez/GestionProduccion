@@ -22,7 +22,6 @@ public class ReportService : IReportService
     {
         _queryService = queryService;
         _configService = configService;
-        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId)
@@ -59,8 +58,8 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                // Standard fonts for Linux compatibility
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
+                // Standard fonts for cross-platform compatibility
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -109,7 +108,7 @@ public class ReportService : IReportService
                     });
 
                     // RESUMO FINANCEIRO (If completed)
-                    if (order.CurrentStatus == "Completed" && order.AverageCostPerPiece > 0)
+                    if (order.CurrentStatus?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true && order.AverageCostPerPiece > 0)
                     {
                         x.Item().Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten3).Padding(10).Column(c =>
                         {
@@ -119,7 +118,7 @@ public class ReportService : IReportService
                             {
                                 r.RelativeItem().Text(t => { t.Span("Custo Total Lote: ").Bold(); t.Span($"R$ {order.TotalCost:N2}"); });
                                 r.RelativeItem().Text(t => { t.Span("Custo Real Unitário: ").Bold(); t.Span($"R$ {order.AverageCostPerPiece:N2}"); });
-                                r.RelativeItem().Text(t => { t.Span("Margem: ").Bold(); t.Span($"0%"); }); // Logic for margin can be added here
+                                r.RelativeItem().Text(t => { t.Span("Margem: ").Bold(); t.Span($"{order.ProfitMargin:N1}%"); });
                             });
                         });
                     }
@@ -204,7 +203,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
 
                 // HEADER
                 page.Header().Row(row =>
