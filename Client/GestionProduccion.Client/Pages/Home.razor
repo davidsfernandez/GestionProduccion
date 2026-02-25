@@ -50,7 +50,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo Médio / Peça</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo médio por peça</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -69,7 +69,7 @@
                                         <h3 class="mb-2 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-success")">
                                             @dashboard.MonthAverageMargin.ToString("N1")%
                                         </h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem Média</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem média</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-success-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -86,7 +86,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Produção do Mês</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Produção do mês</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-info-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -105,7 +105,7 @@
                                         <h3 class="mb-2 fw-bold @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-success")">
                                             @dashboard.DelayedOrdersCount
                                         </h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Ordens Atrasadas</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Atrasos</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">

@@ -31,7 +31,8 @@ public class ReportService : IReportService
         if (order == null) return Array.Empty<byte>();
 
         var history = await _queryService.GetHistoryByProductionOrderIdAsync(orderId);
-        var logoBase64 = await _configService.GetLogoAsync();
+        var config = await _configService.GetConfigurationAsync();
+        var logoBase64 = config.LogoBase64;
         byte[]? logoBytes = null;
 
         if (!string.IsNullOrEmpty(logoBase64))
@@ -58,7 +59,8 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+                // Standard fonts for Linux compatibility
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Helvetica));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -70,7 +72,7 @@ public class ReportService : IReportService
                             col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
                         }
                         col.Item().Text("FICHA DE PRODUÇÃO").FontSize(24).Bold().FontColor(Colors.White);
-                        col.Item().Text("Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
+                        col.Item().Text(config.CompanyName ?? "Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
                     });
 
                     row.ConstantItem(80).Column(col =>
@@ -105,6 +107,22 @@ public class ReportService : IReportService
                         table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{productDesc} (Tam: {sizeDesc})"); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
                     });
+
+                    // RESUMO FINANCEIRO (If completed)
+                    if (order.CurrentStatus == "Completed" && order.AverageCostPerPiece > 0)
+                    {
+                        x.Item().Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten3).Padding(10).Column(c =>
+                        {
+                            c.Spacing(5);
+                            c.Item().Text("RESUMO FINANCEIRO").Bold().FontColor(Colors.Blue.Darken3);
+                            c.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text(t => { t.Span("Custo Total Lote: ").Bold(); t.Span($"R$ {order.TotalCost:N2}"); });
+                                r.RelativeItem().Text(t => { t.Span("Custo Real Unitário: ").Bold(); t.Span($"R$ {order.AverageCostPerPiece:N2}"); });
+                                r.RelativeItem().Text(t => { t.Span("Margem: ").Bold(); t.Span($"0%"); }); // Logic for margin can be added here
+                            });
+                        });
+                    }
 
                     // HISTORY / DETAILS TABLE
                     x.Item().PaddingTop(10).Text("Histórico de Movimentação").Bold().FontSize(12);
@@ -165,7 +183,8 @@ public class ReportService : IReportService
     public async Task<byte[]> GenerateDailyProductionReportAsync()
     {
         var dashboard = await _queryService.GetDashboardAsync();
-        var logoBase64 = await _configService.GetLogoAsync();
+        var config = await _configService.GetConfigurationAsync();
+        var logoBase64 = config.LogoBase64;
         byte[]? logoBytes = null;
 
         if (!string.IsNullOrEmpty(logoBase64))
@@ -185,7 +204,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Helvetica));
 
                 // HEADER
                 page.Header().Row(row =>
@@ -197,6 +216,7 @@ public class ReportService : IReportService
                             col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
                         }
                         col.Item().Text("Relatório Diário de Produção").FontSize(20).Bold().FontColor(Colors.Grey.Darken3);
+                        col.Item().Text(config.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Medium);
                         col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);
                     });
                 });
@@ -217,7 +237,7 @@ public class ReportService : IReportService
 
                             var totalToday = dashboard.TodaysOrders.Count;
                             var efficiency = totalToday > 0 ? (decimal)dashboard.CompletedToday / totalToday * 100 : 0;
-                            c.Item().Text($"Eficiência Global do Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
+                            c.Item().Text($"Eficiência Global del Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
                         });
                     });
 
@@ -232,7 +252,7 @@ public class ReportService : IReportService
                             columns.RelativeColumn(4); // Product
                             columns.RelativeColumn(3); // Team
                             columns.RelativeColumn(3); // Status
-                            columns.RelativeColumn(3); // Total Cost
+                            columns.RelativeColumn(3); // Unit Cost
                         });
 
                         // Header
@@ -242,7 +262,7 @@ public class ReportService : IReportService
                             header.Cell().Element(HeaderStyle).Text("Produto");
                             header.Cell().Element(HeaderStyle).Text("Equipe");
                             header.Cell().Element(HeaderStyle).Text("Status");
-                            header.Cell().Element(HeaderStyle).Text("Custo Total");
+                            header.Cell().Element(HeaderStyle).Text("Custo Unit.");
 
                             static IContainer HeaderStyle(IContainer container) =>
                                 container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
@@ -258,7 +278,7 @@ public class ReportService : IReportService
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
                             table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
-                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.TotalCost:N2}");
+                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.AverageCostPerPiece:N2}");
 
                             static IContainer CellStyle(IContainer container, string bgColor) =>
                                 container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
