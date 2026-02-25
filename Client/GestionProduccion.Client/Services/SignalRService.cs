@@ -4,7 +4,14 @@ using System.Threading.Tasks;
 
 namespace GestionProduccion.Client.Services
 {
-    public class SignalRService
+    public interface ISignalRService
+    {
+        Task StartConnection(string hubUrl);
+        Task StopConnection();
+        event Action<int, string, string>? OnUpdateReceived;
+    }
+
+    public class SignalRService : ISignalRService
     {
         private HubConnection? _hubConnection;
 

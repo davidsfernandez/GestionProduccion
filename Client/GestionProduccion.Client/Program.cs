@@ -46,7 +46,7 @@ builder.Services.AddScoped<IProductionOrderMutationClient, ProductionOrderMutati
 builder.Services.AddScoped<IProductionOrderLifecycleClient, ProductionOrderLifecycleClient>();
 builder.Services.AddScoped<IProductClient, ProductClient>();
 builder.Services.AddScoped<ISewingTeamClient, SewingTeamClient>();
-builder.Services.AddSingleton<SignalRService>();
+builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<UserStateService>();
 
