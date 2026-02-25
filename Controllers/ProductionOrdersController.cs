@@ -308,13 +308,13 @@ public class ProductionOrdersController : ControllerBase
             if (order == null) return NotFound(new { message = "Order not found." });
 
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
-            if (pdfBytes == null) return NotFound(new { message = "Could not generate PDF." });
+            if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Could not generate PDF content." });
 
             return File(pdfBytes, "application/pdf", $"Order_{order.LotCode}.pdf");
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error generating PDF", error = ex.Message });
+            return StatusCode(500, new { message = "Error generating Individual PDF", details = ex.Message, inner = ex.InnerException?.Message });
         }
     }
 
@@ -324,13 +324,13 @@ public class ProductionOrdersController : ControllerBase
         try
         {
             var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
-            if (pdfBytes == null) return NotFound();
+            if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Report generation failed." });
 
             return File(pdfBytes, "application/pdf", $"ProductionOrder_{id}.pdf");
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error generating report", error = ex.Message });
+            return StatusCode(500, new { message = "Error generating Order Report", details = ex.Message });
         }
     }
 
@@ -341,11 +341,12 @@ public class ProductionOrdersController : ControllerBase
         try
         {
             var pdfBytes = await reportService.GenerateDailyProductionReportAsync();
+            if (pdfBytes == null || pdfBytes.Length == 0) return StatusCode(500, new { message = "Daily report content is empty." });
             return File(pdfBytes, "application/pdf", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf");
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error generating daily report", error = ex.Message });
+            return StatusCode(500, new { message = "Error generating Daily PDF Report", details = ex.Message, stack = ex.StackTrace });
         }
     }
 

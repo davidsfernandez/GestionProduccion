@@ -3,7 +3,6 @@ using GestionProduccion.Services.ProductionOrders;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using QuestPDF.Previewer;
 using System.Threading.Tasks;
 using GestionProduccion.Models.DTOs;
 using System.Collections.Generic;
@@ -22,7 +21,7 @@ public class ReportService : IReportService
     {
         _queryService = queryService;
         _configService = configService;
-        try { QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community; } catch { }
+        try { QuestPDF.Settings.License = LicenseType.Community; } catch { }
     }
 
     public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId)
@@ -32,18 +31,8 @@ public class ReportService : IReportService
 
         var history = await _queryService.GetHistoryByProductionOrderIdAsync(orderId);
         var config = await _configService.GetConfigurationAsync();
-        var logoBase64 = config.LogoBase64;
-        byte[]? logoBytes = null;
 
-        if (!string.IsNullOrEmpty(logoBase64))
-        {
-            try
-            {
-                var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
-                logoBytes = Convert.FromBase64String(base64Data);
-            }
-            catch { /* Ignore invalid logo */ }
-        }
+        byte[]? logoBytes = ExtractLogoBytes(config?.LogoBase64);
 
         // QR Code Generation
         byte[]? qrCodeBytes = null;
@@ -64,7 +53,6 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                // Using a direct string for font to avoid constant mismatches and provide more flexibility
                 page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Verdana"));
 
                 // HEADER
@@ -76,8 +64,12 @@ public class ReportService : IReportService
                         {
                             col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
                         }
-                        col.Item().Text("FICHA DE PRODUÇÃO").FontSize(24).Bold().FontColor(Colors.White);
-                        col.Item().Text(config.CompanyName ?? "Serona Manufacturing").FontSize(14).FontColor(Colors.Grey.Lighten2);
+                        else
+                        {
+                            col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold().FontColor(Colors.White);
+                        }
+                        col.Item().Text("FICHA DE PRODUÇÃO").FontSize(16).Bold().FontColor(Colors.Grey.Lighten2);
+                        col.Item().Text(config?.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Lighten2);
                     });
 
                     if (qrCodeBytes != null)
@@ -104,11 +96,9 @@ public class ReportService : IReportService
                             columns.RelativeColumn();
                         });
 
-                        // Row 1
-                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode).FontSize(14); });
+                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(14); });
                         table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedCompletionAt.ToShortDateString()); });
 
-                        // Row 2
                         var productDesc = order.ProductName ?? "Elemento Desconocido";
                         var sizeDesc = order.Size ?? "N/A";
 
@@ -116,7 +106,7 @@ public class ReportService : IReportService
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
                     });
 
-                    // RESUMO FINANCEIRO (If completed)
+                    // RESUMO FINANCEIRO
                     if (order.CurrentStatus?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true && order.AverageCostPerPiece > 0)
                     {
                         x.Item().Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten3).Padding(10).Column(c =>
@@ -132,9 +122,8 @@ public class ReportService : IReportService
                         });
                     }
 
-                    // HISTORY / DETAILS TABLE
-                    x.Item().PaddingTop(10).Text("Histórico de Movimentação").Bold().FontSize(12);
-
+                    // HISTORY TABLE
+                    x.Item().PaddingTop(10).Text("Histórico de Movimentación").Bold().FontSize(12);
                     x.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
@@ -151,36 +140,24 @@ public class ReportService : IReportService
                             header.Cell().Element(CellStyle).Text("Etapa");
                             header.Cell().Element(CellStyle).Text("Responsável");
                             header.Cell().Element(CellStyle).Text("Obs");
-
                             static IContainer CellStyle(IContainer container) => container.Background(Colors.Grey.Lighten4).Padding(5).BorderBottom(1).BorderColor(Colors.Black);
                         });
 
                         foreach (var item in history.OrderBy(h => h.ChangedAt))
                         {
                             table.Cell().Element(CellStyle).Text(item.ChangedAt.ToString("dd/MM HH:mm"));
-                            table.Cell().Element(CellStyle).Text(item.NewStage);
-                            table.Cell().Element(CellStyle).Text(item.UserName);
+                            table.Cell().Element(CellStyle).Text(item.NewStage ?? "-");
+                            table.Cell().Element(CellStyle).Text(item.UserName ?? "Sistema");
                             table.Cell().Element(CellStyle).Text(item.Note ?? "-");
-
                             static IContainer CellStyle(IContainer container) => container.Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
                         }
                     });
                 });
 
-                // FOOTER
                 page.Footer().AlignCenter().Row(row =>
                 {
-                    row.RelativeItem().Text(x =>
-                    {
-                        x.Span("Gerado em: ");
-                        x.Span(DateTime.Now.ToString("g"));
-                    });
-
-                    row.RelativeItem().AlignRight().Text(x =>
-                    {
-                        x.Span("Página ");
-                        x.CurrentPageNumber();
-                    });
+                    row.RelativeItem().Text(x => { x.Span("Gerado em: "); x.Span(DateTime.Now.ToString("g")); });
+                    row.RelativeItem().AlignRight().Text(x => { x.Span("Página "); x.CurrentPageNumber(); });
                 });
             });
         });
@@ -192,18 +169,7 @@ public class ReportService : IReportService
     {
         var dashboard = await _queryService.GetDashboardAsync();
         var config = await _configService.GetConfigurationAsync();
-        var logoBase64 = config.LogoBase64;
-        byte[]? logoBytes = null;
-
-        if (!string.IsNullOrEmpty(logoBase64))
-        {
-            try
-            {
-                var base64Data = logoBase64.Contains(",") ? logoBase64.Split(',')[1] : logoBase64;
-                logoBytes = Convert.FromBase64String(base64Data);
-            }
-            catch { /* Ignore */ }
-        }
+        byte[]? logoBytes = ExtractLogoBytes(config?.LogoBase64);
 
         var document = Document.Create(container =>
         {
@@ -219,12 +185,11 @@ public class ReportService : IReportService
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        if (logoBytes != null)
-                        {
-                            col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
-                        }
-                        col.Item().Text("Relatório Diário de Produção").FontSize(20).Bold().FontColor(Colors.Grey.Darken3);
-                        col.Item().Text(config.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Medium);
+                        if (logoBytes != null) col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
+                        else col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold();
+
+                        col.Item().Text("Relatório Diário de Produção").FontSize(16).Bold().FontColor(Colors.Grey.Darken3);
+                        col.Item().Text(config?.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Medium);
                         col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);
                     });
                 });
@@ -233,37 +198,25 @@ public class ReportService : IReportService
                 page.Content().PaddingVertical(10).Column(x =>
                 {
                     x.Spacing(20);
-
                     // SUMMARY BOX
                     x.Item().Background(Colors.Grey.Lighten4).Padding(10).Row(row =>
                     {
                         row.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Resumo Estatístico").Bold();
-                            c.Item().Text($"Total Produzido Hoje: {dashboard.CompletedToday}");
-                            c.Item().Text($"Taxa de Conclusão: {dashboard.CompletionRate}%");
-
-                            var totalToday = dashboard.TodaysOrders.Count;
-                            var efficiency = totalToday > 0 ? (decimal)dashboard.CompletedToday / totalToday * 100 : 0;
-                            c.Item().Text($"Eficiência Global del Dia: {Math.Round(efficiency, 1)}%").FontColor(efficiency > 80 ? Colors.Green.Darken2 : Colors.Red.Medium);
+                            c.Item().Text($"Total Produzido Hoje: {dashboard?.CompletedToday ?? 0}");
+                            c.Item().Text($"Taxa de Conclusão: {dashboard?.CompletionRate ?? 0:N1}%");
                         });
                     });
 
-                    // DETAILED TABLE
-                    x.Item().Text("Detalhamento das Ordens do Dia").Bold().FontSize(12);
-
+                    // TABLE
                     x.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3); // Lot/OP
-                            columns.RelativeColumn(4); // Product
-                            columns.RelativeColumn(3); // Team
-                            columns.RelativeColumn(3); // Status
-                            columns.RelativeColumn(3); // Unit Cost
+                            columns.RelativeColumn(3); columns.RelativeColumn(4); columns.RelativeColumn(3); columns.RelativeColumn(3); columns.RelativeColumn(3);
                         });
 
-                        // Header
                         table.Header(header =>
                         {
                             header.Cell().Element(HeaderStyle).Text("Lote/OP");
@@ -271,74 +224,71 @@ public class ReportService : IReportService
                             header.Cell().Element(HeaderStyle).Text("Equipe");
                             header.Cell().Element(HeaderStyle).Text("Status");
                             header.Cell().Element(HeaderStyle).Text("Custo Unit.");
-
-                            static IContainer HeaderStyle(IContainer container) =>
-                                container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
+                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
                         });
 
-                        // Rows
-                        for (int i = 0; i < dashboard.TodaysOrders.Count; i++)
+                        if (dashboard?.TodaysOrders != null)
                         {
-                            var order = dashboard.TodaysOrders[i];
-                            var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
-
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.LotCode);
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
-                            table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
-                            table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.AverageCostPerPiece:N2}");
-
-                            static IContainer CellStyle(IContainer container, string bgColor) =>
-                                container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+                            for (int i = 0; i < dashboard.TodaysOrders.Count; i++)
+                            {
+                                var order = dashboard.TodaysOrders[i];
+                                var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.LotCode ?? "-");
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
+                                table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.AverageCostPerPiece:N2}");
+                                static IContainer CellStyle(IContainer container, string bgColor) => container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+                            }
                         }
                     });
                 });
 
-                // FOOTER
-                page.Footer().AlignCenter().Text(x =>
-                {
-                    x.Span("Página ");
-                    x.CurrentPageNumber();
-                });
+                page.Footer().AlignCenter().Text(x => { x.Span("Página "); x.CurrentPageNumber(); });
             });
         });
         return document.GeneratePdf();
     }
 
+    private byte[]? ExtractLogoBytes(string? logoBase64)
+    {
+        if (string.IsNullOrEmpty(logoBase64)) return null;
+        try
+        {
+            string cleanBase64 = logoBase64;
+            int commaIndex = cleanBase64.IndexOf(",");
+            if (commaIndex >= 0) cleanBase64 = cleanBase64.Substring(commaIndex + 1);
+            return Convert.FromBase64String(cleanBase64);
+        }
+        catch { return null; }
+    }
+
     public Task<byte[]> GenerateOrdersCsvAsync(List<ProductionOrderDto> orders)
     {
         var sb = new System.Text.StringBuilder();
-        // Header
         sb.AppendLine("Codigo;Produto;Quantidade;Etapa;Status;Entrega;Responsavel");
-
         foreach (var order in orders)
         {
-            var user = order.AssignedUserName ?? "N/A";
-            var prod = (order.ProductName ?? "N/A").Replace(";", ",");
-
-            sb.AppendLine($"{order.LotCode};{prod};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedCompletionAt:dd/MM/yyyy};{user}");
+            sb.AppendLine($"{order.LotCode};{(order.ProductName ?? "N/A").Replace(";", ",")};{order.Quantity};{TranslateStage(order.CurrentStage)};{TranslateStatus(order.CurrentStatus)};{order.EstimatedCompletionAt:dd/MM/yyyy};{order.AssignedUserName ?? "N/A"}");
         }
-
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
         var bom = System.Text.Encoding.UTF8.GetPreamble();
         var result = new byte[bom.Length + bytes.Length];
         System.Buffer.BlockCopy(bom, 0, result, 0, bom.Length);
         System.Buffer.BlockCopy(bytes, 0, result, bom.Length, bytes.Length);
-
         return Task.FromResult(result);
     }
 
-
-    private string TranslateStage(string stage) => stage?.ToLower() switch
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
         "cutting" => "Corte",
         "sewing" => "Costura",
-        "review" => "Revisão",
+        "review" => "Revisión",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };
 
-    private string TranslateStatus(string status) => status?.ToLower() switch
+    private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "inproduction" => "Em Produção",
         "stopped" => "Parado",

@@ -329,15 +329,18 @@
             {
                 var labels = dashboard.ProductionByWorkshop.Select(x => x.WorkshopName).ToArray();
                 var data = dashboard.ProductionByWorkshop.Select(x => x.Quantity).ToArray();
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "workshopChart", data, labels);
+                try { await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "workshopChart", data, labels); } catch { }
             }
 
             // 2. Weekly Production Line Chart
             if (dashboard.WeeklyVolumeData != null && dashboard.WeeklyVolumeData.Any())
             {
-                var labels = dashboard.WeeklyLabels.ToArray();
-                var data = dashboard.WeeklyVolumeData.ToArray();
-                await JSRuntime.InvokeVoidAsync("seronaCharts.renderDashboardChart", "weeklyProductionChart", data, labels);
+                var labels = dashboard.WeeklyLabels?.ToArray() ?? Array.Empty<string>();
+                var data = dashboard.WeeklyVolumeData?.ToArray() ?? Array.Empty<int>();
+                if (labels.Length > 0)
+                {
+                    try { await JSRuntime.InvokeVoidAsync("seronaCharts.renderDashboardChart", "weeklyProductionChart", data, labels); } catch { }
+                }
             }
         }
     }

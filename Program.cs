@@ -130,7 +130,7 @@ if (!isTesting)
                 factory: partition => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
-                    PermitLimit = 1000, 
+                    PermitLimit = 1000,
                     QueueLimit = 0,
                     Window = TimeSpan.FromMinutes(1)
                 }));

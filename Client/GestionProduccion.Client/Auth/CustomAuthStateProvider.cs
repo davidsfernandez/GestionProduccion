@@ -74,54 +74,31 @@ namespace GestionProduccion.Client.Auth
                 var value = element.Value;
 
                 // Robust mapping to standard .NET ClaimTypes
-                if (key == "role" || key == "roles" || key.Contains("claims/role"))
+                if (key == "role" || key == "roles" || key == ClaimTypes.Role || key == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
                 {
                     if (value.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (var r in value.EnumerateArray())
+                        foreach (var item in value.EnumerateArray())
                         {
-                            var roleStr = r.GetString();
-                            if (!string.IsNullOrEmpty(roleStr))
-                            {
-                                claims.Add(new Claim(ClaimTypes.Role, roleStr));
-                            }
+                            claims.Add(new Claim(ClaimTypes.Role, item.ToString()));
                         }
                     }
                     else
                     {
-                        var roleValue = value.GetString() ?? value.ToString();
-                        // Handle potential comma-separated roles in a single string
-                        if (roleValue.Contains(','))
-                        {
-                            foreach (var r in roleValue.Split(','))
-                            {
-                                if (!string.IsNullOrWhiteSpace(r))
-                                {
-                                    claims.Add(new Claim(ClaimTypes.Role, r.Trim()));
-                                }
-                            }
-                        }
-                        else if (!string.IsNullOrWhiteSpace(roleValue))
-                        {
-                            claims.Add(new Claim(ClaimTypes.Role, roleValue));
-                        }
+                        claims.Add(new Claim(ClaimTypes.Role, value.ToString()));
                     }
                 }
-                else if (key == "unique_name" || key == "name" || key.Contains("claims/name"))
+                else if (key == "unique_name" || key == "name" || key == ClaimTypes.Name || key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")
                 {
-                    claims.Add(new Claim(ClaimTypes.Name, value.GetString() ?? value.ToString()));
+                    claims.Add(new Claim(ClaimTypes.Name, value.ToString()));
                 }
-                else if (key == "sub" || key == "nameid" || key.Contains("nameidentifier"))
+                else if (key == "sub" || key == "nameid" || key == ClaimTypes.NameIdentifier || key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")
                 {
-                    claims.Add(new Claim(ClaimTypes.NameIdentifier, value.GetString() ?? value.ToString()));
+                    claims.Add(new Claim(ClaimTypes.NameIdentifier, value.ToString()));
                 }
-                else if (key == "email" || key.Contains("emailaddress"))
+                else if (key == "email" || key == ClaimTypes.Email || key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
                 {
-                    claims.Add(new Claim(ClaimTypes.Email, value.GetString() ?? value.ToString()));
-                }
-                else if (key == "AvatarUrl")
-                {
-                    claims.Add(new Claim("AvatarUrl", value.GetString() ?? value.ToString()));
+                    claims.Add(new Claim(ClaimTypes.Email, value.ToString()));
                 }
                 else
                 {
