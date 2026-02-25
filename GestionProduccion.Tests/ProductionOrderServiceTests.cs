@@ -88,14 +88,19 @@ public class ProductionOrderServiceTests : IDisposable
     [Fact]
     public async Task CreateProductionOrderAsync_ShouldCreateOrder_WhenRequestIsValid()
     {
-        var product = new Product { Id = 1, Name = "Test Product", InternalCode = "P001", FabricType = "Cotton", MainSku = "SKU001" };
+        // Arrange: Add Product to InMemory DB so Include works
+        var product = new Product { Id = 1, Name = "Test Product", InternalCode = "P001", FabricType = "Cotton", MainSku = "SKU001", AverageProductionTimeMinutes = 60, EstimatedSalePrice = 100 };
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+
         _mockProductRepo.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(product);
 
         var request = new CreateProductionOrderRequest
         {
             ProductId = 1,
             Quantity = 100,
-            EstimatedCompletionAt = DateTime.UtcNow.AddDays(7)
+            EstimatedCompletionAt = DateTime.UtcNow.AddDays(7),
+            Size = "M"
         };
 
         var result = await _mutationService.CreateProductionOrderAsync(request, 1);
@@ -107,6 +112,15 @@ public class ProductionOrderServiceTests : IDisposable
     [Fact]
     public async Task AdvanceStageAsync_ShouldChangeStage_FromCuttingToSewing()
     {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+
+        var user = new User { Id = 1, FullName = "Tester", Email = "test@test.com", Role = UserRole.Operational, IsActive = true };
+        _context.Users.Add(user);
+        
+        await _context.SaveChangesAsync();
+
         var order = new ProductionOrder
         {
             Id = 1,
@@ -116,13 +130,16 @@ public class ProductionOrderServiceTests : IDisposable
             CurrentStage = ProductionStage.Cutting,
             CurrentStatus = ProductionStatus.InProduction,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            UserId = 1 // Assigned to the user executing the action
         };
         _context.ProductionOrders.Add(order);
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _lifecycleService.AdvanceStageAsync(order.Id, 1);
 
+        // Assert
         Assert.True(result);
         var updatedOrder = await _context.ProductionOrders.FindAsync(order.Id);
         Assert.Equal(ProductionStage.Sewing, updatedOrder.CurrentStage);
