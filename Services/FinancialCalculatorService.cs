@@ -15,37 +15,47 @@ public class FinancialCalculatorService : IFinancialCalculatorService
         _productRepo = productRepo;
     }
 
+    /// <summary>
+    /// Calculates the real production cost of an order based on execution time and hourly operational cost.
+    /// This follows the core financial logic: (Worked Hours * Hourly Cost) / Quantity.
+    /// </summary>
+    /// <param name="order">The production order to calculate cost for.</param>
     public async Task CalculateFinalOrderCostAsync(ProductionOrder order)
     {
-        if (order.StartedAt == null || order.CompletedAt == null)
+        // 1. Ensure end time is set
+        if (order.CompletedAt == null)
         {
-            return;
+            order.CompletedAt = DateTime.UtcNow;
         }
 
-        var hourlyCostStr = await _configRepo.GetValueAsync("OperationalHourlyCost");
-        decimal hourlyCost = 0;
-        if (decimal.TryParse(hourlyCostStr, out var val)) hourlyCost = val;
+        // 2. Step 1 of Algorithm: Calculate duration
+        // Fallback to CreatedAt if StartedAt was never marked (safety rule)
+        var startTime = order.StartedAt ?? order.CreatedAt;
+        var duration = order.CompletedAt.Value - startTime;
+        
+        // Ensure total hours is at least 1 to avoid zero or negative costs due to rapid completions
+        double totalHours = duration.TotalHours > 0 ? duration.TotalHours : 1.0;
 
-        var duration = order.CompletedAt.Value - order.StartedAt.Value;
-        var totalHours = (decimal)duration.TotalHours;
+        // 3. Step 2 of Algorithm: Extract costs from configuration
+        var config = await _configRepo.GetAsync();
+        decimal hourlyCost = config?.OperationalHourlyCost ?? 0m;
 
-        if (totalHours < 0) totalHours = 0;
+        // 4. Step 3 of Algorithm: Labor Cost calculation
+        decimal totalLaborCost = (decimal)totalHours * hourlyCost;
+        order.TotalCost = totalLaborCost;
 
-        var totalCost = totalHours * hourlyCost;
-        order.TotalCost = totalCost;
+        // 5. Step 4 of Algorithm: Unit / Real Cost
+        // Prevent division by zero
+        int quantity = order.Quantity > 0 ? order.Quantity : 1;
+        decimal realCost = totalLaborCost / quantity;
+        
+        order.AverageCostPerPiece = realCost;
 
-        if (order.Quantity > 0)
-        {
-            order.AverageCostPerPiece = totalCost / order.Quantity;
-        }
-        else
-        {
-            order.AverageCostPerPiece = 0;
-        }
-
+        // 6. Profit Margin Calculation (Business Rule)
         var product = await _productRepo.GetByIdAsync(order.ProductId);
         if (product != null && product.EstimatedSalePrice > 0)
         {
+            // Margin = ((SalePrice - UnitCost) / SalePrice) * 100
             order.ProfitMargin = ((product.EstimatedSalePrice - order.AverageCostPerPiece) / product.EstimatedSalePrice) * 100;
         }
         else

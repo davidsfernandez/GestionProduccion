@@ -22,6 +22,7 @@ public class ProductionOrderDto
     public string? SewingTeamName { get; set; }
     public bool IsTeamTask { get; set; }
     public decimal TotalCost { get; set; }
+    public decimal AverageCostPerPiece { get; set; }
     public ProductDto? Product { get; set; }
     public List<ProductionHistoryDto> History { get; set; } = new();
 }
