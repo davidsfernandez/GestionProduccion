@@ -9,6 +9,7 @@ namespace GestionProduccion.Client.Services
         Task StartConnection(string hubUrl);
         Task StopConnection();
         event Action<int, string, string>? OnUpdateReceived;
+        event Action<string, string>? OnMessageReceived; // message, type
     }
 
     public class SignalRService : ISignalRService
@@ -16,6 +17,7 @@ namespace GestionProduccion.Client.Services
         private HubConnection? _hubConnection;
 
         public event Action<int, string, string>? OnUpdateReceived;
+        public event Action<string, string>? OnMessageReceived;
 
         private Task? _startTask;
 
@@ -42,6 +44,20 @@ namespace GestionProduccion.Client.Services
                 _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>
                 {
                     OnUpdateReceived?.Invoke(opId, novaEtapa, novoStatus);
+                });
+
+                _hubConnection.On<object>("ReceiveMessage", (data) =>
+                {
+                    // Basic parsing for message notifications
+                    try
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(data);
+                        using var doc = System.Text.Json.JsonDocument.Parse(json);
+                        var msg = doc.RootElement.GetProperty("message").GetString() ?? "";
+                        var type = doc.RootElement.GetProperty("type").GetString() ?? "info";
+                        OnMessageReceived?.Invoke(msg, type);
+                    }
+                    catch { }
                 });
 
                 _startTask = _hubConnection.StartAsync();

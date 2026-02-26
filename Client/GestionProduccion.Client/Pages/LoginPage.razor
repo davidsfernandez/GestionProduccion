@@ -8,47 +8,62 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UserStateService UserState
 
-<main class="d-flex w-100">
+<main class="d-flex w-100" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
     <div class="container d-flex flex-column">
         <div class="row vh-100">
             <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 mx-auto d-table h-100">
                 <div class="d-table-cell align-middle">
 
-                    <div class="text-center mt-4">
-                        <h1 class="h2">@Portuguese.Welcome!</h1>
-                        <p class="lead">
-                            Faça login na sua conta para continuar.
+                    <div class="text-center mt-4 mb-4">
+                        <div class="bg-white p-3 rounded-circle d-inline-flex shadow-sm mb-3 animate-fade-in">
+                            <i class="fa-solid fa-industry text-primary fs-1"></i>
+                        </div>
+                        <h1 class="h2 fw-bold text-dark animate-fade-in">@Portuguese.Welcome!</h1>
+                        <p class="lead text-muted animate-fade-in delay-1">
+                            Sistema de Gestão de Produção Serona
                         </p>
                     </div>
 
-                    <div class="card">
-                        <div class="card-body">
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
+                        <div class="card-header bg-primary py-3 border-0">
+                            <h5 class="card-title mb-0 text-white text-center">Acesso ao Sistema</h5>
+                        </div>
+                        <div class="card-body p-5">
                             <div class="m-sm-3">
                                 <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
                                     <DataAnnotationsValidator />
                                     
-                                    <div class="mb-3">
-                                        <label class="form-label">@Portuguese.User_Email</label>
-                                        <InputText class="form-control form-control-lg" @bind-Value="loginModel.Email" placeholder="Digite seu e-mail" />
-                                        <ValidationMessage For="@(() => loginModel.Email)" class="text-danger small" />
+                                    <div class="mb-4">
+                                        <label class="form-label text-muted small fw-bold">@Portuguese.User_Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                                            <InputText class="form-control form-control-lg bg-light" @bind-Value="loginModel.Email" placeholder="Digite seu e-mail" />
+                                        </div>
+                                        <ValidationMessage For="@(() => loginModel.Email)" class="text-danger small mt-1" />
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label">@Portuguese.User_Password</label>
-                                        <InputText type="password" class="form-control form-control-lg" @bind-Value="loginModel.Password" placeholder="Sua senha" />
-                                        <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small" />
+                                    <div class="mb-4">
+                                        <label class="form-label text-muted small fw-bold">@Portuguese.User_Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                                            <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg bg-light" @bind-Value="loginModel.Password" placeholder="Sua senha" />
+                                            <button class="btn btn-light border-0" type="button" @onclick="() => showPassword = !showPassword">
+                                                <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye") text-muted"></i>
+                                            </button>
+                                        </div>
+                                        <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small mt-1" />
                                     </div>
 
-                                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <div class="mb-4 d-flex justify-content-between align-items-center">
                                         <div class="form-check">
                                             <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberCheck" />
-                                            <label class="form-check-label" for="rememberCheck">Manter sessão</label>
+                                            <label class="form-check-label small text-muted" for="rememberCheck">Manter sessão</label>
                                         </div>
-                                        <a href="forgot-password" class="small text-muted">Esqueci a senha?</a>
+                                        <a href="forgot-password" class="small text-primary fw-bold text-decoration-none">Esqueci a senha?</a>
                                     </div>
 
                                     <div class="d-grid gap-2 mt-3">
-                                        <button type="submit" class="btn btn-lg btn-primary" disabled="@isLoading">
+                                        <button type="submit" class="btn btn-lg btn-primary shadow-sm py-3 fw-bold" disabled="@isLoading">
                                             @if (isLoading)
                                             {
                                                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -56,21 +71,25 @@
                                             }
                                             else
                                             {
-                                                @Portuguese.Login
+                                                <span>@Portuguese.Login <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i></span>
                                             }
                                         </button>
                                     </div>
 
                                     @if (!string.IsNullOrEmpty(errorMessage))
                                     {
-                                        <div class="alert alert-danger mt-3 mb-0 py-2">
-                                            <i class="fa-solid fa-circle-exclamation me-2"></i>
-                                            <small>@errorMessage</small>
+                                        <div class="alert alert-danger mt-4 mb-0 py-3 border-0 rounded-3 shadow-sm d-flex align-items-center animate-fade-in">
+                                            <i class="fa-solid fa-circle-exclamation me-3 fs-4"></i>
+                                            <small class="fw-bold">@errorMessage</small>
                                         </div>
                                     }
                                 </EditForm>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="text-center mt-4 text-muted small">
+                        &copy; @DateTime.Now.Year - Serona Manufacturing. Todos os direitos reservados.
                     </div>
 
                 </div>
@@ -83,6 +102,7 @@
     private LoginModel loginModel = new();
     private string errorMessage = string.Empty;
     private bool isLoading = false;
+    private bool showPassword = false;
 
     protected override async Task OnInitializedAsync()
     {

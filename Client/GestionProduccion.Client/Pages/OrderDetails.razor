@@ -146,36 +146,40 @@
                 </AuthorizeView>
 
                 <!-- Actions Card -->
-                <AuthorizeView Roles="Administrator,Leader,Operator" Context="actionContext">
-                    <div class="card mb-4 overflow-hidden">
-                        <div class="card-header border-0 pt-4 px-4 bg-light bg-opacity-50">
-                            <h5 class="card-title mb-0">@Portuguese.OP_Controls</h5>
+                <AuthorizeView Roles="Administrator,Leader,Operational" Context="actionContext">
+                    <div class="card mb-4 border-0 shadow-sm overflow-hidden">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 text-dark fw-bold">
+                                <i class="fa-solid fa-gears text-primary me-2"></i> @Portuguese.OP_Controls
+                            </h5>
                         </div>
-                        <div class="card-body p-4">
-                            <div class="d-flex flex-wrap gap-3">
-                                <button class="btn btn-primary px-4 shadow-sm" @onclick="AdvanceStage"
+                        <div class="card-body p-4 pt-2">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary flex-grow-1 flex-md-grow-0" @onclick="AdvanceStage"
                                         disabled="@(order.CurrentStage == "Packaging" || order.CurrentStatus == "Completed")">
                                     <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
                                 </button>
 
-                                <button class="btn btn-warning px-4 shadow-sm" @onclick="() => showQAForm = true">
-                                    <i class="fa-solid fa-triangle-exclamation me-2"></i> @Portuguese.QA_Title
+                                <button class="btn btn-light border flex-grow-1 flex-md-grow-0" @onclick="() => showQAForm = true">
+                                    <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> @Portuguese.QA_Title
                                 </button>
 
-                                <button class="btn btn-success px-4 shadow-sm" @onclick="ShowCompleteModal"
+                                <button class="btn btn-success flex-grow-1 flex-md-grow-0 shadow-soft" @onclick="ShowCompleteModal"
                                         disabled="@(order.CurrentStage != "Packaging" || order.CurrentStatus == "Completed")">
                                     <i class="fa-solid fa-check-double me-2"></i> @Portuguese.OP_Finalize
                                 </button>
-
-                                <AuthorizeView Roles="Administrator,Leader">
-                                    <button class="btn btn-info px-4 shadow-sm text-white" @onclick="ShowAssignModal">
-                                        <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.OP_AssignOperator
-                                    </button>
-                                    <button class="btn btn-outline-danger px-4 shadow-sm" @onclick="ShowChangeStageModal">
-                                        <i class="fa-solid fa-rotate-left me-2"></i> @Portuguese.OP_ChangeStage
-                                    </button>
-                                </AuthorizeView>
                             </div>
+                            
+                            <AuthorizeView Roles="Administrator,Leader">
+                                <div class="mt-3 pt-3 border-top d-flex flex-wrap gap-2">
+                                    <button class="btn btn-outline-info btn-sm" @onclick="ShowAssignModal">
+                                        <i class="fa-solid fa-user-plus me-1"></i> @Portuguese.OP_AssignOperator
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="ShowChangeStageModal">
+                                        <i class="fa-solid fa-rotate-left me-1"></i> @Portuguese.OP_ChangeStage
+                                    </button>
+                                </div>
+                            </AuthorizeView>
                         </div>
                     </div>
                 </AuthorizeView>
@@ -385,7 +389,7 @@
     </div>
 }
 
-<!-- Modal Alterar Est├ígio (Recuo) -->
+<!-- Modal Alterar Estágio (Recuo) -->
 @if (isChangingStage)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -686,13 +690,13 @@
         }
     }
 
-    private string GetStatusSoftClass(string status) => status?.ToLower() switch
+    private string GetStatusSoftClass(string? status) => status?.ToLower() switch
     {
-        "inproduction" => "bg-primary-subtle text-primary",
-        "stopped" => "bg-danger-subtle text-danger",
-        "completed" => "bg-success-subtle text-success",
-        "paused" => "bg-warning-subtle text-warning",
-        _ => "bg-light text-dark"
+        "completed" or "finished" => "badge-soft-success",
+        "inproduction" => "badge-soft-primary",
+        "pending" => "badge-soft-warning",
+        "stopped" or "paused" => "badge-soft-danger",
+        _ => "bg-light text-muted"
     };
 
     private string TranslateStatus(string status) => status?.ToLower() switch

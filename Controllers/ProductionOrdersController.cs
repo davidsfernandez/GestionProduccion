@@ -164,7 +164,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPatch("{orderId}/status")]
-    [Authorize(Roles = "Administrator,Leader,Operator")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
     public async Task<IActionResult> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
     {
         try
@@ -185,7 +185,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPost("bulk-status")]
-    [Authorize(Roles = "Administrator,Leader,Operator")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
     public async Task<ActionResult<BulkUpdateResult>> BulkUpdateStatus([FromBody] BulkUpdateStatusRequest request)
     {
         try
@@ -206,7 +206,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPost("{orderId}/change-stage")]
-    [Authorize(Roles = "Administrator,Leader,Operator")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
     public async Task<IActionResult> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)
     {
         if (!ModelState.IsValid)
@@ -240,7 +240,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPost("{orderId}/advance-stage")]
-    [Authorize(Roles = "Administrator,Leader,Operator")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
     public async Task<IActionResult> AdvanceStage(int orderId)
     {
         try
@@ -365,12 +365,11 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
-    [HttpGet("export-excel")]
-    public async Task<IActionResult> ExportExcel([FromQuery] FilterProductionOrderDto? filter)
+    [HttpPost("export-excel")]
+    public async Task<IActionResult> ExportExcel([FromBody] List<ProductionOrderDto> orders)
     {
         try
         {
-            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
             var excelBytes = await _excelExportService.ExportProductionOrdersToExcelAsync(orders);
             return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
         }

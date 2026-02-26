@@ -5,7 +5,7 @@ namespace GestionProduccion.Client.Resources
         // General
         public const string Save = "Salvar";
         public const string Cancel = "Cancelar";
-        public const string Delete = "Deletar";
+        public const string Delete = "Excluir";
         public const string Deactivate = "Desativar";
         public const string Edit = "Editar";
         public const string Create = "Criar";
@@ -88,7 +88,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_StopProduction = "Parar Produção";
         public const string OP_MarkCompleted = "Marcar como Finalizado";
         public const string OP_AssignTask = "Delegar Tarefa";
-        public const string OP_Note = "Observación / Nota";
+        public const string OP_Note = "Observação / Nota";
         public const string OP_WorkflowTip = "Dica de Fluxo";
         public const string OP_WorkflowDesc = "As ordens devem seguir o fluxo: Corte -> Costura -> Revisão -> Embalagem.";
         public const string OP_BackToList = "Voltar para Lista";
@@ -98,7 +98,7 @@ namespace GestionProduccion.Client.Resources
         public const string OP_ChangeStage = "Alterar Estágio / Retrabalho";
         public const string OP_NewStage = "Novo Estágio";
         public const string OP_ReworkReason = "Motivo / Observação";
-        public const string OP_ReworkRequired = "Obrigatório para retornar a uma fase anterior.";
+        public const string OP_ReworkRequired = "Obrigatório para retornar a una fase anterior.";
         public const string OP_QuickActions = "Atalhos Rápidos";
         public const string OP_PrintTag = "Imprimir Ficha";
         public const string OP_FinancialAnalysis = "Análise Financeira";
@@ -126,7 +126,7 @@ namespace GestionProduccion.Client.Resources
         public const string User_User = "Usuário";
         public const string User_Name = "Nome";
         public const string User_Email = "E-mail";
-        public const string User_Role = "Perfil / Función";
+        public const string User_Role = "Perfil / Função";
         public const string User_Status = "Status";
         public const string User_Active = "Ativo";
         public const string User_Inactive = "Inativo";
@@ -193,10 +193,10 @@ namespace GestionProduccion.Client.Resources
         public const string Cat_SuccessUpdated = "Produto atualizado!";
         public const string Cat_SuccessDeleted = "Produto removido.";
         public const string Cat_ErrLoad = "Erro ao carregar catálogo.";
-        public const string Cat_ErrDeleteLinked = "Não é possível excluir: produto possui ordens vinculadas.";
+        public const string Cat_ErrDeleteLinked = "Não es possível excluir: produto possui ordens vinculadas.";
         public const string Cat_ConfirmDelete = "Tem certeza que deseja excluir este produto?";
         public const string Cat_NoLinkedProduct = "Sem produto vinculado";
-        public const string Cat_UnknownItem = "Elemento Desconcedido";
+        public const string Cat_UnknownItem = "Elemento Desconhecido";
 
         // Toasts
         public const string Toast_SystemNotice = "Notificação do Sistema";

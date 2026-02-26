@@ -94,7 +94,7 @@
                 <div class="modal-body p-4">
                     @if (!isEditing)
                     {
-                        <p class="small text-muted mb-4">Selecione pelo menos un membro para criar a equipe.</p>
+                        <p class="small text-muted mb-4">Selecione pelo menos um membro para criar a equipe.</p>
                     }
                     
                     <EditForm Model="createRequest" OnValidSubmit="HandleSubmit">
@@ -311,7 +311,7 @@
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                    ToastService.ShowToast(error?.Message ?? "Erro: Não há otras equipes para receber os funcionários.", ToastLevel.Error, "Bloqueio de Reatribuição");
+                    ToastService.ShowToast(error?.Message ?? "Erro: Não há outras equipes para receber os funcionários.", ToastLevel.Error, "Bloqueio de Reatribuição");
                 }
                 else
                 {

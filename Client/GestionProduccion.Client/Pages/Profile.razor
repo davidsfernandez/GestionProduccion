@@ -244,6 +244,7 @@
     {
         "administrator" => Portuguese.Role_Admin,
         "leader" => Portuguese.Role_Leader,
+        "operational" => Portuguese.Role_Operator,
         "operator" => Portuguese.Role_Operator,
         "workshop" => Portuguese.Role_Workshop,
         _ => role ?? ""
@@ -265,7 +266,7 @@
             }
             else
             {
-                errorMessage = "Erro ao actualizar senha. Verifique sua senha atual.";
+                errorMessage = "Erro ao atualizar senha. Verifique sua senha atual.";
             }
         }
         catch (Exception ex)

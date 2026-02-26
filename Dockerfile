@@ -35,8 +35,10 @@ COPY --from=publish /app/publish .
 # Create directory for avatar uploads and set permissions
 RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot/img/avatars
 
-# Install curl for healthchecks (optional but recommended)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set entrypoint
 ENTRYPOINT ["dotnet", "GestionProduccion.dll"]

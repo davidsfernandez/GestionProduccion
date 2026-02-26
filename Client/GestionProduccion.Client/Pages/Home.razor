@@ -4,6 +4,7 @@
 @using System.Globalization
 @using GestionProduccion.Models.DTOs
 @using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Components
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject HttpClient Http
@@ -33,10 +34,20 @@
 
         @if (loading && dashboard == null)
         {
-            <div class="d-flex justify-content-center mt-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">@Portuguese.Loading</span>
+            <div class="row">
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+            </div>
+            <div class="row">
+                <div class="col-xl-8">
+                    <div class="card p-5 text-center border-0 shadow-sm">
+                        <div class="spinner-border text-primary mx-auto" role="status"></div>
+                        <div class="mt-3 text-muted">Carregando métricas de produção...</div>
+                    </div>
                 </div>
+                <div class="col-xl-4"><SkeletonCard /><SkeletonCard /></div>
             </div>
         }
         else if (dashboard != null)
@@ -179,7 +190,12 @@
                             </div>
                             @if (dashboard.ProductionByWorkshop == null || !dashboard.ProductionByWorkshop.Any())
                             {
-                                <div class="text-center text-muted small mt-2">Sem dados de produção este mês.</div>
+                                <div class="text-center py-5">
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                        <i class="fa-solid fa-chart-bar text-muted fs-3"></i>
+                                    </div>
+                                    <div class="text-muted small">Sem dados de produção este mês.</div>
+                                </div>
                             }
                         </div>
                     </div>
@@ -269,18 +285,25 @@
                                     @for (int i = 0; i < ranking.Count; i++)
                                     {
                                         var entry = ranking[i];
-                                        <div class="list-group-item border-0 px-4 py-3">
+                                        <div class="list-group-item border-0 px-4 py-3 @(i < 3 ? "glass" : "")">
                                             <div class="d-flex align-items-center">
-                                                <div class="me-3 fw-bold text-muted" style="width: 20px;">@(i + 1)º</div>
-                                                <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
-                                                     class="rounded-circle me-3" width="36" height="36" alt="@entry.UserName">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-0 small fw-bold">@entry.UserName</h6>
-                                                    <small class="text-muted">@entry.CompletedTasks tarefas concluídas</small>
+                                                <div class="me-3 fw-bold @(i == 0 ? "text-primary" : "text-muted")" style="width: 25px;">@(i + 1)º</div>
+                                                <div class="position-relative">
+                                                    <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                         class="rounded-circle me-3 border border-2 @(i == 0 ? "border-primary" : "border-light")" width="42" height="42" alt="@entry.UserName">
+                                                    @if(i < 3) {
+                                                        <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill @(i == 0 ? "bg-warning" : i == 1 ? "bg-secondary" : "bg-bronze")" style="font-size: 0.5rem; @(i == 2 ? "background-color: #cd7f32;" : "")">
+                                                            <i class="fa-solid fa-crown"></i>
+                                                        </span>
+                                                    }
                                                 </div>
-                                                @if (i == 0) { <i class="fa-solid fa-medal text-warning fs-4"></i> }
-                                                else if (i == 1) { <i class="fa-solid fa-medal text-secondary fs-4"></i> }
-                                                else if (i == 2) { <i class="fa-solid fa-medal text-brown fs-4" style="color: #cd7f32;"></i> }
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-0 fw-bold">@entry.UserName</h6>
+                                                    <small class="text-muted fs-xs">@entry.CompletedTasks conclusões</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge badge-soft-primary rounded-pill">@entry.Score.ToString("N0") pts</span>
+                                                </div>
                                             </div>
                                         </div>
                                     }
@@ -313,6 +336,7 @@
 
         SignalR.OnUpdateReceived += async (opId, stage, status) => {
             await LoadDashboard(); // Refresh on updates
+            await LoadRanking();    // Refresh ranking too
             await InvokeAsync(StateHasChanged);
         };
 

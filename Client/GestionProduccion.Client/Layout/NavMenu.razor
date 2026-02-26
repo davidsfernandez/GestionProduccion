@@ -13,11 +13,11 @@
         <div class="sidebar-brand text-center py-3">
             @if (!string.IsNullOrEmpty(CompanyLogo))
             {
-                <img src="@CompanyLogo" alt="Logo" style="max-width: 150px; max-height: 50px; object-fit: contain;" />
+                <img src="@CompanyLogo" alt="Logo" style="max-width: 200px; max-height: 80px; object-fit: contain;" />
             }
             else
             {
-                <span class="align-middle text-white fw-bold">GESTÃƒO DE PRODUÃ‡ÃƒO</span>
+                <span class="align-middle text-white fw-bold">GESTÃO DE PRODUÇÃO</span>
             }
         </div>
 
@@ -47,63 +47,70 @@
         </AuthorizeView>
 
         <ul class="sidebar-nav">
-            <li class="menu-label">Principal</li>
+            <li class="menu-label">Produção</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All" @onclick="CollapseSidebar">
-                    <i class="fa-solid fa-house"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
+                    <i class="fa-solid fa-gauge-high"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
                 </NavLink>
             </li>
 
-            <AuthorizeView Roles="Administrator,Leader">
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="orders" @onclick="CollapseSidebar">
+                    <i class="fa-solid fa-boxes-stacked"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                </NavLink>
+            </li>
+
+            <AuthorizeView Roles="Leader,Operational" Context="opTasks">
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="orders" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-list-check"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                    <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-clipboard-list"></i> <span class="align-middle">Minhas Tarefas</span>
                     </NavLink>
                 </li>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Administrator,Leader">
+                <li class="menu-label">Gestão de Fábrica</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-tags"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
+                        <i class="fa-solid fa-layer-group"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="equipes" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-users"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
+                        <i class="fa-solid fa-people-group"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
                     </NavLink>
                 </li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="delegar-tarefas" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-list-check"></i> <span class="align-middle">Delegar Tarefas</span>
-                    </NavLink>
-                </li>
-            </AuthorizeView>
-
-            <AuthorizeView Roles="Leader,Operational">
-                <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-tasks"></i> <span class="align-middle">Minhas Tarefas</span>
+                        <i class="fa-solid fa-user-check"></i> <span class="align-middle">Delegar Tarefas</span>
                     </NavLink>
                 </li>
             </AuthorizeView>
 
             <AuthorizeView Roles="Administrator">
+                <li class="menu-label">Inteligência & BI</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="relatorios" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-money-bill-trend-up"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
+                        <i class="fa-solid fa-chart-pie"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
+                    </NavLink>
+                </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="bonus-report" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-sack-dollar"></i> <span class="align-middle">Ranking & Bônus</span>
                     </NavLink>
                 </li>
             </AuthorizeView>
 
-            <li class="menu-label">Conta</li>
+            <li class="menu-label">Configurações</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="profile" @onclick="CollapseSidebar">
-                    <i class="fa-solid fa-user-gear"></i> <span class="align-middle">@Portuguese.Nav_Profile</span>
+                    <i class="fa-solid fa-id-badge"></i> <span class="align-middle">@Portuguese.Nav_Profile</span>
                 </NavLink>
             </li>
 
             <AuthorizeView Roles="Administrator">
-                <li class="menu-label">Configurações</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="usuarios" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
@@ -111,7 +118,7 @@
                 </li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="configuracoes" @onclick="CollapseSidebar">
-                        <i class="fa-solid fa-gear"></i> <span class="align-middle">Configurações</span>
+                        <i class="fa-solid fa-sliders"></i> <span class="align-middle">Ajustes do Sistema</span>
                     </NavLink>
                 </li>
             </AuthorizeView>
@@ -226,6 +233,7 @@
     {
         "administrator" => Portuguese.Role_Admin,
         "leader" => Portuguese.Role_Leader,
+        "operational" => Portuguese.Role_Operator,
         "operator" => Portuguese.Role_Operator,
         "sewer" => Portuguese.Role_Operator, // Map legacy role to current terminology
         "workshop" => Portuguese.Role_Workshop,

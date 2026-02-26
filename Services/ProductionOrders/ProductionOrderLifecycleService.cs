@@ -20,6 +20,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     private readonly IHubContext<ProductionHub> _hubContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductService _productService;
+    private readonly ITaskService _taskService;
 
     private readonly IFinancialCalculatorService _financialCalculator;
 
@@ -30,7 +31,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         IHubContext<ProductionHub> hubContext,
         IHttpContextAccessor httpContextAccessor,
         IFinancialCalculatorService financialCalculator,
-        IProductService productService)
+        IProductService productService,
+        ITaskService taskService)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
@@ -39,6 +41,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         _httpContextAccessor = httpContextAccessor;
         _financialCalculator = financialCalculator;
         _productService = productService;
+        _taskService = taskService;
     }
 
     private int GetCurrentUserId()
@@ -87,6 +90,15 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order.CurrentStatus == ProductionStatus.Completed && newStatus != ProductionStatus.Completed) return false;
 
         var previousStatus = order.CurrentStatus;
+        
+        // Ranking Check Logic - Get Previous Leader
+        string previousLeader = "";
+        if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
+        {
+            var currentRanking = await _taskService.GetPerformanceRankingAsync();
+            previousLeader = currentRanking.FirstOrDefault()?.UserName ?? "";
+        }
+
         order.CurrentStatus = newStatus;
         order.UpdatedAt = DateTime.UtcNow;
 
@@ -112,6 +124,13 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         }
 
         await _orderRepository.SaveChangesAsync();
+        
+        // RE-CHECK RANKING AFTER SAVING TO DB
+        if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
+        {
+            await _taskService.CheckForLeaderChangeAsync(previousLeader);
+        }
+
         await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
         return true;

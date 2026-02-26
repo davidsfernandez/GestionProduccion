@@ -4,16 +4,47 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.SignalR;
+using GestionProduccion.Hubs;
 
 namespace GestionProduccion.Services;
 
 public class OperationalTaskService : ITaskService
 {
     private readonly AppDbContext _context;
+    private readonly IMemoryCache _cache;
+    private readonly IHubContext<ProductionHub> _hubContext;
+    private const string RankingCacheKey = "PerformanceRanking";
 
-    public OperationalTaskService(AppDbContext context)
+    public OperationalTaskService(AppDbContext context, IMemoryCache cache, IHubContext<ProductionHub> hubContext)
     {
         _context = context;
+        _cache = cache;
+        _hubContext = hubContext;
+    }
+
+    public void ClearRankingCache()
+    {
+        _cache.Remove(RankingCacheKey);
+    }
+
+    public async Task CheckForLeaderChangeAsync(string previousLeaderName)
+    {
+        ClearRankingCache();
+        var currentRanking = await GetPerformanceRankingAsync();
+        var currentLeader = currentRanking.FirstOrDefault();
+
+        if (currentLeader != null && currentLeader.UserName != previousLeaderName)
+        {
+            // The leader changed! Notify everyone
+            await _hubContext.Clients.All.SendAsync("ReceiveMessage", new
+            {
+                message = $"Novo líder no ranking! {currentLeader.UserName} assumiu o 1º lugar com {currentLeader.CompletedTasks} tarefas concluídas! 🏆",
+                timestamp = DateTime.UtcNow,
+                type = "LeaderChange"
+            });
+        }
     }
 
     public async Task<OperationalTask> CreateTaskAsync(CreateTaskDto dto)
@@ -29,6 +60,7 @@ public class OperationalTaskService : ITaskService
 
         _context.OperationalTasks.Add(task);
         await _context.SaveChangesAsync();
+        ClearRankingCache();
         return task;
     }
 
@@ -57,9 +89,25 @@ public class OperationalTaskService : ITaskService
         var task = await _context.OperationalTasks.FindAsync(taskId);
         if (task != null)
         {
+            var oldStatus = task.Status;
+            
+            // Ranking Check Logic - Get Previous Leader
+            string previousLeader = "";
+            if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
+            {
+                var currentRanking = await GetPerformanceRankingAsync();
+                previousLeader = currentRanking.FirstOrDefault()?.UserName ?? "";
+            }
+
             task.Status = status;
             if (status == OpTaskStatus.Completed) task.CompletionDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
+            {
+                // Re-check ranking and notify if leader changed
+                await CheckForLeaderChangeAsync(previousLeader);
+            }
         }
     }
 
@@ -77,18 +125,23 @@ public class OperationalTaskService : ITaskService
             {
                 u.FullName,
                 AvatarUrl = u.AvatarUrl,
-                CompletedCount = _context.OperationalTasks
-                    .Count(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed)
+                CompletedTasksCount = _context.OperationalTasks
+                    .Count(t => t.AssignedUserId == u.Id && t.Status == OpTaskStatus.Completed),
+                CompletedOrdersCount = _context.ProductionOrders
+                    .Count(o => o.UserId == u.Id && o.CurrentStatus == ProductionStatus.Completed)
             })
             .ToListAsync(cancellationToken);
 
         var result = rawData
-            .Select(u => new RankingEntryDto
-            {
-                UserName = u.FullName,
-                AvatarUrl = u.AvatarUrl ?? "",
-                CompletedTasks = u.CompletedCount,
-                Score = u.CompletedCount * 10.0
+            .Select(u => {
+                int totalCompleted = u.CompletedTasksCount + u.CompletedOrdersCount;
+                return new RankingEntryDto
+                {
+                    UserName = u.FullName,
+                    AvatarUrl = u.AvatarUrl ?? "",
+                    CompletedTasks = totalCompleted,
+                    Score = totalCompleted * 10.0
+                };
             })
             .OrderByDescending(r => r.Score)
             .ThenByDescending(r => r.CompletedTasks)

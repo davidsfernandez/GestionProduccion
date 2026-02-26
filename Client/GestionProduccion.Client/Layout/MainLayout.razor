@@ -2,6 +2,8 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
+@inject GestionProduccion.Client.Services.ISignalRService SignalR
+@inject GestionProduccion.Client.Services.ToastService ToastService
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Client.Components
 @using GestionProduccion.Client.Resources
@@ -50,9 +52,33 @@
 @code {
     private bool _isSidebarCollapsed = true;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
+        
+        // Start SignalR for global notifications
+        try
+        {
+            var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+            await SignalR.StartConnection(hubUrl);
+            SignalR.OnMessageReceived += HandleGlobalMessage;
+        }
+        catch { }
+    }
+
+    private void HandleGlobalMessage(string message, string type)
+    {
+        InvokeAsync(() => {
+            if (type == "LeaderChange")
+            {
+                ToastService.ShowToast(message, GestionProduccion.Client.Services.ToastLevel.Info, "Ranking Atualizado!");
+            }
+            else
+            {
+                ToastService.ShowToast(message, GestionProduccion.Client.Services.ToastLevel.Info, "Notificação");
+            }
+            StateHasChanged();
+        });
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -92,5 +118,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        SignalR.OnMessageReceived -= HandleGlobalMessage;
     }
 }

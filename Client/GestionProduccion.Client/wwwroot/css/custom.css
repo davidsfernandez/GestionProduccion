@@ -198,32 +198,103 @@ body {
     background-color: #f8fafc !important;
 }
 
-/* --- UTILITIES & SOFT BACKGROUNDS --- */
-.badge {
-    border-radius: 8px !important;
-    padding: 6px 12px !important;
-    font-weight: 600 !important;
+/* --- SCROLLBARS --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.text-primary { color: var(--serona-primary) !important; }
-.bg-primary { background-color: var(--serona-primary) !important; }
-
-/* Fix progress bar visibility */
-.progress-bar.bg-primary {
-    background-color: var(--serona-primary) !important;
+::-webkit-scrollbar-track {
+    background: var(--serona-bg);
 }
 
-.xsmall {
-    font-size: 0.7rem;
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
 }
 
-/* Custom Soft Backgrounds (Fixes Green Block Issue) */
-.bg-primary-soft { background-color: rgba(0, 200, 153, 0.1) !important; color: #00C899 !important; }
-.bg-success-soft { background-color: rgba(34, 197, 94, 0.1) !important; color: #22c55e !important; }
-.bg-danger-soft { background-color: rgba(239, 68, 68, 0.1) !important; color: #ef4444 !important; }
-.bg-warning-soft { background-color: rgba(245, 158, 11, 0.1) !important; color: #f59e0b !important; }
-.bg-info-soft { background-color: rgba(59, 130, 246, 0.1) !important; color: #3b82f6 !important; }
-.bg-dark-soft { background-color: rgba(30, 41, 59, 0.1) !important; color: #1e293b !important; }
+::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* --- REFINED TABLE STYLES --- */
+.table thead th {
+    background-color: #F8FAFC !important;
+    border-bottom: 2px solid #E2E8F0 !important;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 200, 153, 0.03) !important;
+    cursor: pointer;
+}
+
+/* --- IMPROVED BADGES --- */
+.badge-soft-primary { background-color: rgba(0, 200, 153, 0.1); color: #00C899; }
+.badge-soft-success { background-color: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.badge-soft-danger { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.badge-soft-warning { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.badge-soft-info { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+
+/* --- TIMELINE ENHANCEMENTS --- */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 5px;
+    bottom: 0;
+    width: 2px;
+    background: #E2E8F0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -24px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #00C899;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px rgba(0, 200, 153, 0.2);
+    z-index: 1;
+}
+
+/* --- UTILITIES --- */
+.uppercase { text-transform: uppercase; }
+.fs-xs { font-size: 0.75rem; }
+.fs-xxs { font-size: 0.65rem; }
+.italic { font-style: italic; }
+
+.menu-label {
+    padding: 20px 25px 10px !important;
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.sidebar-profile .profile-img {
+    transition: all 0.3s ease;
+}
+
+.sidebar-profile:hover .profile-img {
+    transform: scale(1.05);
+    border-color: var(--serona-primary) !important;
+}
 
 /* --- ANIMATIONS (Phase 4.1) --- */
 @keyframes fadeInUp {

@@ -228,6 +228,9 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             TotalCost = order.TotalCost,
             AverageCostPerPiece = order.AverageCostPerPiece,
             ProfitMargin = order.ProfitMargin,
+            StartedAt = order.StartedAt,
+            CompletedAt = order.CompletedAt,
+            EffectiveMinutes = CalculateEffectiveMinutes(order),
             Product = order.Product != null ? new ProductDto
             {
                 Id = order.Product.Id,
@@ -238,6 +241,36 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
                 AverageProductionTimeMinutes = order.Product.AverageProductionTimeMinutes
             } : null
         };
+    }
+
+    private double CalculateEffectiveMinutes(ProductionOrder order)
+    {
+        if (order.History == null || !order.History.Any()) return 0;
+
+        var sortedHistory = order.History.OrderBy(h => h.ChangedAt).ToList();
+        double totalSeconds = 0;
+        DateTime? lastStartTime = null;
+
+        foreach (var entry in sortedHistory)
+        {
+            if (entry.NewStatus == ProductionStatus.InProduction)
+            {
+                lastStartTime = entry.ChangedAt;
+            }
+            else if (entry.PreviousStatus == ProductionStatus.InProduction && lastStartTime != null)
+            {
+                totalSeconds += (entry.ChangedAt - lastStartTime.Value).TotalSeconds;
+                lastStartTime = null;
+            }
+        }
+
+        if (lastStartTime != null)
+        {
+            var endPoint = order.CompletedAt ?? DateTime.UtcNow;
+            totalSeconds += (endPoint - lastStartTime.Value).TotalSeconds;
+        }
+
+        return totalSeconds / 60.0;
     }
 
     private string GetColorByIndex(int index)

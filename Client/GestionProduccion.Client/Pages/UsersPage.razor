@@ -113,13 +113,13 @@
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(21, 22, 40, 0.6); backdrop-filter: blur(4px);">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
-                <div class="modal-header border-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold text-dark">
-                        <i class="fa-solid @(isEditing ? "fa-user-pen" : "fa-user-plus") text-primary me-2"></i>
+            <div class="modal-content shadow-lg border-0 overflow-hidden" style="border-radius: 20px;">
+                <div class="modal-header bg-primary py-3 border-0">
+                    <h5 class="modal-title fw-bold text-white">
+                        <i class="fa-solid @(isEditing ? "fa-user-pen" : "fa-user-plus") me-2"></i>
                         @(isEditing ? Portuguese.Edit : Portuguese.Create) @Portuguese.User_User
                     </h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-4">
                     @if (!string.IsNullOrEmpty(errorMessage))
@@ -147,12 +147,28 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
-                                <InputText type="password" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
-                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em branco para manter a atual</small> }
+                                <div class="input-group">
+                                    <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
+                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showPassword = !showPassword">
+                                        <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                </div>
+                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em blanco para manter a atual</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
 
                             <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-muted">Confirmar Senha @(isEditing ? "*" : "")</label>
+                                <div class="input-group">
+                                    <InputText type="@(showConfirmPassword ? "text" : "password")" class="form-control form-control-lg" @bind-Value="userModel.ConfirmPassword" placeholder="Repita a senha" />
+                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showConfirmPassword = !showConfirmPassword">
+                                        <i class="fa-solid @(showConfirmPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                </div>
+                                <ValidationMessage For="@(() => userModel.ConfirmPassword)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Role</label>
                                 <InputSelect class="form-select form-select-lg" @bind-Value="userModel.Role">
                                     @foreach (var role in Enum.GetValues<UserRole>())
@@ -198,6 +214,8 @@
     private bool isEditing = false;
     private UserFormModel userModel = new();
     private int editingUserId;
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -369,7 +387,7 @@
         }
         catch (HttpRequestException)
         {
-            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
+            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -423,6 +441,9 @@
         
         [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
         public string Password { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas não coincidem.")]
+        public string ConfirmPassword { get; set; } = "";
         
         public UserRole Role { get; set; } = UserRole.Operational;
 

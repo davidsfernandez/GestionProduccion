@@ -28,7 +28,7 @@
                     {
                         <label class="form-label small fw-bold">Selecione a Equipe</label>
                         <select class="form-select" @bind="selectedId">
-                            <option value="0">Selecione una equipe...</option>
+                            <option value="0">Selecione uma equipe...</option>
                             @if (teams != null)
                             {
                                 @foreach (var team in teams)
@@ -42,7 +42,7 @@
                     {
                         <label class="form-label small fw-bold">Selecione o Funcionário</label>
                         <select class="form-select" @bind="selectedId">
-                            <option value="0">Selecione un funcionário...</option>
+                            <option value="0">Selecione um funcionário...</option>
                             @if (users != null)
                             {
                                 @foreach (var user in users)
@@ -182,7 +182,7 @@
                 users = users.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowToast("Erro ao carregar dados auxiliares.", ToastLevel.Error);
         }

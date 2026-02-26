@@ -48,6 +48,7 @@
                     <table class="table table-hover my-0">
                         <thead>
                             <tr>
+                                <th>SKU</th>
                                 <th>Código</th>
                                 <th>Nome do Produto</th>
                                 <th>@Portuguese.Cat_FabricType</th>
@@ -59,13 +60,14 @@
                         <tbody>
                             @if (filteredProducts == null || !filteredProducts.Any())
                             {
-                                <tr><td colspan="6" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
+                                <tr><td colspan="7" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
                             }
                             else
                             {
                                 @foreach (var product in filteredProducts)
                                 {
                                     <tr @key="product.Id">
+                                        <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
                                         <td><strong>@product.InternalCode</strong></td>
                                         <td>@product.Name</td>
                                         <td>@product.FabricType</td>
@@ -94,12 +96,11 @@
 {
     <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title"><strong>@(editingId == 0 ? Portuguese.Cat_NewProduct : Portuguese.Cat_EditProduct)</strong></h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
-                </div>
-                <div class="modal-body p-4">
+            <div class="modal-content border-0 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary py-3">
+                    <h5 class="modal-title text-white"><strong>@(editingId == 0 ? Portuguese.Cat_NewProduct : Portuguese.Cat_EditProduct)</strong></h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>                <div class="modal-body p-4">
                     <EditForm Model="@editingProduct" OnValidSubmit="SaveProduct" OnInvalidSubmit="HandleInvalidSubmit">
                         <DataAnnotationsValidator />
                         <ValidationSummary class="text-danger small mb-3" />
@@ -254,7 +255,7 @@
         else
         {
             editingId = 0;
-            editingProduct = new CreateProductDto();
+            editingProduct = new CreateProductDto { MainSku = "SKU-" };
         }
         showModal = true;
     }
@@ -317,7 +318,7 @@
         }
         catch (HttpRequestException)
         {
-            ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
+            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -343,7 +344,7 @@
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    ToastService.ShowToast("Não é posible excluir un produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
+                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
                 }
                 else
                 {
@@ -353,7 +354,7 @@
             }
             catch (HttpRequestException)
             {
-                ToastService.ShowToast("Servidor inalcançável", ToastLevel.Error);
+                ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
             }
             catch (Exception ex)
             {

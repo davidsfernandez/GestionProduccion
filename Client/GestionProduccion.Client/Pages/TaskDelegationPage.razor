@@ -133,7 +133,7 @@
             var tasksResp = await tasksTask;
             if (tasksResp?.Success == true) tasks = tasksResp.Data;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ToastService.ShowToast("Erro ao carregar dados.", ToastLevel.Error);
         }

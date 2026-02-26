@@ -53,7 +53,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Verdana"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -96,14 +96,55 @@ public class ReportService : IReportService
                             columns.RelativeColumn();
                         });
 
-                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(14); });
-                        table.Cell().Text(t => { t.Span("Data Entrega: ").Bold(); t.Span(order.EstimatedCompletionAt.ToShortDateString()); });
+                        table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(12); });
+                        table.Cell().Text(t => { t.Span("SKU: ").Bold(); t.Span(order.ProductCode ?? "N/A").FontSize(12); });
 
-                        var productDesc = order.ProductName ?? "Elemento Desconocido";
-                        var sizeDesc = order.Size ?? "N/A";
-
-                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{productDesc} (Tam: {sizeDesc})"); });
+                        table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{order.ProductName ?? "N/A"} (Tam: {order.Size ?? "N/A"})"); });
                         table.Cell().Text(t => { t.Span("Quantidade: ").Bold(); t.Span(order.Quantity.ToString()); });
+
+                        table.Cell().Text(t => { t.Span("Equipe: ").Bold(); t.Span(order.SewingTeamName ?? "Não atribuída"); });
+                        table.Cell().Text(t => { t.Span("Operário: ").Bold(); t.Span(order.AssignedUserName ?? "Não atribuído"); });
+
+                        table.Cell().Text(t => { t.Span("Início: ").Bold(); t.Span(order.StartedAt?.ToString("g") ?? "Não iniciado"); });
+                        table.Cell().Text(t => { t.Span("Fim Real: ").Bold(); t.Span(order.CompletedAt?.ToString("g") ?? "-"); });
+
+                        table.Cell().Text(t => { t.Span("Prazo Estimado: ").Bold(); t.Span(order.EstimatedCompletionAt.ToShortDateString()); });
+                        table.Cell().Text(t => { t.Span("Status: ").Bold(); t.Span(TranslateStatus(order.CurrentStatus)); });
+                    });
+
+                    // METRICS & PERFORMANCE
+                    x.Item().Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            var pauseCount = history.Count(h => h.NewStatus == "Stopped" || h.NewStatus == "Paused");
+                            var totalEffectiveMinutes = order.EffectiveMinutes;
+                            var avgHistoricalMinutes = order.Product?.AverageProductionTimeMinutes ?? 0;
+                            var perfIndex = avgHistoricalMinutes > 0 ? (avgHistoricalMinutes / (totalEffectiveMinutes / Math.Max(1, order.Quantity))) * 100 : 100;
+
+                            c.Item().Text("Métricas de Produção").Bold().FontSize(11).FontColor(Colors.Grey.Darken2);
+                            c.Item().Text(t => { t.Span("Tempo Efetivo: ").Bold(); t.Span($"{totalEffectiveMinutes:N1} min"); });
+                            c.Item().Text(t => { t.Span("Total de Pausas: ").Bold(); t.Span(pauseCount.ToString()); });
+                            
+                            if (avgHistoricalMinutes > 0)
+                            {
+                                c.Item().Text(t => { 
+                                    t.Span("Desempenho: ").Bold(); 
+                                    t.Span($"{perfIndex:N1}% ").FontColor(perfIndex >= 90 ? Colors.Green.Medium : Colors.Red.Medium);
+                                    t.Span(perfIndex >= 100 ? "(Acima da média)" : "(Abaixo da média)").FontSize(8).Italic();
+                                });
+                            }
+                        });
+
+                        if (order.EstimatedCompletionAt < (order.CompletedAt ?? DateTime.UtcNow))
+                        {
+                            row.ConstantItem(150).Background(Colors.Red.Lighten5).Padding(10).AlignCenter().Column(c =>
+                            {
+                                c.Item().Text("ATENÇÃO: ATRASO").Bold().FontColor(Colors.Red.Medium);
+                                var delay = ((order.CompletedAt ?? DateTime.UtcNow) - order.EstimatedCompletionAt).TotalDays;
+                                c.Item().Text($"{delay:N1} dias de atraso").FontSize(9);
+                            });
+                        }
                     });
 
                     // RESUMO FINANCEIRO
@@ -123,7 +164,7 @@ public class ReportService : IReportService
                     }
 
                     // HISTORY TABLE
-                    x.Item().PaddingTop(10).Text("Histórico de Movimentación").Bold().FontSize(12);
+                    x.Item().PaddingTop(10).Text("Histórico de Movimentação").Bold().FontSize(12);
                     x.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
@@ -178,7 +219,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Verdana"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
 
                 // HEADER
                 page.Header().Row(row =>
@@ -214,17 +255,23 @@ public class ReportService : IReportService
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3); columns.RelativeColumn(4); columns.RelativeColumn(3); columns.RelativeColumn(3); columns.RelativeColumn(3);
+                            columns.RelativeColumn(3); // SKU
+                            columns.RelativeColumn(3); // Lote
+                            columns.RelativeColumn(4); // Produto
+                            columns.RelativeColumn(3); // Equipe
+                            columns.RelativeColumn(3); // Operário
+                            columns.RelativeColumn(2); // Status
                         });
 
                         table.Header(header =>
                         {
+                            header.Cell().Element(HeaderStyle).Text("SKU");
                             header.Cell().Element(HeaderStyle).Text("Lote/OP");
                             header.Cell().Element(HeaderStyle).Text("Produto");
                             header.Cell().Element(HeaderStyle).Text("Equipe");
+                            header.Cell().Element(HeaderStyle).Text("Operário");
                             header.Cell().Element(HeaderStyle).Text("Status");
-                            header.Cell().Element(HeaderStyle).Text("Custo Unit.");
-                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
+                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9));
                         });
 
                         if (dashboard?.TodaysOrders != null)
@@ -233,11 +280,12 @@ public class ReportService : IReportService
                             {
                                 var order = dashboard.TodaysOrders[i];
                                 var bgColor = i % 2 == 0 ? Colors.White : Colors.Grey.Lighten5;
-                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.LotCode ?? "-");
-                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-");
-                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-");
-                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus));
-                                table.Cell().Element(c => CellStyle(c, bgColor)).AlignRight().Text($"R$ {order.AverageCostPerPiece:N2}");
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductCode ?? "-").FontSize(8);
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.LotCode ?? "-").FontSize(8);
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.ProductName ?? "-").FontSize(8);
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.SewingTeamName ?? "-").FontSize(8);
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(order.AssignedUserName ?? "-").FontSize(8);
+                                table.Cell().Element(c => CellStyle(c, bgColor)).Text(TranslateStatus(order.CurrentStatus)).FontSize(8);
                                 static IContainer CellStyle(IContainer container, string bgColor) => container.Background(bgColor).Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
                             }
                         }
@@ -283,7 +331,7 @@ public class ReportService : IReportService
     {
         "cutting" => "Corte",
         "sewing" => "Costura",
-        "review" => "Revisión",
+        "review" => "Revisão",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };

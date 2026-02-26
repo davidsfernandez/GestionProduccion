@@ -12,4 +12,6 @@ public interface ITaskService
     Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status);
     Task CompleteTaskAsync(int taskId);
     Task<List<RankingEntryDto>> GetPerformanceRankingAsync(CancellationToken cancellationToken = default);
+    void ClearRankingCache();
+    Task CheckForLeaderChangeAsync(string previousLeaderName);
 }
