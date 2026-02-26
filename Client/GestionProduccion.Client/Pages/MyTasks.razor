@@ -161,11 +161,11 @@
                             @foreach (var task in adminTasks)
                             {
                                 <div class="col-12 col-md-6 col-lg-4 mb-4">
-                                    <div class="card shadow-sm h-100 border-start border-4 border-warning">
+                                    <div class="card shadow-sm h-100 border-start border-4 @(task.IsOverdue ? "border-danger" : "border-warning")">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between mb-2">
                                                 <h5 class="card-title fw-bold mb-0">@task.Title</h5>
-                                                @if (task.Deadline < DateTime.Now)
+                                                @if (task.IsOverdue)
                                                 {
                                                     <span class="badge bg-danger">Atrasado</span>
                                                 }
@@ -174,15 +174,18 @@
                                             
                                             <div class="mb-3">
                                                 <div class="d-flex justify-content-between small mb-1">
-                                                    <span>Prazo</span>
-                                                    <span class="@(task.Deadline < DateTime.Now ? "text-danger" : "")">
-                                                        @(task.Deadline?.ToString("dd/MM HH:mm") ?? "-")
+                                                    <span>Progresso</span>
+                                                    <span class="@(task.IsOverdue ? "text-danger fw-bold" : "")">
+                                                        @task.ProgressPercentage.ToString("F0")%
                                                     </span>
                                                 </div>
                                                 <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar @(task.ProgressPercentage > 90 ? "bg-danger" : "bg-warning")" 
+                                                    <div class="progress-bar @(task.IsOverdue ? "bg-danger" : task.ProgressPercentage > 80 ? "bg-warning" : "bg-primary")" 
                                                          role="progressbar" 
-                                                         style="width: @task.ProgressPercentage.ToString("F0")%"></div>
+                                                         style="width: @(Math.Min(100, task.ProgressPercentage))%"></div>
+                                                </div>
+                                                <div class="mt-2 text-end">
+                                                    <small class="text-muted xsmall">Prazo: @(task.Deadline?.ToString("dd/MM HH:mm") ?? "-")</small>
                                                 </div>
                                             </div>
 

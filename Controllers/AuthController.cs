@@ -141,7 +141,7 @@ public class AuthController : ControllerBase
         }
 
         var user = storedToken.User;
-        var newToken = GenerateJwtToken(user, TimeSpan.FromHours(8));
+        var newToken = GenerateJwtToken(user, TimeSpan.FromDays(7));
         var newRefreshToken = GenerateRefreshToken();
 
         storedToken.IsRevoked = true;

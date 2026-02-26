@@ -166,12 +166,13 @@ public class OperationalTaskService : ITaskService
     private static double CalculateProgress(OperationalTask t)
     {
         if (t.Status == OpTaskStatus.Completed) return 100;
-        if (t.Deadline == null) return 0;
+        if (t.Deadline == null || t.Deadline <= t.CreatedAt) return 0;
 
         var total = (t.Deadline.Value - t.CreatedAt).TotalSeconds;
         var elapsed = (DateTime.UtcNow - t.CreatedAt).TotalSeconds;
 
+        // Do not clamp to 100, allowing UI to show "Overdue" state if > 100%
         var progress = (elapsed / total) * 100;
-        return Math.Clamp(progress, 0, 100);
+        return Math.Max(0, Math.Round(progress, 1));
     }
 }

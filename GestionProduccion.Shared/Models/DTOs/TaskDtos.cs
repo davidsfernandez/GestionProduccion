@@ -28,4 +28,5 @@ public class TaskDto
     public DateTime CreationDate { get; set; }
     public DateTime? Deadline { get; set; }
     public double ProgressPercentage { get; set; }
+    public bool IsOverdue => ProgressPercentage > 100 && Status != "Completed";
 }

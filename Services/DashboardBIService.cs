@@ -15,7 +15,7 @@ public class DashboardBIService : IDashboardBIService
         _context = context;
     }
 
-    public async Task<DashboardCompleteResponse> GetCompleteDashboardAsync()
+    public async Task<DashboardCompleteResponse> GetCompleteDashboardAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         var today = now.Date;
@@ -26,24 +26,24 @@ public class DashboardBIService : IDashboardBIService
         var monthProduction = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
-            .SumAsync(o => o.Quantity);
+            .SumAsync(o => o.Quantity, ct);
 
         // 2. Average Cost & Margin
         var monthOrders = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
         decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
 
-        // 3. Delayed Orders (Pending/InProduction + Past Deadline)
+        // 3. Delayed Orders
         var delayedCount = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
                         && o.EstimatedCompletionAt < now)
-            .CountAsync();
+            .CountAsync(ct);
 
         // 4. Production by Workshop
         var prodByWorkshop = await _context.ProductionOrders
@@ -55,21 +55,25 @@ public class DashboardBIService : IDashboardBIService
                 WorkshopName = g.Key,
                 Quantity = g.Sum(x => x.Quantity)
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        // 5. Weekly Production (Last 7 Days)
+        // 5. Weekly Production (OPTIMIZED: Single Query)
+        var sevenDaysAgo = today.AddDays(-6);
+        var weeklyRaw = await _context.ProductionOrders
+            .AsNoTracking()
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
+            .GroupBy(o => o.CompletedAt!.Value.Date)
+            .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
+            .ToListAsync(ct);
+
         var weeklyData = new List<int>();
         var weeklyLabels = new List<string>();
         for (int i = 6; i >= 0; i--)
         {
             var date = today.AddDays(-i);
-            var nextDate = date.AddDays(1);
-            var count = await _context.ProductionOrders
-                .AsNoTracking()
-                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= date && o.CompletedAt < nextDate)
-                .SumAsync(o => (int?)o.Quantity) ?? 0;
-
-            weeklyData.Add(count);
+            var totalForDay = weeklyRaw.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
+            
+            weeklyData.Add(totalForDay);
             weeklyLabels.Add(date.ToString("ddd", ptBr).Replace(".", ""));
         }
 
@@ -83,13 +87,13 @@ public class DashboardBIService : IDashboardBIService
                 ProductId = g.Key,
                 AvgMargin = g.Average(x => x.ProfitMargin)
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var productIds = productStats.Select(x => x.ProductId).ToList();
         var products = await _context.Products
             .AsNoTracking()
             .Where(p => productIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, p => new { p.Name, p.MainSku });
+            .ToDictionaryAsync(p => p.Id, p => new { p.Name, p.MainSku }, ct);
 
         var profitabilityList = productStats
             .Where(p => products.ContainsKey(p.ProductId))
@@ -109,7 +113,7 @@ public class DashboardBIService : IDashboardBIService
             .Where(o => o.CreatedAt >= sixtyDaysAgo)
             .Select(o => o.ProductId)
             .Distinct()
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var stalledProducts = await _context.Products
             .AsNoTracking()
@@ -121,7 +125,7 @@ public class DashboardBIService : IDashboardBIService
                 DaysSinceLastProduction = 60
             })
             .Take(10)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return new DashboardCompleteResponse
         {

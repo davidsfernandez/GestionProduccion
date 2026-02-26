@@ -4,5 +4,5 @@ namespace GestionProduccion.Services.Interfaces;
 
 public interface IDashboardBIService
 {
-    Task<DashboardCompleteResponse> GetCompleteDashboardAsync();
+    Task<DashboardCompleteResponse> GetCompleteDashboardAsync(CancellationToken ct = default);
 }

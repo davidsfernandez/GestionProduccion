@@ -273,7 +273,7 @@
                     </AuthorizeView>
 
                     <!-- PERFORMANCE RANKING (Gamification) -->
-                    <div class="card flex-fill animate-fade-in-up delay-3">
+                    <div class="card flex-fill animate-fade-in-up delay-3 mb-4">
                         <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Ranking de Desempenho</h5>
                             <span class="badge bg-success-soft text-success">Top Operadores</span>
@@ -292,7 +292,7 @@
                                                     <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
                                                          class="rounded-circle me-3 border border-2 @(i == 0 ? "border-primary" : "border-light")" width="42" height="42" alt="@entry.UserName">
                                                     @if(i < 3) {
-                                                        <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill @(i == 0 ? "bg-warning" : i == 1 ? "bg-secondary" : "bg-bronze")" style="font-size: 0.5rem; @(i == 2 ? "background-color: #cd7f32;" : "")">
+                                                        <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill @(i == 0 ? "bg-warning" : i == 1 ? "bg-secondary" : i == 2 ? "bg-bronze" : "")" style="font-size: 0.5rem; @(i == 2 ? "background-color: #cd7f32;" : "")">
                                                             <i class="fa-solid fa-crown"></i>
                                                         </span>
                                                     }
@@ -316,6 +316,50 @@
                         </div>
                     </div>
 
+                    <!-- ACTIVE ADMIN TASKS (ADMIN/LEADER ONLY) -->
+                    <AuthorizeView Roles="Administrator,Leader">
+                        <div class="card flex-fill animate-fade-in-up delay-4">
+                            <div class="card-header border-0 pt-4 px-4 bg-light">
+                                <h5 class="card-title mb-0">Tarefas Administrativas Ativas</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @if (activeTasks != null && activeTasks.Any())
+                                    {
+                                        @foreach (var task in activeTasks.OrderByDescending(t => t.IsOverdue).ThenBy(t => t.Deadline).Take(5))
+                                        {
+                                            <li @key="task.Id" class="list-group-item border-0 px-4 py-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold mb-0 text-dark">@task.Title</h6>
+                                                    @if (task.IsOverdue)
+                                                    {
+                                                        <span class="badge bg-danger-soft text-danger fs-xxs">ATRASADO</span>
+                                                    }
+                                                </div>
+                                                <p class="text-muted fs-xs mb-2">@task.Description</p>
+                                                <div class="progress" style="height: 4px;">
+                                                    <div class="progress-bar @(task.IsOverdue ? "bg-danger" : task.ProgressPercentage > 80 ? "bg-warning" : "bg-primary")" 
+                                                         style="width: @(Math.Min(100, task.ProgressPercentage))%"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between mt-1">
+                                                    <small class="text-muted fs-xxs">Responsável: @task.AssignedUserName</small>
+                                                    <small class="text-muted fs-xxs">@task.Deadline?.ToString("dd/MM HH:mm")</small>
+                                                </div>
+                                            </li>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <li class="p-4 text-center text-muted small">Nenhuma tarefa pendente.</li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="card-footer bg-white border-0 text-center pb-3">
+                                <a href="delegar-tarefas" class="btn btn-sm btn-link text-primary text-decoration-none">Ver todas as tarefas</a>
+                            </div>
+                        </div>
+                    </AuthorizeView>
+
                 </div>
             </div>
         }
@@ -325,6 +369,7 @@
 @code {
     private DashboardCompleteResponse? dashboard;
     private List<RankingEntryDto>? ranking;
+    private List<TaskDto>? activeTasks;
     private bool loading = false;
     private bool isTvMode = false;
     private System.Threading.Timer? _timer;
@@ -337,11 +382,13 @@
         SignalR.OnUpdateReceived += async (opId, stage, status) => {
             await LoadDashboard(); // Refresh on updates
             await LoadRanking();    // Refresh ranking too
+            await LoadActiveTasks(); // Refresh tasks
             await InvokeAsync(StateHasChanged);
         };
 
         await LoadDashboard();
         await LoadRanking();
+        await LoadActiveTasks();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -401,6 +448,19 @@
         catch { /* Silent fail */ }
     }
 
+    private async Task LoadActiveTasks()
+    {
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks", JsonOptions);
+            if (resp != null && resp.Success && resp.Data != null)
+            {
+                activeTasks = resp.Data.Where(t => t.Status != "Completed").ToList();
+            }
+        }
+        catch { /* Silent fail */ }
+    }
+
     private void ToggleTvMode()
     {
         isTvMode = !isTvMode;
@@ -423,6 +483,7 @@
             await InvokeAsync(async () =>
             {
                 await LoadDashboard();
+                await LoadActiveTasks();
                 StateHasChanged();
             });
         }, null, 60000, 60000); // 1 min refresh for BI
@@ -434,3 +495,4 @@
         await SignalR.StopConnection();
     }
 }
+

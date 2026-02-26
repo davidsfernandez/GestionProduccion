@@ -25,7 +25,7 @@ public class DashboardController : ControllerBase
     {
         if (!_cache.TryGetValue("DashboardComplete", out DashboardCompleteResponse? dashboard))
         {
-            dashboard = await _dashboardService.GetCompleteDashboardAsync();
+            dashboard = await _dashboardService.GetCompleteDashboardAsync(HttpContext.RequestAborted);
 
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
