@@ -162,7 +162,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if (dashboard.TopProfitableModels != null)
+                                        @if (dashboard.TopProfitableModels != null && dashboard.TopProfitableModels.Any())
                                         {
                                             @foreach (var item in dashboard.TopProfitableModels)
                                             {
@@ -171,6 +171,15 @@
                                                     <td class="text-end text-success fw-bold">@item.AverageMargin.ToString("N1")%</td>
                                                 </tr>
                                             }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2" class="text-center py-4 text-muted small">
+                                                    <i class="fa-solid fa-chart-line opacity-25 d-block mb-2 fs-3"></i>
+                                                    Aguardando dados de produção para calcular lucratividade.
+                                                </td>
+                                            </tr>
                                         }
                                     </tbody>
                                 </table>
