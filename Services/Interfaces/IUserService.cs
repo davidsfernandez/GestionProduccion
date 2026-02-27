@@ -86,6 +86,11 @@ public interface IUserService
     Task<int> GetUserWorkloadAsync(int userId);
 
     /// <summary>
+    /// Checks if a user has any active production orders.
+    /// </summary>
+    Task<bool> HasActiveOrdersAsync(int userId);
+
+    /// <summary>
     /// Checks if the system needs initial setup (no users exist).
     /// </summary>
     Task<bool> IsSetupRequiredAsync();

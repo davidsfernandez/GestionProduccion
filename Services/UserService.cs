@@ -290,4 +290,11 @@ public class UserService : IUserService
         var count = await _userRepository.CountAsync();
         return count == 0;
     }
+
+    public async Task<bool> HasActiveOrdersAsync(int userId)
+    {
+        var orders = await _orderRepository.GetAssignedToUserAsync(userId);
+        // An order is active if it's not Completed or Finished
+        return orders.Any(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Finished);
+    }
 }

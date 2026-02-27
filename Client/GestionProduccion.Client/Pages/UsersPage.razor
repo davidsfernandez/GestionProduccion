@@ -74,18 +74,18 @@
                                         </td>
                                         <td>@user.Email</td>
                                         <td><code class="small text-muted">@user.ExternalId.ToString().Substring(0, 8)...</code></td>
-                                        <td><span class="badge bg-info-soft">@(user.SewingTeamName ?? "-")</span></td>
+                                        <td><span class="badge bg-info-soft text-info fw-bold">@(user.SewingTeamName ?? "-")</span></td>
                                         <td>
-                                            <span class="badge bg-primary-soft">@TranslateRole(user.Role.ToString())</span>
+                                            <span class="badge bg-primary-soft text-primary fw-bold">@TranslateRole(user.Role.ToString())</span>
                                         </td>
                                         <td>
                                             @if (user.IsActive)
                                             {
-                                                <span class="badge bg-success-soft">Ativo</span>
+                                                <span class="badge bg-success-soft text-success fw-bold">Ativo</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-danger-soft">Inativo</span>
+                                                <span class="badge bg-danger-soft text-danger fw-bold">Inativo</span>
                                             }
                                         </td>
                                         <td class="text-end text-nowrap">

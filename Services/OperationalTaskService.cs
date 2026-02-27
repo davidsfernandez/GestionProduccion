@@ -120,7 +120,7 @@ public class OperationalTaskService : ITaskService
     {
         var rawData = await _context.Users
             .AsNoTracking()
-            .Where(u => u.Role != Domain.Enums.UserRole.Administrator)
+            .Where(u => u.IsActive && u.Role != Domain.Enums.UserRole.Administrator)
             .Select(u => new
             {
                 u.FullName,
@@ -134,17 +134,20 @@ public class OperationalTaskService : ITaskService
 
         var result = rawData
             .Select(u => {
-                int totalCompleted = u.CompletedTasksCount + u.CompletedOrdersCount;
+                // Calculation: Production Orders weight 15, Admin Tasks weight 5
+                double calculatedScore = (u.CompletedOrdersCount * 15.0) + (u.CompletedTasksCount * 5.0);
                 return new RankingEntryDto
                 {
                     UserName = u.FullName,
                     AvatarUrl = u.AvatarUrl ?? "",
-                    CompletedTasks = totalCompleted,
-                    Score = totalCompleted * 10.0
+                    CompletedTasks = u.CompletedTasksCount + u.CompletedOrdersCount,
+                    CompletedOrders = u.CompletedOrdersCount,
+                    AdministrativeTasks = u.CompletedTasksCount,
+                    Score = calculatedScore
                 };
             })
             .OrderByDescending(r => r.Score)
-            .ThenByDescending(r => r.CompletedTasks)
+            .ThenByDescending(r => r.CompletedOrders)
             .Take(10)
             .ToList();
 

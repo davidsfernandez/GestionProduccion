@@ -204,6 +204,13 @@ public class UsersController : ControllerBase
     {
         try
         {
+            // Security Check: Block deactivation if user has active production orders
+            var hasActiveOrders = await _userService.HasActiveOrdersAsync(id);
+            if (hasActiveOrders)
+            {
+                return Conflict(new { message = "Não é possível desativar este usuário pois ele possui Ordens de Produção ativas atribuídas. Finalize ou reatribua as ordens primeiro." });
+            }
+
             var success = await _userService.DeactivateUserAsync(id);
             if (!success) return NotFound(new { message = "User not found" });
             return NoContent();
