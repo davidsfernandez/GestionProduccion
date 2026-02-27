@@ -116,7 +116,23 @@ public class UserService : IUserService
         var existingUser = await _userRepository.GetByEmailAsync(user.Email);
         if (existingUser != null)
         {
-            throw new InvalidOperationException($"User with email '{user.Email}' already exists.");
+            if (existingUser.IsActive)
+            {
+                throw new InvalidOperationException($"O usuário com o e-mail '{user.Email}' já existe e está ativo.");
+            }
+            else
+            {
+                // Reactivate and update the previously deleted user
+                existingUser.FullName = user.FullName;
+                existingUser.PasswordHash = user.PasswordHash;
+                existingUser.Role = user.Role;
+                existingUser.SewingTeamId = user.SewingTeamId;
+                existingUser.IsActive = true;
+                
+                await _userRepository.UpdateAsync(existingUser);
+                await _userRepository.SaveChangesAsync();
+                return existingUser;
+            }
         }
 
         user.IsActive = true;

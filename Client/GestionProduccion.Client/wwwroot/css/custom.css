@@ -375,6 +375,7 @@ body {
         z-index: 1050;
         height: 100vh;
         width: 280px;
+        overflow-y: auto !important; /* Fix mobile scrolling */
     }
 
     /* Show Sidebar when active */
@@ -495,12 +496,23 @@ body {
 }
 
 /* --- HIGH CONTRAST TEXT FIX --- */
-.text-dark, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+.text-dark, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6,
+td, th, p, .form-control, .form-select, span:not(.text-white):not(.badge) {
     color: #0f172a !important; /* Deep dark for maximum contrast */
 }
 
+/* Ensure badges have readable text */
+.badge {
+    color: #ffffff !important;
+}
+
+.bg-info-soft, .bg-primary-soft, .bg-success-soft, .bg-warning-soft, .bg-danger-soft {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
 .text-muted {
-    color: #64748b !important; /* Ensure muted text is still readable */
+    color: #475569 !important; /* Ensure muted text is still readable */
 }
 
 /* Fix for information only visible when selected */

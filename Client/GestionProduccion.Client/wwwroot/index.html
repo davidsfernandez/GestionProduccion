@@ -34,56 +34,28 @@
         <span class="dismiss">🗙</span>
     </div>
     <script>
-        // --- Serona Audio Engine ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
+        // --- Premium Serona Audio Engine ---
+        // Using high-quality open-source UI sounds
+        const sounds = {
+            'success': new Audio('https://actions.google.com/sounds/v1/ui/message_notification.ogg'),
+            'error': new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'),
+            'notify': new Audio('https://actions.google.com/sounds/v1/water/water_drop.ogg'),
+            'action': new Audio('https://actions.google.com/sounds/v1/ui/button_click.ogg')
+        };
+
+        // Preload sounds
+        Object.values(sounds).forEach(audio => audio.load());
+
         window.playUISound = (type) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            const now = audioCtx.currentTime;
-            
-            switch(type) {
-                case 'success':
-                    // Melodic chime (C5 to G5)
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(523.25, now);
-                    osc.frequency.linearRampToValueAtTime(783.99, now + 0.1);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                    osc.start(now);
-                    osc.stop(now + 0.4);
-                    break;
-                case 'error':
-                    // Harsh descending buzz
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, now);
-                    osc.frequency.linearRampToValueAtTime(110, now + 0.3);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now);
-                    osc.stop(now + 0.3);
-                    break;
-                case 'notify':
-                    // Soft high ding
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, now); // A5
-                    gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now);
-                    osc.stop(now + 0.2);
-                    break;
-                case 'action':
-                    // Subtle UI click
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(600, now);
-                    gain.gain.setValueAtTime(0.03, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
-                    osc.start(now);
-                    osc.stop(now + 0.05);
-                    break;
+            try {
+                if (sounds[type]) {
+                    // Clone the audio node so it can be played overlapping if clicked rapidly
+                    const audioClone = sounds[type].cloneNode();
+                    audioClone.volume = 0.4; // Pleasant, non-intrusive volume
+                    audioClone.play().catch(e => console.log("Audio play blocked by browser policy"));
+                }
+            } catch (err) {
+                console.log("Audio Engine Error: ", err);
             }
         };
 
