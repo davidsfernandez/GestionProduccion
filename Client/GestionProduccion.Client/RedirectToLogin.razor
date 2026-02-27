@@ -1,8 +1,24 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 
+<div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-light">
+    <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h5 class="text-muted">@statusMessage</h5>
+</div>
+
 @code {
+    private string statusMessage = "Verificando sistema...";
+    private int retryCount = 0;
+    private const int MaxRetries = 5;
+
     protected override async Task OnInitializedAsync()
+    {
+        await CheckSetup();
+    }
+
+    private async Task CheckSetup()
     {
         try 
         {
@@ -16,10 +32,21 @@
                 NavigationManager.NavigateTo("/login", true);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to login if API is not reachable yet
-            NavigationManager.NavigateTo("/login", true);
+            if (retryCount < MaxRetries)
+            {
+                retryCount++;
+                statusMessage = $"Conectando ao servidor (Tentativa {retryCount}/{MaxRetries})...";
+                StateHasChanged();
+                await Task.Delay(3000); // Wait 3 seconds before retry
+                await CheckSetup();
+            }
+            else
+            {
+                // Permanent fail, fallback to login
+                NavigationManager.NavigateTo("/login", true);
+            }
         }
     }
 }

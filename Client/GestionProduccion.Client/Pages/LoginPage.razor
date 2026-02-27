@@ -9,6 +9,13 @@
 @inject UserStateService UserState
 
 <main class="d-flex w-100" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+    @if (isChecking)
+    {
+        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white" style="z-index: 1000; opacity: 0.9;">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <h5 class="text-muted fw-bold">Verificando sistema...</h5>
+        </div>
+    }
     <div class="container d-flex flex-column">
         <div class="row vh-100">
             <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 mx-auto d-table h-100">
@@ -109,10 +116,15 @@
     private bool isLoading = false;
     private bool showPassword = false;
 
+    private bool isChecking = true;
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            isChecking = true;
+            StateHasChanged();
+
             // 1. Silent check for setup (First Priority) - Standardized to lowercase for Linux/Azure
             var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
             if (setupRequired)
@@ -127,7 +139,12 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Auth Background Check: {ex.Message}");
+            Console.WriteLine($"Auth Background Check Failure: {ex.Message}");
+        }
+        finally
+        {
+            isChecking = false;
+            StateHasChanged();
         }
     }
 
