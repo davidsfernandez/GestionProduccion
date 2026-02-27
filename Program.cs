@@ -187,9 +187,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true) // Required for SignalR + AllowCredentials
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -303,7 +304,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 
 app.MapControllers();
 app.MapRazorPages();
-app.MapHub<ProductionHub>("/productionHub");
+app.MapHub<ProductionHub>("/productionHub").RequireCors("AllowAll");
 app.MapFallbackToFile("index.html");
 
 app.Run();
