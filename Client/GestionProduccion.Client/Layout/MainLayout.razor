@@ -1,63 +1,81 @@
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 @inject IJSRuntime JS
 @inject GestionProduccion.Client.Services.ISignalRService SignalR
-@inject GestionProduccion.Client.Services.ToastService ToastService
-@using GestionProduccion.Client.Auth
-@using GestionProduccion.Client.Components
-@using GestionProduccion.Client.Resources
-@implements IDisposable
-
-<div class="wrapper @(_isSidebarCollapsed ? "sidebar-closed" : "sidebar-open")">
-    <AuthorizeView>
-        <Authorized>
-            <NavMenu IsOpen="!_isSidebarCollapsed" OnSidebarCollapse="ToggleSidebar" />
-        </Authorized>
-    </AuthorizeView>
-
-    <div class="main">
-        <nav class="navbar navbar-expand navbar-light navbar-bg">
-            <a class="sidebar-toggle js-sidebar-toggle" @onclick="ToggleSidebar">
-                <i class="fa-solid fa-bars align-self-center" style="font-size: 1.5rem; color: #495057;"></i>
-            </a>
-
-            <div class="navbar-collapse collapse">
-                <ul class="navbar-nav navbar-align ms-auto">
-                    <AuthorizeView>
-                        <Authorized>
-                            <li class="nav-item">
-                                <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
-                                    <i class="align-middle me-1" data-feather="log-out"></i> @Portuguese.Logout
-                                </button>
-                            </li>
-                        </Authorized>
-                        <NotAuthorized>
-                            <li class="nav-item">
-                                <a href="/login" class="btn btn-primary">@Portuguese.Login</a>
-                            </li>
-                        </NotAuthorized>
-                    </AuthorizeView>
-                </ul>
-            </div>
-        </nav>
-
-        <main class="content">
-            <div class="container-fluid p-0">
-                <ToastContainer />
-                @Body
-            </div>
-        </main>
+@if (!_isSystemReady)
+{
+    <div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-white">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="text-muted fw-bold">Inicializando sistema...</h5>
     </div>
+}
+else
+{
+    <div class="wrapper @(_isSidebarCollapsed ? "sidebar-closed" : "sidebar-open")">
+        <AuthorizeView>
+            <Authorized>
+                <NavMenu IsOpen="!_isSidebarCollapsed" OnSidebarCollapse="ToggleSidebar" />
+            </Authorized>
+        </AuthorizeView>
 
-    <div class="sidebar-overlay @(_isSidebarCollapsed ? "" : "active")" @onclick="ToggleSidebar"></div>
-</div>
+        <div class="main">
+            <nav class="navbar navbar-expand navbar-light navbar-bg">
+                <a class="sidebar-toggle js-sidebar-toggle" @onclick="ToggleSidebar">
+                    <i class="fa-solid fa-bars align-self-center" style="font-size: 1.5rem; color: #495057;"></i>
+                </a>
+
+                <div class="navbar-collapse collapse">
+                    <ul class="navbar-nav navbar-align ms-auto">
+                        <AuthorizeView>
+                            <Authorized>
+                                <li class="nav-item">
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
+                                        <i class="align-middle me-1" data-feather="log-out"></i> @Portuguese.Logout
+                                    </button>
+                                </li>
+                            </Authorized>
+                            <NotAuthorized>
+                                <li class="nav-item">
+                                    <a href="/login" class="btn btn-primary">@Portuguese.Login</a>
+                                </li>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content">
+                <div class="container-fluid p-0">
+                    <ToastContainer />
+                    @Body
+                </div>
+            </main>
+        </div>
+
+        <div class="sidebar-overlay @(_isSidebarCollapsed ? "" : "active")" @onclick="ToggleSidebar"></div>
+    </div>
+}
 
 @code {
     private bool _isSidebarCollapsed = true;
+    private bool _isSystemReady = false;
 
     protected override async Task OnInitializedAsync()
     {
+        // Global Guard: Wait for backend to be ready and checked
+        try
+        {
+            await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            _isSystemReady = true;
+        }
+        catch
+        {
+            // If it fails, RedirectToLogin will handle retries, but we keep UI locked
+            _isSystemReady = false;
+        }
+
         NavigationManager.LocationChanged += OnLocationChanged;
         
         // Start SignalR for global notifications

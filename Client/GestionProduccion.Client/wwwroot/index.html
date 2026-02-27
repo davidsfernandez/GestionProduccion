@@ -34,27 +34,59 @@
         <span class="dismiss">🗙</span>
     </div>
     <script>
-        // --- Professional Serona Audio Engine ---
-        const sounds = {
-            'success': new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_79090a2021.mp3'), // Elegant Chime
-            'error': new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a73053.mp3'),   // Subtle Error
-            'notify': new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_0625c15139.mp3'),  // Minimal Pop
-            'action': new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_22666da20b.mp3')   // Soft Click
-        };
-
-        // Preload sounds
-        Object.values(sounds).forEach(audio => audio.load());
-
+        // --- Premium Serona Audio Engine (Offline/Native) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
         window.playUISound = (type) => {
-            try {
-                if (sounds[type]) {
-                    // Clone the audio node so it can be played overlapping if clicked rapidly
-                    const audioClone = sounds[type].cloneNode();
-                    audioClone.volume = 0.4; // Pleasant, non-intrusive volume
-                    audioClone.play().catch(e => console.log("Audio play blocked by browser policy"));
-                }
-            } catch (err) {
-                console.log("Audio Engine Error: ", err);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            switch(type) {
+                case 'success':
+                    // Elegant "Ta-da" chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                    break;
+                case 'error':
+                    // Soft low warning
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+                case 'notify':
+                    // Elegant subtle "ding"
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'action':
+                    // Minimal click
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.02, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                    break;
             }
         };
 
