@@ -124,6 +124,7 @@ public class DashboardBIService : IDashboardBIService
                 Name = p.Name,
                 DaysSinceLastProduction = 60
             })
+            .OrderBy(p => p.Sku)
             .Take(10)
             .ToListAsync(ct);
 

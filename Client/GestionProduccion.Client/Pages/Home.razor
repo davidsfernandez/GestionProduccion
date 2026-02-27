@@ -290,6 +290,7 @@
                                                 <div class="me-3 fw-bold @(i == 0 ? "text-primary" : "text-muted")" style="width: 25px;">@(i + 1)º</div>
                                                 <div class="position-relative">
                                                     <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                         onerror="this.src='/img/avatars/avatar.jpg'"
                                                          class="rounded-circle me-3 border border-2 @(i == 0 ? "border-primary" : "border-light")" width="42" height="42" alt="@entry.UserName">
                                                     @if(i < 3) {
                                                         <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill @(i == 0 ? "bg-warning" : i == 1 ? "bg-secondary" : i == 2 ? "bg-bronze" : "")" style="font-size: 0.5rem; @(i == 2 ? "background-color: #cd7f32;" : "")">

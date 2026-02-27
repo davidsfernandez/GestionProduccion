@@ -39,7 +39,7 @@ RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot/img/avatars
 
 # Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation && \
+    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation libfreetype6 libicu-dev && \
     fc-cache -f -v && \
     rm -rf /var/lib/apt/lists/*
 
