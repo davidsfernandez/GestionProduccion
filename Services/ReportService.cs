@@ -44,7 +44,7 @@ public class ReportService : IReportService
             byte[]? qrCodeBytes = null;
             try
             {
-                var qrUrl = $"{baseUrl.TrimEnd('/')}/order-details/{order.Id}";
+                var qrUrl = $"{baseUrl.TrimEnd('/')}/orders/{order.Id}";
                 using var qrGenerator = new QRCodeGenerator();
                 using var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
                 using var qrCode = new PngByteQRCode(qrCodeData);
