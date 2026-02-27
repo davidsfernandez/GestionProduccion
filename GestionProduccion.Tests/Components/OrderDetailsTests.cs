@@ -42,7 +42,10 @@ public class OrderDetailsTests : TestContext
         _mockTeamClient = new Mock<ISewingTeamClient>();
         Services.AddSingleton(_mockTeamClient.Object);
 
-        Services.AddSingleton(new ToastService());
+        var audioService = new AudioService(JSInterop.JSRuntime);
+        Services.AddSingleton(audioService);
+        Services.AddSingleton(new ToastService(audioService));
+
         Services.AddSingleton(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
     }
 

@@ -112,22 +112,31 @@ body {
 
 .sidebar-link, a.sidebar-link {
     padding: 12px 20px !important;
-    color: #8A94A6 !important;
+    color: #e2e8f0 !important; /* Brighter Slate 200 for maximum contrast on dark */
     border-radius: 12px !important;
     margin: 4px 15px !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     display: flex !important;
     align-items: center !important;
     transition: all 0.2s;
 }
 
+.sidebar-link i, 
+.sidebar-link svg {
+    margin-right: 12px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+    color: #94a3b8; /* Slate 400 */
+}
+
 .sidebar-link:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
     color: #fff !important;
 }
 
 .sidebar-item.active .sidebar-link {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
     color: #fff !important;
 }
 
@@ -140,27 +149,42 @@ body {
 .sidebar-profile {
     text-align: center;
     padding: 30px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .profile-img {
     width: 80px;
     height: 80px;
     border-radius: 50% !important;
-    border: 3px solid rgba(255, 255, 255, 0.1) !important;
+    border: 3px solid rgba(255, 255, 255, 0.2) !important;
     object-fit: cover;
+    margin-bottom: 10px;
 }
 
 .profile-name {
     color: #fff !important;
     font-weight: 700 !important;
-    margin-top: 15px;
+    font-size: 1.1rem;
     display: block;
+    margin-top: 5px;
 }
 
 .profile-role {
-    color: #8A94A6;
-    font-size: 0.8rem;
+    color: var(--serona-primary) !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     display: block;
+}
+
+.menu-label {
+    padding: 25px 35px 10px !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: #94a3b8 !important; /* Much brighter than before */
 }
 
 /* --- TABLES --- */
@@ -495,27 +519,70 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* --- GLOBAL TEXT VISIBILITY FIX --- */
-body {
-    color: #1e293b !important;
+/* --- GLOBAL TEXT VISIBILITY & ACCESSIBILITY FIX (FINAL) --- */
+:root {
+    --bs-body-color: #0f172a !important; 
+    --bs-secondary-color: #334155 !important;
+    --bs-heading-color: #020617 !important;
 }
 
-h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+body, .bg-white, .bg-light, .card, .modal-content, .offcanvas {
     color: #0f172a !important;
+}
+
+.opacity-25, .opacity-50, .opacity-75 {
+    opacity: 0.9 !important;
+}
+
+.text-muted, .text-secondary, .small, .text-muted-foreground, .fs-sm, .text-black-50 {
+    color: #334155 !important;
+}
+
+i, svg {
+    opacity: 1 !important;
+}
+
+.text-muted i, .text-muted svg,
+.text-secondary i, .text-secondary svg {
+    color: #475569 !important;
+}
+
+.card-title, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+    color: #020617 !important;
     font-weight: 700 !important;
+    opacity: 1 !important;
 }
 
-/* Force visibility on all table data and labels */
-td, th, span, label, p, div {
-    color: inherit; /* Allow inheritance but ensure base is dark */
+.small.uppercase, .text-uppercase.small, label.small {
+    color: #334155 !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
 }
 
-.table td, .table th {
+.table {
+    color: #0f172a !important;
+}
+
+.table thead th {
     color: #1e293b !important;
-    vertical-align: middle;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    background-color: #F8FAFC !important;
+    border-bottom: 2px solid #E2E8F0 !important;
 }
 
-/* Correcting 'soft' badges that were causing invisibility */
+.bg-primary {
+    background-color: var(--serona-primary) !important;
+    color: #0f172a !important;
+}
+
+.bg-primary *, .bg-primary .text-white, .bg-primary span, .bg-primary div {
+    color: #0f172a !important;
+    opacity: 1 !important;
+}
+
 .bg-primary-soft { background-color: rgba(0, 200, 153, 0.15) !important; color: #008567 !important; }
 .bg-info-soft { background-color: rgba(59, 130, 246, 0.15) !important; color: #1d4ed8 !important; }
 .bg-success-soft { background-color: rgba(34, 197, 94, 0.15) !important; color: #15803d !important; }

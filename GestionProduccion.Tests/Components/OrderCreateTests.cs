@@ -32,7 +32,10 @@ public class OrderCreateTests : TestContext
         _mockHttpHandler = new Mock<HttpMessageHandler>();
         var httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
         Services.AddSingleton(httpClient);
-        Services.AddSingleton(new ToastService());
+
+        var audioService = new AudioService(JSInterop.JSRuntime);
+        Services.AddSingleton(audioService);
+        Services.AddSingleton(new ToastService(audioService));
 
         var jsonOptions = new JsonSerializerOptions
         {

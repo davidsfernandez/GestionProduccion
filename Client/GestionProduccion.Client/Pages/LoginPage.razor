@@ -22,9 +22,18 @@
                 <div class="d-table-cell align-middle">
 
                     <div class="text-center mt-4 mb-4">
-                        <div class="bg-white p-3 rounded-circle d-inline-flex shadow-sm mb-3 animate-fade-in">
-                            <i class="fa-solid fa-industry text-primary fs-1"></i>
-                        </div>
+                        @if (!string.IsNullOrEmpty(companyLogo))
+                        {
+                            <div class="bg-white p-3 rounded-4 d-inline-flex shadow-sm mb-3 animate-fade-in" style="min-width: 120px; min-height: 80px; align-items: center; justify-content: center;">
+                                <img src="@companyLogo" alt="Logo" style="max-width: 180px; max-height: 60px; object-fit: contain;" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="bg-white p-3 rounded-circle d-inline-flex shadow-sm mb-3 animate-fade-in">
+                                <i class="fa-solid fa-industry text-primary fs-1"></i>
+                            </div>
+                        }
                         <h1 class="h2 fw-bold text-dark animate-fade-in">@Portuguese.Welcome!</h1>
                         <p class="lead text-muted animate-fade-in delay-1">
                             Sistema de Gestão de Produção Serona
@@ -33,7 +42,7 @@
 
                     <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
                         <div class="card-header bg-primary py-3 border-0">
-                            <h5 class="card-title mb-0 text-white text-center">Acesso ao Sistema</h5>
+                            <h5 class="card-title mb-0 text-center">Acesso ao Sistema</h5>
                         </div>
                         <div class="card-body p-5">
                             <div class="m-sm-3">
@@ -113,6 +122,7 @@
     private LoginModel loginModel = new();
     private string errorMessage = string.Empty;
     private string companyName = "";
+    private string? companyLogo = null;
     private bool isLoading = false;
     private bool showPassword = false;
 
@@ -136,6 +146,9 @@
             // 2. Fetch public branding info
             var config = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public");
             companyName = config?.CompanyName ?? "";
+            
+            // 3. Load Logo
+            await LoadCompanyLogo();
         }
         catch (Exception ex)
         {
@@ -145,6 +158,22 @@
         {
             isChecking = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task LoadCompanyLogo()
+    {
+        try
+        {
+            var logoDto = await Http.GetFromJsonAsync<LogoDto>("api/Configuration/logo");
+            if (logoDto != null && !string.IsNullOrEmpty(logoDto.Base64Image))
+            {
+                companyLogo = logoDto.Base64Image;
+            }
+        }
+        catch
+        {
+            companyLogo = null;
         }
     }
 

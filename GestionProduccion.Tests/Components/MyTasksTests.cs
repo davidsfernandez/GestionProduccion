@@ -42,7 +42,9 @@ public class MyTasksTests : TestContext
         _mockLifecycleClient = new Mock<IProductionOrderLifecycleClient>();
         Services.AddSingleton(_mockLifecycleClient.Object);
 
-        Services.AddSingleton(new ToastService());
+        var audioService = new AudioService(JSInterop.JSRuntime);
+        Services.AddSingleton(audioService);
+        Services.AddSingleton(new ToastService(audioService));
     }
 
     [Fact]

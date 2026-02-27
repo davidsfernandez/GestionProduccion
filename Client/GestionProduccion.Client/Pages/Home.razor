@@ -381,10 +381,12 @@
         await SignalR.StartConnection(hubUrl);
 
         SignalR.OnUpdateReceived += async (opId, stage, status) => {
-            await LoadDashboard(); // Refresh on updates
-            await LoadRanking();    // Refresh ranking too
-            await LoadActiveTasks(); // Refresh tasks
-            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(async () => {
+                await LoadDashboard(); // Refresh on updates
+                await LoadRanking();    // Refresh ranking too
+                await LoadActiveTasks(); // Refresh tasks
+                StateHasChanged();
+            });
         };
 
         await LoadDashboard();

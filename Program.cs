@@ -25,7 +25,21 @@ var builder = WebApplication.CreateBuilder(args);
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // --- 1. DATABASE CONFIGURATION ---
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbServer = builder.Configuration["DB_SERVER"];
+var dbName = builder.Configuration["DB_NAME"];
+var dbUser = builder.Configuration["DB_USER"];
+var dbPass = builder.Configuration["DB_PASS"];
+
+string? connectionString;
+if (!string.IsNullOrEmpty(dbServer) && !string.IsNullOrEmpty(dbName))
+{
+    connectionString = $"server={dbServer};port=3306;database={dbName};user={dbUser};password={dbPass};AllowUserVariables=true;ConvertZeroDateTime=true;";
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
 if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -39,7 +53,7 @@ if (builder.Environment.IsEnvironment("Testing"))
 else
 {
     builder.Services.AddDbContextPool<AppDbContext>(options =>
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
             mysqlOptions => mysqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 10,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
@@ -242,64 +256,64 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 9. AUTOMATIC MIGRATIONS (Non-blocking background task) ---
+// --- 9. AUTOMATIC MIGRATIONS (Synchronous for Production Reliability) ---
 if (!app.Environment.IsEnvironment("Testing"))
 {
-    // Run migration in background to prevent blocking port 8080 opening
-    _ = Task.Run(async () =>
+    using (var scope = app.Services.CreateScope())
     {
-        using (var scope = app.Services.CreateScope())
+        var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        var context = services.GetRequiredService<AppDbContext>();
+
+        int retries = 5;
+        int delaySeconds = 3;
+
+        logger.LogInformation("MIGRATION: Starting process (Max retries: {Retries}, Delay: {Delay}s)...", retries, delaySeconds);
+
+        while (retries > 0)
         {
-            var services = scope.ServiceProvider;
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            var context = services.GetRequiredService<AppDbContext>();
-
-            int retries = 3;
-            int delaySeconds = 2;
-
-            logger.LogInformation("BACKGROUND: Starting database migration process (Max retries: {Retries}, Delay: {Delay}s)...", retries, delaySeconds);
-
-            while (retries > 0)
+            try
             {
-                try
+                logger.LogInformation("MIGRATION: Checking database connection...");
+                if (await context.Database.CanConnectAsync())
                 {
-                    if (await context.Database.CanConnectAsync())
+                    logger.LogInformation("MIGRATION: Database connection established.");
+                    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                    if (pendingMigrations.Any())
                     {
-                        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-                        if (pendingMigrations.Any())
-                        {
-                            logger.LogInformation("BACKGROUND: Applying {Count} pending migrations...", pendingMigrations.Count());
-                            await context.Database.MigrateAsync();
-                            logger.LogInformation("BACKGROUND: Migrations applied successfully.");
-                        }
-                        else
-                        {
-                            logger.LogInformation("BACKGROUND: Database is already up to date.");
-                        }
-
-                        logger.LogInformation("BACKGROUND: Ensuring seed data...");
-                        await DbInitializer.SeedAsync(context, logger);
-                        break;
+                        logger.LogInformation("MIGRATION: Applying {Count} pending migrations...", pendingMigrations.Count());
+                        await context.Database.MigrateAsync();
+                        logger.LogInformation("MIGRATION: Migrations applied successfully.");
                     }
                     else
                     {
-                        throw new Exception("Database.CanConnectAsync() returned false.");
+                        logger.LogInformation("MIGRATION: Database is already up to date.");
                     }
+
+                    logger.LogInformation("MIGRATION: Ensuring seed data...");
+                    await DbInitializer.SeedAsync(context, logger);
+                    break;
                 }
-                catch (Exception ex)
+                else
                 {
-                    retries--;
-                    if (retries == 0)
-                    {
-                        logger.LogError(ex, "BACKGROUND: Database migration/seed failed after multiple attempts.");
-                        break;
-                    }
-                    logger.LogWarning("BACKGROUND: DB Connection failed. Retrying in {Delay} seconds... ({Retries} attempts left).", delaySeconds, retries);
-                    await Task.Delay(delaySeconds * 1000);
+                    throw new Exception("Database.CanConnectAsync() returned false.");
                 }
             }
+            catch (Exception ex)
+            {
+                retries--;
+                if (retries == 0)
+                {
+                    logger.LogCritical(ex, "MIGRATION: Failed after multiple attempts. Application may be unstable.");
+                    // In Production, we might want to continue starting the app even if migration fails
+                    // to allow some parts of the system to work or to allow remote debugging.
+                    break;
+                }
+                logger.LogWarning("MIGRATION: Connection failed. Retrying in {Delay} seconds... ({Retries} attempts left). Error: {Message}", delaySeconds, retries, ex.Message);
+                await Task.Delay(delaySeconds * 1000);
+            }
         }
-    });
+    }
 }
 
 app.MapControllers();

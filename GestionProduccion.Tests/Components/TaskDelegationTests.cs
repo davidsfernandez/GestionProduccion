@@ -27,7 +27,10 @@ public class TaskDelegationTests : TestContext
         _mockHttpHandler = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
         Services.AddSingleton(_httpClient);
-        Services.AddSingleton(new ToastService());
+
+        var audioService = new AudioService(JSInterop.JSRuntime);
+        Services.AddSingleton(audioService);
+        Services.AddSingleton(new ToastService(audioService));
 
         var jsonOptions = new JsonSerializerOptions
         {
