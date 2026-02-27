@@ -14,4 +14,10 @@ public class RegisterUserDto
     [Required]
     [MinLength(6)]
     public string Password { get; set; } = string.Empty;
+
+    [Required]
+    public string CompanyName { get; set; } = string.Empty;
+
+    public string? CompanyTaxId { get; set; }
+    public string? LogoBase64 { get; set; }
 }

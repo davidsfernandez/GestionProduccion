@@ -241,45 +241,64 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 9. AUTOMATIC MIGRATIONS (Architect Rule 5) ---
+// --- 9. AUTOMATIC MIGRATIONS (Non-blocking background task) ---
 if (!app.Environment.IsEnvironment("Testing"))
 {
-    using (var scope = app.Services.CreateScope())
+    // Run migration in background to prevent blocking port 8080 opening
+    _ = Task.Run(async () =>
     {
-        var services = scope.ServiceProvider;
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        var context = services.GetRequiredService<AppDbContext>();
-
-        int retries = 10;
-        while (retries > 0)
+        using (var scope = app.Services.CreateScope())
         {
-            try
-            {
-                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-                if (pendingMigrations.Any())
-                {
-                    logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
-                    await context.Database.MigrateAsync();
-                }
+            var services = scope.ServiceProvider;
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            var context = services.GetRequiredService<AppDbContext>();
 
-                logger.LogInformation("Database is up to date. Ensuring seed data...");
-                await DbInitializer.SeedAsync(context, logger);
+            int retries = 3;
+            int delaySeconds = 2;
 
-                break;
-            }
-            catch (Exception ex)
+            logger.LogInformation("BACKGROUND: Starting database migration process (Max retries: {Retries}, Delay: {Delay}s)...", retries, delaySeconds);
+
+            while (retries > 0)
             {
-                retries--;
-                if (retries == 0)
+                try
                 {
-                    logger.LogCritical(ex, "FATAL: Database migration/seed failed after multiple attempts.");
-                    throw;
+                    if (await context.Database.CanConnectAsync())
+                    {
+                        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                        if (pendingMigrations.Any())
+                        {
+                            logger.LogInformation("BACKGROUND: Applying {Count} pending migrations...", pendingMigrations.Count());
+                            await context.Database.MigrateAsync();
+                            logger.LogInformation("BACKGROUND: Migrations applied successfully.");
+                        }
+                        else
+                        {
+                            logger.LogInformation("BACKGROUND: Database is already up to date.");
+                        }
+
+                        logger.LogInformation("BACKGROUND: Ensuring seed data...");
+                        await DbInitializer.SeedAsync(context, logger);
+                        break;
+                    }
+                    else
+                    {
+                        throw new Exception("Database.CanConnectAsync() returned false.");
+                    }
                 }
-                logger.LogWarning("DB Connection failed or busy. Retrying in 5 seconds... ({Retries} attempts left). Error: {Message}", retries, ex.Message);
-                await Task.Delay(5000);
+                catch (Exception ex)
+                {
+                    retries--;
+                    if (retries == 0)
+                    {
+                        logger.LogError(ex, "BACKGROUND: Database migration/seed failed after multiple attempts.");
+                        break;
+                    }
+                    logger.LogWarning("BACKGROUND: DB Connection failed. Retrying in {Delay} seconds... ({Retries} attempts left).", delaySeconds, retries);
+                    await Task.Delay(delaySeconds * 1000);
+                }
             }
         }
-    }
+    });
 }
 
 app.MapControllers();

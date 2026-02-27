@@ -22,6 +22,8 @@ properties:
     - image: gestionproduccion54780e.azurecr.io/gestionproduccion:latest
       name: gestion-produccion
       env:
+      - name: ASPNETCORE_URLS
+        value: http://+:8080
       - name: ASPNETCORE_ENVIRONMENT
         value: Production
       - name: ConnectionStrings__DefaultConnection

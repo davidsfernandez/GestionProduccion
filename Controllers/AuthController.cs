@@ -23,6 +23,7 @@ public class AuthController : ControllerBase
     private readonly IUserRefreshTokenRepository _refreshTokenRepo;
     private readonly IPasswordResetTokenRepository _passwordResetRepo;
     private readonly IEmailService _emailService;
+    private readonly ISystemConfigurationService _configService;
 
     public AuthController(
         IConfiguration configuration,
@@ -30,7 +31,8 @@ public class AuthController : ControllerBase
         ILogger<AuthController> logger,
         IUserRefreshTokenRepository refreshTokenRepo,
         IPasswordResetTokenRepository passwordResetRepo,
-        IEmailService emailService)
+        IEmailService emailService,
+        ISystemConfigurationService configService)
     {
         _configuration = configuration;
         _userService = userService;
@@ -38,6 +40,7 @@ public class AuthController : ControllerBase
         _refreshTokenRepo = refreshTokenRepo;
         _passwordResetRepo = passwordResetRepo;
         _emailService = emailService;
+        _configService = configService;
     }
 
     [Authorize]
@@ -219,6 +222,17 @@ public class AuthController : ControllerBase
 
         try
         {
+            // 1. Save Company Configuration
+            await _configService.SaveConfigurationAsync(new SystemConfigurationDto
+            {
+                CompanyName = request.CompanyName,
+                CompanyTaxId = request.CompanyTaxId,
+                LogoBase64 = request.LogoBase64,
+                DailyFixedCost = 0,
+                OperationalHourlyCost = 45.0m // Default fallback
+            });
+
+            // 2. Create Admin User
             var user = new Domain.Entities.User
             {
                 FullName = request.FullName,
@@ -230,7 +244,7 @@ public class AuthController : ControllerBase
             };
 
             await _userService.CreateUserAsync(user);
-            return Ok(new { message = "Administrator created successfully. You can now login." });
+            return Ok(new { message = "Administrator created and system configured successfully. You can now login." });
         }
         catch (Exception ex)
         {

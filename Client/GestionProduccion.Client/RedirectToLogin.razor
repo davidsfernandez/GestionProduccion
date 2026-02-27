@@ -1,8 +1,25 @@
 @inject NavigationManager NavigationManager
+@inject HttpClient Http
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        NavigationManager.NavigateTo("/login", true);
+        try 
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            if (setupRequired)
+            {
+                NavigationManager.NavigateTo("/setup", true);
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
+        catch
+        {
+            // Fallback to login if API is not reachable yet
+            NavigationManager.NavigateTo("/login", true);
+        }
     }
 }

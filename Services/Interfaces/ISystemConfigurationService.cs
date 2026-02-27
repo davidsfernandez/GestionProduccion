@@ -5,6 +5,7 @@ namespace GestionProduccion.Services.Interfaces;
 public interface ISystemConfigurationService
 {
     Task<SystemConfigurationDto> GetConfigurationAsync();
+    Task<PublicConfigurationDto> GetPublicConfigurationAsync();
     Task SaveConfigurationAsync(SystemConfigurationDto dto);
 
     // Legacy support

@@ -53,7 +53,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                 // HEADER
                 page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -69,7 +69,7 @@ public class ReportService : IReportService
                             col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold().FontColor(Colors.White);
                         }
                         col.Item().Text("FICHA DE PRODUÇÃO").FontSize(16).Bold().FontColor(Colors.Grey.Lighten2);
-                        col.Item().Text(config?.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Lighten2);
+                        col.Item().Text(config?.CompanyName ?? "David Fernandez").FontSize(12).FontColor(Colors.Grey.Lighten2);
                     });
 
                     if (qrCodeBytes != null)
@@ -219,7 +219,7 @@ public class ReportService : IReportService
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                 // HEADER
                 page.Header().Row(row =>
@@ -230,7 +230,7 @@ public class ReportService : IReportService
                         else col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold();
 
                         col.Item().Text("Relatório Diário de Produção").FontSize(16).Bold().FontColor(Colors.Grey.Darken3);
-                        col.Item().Text(config?.CompanyName ?? "Serona Manufacturing").FontSize(12).FontColor(Colors.Grey.Medium);
+                        col.Item().Text(config?.CompanyName ?? "David Fernandez").FontSize(12).FontColor(Colors.Grey.Medium);
                         col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);
                     });
                 });

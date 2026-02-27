@@ -3,8 +3,12 @@ using GestionProduccion.Data;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Hubs;
 using GestionProduccion.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Moq;
 using Xunit;
 
 namespace GestionProduccion.Tests;
@@ -12,6 +16,8 @@ namespace GestionProduccion.Tests;
 public class OperationalTaskServiceTests
 {
     private readonly AppDbContext _context;
+    private readonly Mock<IMemoryCache> _mockCache;
+    private readonly Mock<IHubContext<ProductionHub>> _mockHubContext;
     private readonly OperationalTaskService _service;
 
     public OperationalTaskServiceTests()
@@ -20,7 +26,9 @@ public class OperationalTaskServiceTests
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        _service = new OperationalTaskService(_context);
+        _mockCache = new Mock<IMemoryCache>();
+        _mockHubContext = new Mock<IHubContext<ProductionHub>>();
+        _service = new OperationalTaskService(_context, _mockCache.Object, _mockHubContext.Object);
     }
 
     [Fact]

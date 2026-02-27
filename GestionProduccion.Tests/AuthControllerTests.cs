@@ -37,7 +37,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            var mockTeamRepo = new Mock<ISewingTeamRepository>();
+            var mockConfigService = new Mock<ISystemConfigurationService>();
 
             var user = new User
             {
@@ -57,7 +57,8 @@ namespace GestionProduccion.Tests
                 mockLogger.Object,
                 mockRefreshTokenRepo.Object,
                 mockPasswordResetRepo.Object,
-                mockEmailService.Object
+                mockEmailService.Object,
+                mockConfigService.Object
             );
 
             var loginDto = new LoginDto { Email = "admin@test.com", Password = "password123" };
@@ -77,7 +78,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            var mockTeamRepo = new Mock<ISewingTeamRepository>();
+            var mockConfigService = new Mock<ISystemConfigurationService>();
 
             var user = new User
             {
@@ -97,7 +98,8 @@ namespace GestionProduccion.Tests
                 mockLogger.Object,
                 mockRefreshTokenRepo.Object,
                 mockPasswordResetRepo.Object,
-                mockEmailService.Object
+                mockEmailService.Object,
+                mockConfigService.Object
             );
 
             var loginDto = new LoginDto { Email = "user@test.com", Password = "wrongpassword" };
@@ -116,7 +118,7 @@ namespace GestionProduccion.Tests
             var mockRefreshTokenRepo = new Mock<IUserRefreshTokenRepository>();
             var mockPasswordResetRepo = new Mock<IPasswordResetTokenRepository>();
             var mockEmailService = new Mock<IEmailService>();
-            var mockTeamRepo = new Mock<ISewingTeamRepository>();
+            var mockConfigService = new Mock<ISystemConfigurationService>();
 
             mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
 
@@ -126,7 +128,8 @@ namespace GestionProduccion.Tests
                 mockLogger.Object,
                 mockRefreshTokenRepo.Object,
                 mockPasswordResetRepo.Object,
-                mockEmailService.Object
+                mockEmailService.Object,
+                mockConfigService.Object
             );
 
             var loginDto = new LoginDto { Email = "nonexistent@test.com", Password = "password123" };

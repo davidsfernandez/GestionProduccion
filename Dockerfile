@@ -26,7 +26,9 @@ RUN dotnet publish "GestionProduccion.csproj" -c Release -o /app/publish /p:UseA
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 ENV ASPNETCORE_ENVIRONMENT=Production
-EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+EXPOSE 8080
 EXPOSE 443
 
 # Copy published files from build stage

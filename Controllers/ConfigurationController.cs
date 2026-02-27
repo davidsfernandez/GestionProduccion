@@ -25,6 +25,14 @@ public class ConfigurationController : ControllerBase
         return Ok(config);
     }
 
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public async Task<ActionResult<PublicConfigurationDto>> GetPublic()
+    {
+        var config = await _configService.GetPublicConfigurationAsync();
+        return Ok(config);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Save([FromBody] SystemConfigurationDto request)

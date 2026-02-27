@@ -38,6 +38,16 @@ public class SystemConfigurationService : ISystemConfigurationService
         };
     }
 
+    public async Task<PublicConfigurationDto> GetPublicConfigurationAsync()
+    {
+        var config = await _repo.GetAsync();
+        return new PublicConfigurationDto
+        {
+            CompanyName = config?.CompanyName ?? "Serona ERP",
+            LogoBase64 = config?.LogoBase64
+        };
+    }
+
     public async Task SaveConfigurationAsync(SystemConfigurationDto dto)
     {
         var config = await _repo.GetAsync();
