@@ -37,7 +37,7 @@
             if (retryCount < MaxRetries)
             {
                 retryCount++;
-                statusMessage = $"Conectando ao servidor (Tentativa {retryCount}/{MaxRetries})...";
+                statusMessage = $"Erro: {ex.Message}. Tentando reconectar ({retryCount}/{MaxRetries})...";
                 StateHasChanged();
                 await Task.Delay(3000); // Wait 3 seconds before retry
                 await CheckSetup();
@@ -45,6 +45,9 @@
             else
             {
                 // Permanent fail, fallback to login
+                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando para login...";
+                StateHasChanged();
+                await Task.Delay(2000);
                 NavigationManager.NavigateTo("/login", true);
             }
         }
