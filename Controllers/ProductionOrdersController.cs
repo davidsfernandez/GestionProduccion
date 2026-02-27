@@ -307,7 +307,8 @@ public class ProductionOrdersController : ControllerBase
             var order = await _queryService.GetProductionOrderByIdAsync(id, HttpContext.RequestAborted);
             if (order == null) return NotFound(new { message = "Order not found." });
 
-            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id, baseUrl);
             if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Could not generate PDF content." });
 
             return File(pdfBytes, "application/pdf", $"Order_{order.LotCode}.pdf");
@@ -323,7 +324,8 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id);
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id, baseUrl);
             if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Report generation failed." });
 
             return File(pdfBytes, "application/pdf", $"ProductionOrder_{id}.pdf");

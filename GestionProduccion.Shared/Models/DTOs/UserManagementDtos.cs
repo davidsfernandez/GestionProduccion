@@ -10,7 +10,6 @@ public class UserDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
-    public string? AvatarBase64 { get; set; }
     public UserRole Role { get; set; }
     public bool IsActive { get; set; }
     public int? SewingTeamId { get; set; }

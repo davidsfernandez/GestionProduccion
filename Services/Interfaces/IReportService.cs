@@ -6,7 +6,7 @@ namespace GestionProduccion.Services.Interfaces;
 
 public interface IReportService
 {
-    Task<byte[]> GenerateProductionOrderReportAsync(int orderId);
+    Task<byte[]> GenerateProductionOrderReportAsync(int orderId, string baseUrl);
     Task<byte[]> GenerateDailyProductionReportAsync();
     Task<byte[]> GenerateOrdersCsvAsync(List<ProductionOrderDto> orders);
 }

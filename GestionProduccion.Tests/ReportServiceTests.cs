@@ -3,6 +3,7 @@ using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Services.ProductionOrders;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -12,13 +13,15 @@ public class ReportServiceTests
 {
     private readonly Mock<IProductionOrderQueryService> _mockQuery;
     private readonly Mock<ISystemConfigurationService> _mockConfig;
+    private readonly Mock<ILogger<ReportService>> _mockLogger;
     private readonly ReportService _service;
 
     public ReportServiceTests()
     {
         _mockQuery = new Mock<IProductionOrderQueryService>();
         _mockConfig = new Mock<ISystemConfigurationService>();
-        _service = new ReportService(_mockQuery.Object, _mockConfig.Object);
+        _mockLogger = new Mock<ILogger<ReportService>>();
+        _service = new ReportService(_mockQuery.Object, _mockConfig.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -46,7 +49,7 @@ public class ReportServiceTests
                    .ReturnsAsync(new SystemConfigurationDto { CompanyName = "Test Corp" });
 
         // Act
-        var result = await _service.GenerateProductionOrderReportAsync(orderId);
+        var result = await _service.GenerateProductionOrderReportAsync(orderId, "https://test.com");
 
         // Assert
         result.Should().NotBeNull();
@@ -73,7 +76,7 @@ public class ReportServiceTests
 
         // Act
         // This should NOT throw an exception
-        var result = await _service.GenerateProductionOrderReportAsync(orderId);
+        var result = await _service.GenerateProductionOrderReportAsync(orderId, "https://test.com");
 
         // Assert
         result.Should().NotBeEmpty();

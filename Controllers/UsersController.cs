@@ -97,17 +97,27 @@ public class UsersController : ControllerBase
 
         try
         {
-            // Convert to Base64 for persistence in DB (Cloud-native approach)
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms);
-            var fileBytes = ms.ToArray();
-            var base64String = $"data:{file.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
+            var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
 
-            var success = await _userService.UpdateUserAvatarBase64Async(userId, base64String);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var newAvatarUrl = $"/img/avatars/{fileName}";
+
+            var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
 
             if (!success) return StatusCode(500, "Failed to update user record in database.");
 
-            return Ok(new { url = base64String });
+            return Ok(new { url = newAvatarUrl });
         }
         catch (Exception ex)
         {

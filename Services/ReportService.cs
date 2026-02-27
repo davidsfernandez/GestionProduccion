@@ -18,6 +18,7 @@ public class ReportService : IReportService
     private readonly IProductionOrderQueryService _queryService;
     private readonly ISystemConfigurationService _configService;
     private readonly ILogger<ReportService> _logger;
+    private static readonly string DefaultFont = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux) ? "Liberation Sans" : "Arial";
 
     public ReportService(IProductionOrderQueryService queryService, ISystemConfigurationService configService, ILogger<ReportService> logger)
     {
@@ -27,7 +28,7 @@ public class ReportService : IReportService
         try { QuestPDF.Settings.License = LicenseType.Community; } catch { }
     }
 
-    public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId)
+    public async Task<byte[]> GenerateProductionOrderReportAsync(int orderId, string baseUrl)
     {
         try
         {
@@ -43,7 +44,7 @@ public class ReportService : IReportService
             byte[]? qrCodeBytes = null;
             try
             {
-                var qrUrl = $"https://tu-dominio.com/orders/{order.Id}";
+                var qrUrl = $"{baseUrl.TrimEnd('/')}/order-details/{order.Id}";
                 using var qrGenerator = new QRCodeGenerator();
                 using var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
                 using var qrCode = new PngByteQRCode(qrCodeData);
@@ -58,7 +59,7 @@ public class ReportService : IReportService
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(DefaultFont));
 
                     // HEADER
                     page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -232,7 +233,7 @@ public class ReportService : IReportService
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(DefaultFont));
 
                     // HEADER
                     page.Header().Row(row =>
@@ -282,11 +283,10 @@ public class ReportService : IReportService
                                 header.Cell().Element(HeaderStyle).Text("Lote/OP");
                                 header.Cell().Element(HeaderStyle).Text("Produto");
                                 header.Cell().Element(HeaderStyle).Text("Equipe");
-                                header.Cell().Element(HeaderStyle).Text("Operário");
-                                header.Cell().Element(HeaderStyle).Text("Status");
-                                static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily("Liberation Sans"));
-                            });
-
+                                                            header.Cell().Element(HeaderStyle).Text("Operário");
+                                                            header.Cell().Element(HeaderStyle).Text("Status");
+                                                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily(DefaultFont));
+                                                        });
                             if (dashboard?.TodaysOrders != null)
                             {
                                 for (int i = 0; i < dashboard.TodaysOrders.Count; i++)

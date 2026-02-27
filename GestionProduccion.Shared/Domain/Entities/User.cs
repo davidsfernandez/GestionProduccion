@@ -31,9 +31,6 @@ public class User
 
     public string? AvatarUrl { get; set; }
 
-    [Column(TypeName = "LONGTEXT")]
-    public string? AvatarBase64 { get; set; }
-
     // Relationship with SewingTeam (1-N)
     public int? SewingTeamId { get; set; }
     [ForeignKey("SewingTeamId")]
