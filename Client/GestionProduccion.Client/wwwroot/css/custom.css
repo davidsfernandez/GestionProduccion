@@ -460,31 +460,56 @@ body {
     padding: 0 !important;
 }
 
-/* --- TV MODE / FACTORY KIOSK --- */
-.tv-mode-active .sidebar,
-.tv-mode-active .navbar {
-    display: none !important;
+/* --- MODERN TOASTS (Phase 5) --- */
+.toast-container {
+    z-index: 2000 !important;
 }
 
-.tv-mode-active .main, 
-.tv-mode-active .content {
-    margin-left: 0 !important;
-    padding: 2rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
+.toast-custom {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    overflow: hidden;
+    margin-bottom: 12px;
+    min-width: 320px;
+    border-left: 6px solid #ccc !important;
+    animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.tv-mode-active .card {
-    box-shadow: 0 1rem 3rem rgba(0,0,0,0.15) !important; /* Stronger shadow for TV */
-    border: 1px solid #e2e8f0;
+.toast-custom.success { border-left-color: var(--serona-primary) !important; }
+.toast-custom.error { border-left-color: #ef4444 !important; }
+.toast-custom.warning { border-left-color: #f59e0b !important; }
+.toast-custom.info { border-left-color: #3b82f6 !important; }
+
+.toast-custom .toast-body {
+    padding: 16px 20px !important;
+    color: #1e293b !important;
+    font-weight: 500;
 }
 
-.tv-mode-active h1, 
-.tv-mode-active h3 {
-    font-size: 2.5rem !important; /* Larger text for distance viewing */
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
-.tv-mode-active .badge {
-    font-size: 1.2rem !important;
-    padding: 0.5em 1em !important;
+/* --- HIGH CONTRAST TEXT FIX --- */
+.text-dark, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important; /* Deep dark for maximum contrast */
+}
+
+.text-muted {
+    color: #64748b !important; /* Ensure muted text is still readable */
+}
+
+/* Fix for information only visible when selected */
+span, div, td, th {
+    /* Prevent transparent or accidentally same-color text as background */
+    text-shadow: none;
+}
+
+/* Improved focus accessibility */
+:focus-visible {
+    outline: 3px solid rgba(0, 200, 153, 0.4) !important;
 }

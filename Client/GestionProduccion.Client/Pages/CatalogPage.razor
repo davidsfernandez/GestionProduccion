@@ -9,6 +9,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject ToastService ToastService
+@inject AudioService Audio
 @implements IDisposable
 
 <div class="container-fluid p-0">
@@ -298,6 +299,7 @@
 
             if (response.IsSuccessStatusCode)
             {
+                await Audio.PlaySuccess();
                 ToastService.ShowToast(editingId == 0 ? Portuguese.Cat_SuccessCreated : Portuguese.Cat_SuccessUpdated, ToastLevel.Success);
                 showModal = false;
                 editingProduct = new CreateProductDto();
@@ -305,6 +307,7 @@
             }
             else
             {
+                await Audio.PlayError();
                 var errorBody = await response.Content.ReadAsStringAsync();
                 string specificError = errorBody;
                 

@@ -3,17 +3,24 @@
 @inject ToastService ToastService
 @implements IDisposable
 
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+<div class="toast-container position-fixed bottom-0 end-0 p-4" style="z-index: 2000;">
     @foreach (var toast in ToastService.Toasts)
     {
-        <div class="toast show mb-2 shadow" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header @GetHeaderClass(toast.Level) text-white">
-                <strong class="me-auto">@(string.IsNullOrEmpty(toast.Title) ? Portuguese.Toast_SystemNotice : toast.Title)</strong>
-                <small>@toast.Timestamp.ToShortTimeString()</small>
-                <button type="button" class="btn-close btn-close-white" @onclick="() => ToastService.RemoveToast(toast)" aria-label="@Portuguese.Toast_Close"></button>
-            </div>
-            <div class="toast-body">
-                @toast.Message
+        <div class="toast-custom @GetLevelClass(toast.Level)" role="alert">
+            <div class="toast-body d-flex align-items-center">
+                <div class="me-3 fs-4">
+                    <i class="@GetIcon(toast.Level)"></i>
+                </div>
+                <div class="flex-grow-1">
+                    @if (!string.IsNullOrEmpty(toast.Title))
+                    {
+                        <div class="fw-bold small text-uppercase opacity-75">@toast.Title</div>
+                    }
+                    <div class="message-content">@toast.Message</div>
+                </div>
+                <button type="button" class="btn-close ms-3 small" 
+                        @onclick="() => ToastService.RemoveToast(toast)" 
+                        aria-label="@Portuguese.Toast_Close"></button>
             </div>
         </div>
     }
@@ -25,12 +32,20 @@
         ToastService.OnShow += StateHasChanged;
     }
 
-    private string GetHeaderClass(ToastLevel level) => level switch
+    private string GetLevelClass(ToastLevel level) => level switch
     {
-        ToastLevel.Success => "bg-success",
-        ToastLevel.Error => "bg-danger",
-        ToastLevel.Warning => "bg-warning",
-        _ => "bg-info"
+        ToastLevel.Success => "success",
+        ToastLevel.Error => "error",
+        ToastLevel.Warning => "warning",
+        _ => "info"
+    };
+
+    private string GetIcon(ToastLevel level) => level switch
+    {
+        ToastLevel.Success => "fa-solid fa-circle-check text-primary",
+        ToastLevel.Error => "fa-solid fa-circle-xmark text-danger",
+        ToastLevel.Warning => "fa-solid fa-triangle-exclamation text-warning",
+        _ => "fa-solid fa-circle-info text-info"
     };
 
     public void Dispose()

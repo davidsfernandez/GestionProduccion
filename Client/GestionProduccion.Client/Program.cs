@@ -48,6 +48,7 @@ builder.Services.AddScoped<IProductClient, ProductClient>();
 builder.Services.AddScoped<ISewingTeamClient, SewingTeamClient>();
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();
+builder.Services.AddScoped<AudioService>();
 builder.Services.AddScoped<UserStateService>();
 
 await builder.Build().RunAsync();

@@ -6,8 +6,14 @@ namespace GestionProduccion.Client.Services
 {
     public class ToastService
     {
+        private readonly AudioService _audio;
         public event Action? OnShow;
         public List<ToastMessage> Toasts { get; } = new();
+
+        public ToastService(AudioService audio)
+        {
+            _audio = audio;
+        }
 
         public void ShowToast(string message, ToastLevel level, string? title = null)
         {
@@ -22,6 +28,9 @@ namespace GestionProduccion.Client.Services
             Toasts.Add(toast);
             OnShow?.Invoke();
 
+            // Play Sound Feedback
+            _ = PlayToastSound(level);
+
             // Auto-remove Success/Info after 5 seconds. Errors require manual close.
             if (level != ToastLevel.Error)
             {
@@ -33,6 +42,16 @@ namespace GestionProduccion.Client.Services
                 };
                 timer.AutoReset = false;
                 timer.Start();
+            }
+        }
+
+        private async Task PlayToastSound(ToastLevel level)
+        {
+            switch (level)
+            {
+                case ToastLevel.Success: await _audio.PlaySuccess(); break;
+                case ToastLevel.Error: await _audio.PlayError(); break;
+                default: await _audio.PlayNotify(); break;
             }
         }
 
