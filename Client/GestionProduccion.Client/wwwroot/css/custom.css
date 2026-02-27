@@ -495,25 +495,46 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* --- HIGH CONTRAST TEXT FIX --- */
-.text-dark, .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6,
-td, th, p, .form-control, .form-select, span:not(.text-white):not(.badge) {
-    color: #0f172a !important; /* Deep dark for maximum contrast */
+/* --- GLOBAL TEXT VISIBILITY FIX --- */
+body {
+    color: #1e293b !important;
 }
 
-/* Ensure badges have readable text */
-.badge {
-    color: #ffffff !important;
-}
-
-.bg-info-soft, .bg-primary-soft, .bg-success-soft, .bg-warning-soft, .bg-danger-soft {
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     color: #0f172a !important;
     font-weight: 700 !important;
 }
 
-.text-muted {
-    color: #475569 !important; /* Ensure muted text is still readable */
+/* Force visibility on all table data and labels */
+td, th, span, label, p, div {
+    color: inherit; /* Allow inheritance but ensure base is dark */
 }
+
+.table td, .table th {
+    color: #1e293b !important;
+    vertical-align: middle;
+}
+
+/* Correcting 'soft' badges that were causing invisibility */
+.bg-primary-soft { background-color: rgba(0, 200, 153, 0.15) !important; color: #008567 !important; }
+.bg-info-soft { background-color: rgba(59, 130, 246, 0.15) !important; color: #1d4ed8 !important; }
+.bg-success-soft { background-color: rgba(34, 197, 94, 0.15) !important; color: #15803d !important; }
+.bg-warning-soft { background-color: rgba(245, 158, 11, 0.15) !important; color: #b45309 !important; }
+.bg-danger-soft { background-color: rgba(239, 68, 68, 0.15) !important; color: #b91c1c !important; }
+
+.badge {
+    font-weight: 700 !important;
+    padding: 0.4em 0.65em !important;
+}
+
+/* --- MOBILE SIDEBAR SCROLL FIX --- */
+@media (max-width: 992px) {
+    .sidebar {
+        overflow-y: auto !important;
+        max-height: 100vh;
+    }
+}
+
 
 /* Fix for information only visible when selected */
 span, div, td, th {

@@ -15,6 +15,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // First check is immediate
+        try 
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            if (setupRequired)
+            {
+                NavigationManager.NavigateTo("/setup", true);
+                return;
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+        }
+        catch { /* Fallback to retry loop */ }
+
         await CheckSetup();
     }
 
