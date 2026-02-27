@@ -357,11 +357,13 @@ public class ReportService : IReportService
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
+        "pending" => "Pendente",
         "inproduction" => "Em Produção",
         "stopped" => "Parado",
         "completed" => "Finalizado",
         "paused" => "Pausado",
         "finished" => "Concluído",
+        "cancelled" => "Cancelado",
         _ => status ?? ""
     };
 }

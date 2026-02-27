@@ -15,7 +15,7 @@
 @implements IAsyncDisposable
 
 @using GestionProduccion.Client.Resources
-@using GestionProduccion.Domain.Enums // Needed for ProductionStatus enum
+@using GestionProduccion.Domain.Enums
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
@@ -301,10 +301,10 @@
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
-        "cutting" => Portuguese.Stage_Cutting,
-        "sewing" => Portuguese.Stage_Sewing,
-        "review" => Portuguese.Stage_Review,
-        "packaging" => Portuguese.Stage_Packaging,
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
         _ => stage ?? ""
     };
 
@@ -316,6 +316,7 @@
         "completed" => "Finalizado",
         "paused" => "Pausado",
         "finished" => "Concluído",
+        "cancelled" => "Cancelado",
         _ => status ?? ""
     };
 

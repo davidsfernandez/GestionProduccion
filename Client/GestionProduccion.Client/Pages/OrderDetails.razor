@@ -699,21 +699,24 @@
         _ => "bg-light text-muted"
     };
 
-    private string TranslateStatus(string status) => status?.ToLower() switch
+    private string TranslateStatus(string? status) => status?.ToLower() switch
     {
-        "inproduction" => Portuguese.Status_InProduction,
-        "stopped" => Portuguese.Status_Stopped,
-        "completed" => Portuguese.Status_Completed,
-        "paused" => Portuguese.Status_Paused,
+        "pending" => "Pendente",
+        "inproduction" => "Em Produção",
+        "stopped" => "Parado",
+        "completed" => "Finalizado",
+        "paused" => "Pausado",
+        "finished" => "Concluído",
+        "cancelled" => "Cancelado",
         _ => status ?? ""
     };
 
-    private string TranslateStage(string stage) => stage?.ToLower() switch
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
-        "cutting" => Portuguese.Stage_Cutting,
-        "sewing" => Portuguese.Stage_Sewing,
-        "review" => Portuguese.Stage_Review,
-        "packaging" => Portuguese.Stage_Packaging,
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
         _ => stage ?? ""
     };
 
