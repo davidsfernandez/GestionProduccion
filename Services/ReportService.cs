@@ -271,7 +271,7 @@ public class ReportService : IReportService
                             header.Cell().Element(HeaderStyle).Text("Equipe");
                             header.Cell().Element(HeaderStyle).Text("Operário");
                             header.Cell().Element(HeaderStyle).Text("Status");
-                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9));
+                            static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily("Arial"));
                         });
 
                         if (dashboard?.TodaysOrders != null)

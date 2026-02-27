@@ -32,6 +32,25 @@
                 NavigationManager.NavigateTo("/login", true);
             }
         }
+        catch (HttpRequestException httpEx)
+        {
+            var code = httpEx.StatusCode?.ToString() ?? "Desconhecido";
+            if (retryCount < MaxRetries)
+            {
+                retryCount++;
+                statusMessage = $"Erro HTTP {code}. Tentando reconectar ({retryCount}/{MaxRetries})...";
+                StateHasChanged();
+                await Task.Delay(3000);
+                await CheckSetup();
+            }
+            else
+            {
+                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API está online.";
+                StateHasChanged();
+                await Task.Delay(3000);
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
         catch (Exception ex)
         {
             if (retryCount < MaxRetries)
@@ -39,15 +58,14 @@
                 retryCount++;
                 statusMessage = $"Erro: {ex.Message}. Tentando reconectar ({retryCount}/{MaxRetries})...";
                 StateHasChanged();
-                await Task.Delay(3000); // Wait 3 seconds before retry
+                await Task.Delay(3000);
                 await CheckSetup();
             }
             else
             {
-                // Permanent fail, fallback to login
-                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando para login...";
+                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando...";
                 StateHasChanged();
-                await Task.Delay(2000);
+                await Task.Delay(3000);
                 NavigationManager.NavigateTo("/login", true);
             }
         }
