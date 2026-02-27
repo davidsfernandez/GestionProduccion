@@ -4,7 +4,7 @@
 @using System.Text.Json
 @using GestionProduccion.Client.Services.ProductionOrders
 @using GestionProduccion.Domain.Enums
-@attribute [Authorize(Roles = "Leader,Operational")]
+@attribute [Authorize(Roles = "Administrator,Leader,Operational")]
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject ToastService ToastService

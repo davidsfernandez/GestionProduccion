@@ -61,7 +61,7 @@
                 </NavLink>
             </li>
 
-            <AuthorizeView Roles="Leader,Operational" Context="opTasks">
+            <AuthorizeView Roles="Administrator,Leader,Operational" Context="opTasks">
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-clipboard-list"></i> <span class="align-middle">Minhas Tarefas</span>
