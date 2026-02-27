@@ -4,6 +4,13 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject GestionProduccion.Client.Services.ISignalRService SignalR
+@inject GestionProduccion.Client.Services.ToastService ToastService
+@using GestionProduccion.Client.Auth
+@using GestionProduccion.Client.Components
+@using GestionProduccion.Client.Resources
+@using GestionProduccion.Client.Services
+@implements IDisposable
+
 @if (!_isSystemReady)
 {
     <div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-white">
@@ -72,8 +79,8 @@ else
         }
         catch
         {
-            // If it fails, RedirectToLogin will handle retries, but we keep UI locked
-            _isSystemReady = false;
+            // Fallback: system is not ready or API is failing, but let pages handle logic
+            _isSystemReady = true; 
         }
 
         NavigationManager.LocationChanged += OnLocationChanged;
@@ -93,11 +100,11 @@ else
         InvokeAsync(() => {
             if (type == "LeaderChange")
             {
-                ToastService.ShowToast(message, GestionProduccion.Client.Services.ToastLevel.Info, "Ranking Atualizado!");
+                ToastService.ShowToast(message, ToastLevel.Info, "Ranking Atualizado!");
             }
             else
             {
-                ToastService.ShowToast(message, GestionProduccion.Client.Services.ToastLevel.Info, "Notificação");
+                ToastService.ShowToast(message, ToastLevel.Info, "Notificação");
             }
             StateHasChanged();
         });
@@ -105,8 +112,6 @@ else
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        // Close sidebar on navigation (Mobile UX only)
-        // We use JS to check screen width to avoid closing on Desktop
         var isMobile = await CheckIfMobile();
         if (isMobile && !_isSidebarCollapsed)
         {
@@ -119,7 +124,6 @@ else
     {
         try 
         {
-            // Simple JS interop to check window width
             return await JS.InvokeAsync<int>("eval", "window.innerWidth") < 992;
         }
         catch { return false; }
