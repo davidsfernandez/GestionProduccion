@@ -58,7 +58,7 @@ public class ReportService : IReportService
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
 
                     // HEADER
                     page.Header().Background(Colors.Grey.Darken3).Padding(20).Row(row =>
@@ -232,7 +232,7 @@ public class ReportService : IReportService
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Liberation Sans"));
 
                     // HEADER
                     page.Header().Row(row =>
@@ -284,7 +284,7 @@ public class ReportService : IReportService
                                 header.Cell().Element(HeaderStyle).Text("Equipe");
                                 header.Cell().Element(HeaderStyle).Text("Operário");
                                 header.Cell().Element(HeaderStyle).Text("Status");
-                                static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily("Arial"));
+                                static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily("Liberation Sans"));
                             });
 
                             if (dashboard?.TodaysOrders != null)

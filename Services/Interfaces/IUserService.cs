@@ -45,6 +45,11 @@ public interface IUserService
     Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl);
 
     /// <summary>
+    /// Updates the avatar as a base64 string for persistent storage.
+    /// </summary>
+    Task<bool> UpdateUserAvatarBase64Async(int userId, string base64Data);
+
+    /// <summary>
     /// Updates an existing user.
     /// </summary>
     Task<User> UpdateUserAsync(User user);

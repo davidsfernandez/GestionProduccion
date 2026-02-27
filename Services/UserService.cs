@@ -136,6 +136,20 @@ public class UserService : IUserService
         return true;
     }
 
+    public async Task<bool> UpdateUserAvatarBase64Async(int userId, string base64Data)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return false;
+
+        user.AvatarBase64 = base64Data;
+        // Also update URL to be the base64 data so existing logic might work
+        user.AvatarUrl = base64Data; 
+        
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<User> UpdateUserAsync(User user)
     {
         if (user == null)
