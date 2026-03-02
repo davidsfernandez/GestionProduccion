@@ -1,36 +1,66 @@
-# 🧶 Serona Gestión de Producción
+# 🧶 Production Management System | Gestión de Producción | Gestão de Produção
 
-### 👤 Contacto / Soporte Técnico
-*   **Nombre:** David Fernandez Garzon
+### 👤 Contact & Support | Contacto | Contato
+**David Fernandez Garzon**
 *   **E-mail:** [davidzodelin@gmail.com](mailto:davidzodelin@gmail.com)
-*   **Móvil:** [+55 62 98445-1102](https://wa.me/5562984451102)
+*   **Phone / WhatsApp:** [+55 62 98445-1102](https://wa.me/5562984451102)
 
 ---
 
-## 🚀 Sobre el Proyecto
-**Serona Gestión de Producción** es una solución integral diseñada para optimizar los procesos de manufactura textil. Permite el control exhaustivo de órdenes de producción, seguimiento de etapas (Corte, Costura, Revisión, Embalaje), gestión de equipos y análisis de productividad en tiempo real.
+## 🇺🇸 English
 
-### 📺 Características Principales (Modo TV)
-El sistema incluye un **Modo TV interactivo** diseñado para ser visualizado en pantallas de planta, que ofrece:
-*   **Rotación de Anuncios:** Avisos informativos configurables desde el panel administrativo.
-*   **Métricas de Tiempo Real:** Visualización de piezas producidas hoy, eficiencia diaria y actividad reciente.
-*   **SKU Display:** Identificación clara de productos en producción mediante SKU en lugar de códigos de lote.
-*   **Tiempo Promedio:** Cálculo dinámico de minutos invertidos por pieza producida.
-*   **Branding Personalizado:** Integración de logotipo y reloj en tiempo real.
+### 🚀 Overview
+A robust, production-grade management solution designed to optimize manufacturing workflows. This system provides a comprehensive suite for order tracking, stage monitoring, and real-time performance analytics.
 
-## 🛠️ Stack Tecnológico
+### 🧩 Extensibility & Customization
+The architecture is **highly extensible and modular**. It can be easily adapted to any industrial process, including:
+*   **Advanced Inventory & Stock Management.**
+*   **Custom Production Workflows** (any industry beyond textiles).
+*   **Automated Quality Assurance** modules.
+*   **Integration with external ERPs or IoT devices.**
+
+**Looking for a custom solution?** I am available to modify, scale, install, or adapt this system to your specific business needs. Feel free to contact me for a professional consultation.
+
+### 🛠️ Tech Stack
 *   **Frontend:** Blazor WebAssembly (.NET 8)
 *   **Backend:** ASP.NET Core Web API
-*   **Base de Datos:** SQL Server / Entity Framework Core
-*   **Tiempo Real:** SignalR
-*   **Contenedores:** Docker & Docker Compose
-*   **Despliegue:** Azure Container Apps / VPS
+*   **Database:** SQL Server / EF Core
+*   **Real-Time:** SignalR
+*   **Deployment:** Docker / Cloud-ready
 
-## 🔧 Configuración y Ejecución local
-1. Clona el repositorio: `git clone https://github.com/davidsfernandez/GestionProduccion.git`
-2. Configura las variables de entorno en `appsettings.json` o `.env`.
-3. Ejecuta con Docker: `docker-compose up -d`
-4. Accede al sistema: `http://localhost:5000`
+---
 
-## 📜 Licencia
-Este proyecto se distribuye bajo la **Licencia MIT**. Consulte el archivo `LICENSE` para más detalles.
+## 🇪🇸 Español
+
+### 🚀 Resumen
+Una solución de gestión robusta diseñada para optimizar flujos de trabajo de fabricación. El sistema ofrece un control exhaustivo de órdenes, seguimiento de etapas y análisis de productividad en tiempo real.
+
+### 🧩 Extensibilidad y Personalización
+El sistema es **altamente extensible y adaptable**. Puede integrarse fácilmente a cualquier proceso productivo o de negocio, incluyendo:
+*   **Gestión de Stock e Inventarios Avanzados.**
+*   **Flujos de producción personalizados** para cualquier industria.
+*   **Módulos de Control de Calidad** a medida.
+*   **Sincronización con dispositivos externos o ERPs.**
+
+**¿Necesita una adaptación?** Estoy disponible para modificar, ampliar, instalar o adaptar este sistema según los requerimientos específicos de su empresa. Contácteme para una consultoría técnica.
+
+---
+
+## 🇧🇷 Português
+
+### 🚀 Visão Geral
+Uma solução de gestão robusta projetada para otimizar fluxos de trabalho industriais. O sistema oferece controle total de ordens, acompanhamento de etapas e análise de produtividade em tempo real.
+
+### 🧩 Extensibilidade e Adaptação
+O sistema é **altamente extensível e modular**. Pode ser facilmente adaptado a qualquer processo de produção ou negócio, incluindo:
+*   **Gestão de Estoque e Inventário Avançado.**
+*   **Fluxos de produção personalizados** para qualquer tipo de indústria.
+*   **Módulos de Controle de Qualidade (QA)** sob medida.
+*   **Integração com ERPs ou dispositivos externos.**
+
+**Precisa de alterações?** Estou disponível para modificar, escalar, instalar ou adaptar este sistema às necessidades específicas da sua empresa. Entre em contato para uma consultoria profissional.
+
+---
+
+## 📜 License
+This project is distributed under the **MIT License**.
