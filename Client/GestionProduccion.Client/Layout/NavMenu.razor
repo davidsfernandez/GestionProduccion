@@ -1,0 +1,250 @@
+@using GestionProduccion.Client.Resources
+@using Microsoft.AspNetCore.Components.Authorization
+@using GestionProduccion.Models.DTOs
+@using System.Net.Http.Json
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
+@inject GestionProduccion.Client.Services.UserStateService UserState
+@implements IDisposable
+
+<nav id="sidebar" class="sidebar js-sidebar @(IsOpen ? "toggled" : "collapsed")">
+    <div class="sidebar-content js-simplebar">
+        <!-- LOGO DA EMPRESA (Global Config) -->
+        <div class="sidebar-brand text-center py-4 px-3">
+            @if (!string.IsNullOrEmpty(CompanyLogo))
+            {
+                <div class="bg-white p-2 rounded-3 shadow-sm d-inline-block w-100" style="min-height: 60px; display: flex !important; align-items: center; justify-content: center;">
+                    <img src="@CompanyLogo" alt="Logo" style="max-width: 100%; max-height: 50px; object-fit: contain;" />
+                </div>
+            }
+            else
+            {
+                <span class="align-middle text-white fw-bold">GESTÃO DE PRODUÇÃO</span>
+            }
+        </div>
+
+        <!-- PERFIL EN SIDEBAR (Serona Standard) -->        <AuthorizeView>
+            <Authorized>
+                <div class="sidebar-profile">
+                    <div class="position-relative d-inline-block">
+                        <img src="@(GetAvatarUrl())" class="profile-img" alt="Avatar" />
+                        <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
+                             style="width: 14px; height: 14px; border-width: 2px !important;"></div>
+                    </div>
+                    <span class="profile-name">@(context.User.Identity?.Name ?? "Usuário")</span>
+                    <span class="profile-role">
+                        @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
+                    </span>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="sidebar-profile">
+                    <div class="position-relative d-inline-block">
+                        <img src="/img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
+                    </div>
+                    <span class="profile-name">Convidado</span>
+                    <span class="profile-role">Inicie sessão</span>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <ul class="sidebar-nav">
+            <li class="menu-label">Produção</li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All" @onclick="CollapseSidebar">
+                    <i class="fa-solid fa-gauge-high"></i> <span class="align-middle">@Portuguese.Nav_Dashboard</span>
+                </NavLink>
+            </li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="orders" @onclick="CollapseSidebar">
+                    <i class="fa-solid fa-boxes-stacked"></i> <span class="align-middle">@Portuguese.Nav_Orders</span>
+                </NavLink>
+            </li>
+
+            <AuthorizeView Roles="Administrator,Leader,Operational" Context="opTasks">
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="minhas-tarefas" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-clipboard-list"></i> <span class="align-middle">@Portuguese.Nav_MyTasks</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Administrator,Leader">
+                <li class="menu-label">Gestão de Fábrica</li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-layer-group"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
+                    </NavLink>
+                </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="equipes" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-people-group"></i> <span class="align-middle">@Portuguese.Nav_Teams</span>
+                    </NavLink>
+                </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="delegar-tarefas" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-user-check"></i> <span class="align-middle">@Portuguese.Nav_DelegateTasks</span>
+                    </NavLink>
+                </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="tv-producao" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-tv"></i> <span class="align-middle">@Portuguese.Nav_TvMode</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Administrator">
+                <li class="menu-label">Inteligência & BI</li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="relatorios" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-chart-pie"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+
+            <li class="menu-label">Configurações</li>
+
+            <li class="sidebar-item">
+                <NavLink class="sidebar-link" href="profile" @onclick="CollapseSidebar">
+                    <i class="fa-solid fa-id-badge"></i> <span class="align-middle">@Portuguese.Nav_Profile</span>
+                </NavLink>
+            </li>
+
+            <AuthorizeView Roles="Administrator">
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="usuarios" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-users-gear"></i> <span class="align-middle">@Portuguese.Nav_Users</span>
+                    </NavLink>
+                </li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="configuracoes" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-sliders"></i> <span class="align-middle">@Portuguese.Nav_Settings</span>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
+        </ul>
+    </div>
+</nav>
+
+@code {
+    private string? CompanyLogo;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnSidebarCollapse { get; set; }
+
+    private async Task CollapseSidebar()
+    {
+        if (IsOpen)
+        {
+            await OnSidebarCollapse.InvokeAsync();
+        }
+    }
+
+    private string GetAvatarUrl()
+    {
+        var url = UserState.AvatarUrl;
+        if (string.IsNullOrEmpty(url))
+        {
+            return "/img/avatars/avatar.jpg";
+        }
+        // Ensure leading slash for consistency
+        var finalUrl = url.StartsWith("/") ? url : "/" + url;
+        return $"{finalUrl}?t={DateTime.Now.Ticks}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        UserState.OnChange += HandleStateChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadUserData();
+        await LoadCompanyLogo();
+    }
+
+    private async Task LoadCompanyLogo()
+    {
+        try
+        {
+            var logoDto = await Http.GetFromJsonAsync<LogoDto>("api/Configuration/logo");
+            if (logoDto != null && !string.IsNullOrEmpty(logoDto.Base64Image))
+            {
+                CompanyLogo = logoDto.Base64Image;
+            }
+        }
+        catch
+        {
+            // Fallback to text logo if fetch fails
+            CompanyLogo = null;
+        }
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await LoadUserData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadUserData()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            // Immediate update from claims (JWT)
+            // Use the consistent claim name 'AvatarUrl'
+            var avatarClaim = user.FindFirst("AvatarUrl");
+            if (avatarClaim != null && !string.IsNullOrEmpty(avatarClaim.Value))
+            {
+                UserState.UpdateAvatar(avatarClaim.Value);
+            }
+
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                try
+                {
+                    var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
+                    if (userDto != null)
+                    {
+                        UserState.UpdateAvatar(userDto.AvatarUrl);
+                    }
+                }
+                catch
+                {
+                    // Ignore errors, keep default avatar
+                }
+            }
+        }
+        else
+        {
+            UserState.ClearState();
+        }
+    }
+
+    private string TranslateRole(string? role) => role?.ToLower() switch
+    {
+        "administrator" => Portuguese.Role_Admin,
+        "leader" => Portuguese.Role_Leader,
+        "operational" => Portuguese.Role_Operator,
+        "operator" => Portuguese.Role_Operator,
+        "sewer" => Portuguese.Role_Operator, // Map legacy role to current terminology
+        "workshop" => Portuguese.Role_Workshop,
+        _ => role ?? ""
+    };
+
+    public void Dispose()
+    {
+        UserState.OnChange -= HandleStateChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
+}

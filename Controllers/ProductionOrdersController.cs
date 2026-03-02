@@ -1,0 +1,385 @@
+using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs;
+using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Services.ProductionOrders;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace GestionProduccion.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class ProductionOrdersController : ControllerBase
+{
+    private readonly IProductionOrderQueryService _queryService;
+    private readonly IProductionOrderMutationService _mutationService;
+    private readonly IProductionOrderLifecycleService _lifecycleService;
+    private readonly IUserService _userService;
+    private readonly IExcelExportService _excelExportService;
+
+    public ProductionOrdersController(
+        IProductionOrderQueryService queryService,
+        IProductionOrderMutationService mutationService,
+        IProductionOrderLifecycleService lifecycleService,
+        IUserService userService,
+        IExcelExportService excelExportService)
+    {
+        _queryService = queryService;
+        _mutationService = mutationService;
+        _lifecycleService = lifecycleService;
+        _userService = userService;
+        _excelExportService = excelExportService;
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<IActionResult> CreateProductionOrder([FromBody] CreateProductionOrderRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var createdByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var newOrder = await _mutationService.CreateProductionOrderAsync(request, createdByUserId, HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetProductionOrderById), new { id = newOrder.Id }, newOrder);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error creating production order", error = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<ProductionOrderDto>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter)
+    {
+        try
+        {
+            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving production orders", error = ex.Message });
+        }
+    }
+
+    [HttpGet("assignable")]
+    public async Task<ActionResult<List<UserDto>>> GetAssignableUsers()
+    {
+        try
+        {
+            var users = await _userService.GetActiveUsersAsync();
+            var assignable = users
+                .Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader)
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    ExternalId = u.ExternalId,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Role = u.Role,
+                    IsActive = u.IsActive
+                }).ToList();
+            return Ok(assignable);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving assignable users", error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProductionOrderById(int id)
+    {
+        try
+        {
+            var order = await _queryService.GetProductionOrderByIdAsync(id, HttpContext.RequestAborted);
+            if (order == null)
+            {
+                return NotFound(new { message = $"Production order with ID {id} not found." });
+            }
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving production order", error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/history")]
+    public async Task<ActionResult<List<ProductionHistoryDto>>> GetOrderHistory(int id)
+    {
+        try
+        {
+            var history = await _queryService.GetHistoryByProductionOrderIdAsync(id, HttpContext.RequestAborted);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error retrieving order history", error = ex.Message });
+        }
+    }
+
+    [HttpPost("{orderId}/assign")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<IActionResult> AssignTask(int orderId, [FromBody] AssignTaskRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var updatedOrder = await _lifecycleService.AssignTaskAsync(orderId, request.UserId, HttpContext.RequestAborted);
+            return Ok(updatedOrder);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error assigning task", error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{orderId}/status")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<IActionResult> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var updatedOrder = await _lifecycleService.UpdateStatusAsync(orderId, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(updatedOrder);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [HttpPost("bulk-status")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<ActionResult<BulkUpdateResult>> BulkUpdateStatus([FromBody] BulkUpdateStatusRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var result = await _lifecycleService.BulkUpdateStatusAsync(request.OrderIds, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error processing bulk update", error = ex.Message });
+        }
+    }
+
+    [HttpPost("{orderId}/change-stage")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<IActionResult> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var result = await _lifecycleService.ChangeStageAsync(orderId, request.NewStage, request.Note, modifiedByUserId, HttpContext.RequestAborted);
+            if (!result) return NotFound(new { message = "Order not found." });
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error changing stage", error = ex.Message });
+        }
+    }
+
+    [HttpPost("{orderId}/advance-stage")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<IActionResult> AdvanceStage(int orderId)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var updatedOrder = await _lifecycleService.AdvanceStageAsync(orderId, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(updatedOrder);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> DeleteProductionOrder(int id)
+    {
+        try
+        {
+            var result = await _mutationService.DeleteProductionOrderAsync(id, HttpContext.RequestAborted);
+            if (!result) return NotFound(new { message = "Order not found." });
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error deleting order", error = ex.Message });
+        }
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<DashboardDto>> GetDashboard()
+    {
+        var dashboardData = await _queryService.GetDashboardAsync(HttpContext.RequestAborted);
+        return Ok(dashboardData);
+    }
+
+    [HttpGet("tv-stats")]
+    [AllowAnonymous]
+    public async Task<ActionResult<DashboardDto>> GetTvStats([FromServices] ISystemConfigurationService configService)
+    {
+        var dashboardData = await _queryService.GetDashboardAsync(HttpContext.RequestAborted);
+        var config = await configService.GetConfigurationAsync();
+        dashboardData.TvAnnouncement = config.TvAnnouncement;
+        return Ok(dashboardData);
+    }
+
+    [HttpGet("{id}/pdf")]
+    public async Task<IActionResult> GetOrderPdf(int id, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var order = await _queryService.GetProductionOrderByIdAsync(id, HttpContext.RequestAborted);
+            if (order == null) return NotFound(new { message = "Order not found." });
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id, baseUrl);
+            if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Could not generate PDF content." });
+
+            return File(pdfBytes, "application/pdf", $"Order_{order.LotCode}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating Individual PDF", details = ex.Message, inner = ex.InnerException?.Message });
+        }
+    }
+
+    [HttpGet("{id}/report")]
+    public async Task<IActionResult> GetOrderReport(int id, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var pdfBytes = await reportService.GenerateProductionOrderReportAsync(id, baseUrl);
+            if (pdfBytes == null || pdfBytes.Length == 0) return NotFound(new { message = "Report generation failed." });
+
+            return File(pdfBytes, "application/pdf", $"ProductionOrder_{id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating Order Report", details = ex.Message });
+        }
+    }
+
+    [HttpGet("daily-report")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<IActionResult> GetDailyReport([FromServices] IReportService reportService)
+    {
+        try
+        {
+            var pdfBytes = await reportService.GenerateDailyProductionReportAsync();
+            if (pdfBytes == null || pdfBytes.Length == 0) return StatusCode(500, new { message = "Daily report content is empty." });
+            return File(pdfBytes, "application/pdf", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating Daily PDF Report", details = ex.Message, stack = ex.StackTrace });
+        }
+    }
+
+    [HttpGet("export-csv")]
+    public async Task<IActionResult> ExportCsv([FromQuery] FilterProductionOrderDto? filter, [FromServices] IReportService reportService)
+    {
+        try
+        {
+            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
+            var csvBytes = await reportService.GenerateOrdersCsvAsync(orders);
+            return File(csvBytes, "text/csv", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating CSV", error = ex.Message });
+        }
+    }
+
+    [HttpPost("export-excel")]
+    public async Task<IActionResult> ExportExcel([FromBody] List<ProductionOrderDto> orders)
+    {
+        try
+        {
+            var excelBytes = await _excelExportService.ExportProductionOrdersToExcelAsync(orders);
+            return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error generating Excel", error = ex.Message });
+        }
+    }
+}

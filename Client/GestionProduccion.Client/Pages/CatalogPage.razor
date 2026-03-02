@@ -1,0 +1,373 @@
+@page "/catalogo"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Resources
+@using System.Timers
+@using System.Globalization
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ToastService ToastService
+@inject AudioService Audio
+@implements IDisposable
+
+<div class="container-fluid p-0">
+    <div class="row mb-2 mb-xl-3">
+        <div class="col-auto d-none d-sm-block">
+            <h3><strong>@Portuguese.Cat_Title</strong></h3>
+        </div>
+        <div class="col-auto ms-auto text-end mt-n1">
+            <button class="btn btn-primary" @onclick="() => OpenModal()">
+                <i class="fa-solid fa-plus me-2"></i>@Portuguese.Cat_NewProduct
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" placeholder="@Portuguese.Cat_SearchHint" @bind="searchTerm" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+                    </div>
+                </div>
+            </div>
+
+            @if (loading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">@Portuguese.Loading</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover my-0">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Código</th>
+                                <th>Nome do Produto</th>
+                                <th>@Portuguese.Cat_FabricType</th>
+                                <th>@Portuguese.Cat_AvgTime</th>
+                                <th>Preço</th>
+                                <th class="text-end">@Portuguese.Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (filteredProducts == null || !filteredProducts.Any())
+                            {
+                                <tr><td colspan="7" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var product in filteredProducts)
+                                {
+                                    <tr @key="product.Id">
+                                        <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
+                                        <td><strong>@product.InternalCode</strong></td>
+                                        <td>@product.Name</td>
+                                        <td>@product.FabricType</td>
+                                        <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
+                                        <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product)" title="@Portuguese.Delete">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary py-3">
+                    <h5 class="modal-title text-white"><strong>@(editingId == 0 ? Portuguese.Cat_NewProduct : Portuguese.Cat_EditProduct)</strong></h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>                <div class="modal-body p-4">
+                    <EditForm Model="@editingProduct" OnValidSubmit="SaveProduct" OnInvalidSubmit="HandleInvalidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger small mb-3" />
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">@Portuguese.User_Name</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.Name" placeholder="Ex: Camiseta Básica" />
+                                <ValidationMessage For="@(() => editingProduct.Name)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">@Portuguese.Cat_InternalCode</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.InternalCode" placeholder="Ex: 102030" />
+                                <ValidationMessage For="@(() => editingProduct.InternalCode)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">SKU Principal</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.MainSku" placeholder="Ex: SKU-123" />
+                                <ValidationMessage For="@(() => editingProduct.MainSku)" class="text-danger small" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">@Portuguese.Cat_FabricType</label>
+                                <InputText class="form-control" @bind-Value="editingProduct.FabricType" placeholder="Ex: Algodão 30.1" />
+                                <ValidationMessage For="@(() => editingProduct.FabricType)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Tempo Médio (minutos)</label>
+                                <InputNumber class="form-control" @bind-Value="editingProduct.AverageProductionTimeMinutes" step="any" />
+                                <ValidationMessage For="@(() => editingProduct.AverageProductionTimeMinutes)" class="text-danger small" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Preço Estimado</label>
+                                <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" step="any" />
+                                <ValidationMessage For="@(() => editingProduct.EstimatedSalePrice)" class="text-danger small" />
+                            </div>
+                        </div>
+
+                        <div class="modal-footer border-0 px-0 pb-0 mt-4">
+                            <button type="button" class="btn btn-light" @onclick="CloseModal" disabled="@isSaving">@Portuguese.Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>@Portuguese.Save...</span>
+                                }
+                                else
+                                {
+                                    <span><i class="fa-solid fa-save me-2"></i>Salvar Produto</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProductDto>? allProducts;
+    private List<ProductDto>? filteredProducts;
+    private string searchTerm = "";
+    private bool showModal = false;
+    private bool loading = true;
+    private bool isSaving = false;
+    private CreateProductDto editingProduct = new();
+    private int editingId = 0;
+    private Timer? debounceTimer;
+
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowToast("Erro de validação: Verifique os campos em vermelho", ToastLevel.Warning, "Erro de Validação");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+        debounceTimer = new Timer(300);
+        debounceTimer.Elapsed += OnDebounceElapsed;
+        debounceTimer.AutoReset = false;
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            loading = true;
+            allProducts = await Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
+            filteredProducts = allProducts;
+        }
+        catch (Exception)
+        {
+            ToastService.ShowToast(Portuguese.Cat_ErrLoad, ToastLevel.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        debounceTimer?.Stop();
+        debounceTimer?.Start();
+    }
+
+    private void OnDebounceElapsed(object? sender, ElapsedEventArgs e)
+    {
+        InvokeAsync(() => {
+            FilterProducts();
+            StateHasChanged();
+        });
+    }
+
+    private void FilterProducts()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredProducts = allProducts;
+        }
+        else
+        {
+            filteredProducts = allProducts?
+                .Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                            p.MainSku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                            p.InternalCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private void OpenModal(ProductDto? product = null)
+    {
+        if (product != null)
+        {
+            editingId = product.Id;
+            editingProduct = new CreateProductDto
+            {
+                Name = product.Name,
+                InternalCode = product.InternalCode,
+                FabricType = product.FabricType,
+                MainSku = product.MainSku,
+                EstimatedSalePrice = product.EstimatedSalePrice,
+                AverageProductionTimeMinutes = product.AverageProductionTimeMinutes
+            };
+        }
+        else
+        {
+            editingId = 0;
+            editingProduct = new CreateProductDto { MainSku = "SKU-" };
+        }
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        if (!isSaving)
+        {
+            showModal = false;
+        }
+    }
+
+    private async Task SaveProduct()
+    {
+        try
+        {
+            isSaving = true;
+            HttpResponseMessage response;
+            
+            if(string.IsNullOrWhiteSpace(editingProduct.MainSku))
+                editingProduct.MainSku = editingProduct.InternalCode;
+
+            if (editingId == 0)
+            {
+                response = await Http.PostAsJsonAsync("api/Products", editingProduct);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"api/Products/{editingId}", new UpdateProductDto 
+                { 
+                    Id = editingId,
+                    Name = editingProduct.Name,
+                    InternalCode = editingProduct.InternalCode,
+                    FabricType = editingProduct.FabricType,
+                    MainSku = editingProduct.MainSku,
+                    AverageProductionTimeMinutes = editingProduct.AverageProductionTimeMinutes,
+                    EstimatedSalePrice = editingProduct.EstimatedSalePrice
+                });
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await Audio.PlaySuccess();
+                ToastService.ShowToast(editingId == 0 ? Portuguese.Cat_SuccessCreated : Portuguese.Cat_SuccessUpdated, ToastLevel.Success);
+                showModal = false;
+                editingProduct = new CreateProductDto();
+                await LoadProducts();
+            }
+            else
+            {
+                await Audio.PlayError();
+                var errorBody = await response.Content.ReadAsStringAsync();
+                string specificError = errorBody;
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
+                {
+                    specificError = "O código interno já existe no sistema";
+                }
+                
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
+            }
+        }
+        catch (HttpRequestException)
+        {
+            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteProduct(ProductDto product)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", $"{Portuguese.Cat_ConfirmDelete} ({product.Name})"))
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/Products/{product.Id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    ToastService.ShowToast(Portuguese.Cat_SuccessDeleted, ToastLevel.Success);
+                    await LoadProducts();
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    ToastService.ShowToast("Não é possível excluir um produto que possui ordens de produção ativas", ToastLevel.Error, "Conflito de Dados");
+                }
+                else
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    ToastService.ShowToast($"{Portuguese.Msg_Error}: {errorBody}", ToastLevel.Error);
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
+    }
+}

@@ -1,0 +1,186 @@
+@page "/setup"
+@layout Layout.EmptyLayout
+@using System.Net.Http.Json
+@using GestionProduccion.Client.Resources
+@using GestionProduccion.Models.DTOs
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<div class="d-flex w-100 vh-100 bg-white">
+    <div class="container d-flex flex-column justify-content-center align-items-center">
+        <div class="card shadow-lg border-0 rounded-4" style="max-width: 500px; width: 100%;">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="bg-primary-soft rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                        <i class="fa-solid fa-rocket text-primary fs-2"></i>
+                    </div>
+                    <h2 class="fw-bold text-dark">@Portuguese.Welcome!</h2>
+                    <p class="text-muted">Configuração Inicial do Sistema</p>
+                </div>
+
+                @if (success)
+                {
+                    <div class="alert alert-success text-center">
+                        <i class="fa-solid fa-check-circle me-2"></i> Administrador criado com sucesso!
+                        <div class="mt-3">
+                            <button class="btn btn-primary" @onclick="GoToLogin">Ir para Login</button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="small text-muted mb-4 text-center">
+                        Detectamos que este é o primeiro acesso. Crie uma conta de <strong>Administrador</strong> para começar.
+                    </p>
+
+                    <EditForm Model="@model" OnValidSubmit="HandleSetup">
+                        <DataAnnotationsValidator />
+
+                        <div class="row">
+                            <div class="col-12"><h6 class="fw-bold mb-3 border-bottom pb-2">Informações da Empresa</h6></div>
+                            <div class="col-md-7 mb-3">
+                                <label class="form-label small fw-bold">Nome da Fábrica/Empresa</label>
+                                <InputText class="form-control" @bind-Value="model.CompanyName" placeholder="Ex: Serona Confecções" />
+                                <ValidationMessage For="@(() => model.CompanyName)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label small fw-bold">CNPJ (Opcional)</label>
+                                <InputText class="form-control" @bind-Value="model.CompanyTaxId" placeholder="00.000.000/0000-00" />
+                            </div>
+                            <div class="col-12 mb-4">
+                                <label class="form-label small fw-bold">Logotipo (Opcional)</label>
+                                <InputFile class="form-control form-control-sm" OnChange="OnLogoSelected" accept="image/png, image/jpeg" />
+                            </div>
+
+                            <div class="col-12"><h6 class="fw-bold mb-3 border-bottom pb-2">Conta do Administrador</h6></div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label small fw-bold">@Portuguese.User_Name</label>
+                                <InputText class="form-control" @bind-Value="model.FullName" placeholder="Seu nome completo" />
+                                <ValidationMessage For="@(() => model.FullName)" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">@Portuguese.User_Email</label>
+                                <InputText class="form-control" @bind-Value="model.Email" placeholder="admin@empresa.com" />
+                                <ValidationMessage For="@(() => model.Email)" class="text-danger small" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">@Portuguese.User_Password</label>
+                                <InputText type="password" class="form-control" @bind-Value="model.Password" placeholder="Senha forte" />
+                                <ValidationMessage For="@(() => model.Password)" class="text-danger small" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg" disabled="@loading">
+                                @if (loading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Finalizar Configuração e Iniciar
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3 py-2 small text-center">
+                                @errorMessage
+                            </div>
+                        }
+                    </EditForm>
+                }
+            </div>
+        </div>
+        <div class="mt-4 text-muted small">
+            &copy; 2026 GestionProduccion
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterUserDto model = new();
+    private bool loading = false;
+    private bool success = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            if (!setupRequired)
+            {
+                NavigationManager.NavigateTo("/login");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Setup Check Error: {ex.Message}");
+        }
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            if (file.Size > 1024 * 1024) // 1MB limit
+            {
+                errorMessage = "O logotipo deve ser menor que 1MB.";
+                return;
+            }
+
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream().ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            model.LogoBase64 = $"data:{file.ContentType};base64,{base64}";
+        }
+    }
+
+    private async Task HandleSetup()
+    {
+        loading = true;
+        errorMessage = "";
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Auth/setup", model);
+            if (response.IsSuccessStatusCode)
+            {
+                success = true;
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                try 
+                {
+                    var error = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(errorBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    errorMessage = error?.Message ?? "Erro ao configurar sistema.";
+                }
+                catch 
+                {
+                    errorMessage = "Erro inesperado do servidor.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void GoToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    class ErrorResponse
+    {
+        public string Message { get; set; } = "";
+    }
+}

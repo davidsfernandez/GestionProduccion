@@ -1,0 +1,502 @@
+@page "/"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Globalization
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Components
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ISignalRService SignalR
+@inject IJSRuntime JSRuntime
+@inject JsonSerializerOptions JsonOptions
+@implements IAsyncDisposable
+
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.Dash_Title</PageTitle>
+
+<div class="@(isTvMode ? "tv-mode-active" : "")">
+    <div class="container-fluid p-0">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <h3 class="text-dark mb-0">@Portuguese.Dash_Title</h3>
+            <div class="d-flex gap-2 w-100 w-md-auto">
+                 <a href="/tv-producao" target="_blank" class="btn btn-primary shadow-sm flex-grow-1 flex-md-grow-0 d-flex align-items-center justify-content-center" 
+                    style="cursor: pointer !important; min-height: 40px;" title="@Portuguese.Dash_TvMode">
+                     <i class="fa-solid fa-tv me-2"></i> <span>@Portuguese.Dash_TvMode</span>
+                 </a>
+                 <button class="btn btn-outline-primary shadow-sm" @onclick="LoadDashboard" style="cursor: pointer !important; min-height: 40px;">
+                     <i class="fa-solid fa-arrows-rotate"></i>
+                 </button>
+            </div>
+        </div>
+
+        @if (loading && dashboard == null)
+        {
+            <div class="row">
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+                <div class="col-12 col-sm-6 col-xxl-3"><SkeletonCard /></div>
+            </div>
+            <div class="row">
+                <div class="col-xl-8">
+                    <div class="card p-5 text-center border-0 shadow-sm">
+                        <div class="spinner-border text-primary mx-auto" role="status"></div>
+                        <div class="mt-3 text-muted">Carregando métricas de produção...</div>
+                    </div>
+                </div>
+                <div class="col-xl-4"><SkeletonCard /><SkeletonCard /></div>
+            </div>
+        }
+        else if (dashboard != null)
+        {
+            <!-- FINANCIAL CARDS (ADMIN ONLY) -->
+            <AuthorizeView Roles="Administrator">
+                <div class="row mb-4">
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-1">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo médio por peça</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-coins text-primary fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-2">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-success")">
+                                            @dashboard.MonthAverageMargin.ToString("N1")%
+                                        </h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem média</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-success-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-chart-pie text-success fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-3">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Produção do mês</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-info-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-industry text-info fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xxl-3 d-flex">
+                        <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-4">
+                            <div class="card-body py-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h3 class="mb-2 fw-bold @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-success")">
+                                            @dashboard.DelayedOrdersCount
+                                        </h3>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Atrasos</p>
+                                    </div>
+                                    <div class="d-inline-block ms-3">
+                                        <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fa-solid fa-triangle-exclamation text-danger fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </AuthorizeView>
+
+            <div class="row">
+                <!-- COLUMNA PRINCIPAL (LEFT - Charts & Lists) -->
+                <div class="col-xl-8 d-flex flex-column">
+
+                    <!-- WEEKLY PRODUCTION CHART -->
+                    <div class="card flex-fill w-100 animate-fade-in-up mb-4">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Produção Últimos 7 Dias</h5>
+                            <i class="fa-solid fa-chart-line text-muted"></i>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="chart chart-sm" style="height: 300px;">
+                                <canvas id="weeklyProductionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOP PROFITABLE MODELS (ADMIN ONLY) -->
+                    <AuthorizeView Roles="Administrator">
+                        <div class="card flex-fill w-100 animate-fade-in-up delay-3 mb-4">
+                            <div class="card-header border-0 pt-4 px-4 bg-success bg-opacity-10">
+                                <h5 class="card-title mb-0 text-success">Modelos Mais Lucrativos (Top 5)</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover my-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Modelo</th>
+                                            <th class="text-end">Margem Média</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (dashboard.TopProfitableModels != null && dashboard.TopProfitableModels.Any())
+                                        {
+                                            @foreach (var item in dashboard.TopProfitableModels)
+                                            {
+                                                <tr @key="item.Sku">
+                                                    <td><strong>@item.Sku</strong> - @item.Name</td>
+                                                    <td class="text-end text-success fw-bold">@item.AverageMargin.ToString("N1")%</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="2" class="text-center py-4 text-muted small">
+                                                    <i class="fa-solid fa-chart-line opacity-25 d-block mb-2 fs-3"></i>
+                                                    Aguardando dados de produção para calcular lucratividade.
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </AuthorizeView>
+
+                    <!-- WORKSHOP PRODUCTION CHART -->
+                    <div class="card flex-fill w-100 animate-fade-in-up delay-4">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Produção por Oficina</h5>
+                            <i class="fa-solid fa-chart-bar text-muted"></i>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="chart chart-sm" style="height: 250px;">
+                                <canvas id="workshopChart"></canvas>
+                            </div>
+                            @if (dashboard.ProductionByWorkshop == null || !dashboard.ProductionByWorkshop.Any())
+                            {
+                                <div class="text-center py-5">
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                        <i class="fa-solid fa-chart-bar text-muted fs-3"></i>
+                                    </div>
+                                    <div class="text-muted small">Sem dados de produção este mês.</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMNA LATERAL (RIGHT - Alerts) -->
+                <div class="col-xl-4 d-flex flex-column">
+
+                    <!-- STALLED STOCK -->
+                    <div class="card flex-fill animate-fade-in-up delay-2 mb-4">
+                        <div class="card-header border-0 pt-4 px-4 bg-warning bg-opacity-10">
+                            <h5 class="card-title mb-0 text-warning">Estoque Parado (> 60 dias)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                             <ul class="list-group list-group-flush">
+                                @if (dashboard.StalledStock != null && dashboard.StalledStock.Any())
+                                {
+                                    @foreach (var item in dashboard.StalledStock)
+                                    {
+                                        <li @key="item.Sku" class="list-group-item border-0 px-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning-soft rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                    <i class="fa-solid fa-box-open text-warning"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <strong class="text-dark d-block small fw-bold">@item.Sku</strong>
+                                                    <small class="text-muted">@item.Name</small>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="p-4 text-center text-muted small fw-bold">Nenhum item parado. Ótimo!</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- MODELS TO DISCONTINUE (ADMIN) -->
+                    <AuthorizeView Roles="Administrator">
+                        <div class="card flex-fill animate-fade-in-up delay-1">
+                            <div class="card-header border-0 pt-4 px-4 bg-danger bg-opacity-10">
+                                <h5 class="card-title mb-0 text-danger">Atenção: Margem Baixa</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                                                    @if (dashboard.BottomProfitableModels != null && dashboard.BottomProfitableModels.Any(p => p.AverageMargin < 5)) // Threshold 5%
+                                                                    {
+                                                                        @foreach (var item in dashboard.BottomProfitableModels.Where(p => p.AverageMargin < 5))
+                                                                        {
+                                                                            <li @key="item.Sku" class="list-group-item border-0 px-4 py-3">
+                                                                                <div class="d-flex align-items-center">                                                    <div class="bg-danger-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                        <i class="fa-solid fa-arrow-trend-down text-danger"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1 ms-3">
+                                                        <strong class="text-danger d-block small fw-bold">@item.Sku</strong>
+                                                        <small class="text-muted">Margem: @item.AverageMargin.ToString("N1")%</small>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="p-4 text-center text-muted">
+                                            <i class="fa-solid fa-thumbs-up text-success fs-3 mb-2"></i>
+                                            <p class="mb-0 small fw-bold">Todas as margens saudáveis.</p>
+                                        </div>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </AuthorizeView>
+
+                    <!-- PERFORMANCE RANKING (Gamification) -->
+                    <div class="card flex-fill animate-fade-in-up delay-3 mb-4">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Ranking de Desempenho</h5>
+                            <span class="badge bg-success-soft text-success">Top Operadores</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @if (ranking != null && ranking.Any())
+                                {
+                                    @for (int i = 0; i < ranking.Count; i++)
+                                    {
+                                        var entry = ranking[i];
+                                        <div class="list-group-item border-0 px-4 py-3 @(i < 3 ? "glass" : "")">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3 fw-bold @(i == 0 ? "text-primary" : "text-muted")" style="width: 25px;">@(i + 1)º</div>
+                                                <div class="position-relative">
+                                                    <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                         onerror="this.src='/img/avatars/avatar.jpg'"
+                                                         class="rounded-circle me-3 border border-2 @(i == 0 ? "border-primary" : "border-light")" width="42" height="42" alt="@entry.UserName">
+                                                    @if(i < 3) {
+                                                        <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill @(i == 0 ? "bg-warning" : i == 1 ? "bg-secondary" : i == 2 ? "bg-bronze" : "")" style="font-size: 0.5rem; @(i == 2 ? "background-color: #cd7f32;" : "")">
+                                                            <i class="fa-solid fa-crown"></i>
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-0 fw-bold">@entry.UserName</h6>
+                                                    <small class="text-muted fs-xs">@entry.CompletedTasks conclusões</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge badge-soft-primary rounded-pill">@entry.Score.ToString("N0") pts</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="p-4 text-center text-muted small">Sem dados de ranking disponíveis.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTIVE ADMIN TASKS (ADMIN/LEADER ONLY) -->
+                    <AuthorizeView Roles="Administrator,Leader">
+                        <div class="card flex-fill animate-fade-in-up delay-4">
+                            <div class="card-header border-0 pt-4 px-4 bg-light">
+                                <h5 class="card-title mb-0">Tarefas Administrativas Ativas</h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @if (activeTasks != null && activeTasks.Any())
+                                    {
+                                        @foreach (var task in activeTasks.OrderByDescending(t => t.IsOverdue).ThenBy(t => t.Deadline).Take(5))
+                                        {
+                                            <li @key="task.Id" class="list-group-item border-0 px-4 py-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold mb-0 text-dark">@task.Title</h6>
+                                                    @if (task.IsOverdue)
+                                                    {
+                                                        <span class="badge bg-danger-soft text-danger fs-xxs">ATRASADO</span>
+                                                    }
+                                                </div>
+                                                <p class="text-muted fs-xs mb-2">@task.Description</p>
+                                                <div class="progress" style="height: 4px;">
+                                                    <div class="progress-bar @(task.IsOverdue ? "bg-danger" : task.ProgressPercentage > 80 ? "bg-warning" : "bg-primary")" 
+                                                         style="width: @(Math.Min(100, task.ProgressPercentage))%"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between mt-1">
+                                                    <small class="text-muted fs-xxs">Responsável: @task.AssignedUserName</small>
+                                                    <small class="text-muted fs-xxs">@task.Deadline?.ToString("dd/MM HH:mm")</small>
+                                                </div>
+                                            </li>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <li class="p-4 text-center text-muted small">Nenhuma tarefa pendente.</li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="card-footer bg-white border-0 text-center pb-3">
+                                <a href="delegar-tarefas" class="btn btn-sm btn-link text-primary text-decoration-none">Ver todas as tarefas</a>
+                            </div>
+                        </div>
+                    </AuthorizeView>
+
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DashboardCompleteResponse? dashboard;
+    private List<RankingEntryDto>? ranking;
+    private List<TaskDto>? activeTasks;
+    private bool loading = false;
+    private bool isTvMode = false;
+    private System.Threading.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+        await SignalR.StartConnection(hubUrl);
+
+        SignalR.OnUpdateReceived += async (opId, stage, status) => {
+            await InvokeAsync(async () => {
+                await LoadDashboard(); // Refresh on updates
+                await LoadRanking();    // Refresh ranking too
+                await LoadActiveTasks(); // Refresh tasks
+                StateHasChanged();
+            });
+        };
+
+        await LoadDashboard();
+        await LoadRanking();
+        await LoadActiveTasks();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (dashboard != null)
+        {
+            // 1. Workshop Bar Chart
+            if (dashboard.ProductionByWorkshop != null && dashboard.ProductionByWorkshop.Any())
+            {
+                var labels = dashboard.ProductionByWorkshop.Select(x => x.WorkshopName).ToArray();
+                var data = dashboard.ProductionByWorkshop.Select(x => x.Quantity).ToArray();
+                try { await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "workshopChart", data, labels); } catch { }
+            }
+
+            // 2. Weekly Production Line Chart
+            if (dashboard.WeeklyVolumeData != null && dashboard.WeeklyVolumeData.Any())
+            {
+                var labels = dashboard.WeeklyLabels?.ToArray() ?? Array.Empty<string>();
+                var data = dashboard.WeeklyVolumeData?.ToArray() ?? Array.Empty<int>();
+                if (labels.Length > 0)
+                {
+                    try { await JSRuntime.InvokeVoidAsync("seronaCharts.renderDashboardChart", "weeklyProductionChart", data, labels); } catch { }
+                }
+            }
+        }
+    }
+
+    private async Task LoadDashboard()
+    {
+        try
+        {
+            if (dashboard == null) loading = true;
+            // Use new endpoint with options
+            dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo", JsonOptions);
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // Error loading handled
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadRanking()
+    {
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RankingEntryDto>>>("api/Tasks/ranking", JsonOptions);
+            if (resp != null && resp.Success)
+            {
+                ranking = resp.Data;
+            }
+        }
+        catch { /* Silent fail */ }
+    }
+
+    private async Task LoadActiveTasks()
+    {
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks", JsonOptions);
+            if (resp != null && resp.Success && resp.Data != null)
+            {
+                activeTasks = resp.Data.Where(t => t.Status != "Completed").ToList();
+            }
+        }
+        catch { /* Silent fail */ }
+    }
+
+    private void NavigateToTvMode()
+    {
+        NavigationManager.NavigateTo("/tv-producao", true);
+    }
+
+    private void StartAutoRefresh()
+    {
+        _timer?.Dispose();
+        _timer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadDashboard();
+                await LoadActiveTasks();
+                StateHasChanged();
+            });
+        }, null, 60000, 60000); // 1 min refresh for BI
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        await SignalR.StopConnection();
+    }
+}
+

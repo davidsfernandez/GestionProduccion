@@ -1,0 +1,361 @@
+@page "/orders/create"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Services.ProductionOrders
+@using GestionProduccion.Domain.Enums
+@using System.Text.Json
+@inject IProductionOrderQueryClient QueryClient
+@inject IProductionOrderMutationClient MutationClient
+@inject IProductionOrderLifecycleClient LifecycleClient
+@inject IProductClient ProductClient
+@inject ISewingTeamClient SewingTeamClient
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@inject JsonSerializerOptions JsonOptions
+
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.OP_Create_Title</PageTitle>
+
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.OP_Create_Title</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-8 col-xl-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header border-0 pt-4 px-4 bg-white">
+                    <h5 class="card-title mb-0">Nova Ordem de Produção</h5>
+                </div>
+                <div class="card-body p-4">
+                    @if (isInitialLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="mt-2 text-muted">Carregando seletores dinâmicos...</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="createModel" OnValidSubmit="HandleSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger small mb-3" />
+
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    <div class="alert alert-success d-flex align-items-center" role="alert">
+                                        <i class="fa-solid fa-wand-magic-sparkles me-3 fs-4"></i>
+                                        <div>
+                                            <strong>Geração Automática</strong>
+                                            <div class="small">O código do lote (OP) será gerado automaticamente pelo sistema após salvar.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Produto</label>
+                                    <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
+                                        <option value="0" disabled>Selecione um Produto...</option>
+                                        @if (products != null)
+                                        {
+                                            @foreach (var prod in products)
+                                            {
+                                                <option value="@prod.Id">@prod.InternalCode - @prod.Name</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => createModel.ProductId)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Data Estimada de Entrega</label>
+                                    <InputDate @bind-Value="createModel.EstimatedCompletionAt" class="form-control form-control-lg" />
+                                    <ValidationMessage For="@(() => createModel.EstimatedCompletionAt)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-12 mb-4">
+                                    <div class="card bg-light border-0 shadow-none">
+                                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                                            <label class="form-label fw-bold mb-0">Grade de Tamanhos / Quantidades</label>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddSizeRow">
+                                                <i class="fa-solid fa-plus me-1"></i> Adicionar Tamanho
+                                            </button>
+                                        </div>
+                                        <div class="card-body pt-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-borderless align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Tamanho</th>
+                                                            <th style="width: 150px;">Qtd</th>
+                                                            <th style="width: 40px;"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @if (createModel.Sizes != null)
+                                                        {
+                                                            @for (int i = 0; i < createModel.Sizes.Count; i++)
+                                                            {
+                                                                var index = i;
+                                                                <tr>
+                                                                    <td>
+                                                                        <select class="form-select" @bind="createModel.Sizes[index].Size">
+                                                                            <option value="">--</option>
+                                                                            @foreach (var s in BrazilianSizes)
+                                                                            {
+                                                                                <option value="@s">@s</option>
+                                                                            }
+                                                                        </select>
+                                                                    </td>
+                                                                    <td>
+                                                                        <input type="number" class="form-control" @bind="createModel.Sizes[index].Quantity" min="1" />
+                                                                    </td>
+                                                                    <td>
+                                                                        @if (createModel.Sizes.Count > 1)
+                                                                        {
+                                                                            <button type="button" class="btn btn-link text-danger p-0" @onclick="() => RemoveSizeRow(index)">
+                                                                                <i class="fa-solid fa-trash"></i>
+                                                                            </button>
+                                                                        }
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Cliente (Opcional)</label>
+                                    <InputText @bind-Value="createModel.ClientName" class="form-control form-control-lg" />
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Equipe de Costura (Opcional)</label>
+                                    <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select form-select-lg">
+                                        <option value="">Atribuir Equipe (Opcional)...</option>
+                                        @if (teams != null)
+                                        {
+                                            @foreach (var team in teams)
+                                            {
+                                                <option value="@team.Id">@team.Name</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                </div>
+
+                                <div class="col-md-12 mb-4">
+                                    <label class="form-label fw-bold">Atribuir Operador (Opcional)</label>
+                                    <InputSelect @bind-Value="createModel.UserId" class="form-select form-select-lg">
+                                        <option value="">Atribuir Operador (Opcional)...</option>
+                                        @if (users != null)
+                                        {
+                                            @foreach (var user in users)
+                                            {
+                                                <option value="@user.Id">@user.FullName</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-2">
+                                <button type="button" class="btn btn-light px-4" @onclick="Cancel" disabled="@isSubmitting">Cancelar</button>
+                                <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>Salvando...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Salvar Ordem</span>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card bg-primary border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold">Resumo da Ordem</h5>
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Código:</span>
+                            <span class="fw-bold">Gerado al Salvar</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Quantidade:</span>
+                            <span class="fw-bold">@GetTotalQuantity()</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Entrega:</span>
+                            <span class="fw-bold">@createModel.EstimatedCompletionAt.ToShortDateString()</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
+                <div class="d-flex">
+                    <i class="fa-solid fa-circle-info fa-2x me-3"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Dica de Produção</h6>
+                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estágio de <strong>Corte</strong> con status <strong>Em Produção</strong>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateProductionOrderRequest createModel = new() 
+    { 
+        EstimatedCompletionAt = DateTime.Now.AddDays(7),
+        Quantity = 1,
+        Size = "",
+        Sizes = new List<ProductionOrderSizeRequest> { new() { Size = "", Quantity = 1 } }
+    };
+    private List<UserDto> users = new();
+    private List<ProductDto> products = new();
+    private List<SewingTeamDto> teams = new();
+    private readonly List<string> BrazilianSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
+    private bool isSubmitting = false;
+    private bool isInitialLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialData();
+    }
+
+    private int GetTotalQuantity()
+    {
+        return createModel.Sizes?.Sum(s => s.Quantity) ?? 0;
+    }
+
+    private void AddSizeRow()
+    {
+        createModel.Sizes?.Add(new ProductionOrderSizeRequest { Size = "", Quantity = 1 });
+    }
+
+    private void RemoveSizeRow(int index)
+    {
+        if (createModel.Sizes?.Count > 1)
+        {
+            createModel.Sizes.RemoveAt(index);
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowToast("Erro de validação: Verifique los campos en rojo", ToastLevel.Warning, "Erro de Validação");
+    }
+
+    private async Task LoadInitialData()
+    {
+        try
+        {
+            isInitialLoading = true;
+            
+            // Parallel loading
+            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions); 
+            var productsTask = ProductClient.GetAllProductsAsync();
+            var teamsTask = SewingTeamClient.GetAllTeamsAsync();
+
+            await Task.WhenAll(usersTask, productsTask, teamsTask);
+
+            var allUsers = await usersTask;
+            if (allUsers != null)
+            {
+                users = allUsers.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+            }
+
+            var allProducts = await productsTask;
+            if (allProducts != null)
+            {
+                products = allProducts;
+            }
+
+            var teamsResp = await teamsTask;
+            if (teamsResp?.Success == true && teamsResp.Data != null)
+            {
+                teams = teamsResp.Data.Where(t => t.IsActive).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            ToastService.ShowToast("Erro ao carregar dados para o formulário. Verifique sua conexão.", ToastLevel.Error);
+        }
+        finally
+        {
+            isInitialLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting) return;
+
+        // Validation for sizes
+        if (createModel.Sizes == null || !createModel.Sizes.Any() || createModel.Sizes.Any(s => string.IsNullOrEmpty(s.Size)))
+        {
+            ToastService.ShowToast("Selecione os tamanhos e quantidades corretamente.", ToastLevel.Warning);
+            return;
+        }
+        
+        isSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            // Sync total quantity for safety
+            createModel.Quantity = GetTotalQuantity();
+            
+            var result = await MutationClient.CreateProductionOrderAsync(createModel);
+            
+            if (result != null)
+            {
+                ToastService.ShowToast("Ordem de Produção gerada com sucesso!", ToastLevel.Success);
+                createModel = new CreateProductionOrderRequest 
+                { 
+                    EstimatedCompletionAt = DateTime.Now.AddDays(7),
+                    Quantity = 1,
+                    Size = "",
+                    Sizes = new List<ProductionOrderSizeRequest> { new() { Size = "", Quantity = 1 } }
+                };
+                NavigationManager.NavigateTo($"/orders");
+            }
+            else
+            {
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/orders");
+    }
+}

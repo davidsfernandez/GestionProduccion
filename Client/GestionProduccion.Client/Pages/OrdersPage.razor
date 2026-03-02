@@ -1,0 +1,510 @@
+@page "/orders"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Services.ProductionOrders
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader,Operational")]
+@inject IProductionOrderQueryClient ProductionOrderQueryClient
+@inject IProductionOrderMutationClient ProductionOrderMutationClient
+@inject IProductionOrderLifecycleClient ProductionOrderLifecycleClient
+@inject HttpClient Http // Still needed for Export-Excel endpoint logic
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject ISignalRService SignalR
+@inject ToastService ToastService
+@implements IAsyncDisposable
+
+@using GestionProduccion.Client.Resources
+@using GestionProduccion.Domain.Enums
+
+<PageTitle>@Portuguese.OP_Title</PageTitle>
+
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.OP_Title</h3>
+        <AuthorizeView Roles="Administrator,Leader" Context="createContext">
+            <button class="btn btn-primary shadow-sm w-100 w-md-auto" @onclick="CreateNewOrder">
+                <i class="fa-solid fa-plus me-2"></i> @Portuguese.OP_NewOrder
+            </button>
+        </AuthorizeView>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-0 pb-0">
+                    <div class="row align-items-center">
+                        <div class="col-md-12 mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-5">
+                                    <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
+                                        <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
+                                               @bind="searchTerm" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Cliente..." @bind="filterClient" style="border-radius: 10px;" />
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterTamanho" style="border-radius: 10px;" />
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
+                                        <i class="fa-solid fa-filter me-2"></i>Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 text-md-end mb-3">
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToCsv">
+                                    <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
+                                </button>
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToExcel">
+                                    <i class="fa-solid fa-file-excel text-success me-2"></i> @Portuguese.OP_ExportExcel
+                                </button>
+                                <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
+                                    <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="DownloadDailyReport">
+                                        <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
+                                    </button>
+                                </AuthorizeView>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (loading)
+                {
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">@Portuguese.Loading</span>
+                        </div>
+                    </div>
+                }
+                else if (FilteredOrders == null || !FilteredOrders.Any())
+                {
+                    <div class="card-body">
+                        <div class="alert alert-info mb-0 d-flex align-items-center justify-content-center py-4">
+                            <i class="fa-solid fa-circle-info me-2 fs-4"></i>
+                            <div>@(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @if (selectedOrderIds.Count > 0)
+                    {
+                        <div class="position-sticky bottom-0 bg-white border-top py-3 px-4 shadow-lg animate-fade-in-up" style="z-index: 100; margin-top: -1px; border-radius: 0 0 15px 15px;">
+                            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary-soft p-2 rounded-circle me-3">
+                                        <i class="fa-solid fa-check-double text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark d-block">@selectedOrderIds.Count selecionados</span>
+                                        <span class="text-muted xsmall">Ações em massa para as ordens selecionadas</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-warning btn-sm px-3" @onclick="() => BulkUpdate(3)">
+                                        <i class="fa-solid fa-pause me-1"></i> Pausar
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm px-3" @onclick="() => BulkUpdate(0)">
+                                        <i class="fa-solid fa-play me-1"></i> Retomar
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm px-3" @onclick="() => BulkUpdate(1)">
+                                        <i class="fa-solid fa-stop me-1"></i> Parar
+                                    </button>
+                                    <div class="vr mx-2"></div>
+                                    <button class="btn btn-light btn-sm px-3" @onclick="() => selectedOrderIds.Clear()">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="table-responsive" style="border-radius: 0 0 15px 15px; overflow: hidden;">
+                        <table class="table table-hover my-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll" checked="@AllSelected" />
+                                    </th>
+                                    <th>SKU / Produto</th>
+                                    <th class="d-none d-md-table-cell">Lote</th>
+                                    <th>Tamanho</th>
+                                    <th>Equipe / Operador</th>
+                                    <th>Status</th>
+                                    <th class="d-none d-lg-table-cell">Entrega</th>
+                                    <th class="text-end text-nowrap">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in FilteredOrders)
+                                {
+                                    <tr @key="order.Id">
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" checked="@selectedOrderIds.Contains(order.Id)" @onchange="@(() => ToggleSelection(order.Id))" @onclick:stopPropagation="true" />
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(order.ProductName))
+                                            {
+                                                <div class="fw-bold text-dark">@order.ProductCode</div>
+                                                <div class="small text-muted">@order.ProductName</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger small"><i>@Portuguese.Cat_NoLinkedProduct</i></span>
+                                            }
+                                        </td>
+                                        <td class="d-none d-md-table-cell"><span class="text-muted small">@order.LotCode</span></td>
+                                        <td>
+                                            @if (order.Sizes != null && order.Sizes.Any())
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary" title="@(string.Join(", ", order.Sizes.Select(s => $"{s.Size}:{s.Quantity}")))">
+                                                    Multi (@order.Sizes.Count)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@order.Size</span>
+                                            }
+                                        </td>
+                                        <td class="d-none d-lg-table-cell">
+                                            <div class="fw-bold text-dark small">@(order.SewingTeamName ?? "-")</div>
+                                            <div class="text-muted xsmall">
+                                                <i class="fa-solid fa-user me-1"></i>@(order.AssignedUserName ?? Portuguese.OP_Unassigned)
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetStatusSoftClass(order.CurrentStatus)">
+                                                @TranslateStatus(order.CurrentStatus)
+                                            </span>
+                                        </td>
+                                        <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
+                                        <td class="text-end text-nowrap">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="Detalhes">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="Relatório">
+                                                <i class="fa-solid fa-file-pdf"></i>
+                                            </button>
+                                            <AuthorizeView Roles="Administrator">
+                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteOrder(order)" title="Excluir">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </AuthorizeView>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<AuthorizeView Roles="Administrator,Leader">
+    <button class="btn btn-primary btn-fab d-md-none" @onclick="CreateNewOrder">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+</AuthorizeView>
+
+@code {
+    private HashSet<int> selectedOrderIds = new();
+    private List<ProductionOrderDto>? orders;
+    private bool loading = true;
+    private string searchTerm = "";
+    private string filterClient = "";
+    private string filterTamanho = "";
+
+    private List<ProductionOrderDto>? FilteredOrders 
+    {
+        get 
+        {
+            if (orders == null) return null;
+            if (string.IsNullOrWhiteSpace(searchTerm)) return orders;
+            
+            return orders.Where(o => 
+                (o.LotCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (o.ProductName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (o.ProductCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+            await SignalR.StartConnection(hubUrl);
+
+            SignalR.OnUpdateReceived += async (opId, stage, status) => {
+                await LoadOrders();
+                await InvokeAsync(StateHasChanged);
+            };
+        }
+        catch (Exception)
+        {
+            // Silent error for SignalR
+        }
+
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        try
+        {
+            loading = true;
+            var filter = new FilterProductionOrderDto
+            {
+                ClientName = filterClient,
+                Size = filterTamanho,
+            };
+
+            orders = (await ProductionOrderQueryClient.ListProductionOrdersAsync(filter))?.ToList();
+        }
+        catch (Exception)
+        {
+            orders = new List<ProductionOrderDto>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void CreateNewOrder() => NavigationManager.NavigateTo("/orders/create");
+    private void ViewDetails(int id) => NavigationManager.NavigateTo($"/orders/{id}");
+
+    private async Task DeleteOrder(ProductionOrderDto order)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta ação alterará as métricas de produção."))
+        {
+            try
+            {
+                var success = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
+                if (success)
+                {
+                    ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
+                    await LoadOrders();
+                }
+                else
+                {
+                    ToastService.ShowToast($"Erro ao excluir ordem.", ToastLevel.Error);
+                }
+            }
+            catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Falha: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
+
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
+    {
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
+        _ => stage ?? ""
+    };
+
+    private string TranslateStatus(string? status) => status?.ToLower() switch
+    {
+        "pending" => "Pendente",
+        "inproduction" => "Em Produção",
+        "stopped" => "Parado",
+        "completed" => "Finalizado",
+        "paused" => "Pausado",
+        "finished" => "Concluído",
+        "cancelled" => "Cancelado",
+        _ => status ?? ""
+    };
+
+    private bool AllSelected => FilteredOrders != null && FilteredOrders.Any() && FilteredOrders.All(o => selectedOrderIds.Contains(o.Id));
+
+    private void ToggleSelection(int id)
+    {
+        if (selectedOrderIds.Contains(id))
+            selectedOrderIds.Remove(id);
+        else
+            selectedOrderIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (FilteredOrders == null) return;
+        
+        var isChecked = (bool)(e.Value ?? false);
+        if (isChecked)
+        {
+            foreach (var order in FilteredOrders)
+            {
+                selectedOrderIds.Add(order.Id);
+            }
+        }
+        else
+        {
+            selectedOrderIds.Clear();
+        }
+    }
+
+    private async Task BulkUpdate(int status)
+    {
+        if (selectedOrderIds.Count == 0) return;
+        
+        try
+        {
+            loading = true;
+            // Send request to backend
+            ProductionStatus newStatus = (ProductionStatus)status;
+            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa via lista");
+            
+            if (result != null)
+            {
+                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas! {result.SuccessCount} sucesso, {result.FailureCount} falhas.", ToastLevel.Success);
+                selectedOrderIds.Clear();
+                await LoadOrders();
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao atualizar ordens.", ToastLevel.Error);
+                loading = false; // Reset loading if not reloading
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            loading = false;
+        }
+    }
+
+    private async Task ExportToCsv()
+    {
+        try 
+        {
+            ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
+            // It uses Http client directly, as it calls a ReportService backend endpoint.
+            var response = await Http.GetAsync("api/ProductionOrders/export-csv");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_{DateTime.Now:yyyyMMdd}.csv", streamRef);
+                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao exportar CSV", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        try 
+        {
+            ToastService.ShowToast("Gerando Excel...", ToastLevel.Info);
+            // Construct the filter query string based on the current search term
+            var filter = new FilterProductionOrderDto
+            {
+                ClientName = filterClient,
+                Size = filterTamanho,
+                // Add Product search by searchTerm if needed
+            };
+            var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
+
+            // It uses Http client directly, as it calls a ExcelExportService backend endpoint.
+            var response = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", ordersToExport);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", streamRef);
+                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao exportar Excel", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task DownloadOrderReport(int id)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/ProductionOrders/{id}/report");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
+                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Info);
+            }
+            else
+            {
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task DownloadDailyReport()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/ProductionOrders/daily-report");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("downloadFile", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf", "application/pdf", content);
+                ToastService.ShowToast(Portuguese.Success, ToastLevel.Info);
+            }
+            else
+            {
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private string GetStatusSoftClass(string? status) => status?.ToLower() switch
+    {
+        "completed" => "bg-success-soft",
+        "inproduction" => "bg-primary-soft",
+        "pending" => "bg-warning-soft",
+        "stopped" or "paused" => "bg-danger-soft",
+        _ => "bg-secondary"
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await SignalR.StopConnection(); } catch { }
+    }
+}

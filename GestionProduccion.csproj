@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>gestion-produccion-secrets-2026</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <!-- Explicitly exclude nested source directories to prevent duplicate compilation in Docker/Linux -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Client/GestionProduccion.Client/wwwroot/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!-- Optimization for Production (Release) -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude source from the main project to avoid duplicate types & errors -->
+    <Compile Remove="Client/**" />
+    <Compile Remove="GestionProduccion.Shared/**" />
+    <Compile Remove="GestionProduccion.Tests/**" />
+    <Compile Remove="docker_publish_test/**" />
+    <Compile Remove="test_publish/**" />
+    
+    <!-- Also remove non-compiled items to be safe -->
+    <None Remove="Client/**" />
+    <None Remove="GestionProduccion.Shared/**" />
+    <None Remove="GestionProduccion.Tests/**" />
+    
+    <!-- CRITICAL: Exclude Razor files from Content to stop Server from compiling them -->
+    <Content Remove="Client/**" />
+    <Content Remove="GestionProduccion.Shared/**" />
+    <Content Remove="GestionProduccion.Tests/**" />
+    <Content Remove="docker_publish_test/**" />
+    <Content Remove="test_publish/**" />
+    
+    <EmbeddedResource Remove="Client/**" />
+    <EmbeddedResource Remove="GestionProduccion.Shared/**" />
+    <EmbeddedResource Remove="GestionProduccion.Tests/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="QuestPDF" Version="2023.12.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.6" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="7.3.0" />
+    <PackageReference Include="QRCoder" Version="1.4.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Client\GestionProduccion.Client\GestionProduccion.Client.csproj" />
+    <ProjectReference Include="GestionProduccion.Shared\GestionProduccion.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Explicitly include Client wwwroot assets for publishing -->
+    <Content Include="Client/GestionProduccion.Client/wwwroot/**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

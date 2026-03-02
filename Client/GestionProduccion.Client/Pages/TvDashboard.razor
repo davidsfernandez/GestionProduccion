@@ -1,0 +1,384 @@
+@page "/tv-producao"
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<style>
+    body {
+        background-color: #f4f7f6;
+        color: #333333;
+        overflow: hidden; /* Hide scrollbars */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .tv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px 0 30px;
+        height: 10vh;
+    }
+    .tv-logo {
+        max-height: 60px;
+        object-fit: contain;
+    }
+    .tv-clock {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+    .tv-content-area {
+        height: 90vh;
+    }
+    .tv-container {
+        height: 100%;
+        width: 100vw;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 30px;
+        padding: 10px 30px 30px 30px;
+    }
+    .tv-announcement-container {
+        height: 100%;
+        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+        animation: fade-in 1s;
+    }
+    .tv-announcement-card {
+        background-color: #ffffff;
+        border-radius: 30px;
+        padding: 60px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 80%;
+    }
+    .tv-announcement-icon {
+        font-size: 6rem;
+        color: #3B7DDD;
+        margin-bottom: 30px;
+    }
+    .tv-announcement-text {
+        font-size: 4rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        line-height: 1.4;
+    }
+    .tv-panel {
+        background-color: #ffffff;
+        border-radius: 20px;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        animation: fade-in 1s;
+    }
+    .tv-panel-header {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 25px;
+        border-bottom: 3px solid #00C899;
+        padding-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .highlight-flash {
+        animation: flash-green 1s;
+    }
+    @@keyframes flash-green {
+        0% { background-color: #ffffff; }
+        50% { background-color: #d1fae5; }
+        100% { background-color: #ffffff; }
+    }
+    @@keyframes fade-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    .stat-value {
+        font-size: 9rem;
+        line-height: 1;
+        font-weight: 900;
+        color: #00C899;
+        text-align: center;
+        margin: auto;
+    }
+    .list-item {
+        font-size: 2.2rem;
+        padding: 15px 10px;
+        border-bottom: 1px solid #eeeeee;
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+    }
+    .list-item:last-child {
+        border-bottom: none;
+    }
+    .text-stage {
+        color: #3b7ddd;
+    }
+    .offline-indicator {
+        position: absolute;
+        bottom: 30px;
+        right: 30px;
+        color: #dc3545;
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+</style>
+
+@if (dashboard == null)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <h1 class="text-dark">Carregando TV...</h1>
+    </div>
+}
+else
+{
+    <div class="tv-header">
+        <div>
+            @if (!string.IsNullOrEmpty(publicConfig?.LogoBase64))
+            {
+                <img src="@publicConfig.LogoBase64" class="tv-logo" alt="Logo" />
+            }
+        </div>
+        <div class="tv-clock">
+            @currentTime.ToString("HH:mm:ss")
+        </div>
+    </div>
+
+    <div class="tv-content-area">
+        @if (showAnnouncement && !string.IsNullOrWhiteSpace(dashboard.TvAnnouncement))
+        {
+            <div class="tv-announcement-container">
+                <div class="tv-announcement-card">
+                    <i class="fa-solid fa-bullhorn tv-announcement-icon"></i>
+                    <div class="tv-announcement-text">
+                        @dashboard.TvAnnouncement
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="tv-container">
+                <!-- Panel 1: Items Produced Today -->
+                <div class="tv-panel @(highlightStats ? "highlight-flash" : "")">
+                    <div class="tv-panel-header"><i class="fa-solid fa-check-circle"></i> Produzido Hoje</div>
+                    <div class="stat-value">@dashboard.CompletedToday</div>
+                    <div class="text-center text-muted h4">Peças</div>
+                </div>
+
+                <!-- Panel 2: Items In Production -->
+                <div class="tv-panel">
+                    <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em Produção</div>
+                    <div style="overflow-y: hidden; flex: 1;">
+                        @foreach (var order in dashboard.TodaysOrders.Where(o => o.CurrentStatus != "Completed").Take(5)) 
+                        {
+                            var displaySku = !string.IsNullOrEmpty(order.Product?.MainSku) ? order.Product.MainSku : order.LotCode;
+                            <div class="list-item" @key="order.Id">
+                                <span>@displaySku</span>
+                                <span class="text-info">@TranslateStage(order.CurrentStage)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Panel 3: Efficiency -->
+                <div class="tv-panel">
+                    <div class="tv-panel-header"><i class="fa-solid fa-chart-line"></i> Eficiência Diária</div>
+                    <div class="stat-value" style="color: @(dashboard.CompletionRate >= 80 ? "#00C899" : "#fcb92c")">
+                        @dashboard.CompletionRate.ToString("0.##")%
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 px-3">
+                        <div class="text-muted h4 mb-0">Meta: 100%</div>
+                        <div class="text-muted h4 mb-0 fw-bold">
+                            <i class="fa-regular fa-clock me-2"></i> @dashboard.AverageTimePerPieceMinutes.ToString("F1") min/peça
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 4: Next Batches / Recent Activity -->
+                <div class="tv-panel">
+                    <div class="tv-panel-header"><i class="fa-solid fa-clock-rotate-left"></i> Atividade Recente</div>
+                    <div style="overflow-y: hidden; flex: 1;">
+                        @foreach (var activity in dashboard.RecentActivities.Take(5))
+                        {
+                            var actDisplaySku = !string.IsNullOrEmpty(activity.ProductSku) && activity.ProductSku != "N/A" ? activity.ProductSku : activity.LotCode;
+                            <div class="list-item" style="font-size: 1.2rem;" @key="activity.Date.Ticks">
+                                <span>@actDisplaySku</span>
+                                <span class="text-muted">@TranslateAction(activity.Action)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!isConnected)
+    {
+        <div class="offline-indicator">
+            <i class="fa-solid fa-wifi-slash"></i> Offline
+        </div>
+    }
+}
+
+@code {
+    private DashboardDto? dashboard;
+    private PublicConfigurationDto? publicConfig;
+    private HubConnection? hubConnection;
+    private bool isConnected = false;
+    private bool highlightStats = false;
+    private bool showAnnouncement = false;
+    private System.Threading.Timer? pollingTimer;
+    private System.Threading.Timer? clockTimer;
+    private System.Threading.Timer? rotationTimer;
+    private DateTime currentTime = DateTime.Now;
+
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
+    {
+        "cutting" => "Corte",
+        "preparation" => "Preparação",
+        "prep" => "Preparação",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "qa" => "Revisão",
+        "packaging" => "Embalagem",
+        _ => stage ?? ""
+    };
+
+    private string TranslateAction(string? action)
+    {
+        if (string.IsNullOrEmpty(action)) return "";
+        
+        var lower = action.ToLower();
+        if (lower.Contains("created")) return "Ordem Criada";
+        if (lower.Contains("advanced to")) return $"Avançado para {TranslateStage(lower.Replace("advanced to ", "").Trim())}";
+        if (lower.Contains("finalized")) return "Finalizado";
+        if (lower.Contains("stopped")) return "Parado";
+        
+        return action;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPublicConfig();
+        await LoadData();
+        await StartSignalR();
+        
+        // Polling fallback every 30 seconds
+        pollingTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadData), null, 30000, 30000);
+        
+        // Clock tick every 1 second
+        clockTimer = new System.Threading.Timer(_ => 
+        {
+            currentTime = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+
+        // Rotation timer every 20 seconds
+        rotationTimer = new System.Threading.Timer(_ => 
+        {
+            if (dashboard != null && !string.IsNullOrWhiteSpace(dashboard.TvAnnouncement))
+            {
+                showAnnouncement = !showAnnouncement;
+                InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                if (showAnnouncement)
+                {
+                    showAnnouncement = false;
+                    InvokeAsync(StateHasChanged);
+                }
+            }
+        }, null, 20000, 20000);
+    }
+
+    private async Task LoadPublicConfig()
+    {
+        try
+        {
+            publicConfig = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public");
+        }
+        catch { /* Ignore */ }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var oldVal = dashboard?.CompletedToday ?? 0;
+            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/tv-stats");
+            
+            if (dashboard != null && dashboard.CompletedToday > oldVal && !showAnnouncement)
+            {
+                highlightStats = true;
+                StateHasChanged();
+                await Task.Delay(1000);
+                highlightStats = false;
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            isConnected = false;
+        }
+    }
+
+    private async Task StartSignalR()
+    {
+        var hubUrl = NavigationManager.BaseUri + "productionHub";
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<int, string, string>("ReceiveUpdate", async (id, stage, status) =>
+        {
+            await LoadData();
+        });
+
+        hubConnection.Reconnecting += (ex) =>
+        {
+            isConnected = false;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        hubConnection.Reconnected += (id) =>
+        {
+            isConnected = true;
+            InvokeAsync(StateHasChanged);
+            return Task.CompletedTask;
+        };
+
+        try
+        {
+            await hubConnection.StartAsync();
+            isConnected = true;
+        }
+        catch
+        {
+            isConnected = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (pollingTimer != null) await pollingTimer.DisposeAsync();
+        if (clockTimer != null) await clockTimer.DisposeAsync();
+        if (rotationTimer != null) await rotationTimer.DisposeAsync();
+        if (hubConnection != null) await hubConnection.DisposeAsync();
+    }
+}

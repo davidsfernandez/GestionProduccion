@@ -1,0 +1,90 @@
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+<div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-light">
+    <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h5 class="text-muted">@statusMessage</h5>
+</div>
+
+@code {
+    private string statusMessage = "Verificando sistema...";
+    private int retryCount = 0;
+    private const int MaxRetries = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // First check is immediate
+        try 
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            if (setupRequired)
+            {
+                NavigationManager.NavigateTo("/setup", true);
+                return;
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+        }
+        catch { /* Fallback to retry loop */ }
+
+        await CheckSetup();
+    }
+
+    private async Task CheckSetup()
+    {
+        try 
+        {
+            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
+            if (setupRequired)
+            {
+                NavigationManager.NavigateTo("/setup", true);
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            var code = httpEx.StatusCode?.ToString() ?? "Desconhecido";
+            if (retryCount < MaxRetries)
+            {
+                retryCount++;
+                statusMessage = $"Erro HTTP {code}. Tentando reconectar ({retryCount}/{MaxRetries})...";
+                StateHasChanged();
+                await Task.Delay(3000);
+                await CheckSetup();
+            }
+            else
+            {
+                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API está online.";
+                StateHasChanged();
+                await Task.Delay(3000);
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (retryCount < MaxRetries)
+            {
+                retryCount++;
+                statusMessage = $"Erro: {ex.Message}. Tentando reconectar ({retryCount}/{MaxRetries})...";
+                StateHasChanged();
+                await Task.Delay(3000);
+                await CheckSetup();
+            }
+            else
+            {
+                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando...";
+                StateHasChanged();
+                await Task.Delay(3000);
+                NavigationManager.NavigateTo("/login", true);
+            }
+        }
+    }
+}

@@ -1,0 +1,14 @@
+**/.git
+**/.github
+**/.vs
+**/bin
+**/obj
+**/*.user
+**/*.log
+test_publish/
+docker_publish_test/
+.dockerignore
+Dockerfile
+docker-compose*
+node_modules
+wwwroot/_framework

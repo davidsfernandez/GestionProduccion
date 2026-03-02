@@ -1,0 +1,281 @@
+@page "/profile"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Headers
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+@inject UserStateService UserState
+@using System.Text.Json
+
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.Prof_Title</PageTitle>
+
+<div class="container-fluid p-0 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.Prof_Title</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 col-xl-3">
+            <div class="card mb-3">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h5 class="card-title mb-0 text-muted">@Portuguese.Prof_Title</h5>
+                </div>
+                <div class="card-body text-center pt-0">
+                    <div class="position-relative d-inline-block mb-3">
+                        <div class="profile-img-container shadow-sm" style="width: 120px; height: 120px; margin: 0 auto;">
+                            <img src="@(GetAvatarUrl())" alt="@userName" class="profile-img border-0" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
+                            <label class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center shadow" 
+                                   style="width: 36px; height: 36px; padding: 0; cursor: pointer; border: 3px solid #fff !important;" title="Alterar foto">
+                                <i class="fa-solid fa-camera" style="font-size: 14px;"></i>
+                                <InputFile OnChange="HandleFileSelected" class="d-none" accept="image/*" />
+                            </label>
+                        </div>
+                    </div>
+                    <h4 class="fw-bold mb-1 text-dark">@(string.IsNullOrEmpty(userName) ? "Usuário" : userName)</h4>
+                    @if (!string.IsNullOrEmpty(userRole))
+                    {
+                        <div class="text-muted mb-3"><span class="badge bg-primary-soft">@TranslateRole(userRole)</span></div>
+                    }
+                </div>
+                <div class="card-body border-top py-4">
+                    <h5 class="card-title mb-4">Informações de Conta</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3 d-flex align-items-center text-muted">
+                            <i class="fa-solid fa-envelope me-3 text-primary opacity-50" style="width: 20px;"></i> 
+                            <div>
+                                <small class="d-block xsmall fw-bold uppercase">Email</small>
+                                <span class="text-dark">@userEmail</span>
+                            </div>
+                        </li>
+                        <li class="mb-0 d-flex align-items-center text-muted">
+                            <i class="fa-solid fa-id-card me-3 text-primary opacity-50" style="width: 20px;"></i>
+                            <div>
+                                <small class="d-block xsmall fw-bold uppercase">ID do Usuário</small>
+                                <span class="text-dark">#@userId</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 col-xl-9">
+            <div class="card">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h5 class="card-title mb-0">@Portuguese.Prof_ChangePass</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="passwordModel" OnValidSubmit="HandleChangePassword">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_CurrentPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.CurrentPassword" />
+                                <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_NewPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.NewPassword" />
+                                <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label text-muted small fw-bold">@Portuguese.Prof_ConfirmPass</label>
+                                <InputText type="password" class="form-control form-control-lg bg-light" @bind-Value="passwordModel.ConfirmPassword" />
+                                <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger d-flex align-items-center rounded-3">
+                                <i class="fa-solid fa-circle-exclamation me-2"></i>
+                                <div>@errorMessage</div>
+                            </div>
+                        }
+
+                        <div class="text-end mt-2">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span> @Portuguese.Loading
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-save me-2"></i> @Portuguese.Save
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ChangePasswordRequest passwordModel = new();
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? userName;
+    private string? userEmail;
+    private string? userRole;
+    private int? userId;
+    private string? avatarUrl;
+
+    [CascadingParameter] private Task<AuthenticationState> authStateTask { get; set; } = default!;
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userName = user.Identity.Name;
+            userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            
+            var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out var id))
+            {
+                userId = id;
+            }
+
+            await LoadUserProfile();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+             await JSRuntime.InvokeVoidAsync("feather.replace");
+        }
+    }
+
+    private string GetAvatarUrl()
+    {
+        var url = UserState.AvatarUrl;
+        if (string.IsNullOrEmpty(url))
+        {
+            return "/img/avatars/avatar.jpg";
+        }
+        var finalUrl = url.StartsWith("/") ? url : "/" + url;
+        return $"{finalUrl}?t={DateTime.Now.Ticks}";
+    }
+
+    private async Task LoadUserProfile()
+    {
+        try 
+        {
+            if (userId.HasValue)
+            {
+                 var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId.Value}");
+                 if (userDto != null)
+                 {
+                     avatarUrl = userDto.AvatarUrl;
+                     userName = userDto.FullName;
+                     userRole = userDto.Role.ToString();
+                     UserState.SetUser(userDto.FullName, userDto.AvatarUrl);
+                     StateHasChanged();
+                 }
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (file.Size > 5120000)
+        {
+            ToastService.ShowToast("A imagem deve ter menos de 5MB", ToastLevel.Error);
+            return;
+        }
+
+        try 
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 5120000));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/Users/upload-avatar", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (jsonResponse.TryGetProperty("url", out var urlProperty))
+                {
+                    var newAvatarUrl = urlProperty.GetString();
+                    if (!string.IsNullOrEmpty(newAvatarUrl))
+                    {
+                        avatarUrl = newAvatarUrl;
+                        UserState.UpdateAvatar(newAvatarUrl);
+                        ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
+                        StateHasChanged();
+                    }
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastService.ShowToast($"Erro: {error}", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro no upload: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private string TranslateRole(string? role) => role?.ToLower() switch
+    {
+        "administrator" => Portuguese.Role_Admin,
+        "leader" => Portuguese.Role_Leader,
+        "operational" => Portuguese.Role_Operator,
+        "operator" => Portuguese.Role_Operator,
+        "workshop" => Portuguese.Role_Workshop,
+        _ => role ?? ""
+    };
+
+    private async Task HandleChangePassword()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = null;
+
+            var response = await Http.PostAsJsonAsync("api/Auth/change-password", passwordModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast(Portuguese.Msg_PassChanged, ToastLevel.Success);
+                passwordModel = new();
+            }
+            else
+            {
+                errorMessage = "Erro ao atualizar senha. Verifique sua senha atual.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"{Portuguese.Msg_Error}: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

@@ -1,0 +1,452 @@
+@page "/usuarios"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@attribute [Authorize(Roles = "Administrator")]
+@using GestionProduccion.Client.Services
+@inject HttpClient Http
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+@inject JsonSerializerOptions JsonOptions
+
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.User_Title</PageTitle>
+
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h3 class="text-dark mb-0">@Portuguese.User_Title</h3>
+        <button class="btn btn-primary shadow-sm w-100 w-md-auto" @onclick="ShowCreateModal">
+            <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.User_NewUser
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-0 pb-0">
+                    <h5 class="card-title mb-0">Lista de Usuários</h5>
+                </div>
+                
+                @if (loading)
+                {
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">@Portuguese.Loading</span>
+                        </div>
+                    </div>
+                }
+                else if (users == null || !users.Any())
+                {
+                    <div class="card-body">
+                        <div class="alert alert-info">Nenhum usuário encontrado.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover my-0">
+                            <thead>
+                                <tr>
+                                    <th>@Portuguese.User_Name</th>
+                                    <th>@Portuguese.User_Email</th>
+                                    <th>UUID</th>
+                                    <th>Equipe</th>
+                                    <th>@Portuguese.User_Role</th>
+                                    <th>@Portuguese.User_Status</th>
+                                    <th class="text-end text-nowrap">@Portuguese.Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in users)
+                                {
+                                    <tr @key="user.Id">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                                    <i class="fa-solid fa-user text-primary opacity-50"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">@user.FullName</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@user.Email</td>
+                                        <td><code class="small text-muted">@user.ExternalId.ToString().Substring(0, 8)...</code></td>
+                                        <td><span class="badge bg-info-soft text-info fw-bold">@(user.SewingTeamName ?? "-")</span></td>
+                                        <td>
+                                            <span class="badge bg-primary-soft text-primary fw-bold">@TranslateRole(user.Role.ToString())</span>
+                                        </td>
+                                        <td>
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="badge bg-success-soft text-success fw-bold">Ativo</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger-soft text-danger fw-bold">Inativo</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <AuthorizeView Roles="Administrator">
+                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </AuthorizeView>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(21, 22, 40, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 overflow-hidden" style="border-radius: 20px;">
+                <div class="modal-header bg-primary py-3 border-0">
+                    <h5 class="modal-title fw-bold text-white">
+                        <i class="fa-solid @(isEditing ? "fa-user-pen" : "fa-user-plus") me-2"></i>
+                        @(isEditing ? Portuguese.Edit : Portuguese.Create) @Portuguese.User_User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center mb-4 rounded-3 border-0">
+                            <i class="fa-solid fa-circle-exclamation me-2"></i>
+                            <div class="small">@errorMessage</div>
+                        </div>
+                    }
+                    <EditForm Model="userModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.User_Name</label>
+                                <InputText class="form-control form-control-lg" @bind-Value="userModel.FullName" placeholder="Nome completo" />
+                                <ValidationMessage For="@(() => userModel.FullName)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.User_Email</label>
+                                <InputText class="form-control form-control-lg" @bind-Value="userModel.Email" placeholder="email@exemplo.com" />
+                                <ValidationMessage For="@(() => userModel.Email)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
+                                <div class="input-group">
+                                    <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
+                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showPassword = !showPassword">
+                                        <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                </div>
+                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em blanco para manter a atual</small> }
+                                <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-muted">Confirmar Senha @(isEditing ? "*" : "")</label>
+                                <div class="input-group">
+                                    <InputText type="@(showConfirmPassword ? "text" : "password")" class="form-control form-control-lg" @bind-Value="userModel.ConfirmPassword" placeholder="Repita a senha" />
+                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showConfirmPassword = !showConfirmPassword">
+                                        <i class="fa-solid @(showConfirmPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                </div>
+                                <ValidationMessage For="@(() => userModel.ConfirmPassword)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.User_Role</label>
+                                <InputSelect class="form-select form-select-lg" @bind-Value="userModel.Role">
+                                    @foreach (var role in Enum.GetValues<UserRole>())
+                                    {
+                                        <option @key="role" value="@role">@TranslateRole(role.ToString())</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small fw-bold text-muted">Equipe de Costura (Opcional)</label>
+                                <InputSelect class="form-select form-select-lg" @bind-Value="userModel.SewingTeamId">
+                                    <option value="">Nenhuma equipe</option>
+                                    @if (teams != null)
+                                    {
+                                        @foreach (var team in teams)
+                                        {
+                                            <option value="@team.Id">@team.Name</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal">@Portuguese.Cancel</button>
+                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                <i class="fa-solid fa-save me-2"></i> @(isEditing ? Portuguese.Save : Portuguese.Create)
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto>? users;
+    private List<SewingTeamDto>? teams;
+    private bool loading = true;
+    private bool showModal = false;
+    private bool isEditing = false;
+    private UserFormModel userModel = new();
+    private int editingUserId;
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadUsers(), LoadTeams());
+    }
+
+    private async Task LoadTeams()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
+            if (response != null && response.Success)
+            {
+                teams = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar equipes: {ex.Message}");
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            loading = true;
+            // Pass the injected JsonOptions to use the JsonStringEnumConverter
+            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        isEditing = false;
+        userModel = new UserFormModel();
+        showModal = true;
+    }
+
+    private void EditUser(UserDto user)
+    {
+        isEditing = true;
+        editingUserId = user.Id;
+        userModel = new UserFormModel
+        {
+            FullName = user.FullName,
+            Email = user.Email,
+            Role = user.Role,
+            SewingTeamId = user.SewingTeamId
+        };
+        showModal = true;
+    }
+
+    private string? errorMessage;
+
+    private string TranslateRole(string role) => role switch
+    {
+        "Administrator" => "Administrador",
+        "Leader" => "Líder",
+        "Operational" => "Costureira/Costureiro",
+        "Office" => "Escritório",
+        _ => role
+    };
+
+    private bool isSaving = false;
+
+    private async Task HandleSubmit()
+    {
+        if (isSaving) return;
+        
+        try
+        {
+            isSaving = true;
+            errorMessage = null;
+            HttpResponseMessage response;
+
+            if (isEditing)
+            {
+                var request = new UpdateUserRequest
+                {
+                    FullName = userModel.FullName,
+                    Email = userModel.Email,
+                    Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password,
+                    Role = userModel.Role,
+                    SewingTeamId = userModel.SewingTeamId
+                };
+                response = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", request);
+            }
+            else
+            {
+                var request = new CreateUserRequest
+                {
+                    FullName = userModel.FullName,
+                    Email = userModel.Email,
+                    Password = userModel.Password,
+                    Role = userModel.Role,
+                    SewingTeamId = userModel.SewingTeamId
+                };
+                response = await Http.PostAsJsonAsync("api/Users", request);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Pass the injected JsonOptions to use the JsonStringEnumConverter
+                var newUser = await response.Content.ReadFromJsonAsync<UserDto>(JsonOptions);
+                if (newUser != null)
+                {
+                    if (isEditing)
+                    {
+                        var index = users?.FindIndex(u => u.Id == newUser.Id) ?? -1;
+                        if (index != -1) users![index] = newUser;
+                    }
+                    else
+                    {
+                        users?.Add(newUser);
+                    }
+                }
+
+                ToastService.ShowToast(isEditing ? Portuguese.Msg_UserUpdated : Portuguese.Msg_UserCreated, ToastLevel.Success);
+                showModal = false;
+                StateHasChanged();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                string specificError = "Erro desconhecido";
+                
+                try 
+                {
+                    // Attempt to parse ApiResponse or ProblemDetails
+                    using var doc = JsonDocument.Parse(errorContent);
+                    if (doc.RootElement.TryGetProperty("message", out var msg))
+                    {
+                        specificError = msg.GetString() ?? specificError;
+                    }
+                    else if (doc.RootElement.TryGetProperty("detail", out var detail))
+                    {
+                        specificError = detail.GetString() ?? specificError;
+                    }
+                    else if (doc.RootElement.TryGetProperty("errors", out var errors))
+                    {
+                        specificError = errors.ToString();
+                    }
+                    else 
+                    {
+                        specificError = errorContent;
+                    }
+                }
+                catch 
+                {
+                    specificError = errorContent;
+                }
+
+                errorMessage = specificError;
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
+            }
+        }
+        catch (HttpRequestException)
+        {
+            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro inesperado: {ex.Message}";
+            ToastService.ShowToast(errorMessage, ToastLevel.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", Portuguese.ConfirmDeactivate))
+        {
+            try 
+            {
+                var response = await Http.DeleteAsync($"api/Users/{id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var user = users?.FirstOrDefault(u => u.Id == id);
+                    if (user != null) users?.Remove(user);
+                    ToastService.ShowToast("Usuário desativado com sucesso", ToastLevel.Success);
+                    StateHasChanged();
+                }
+                else 
+                {
+                    ToastService.ShowToast("Erro ao desativar usuário", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
+
+    private void CloseModal() => showModal = false;
+
+    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
+
+    public class UserFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string FullName { get; set; } = "";
+        
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = "";
+        
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
+        public string Password { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas não coincidem.")]
+        public string ConfirmPassword { get; set; } = "";
+        
+        public UserRole Role { get; set; } = UserRole.Operational;
+
+        public int? SewingTeamId { get; set; }
+    }
+}

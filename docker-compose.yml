@@ -1,0 +1,53 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gestion-produccion-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - ConnectionStrings__DefaultConnection=server=db;port=3306;database=${DB_DATABASE};user=${DB_USER};password=${DB_PASSWORD};AllowUserVariables=true;ConvertZeroDateTime=true;
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - avatars_data:/app/wwwroot/img/avatars
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0
+    container_name: gestion-produccion-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: "mysqladmin ping -h localhost -u root -p${DB_ROOT_PASSWORD}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+  avatars_data:
+
+networks:
+  app-network:
+    driver: bridge

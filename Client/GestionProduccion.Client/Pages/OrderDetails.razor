@@ -1,0 +1,754 @@
+@page "/orders/{Id:int}"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using System.Globalization
+@attribute [Authorize]
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Client.Components
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@using GestionProduccion.Client.Services.ProductionOrders
+@inject IProductionOrderQueryClient QueryClient
+@inject IProductionOrderMutationClient MutationClient
+@inject IProductionOrderLifecycleClient LifecycleClient
+@inject IJSRuntime JSRuntime
+
+@using GestionProduccion.Client.Resources
+
+<PageTitle>@Portuguese.OP_Details_Title - @order?.LotCode</PageTitle>
+
+<div class="container-fluid p-0 animate-fade-in">
+    @if (loading)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">@Portuguese.Loading</span>
+            </div>
+        </div>
+    }
+    else if (order == null)
+    {
+        <div class="alert alert-danger rounded-4 shadow-sm">@Portuguese.OP_OrderNotFound</div>
+        <button class="btn btn-secondary shadow-sm" @onclick="GoBack">@Portuguese.OP_BackToList</button>
+    }
+    else
+    {
+        <div class="row mb-2 mb-xl-3 align-items-center">
+            <div class="col-auto">
+                <button class="btn btn-light shadow-sm me-3" @onclick="GoBack">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h3 class="d-inline-block align-middle text-dark mb-0">@Portuguese.OP_Code: @order.LotCode</h3>
+            </div>
+            <div class="col-auto ms-auto">
+                <span class="badge @GetStatusSoftClass(order.CurrentStatus) fs-sm px-3 py-2">
+                    @TranslateStatus(order.CurrentStatus)
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Order Info -->
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header border-0 pt-4 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">@Portuguese.OP_MainInfo</h5>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DownloadPdf">
+                                <i class="fa-solid fa-file-pdf me-1"></i> @Portuguese.ExportPDF
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-light p-3 rounded-3 me-3 text-primary">
+                                        <i class="fa-solid fa-shirt fa-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small uppercase">@Portuguese.Product</div>
+                                        <div class="fw-bold">@order.ProductName</div>
+                                        <div class="text-muted fs-xs">SKU: @order.ProductCode</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-light p-3 rounded-3 me-3 text-success">
+                                        <i class="fa-solid fa-cubes-stacked fa-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small uppercase">@Portuguese.Quantity</div>
+                                        <div class="fw-bold h4 mb-0">@order.Quantity</div>
+                                        @if (order.Sizes != null && order.Sizes.Any())
+                                        {
+                                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                                @foreach (var s in order.Sizes)
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2">@s.Size: @s.Quantity</span>
+                                                }
+                                            </div>
+                                        }
+                                        else if (!string.IsNullOrEmpty(order.Size))
+                                        {
+                                            <div class="text-muted small">Tamanho: @order.Size</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light p-3 rounded-3 me-3 text-info">
+                                        <i class="fa-solid fa-calendar-day fa-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small uppercase">@Portuguese.OP_CreationDate</div>
+                                        <div class="fw-bold">@order.CreatedAt.ToShortDateString()</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light p-3 rounded-3 me-3 text-warning">
+                                        <i class="fa-solid fa-truck-fast fa-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small uppercase">@Portuguese.OP_EstimatedDelivery</div>
+                                        <div class="fw-bold">@order.EstimatedCompletionAt.ToShortDateString()</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FINANCIAL CARDS (ADMIN ONLY) -->
+                <AuthorizeView Roles="Administrator" Context="financialContext">
+                    @if (order.TotalCost > 0)
+                    {
+                        <div class="card mb-4 bg-light border-primary border-opacity-25 shadow-sm rounded-4">
+                            <div class="card-header border-0 pt-4 px-4 bg-transparent">
+                                <h5 class="card-title mb-0 text-primary fw-bold">
+                                    <i class="fa-solid fa-calculator me-2"></i> @Portuguese.OP_FinancialAnalysis
+                                </h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row text-center align-items-center">
+                                    <div class="col-md-4 mb-3 mb-md-0 border-end">
+                                        <div class="text-muted small uppercase mb-1">Custo Total Lote</div>
+                                        <div class="h3 mb-0 text-dark fw-bold">@order.TotalCost.ToString("C", new CultureInfo("pt-BR"))</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3 mb-md-0 border-end">
+                                        <div class="text-muted small uppercase mb-1">Custo Real Unitário</div>
+                                        <div class="h3 mb-0 text-primary fw-bold">@order.AverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-muted small uppercase mb-1">Margem de Lucro</div>
+                                        <div class="h3 mb-0 @(order.ProfitMargin > 0 ? "text-success" : "text-danger") fw-bold">
+                                            @order.ProfitMargin.ToString("N1")%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </AuthorizeView>
+
+                <!-- Actions Card -->
+                <AuthorizeView Roles="Administrator,Leader,Operational" Context="actionContext">
+                    <div class="card mb-4 border-0 shadow-sm overflow-hidden">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 text-dark fw-bold">
+                                <i class="fa-solid fa-gears text-primary me-2"></i> @Portuguese.OP_Controls
+                            </h5>
+                        </div>
+                        <div class="card-body p-4 pt-2">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary flex-grow-1 flex-md-grow-0" @onclick="AdvanceStage"
+                                        disabled="@(order.CurrentStage == "Packaging" || order.CurrentStatus == "Completed")">
+                                    <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
+                                </button>
+
+                                <button class="btn btn-light border flex-grow-1 flex-md-grow-0" @onclick="() => showQAForm = true">
+                                    <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> @Portuguese.QA_Title
+                                </button>
+
+                                <button class="btn btn-success flex-grow-1 flex-md-grow-0 shadow-soft" @onclick="ShowCompleteModal"
+                                        disabled="@(order.CurrentStage != "Packaging" || order.CurrentStatus == "Completed")">
+                                    <i class="fa-solid fa-check-double me-2"></i> @Portuguese.OP_Finalize
+                                </button>
+                            </div>
+                            
+                            <AuthorizeView Roles="Administrator,Leader">
+                                <div class="mt-3 pt-3 border-top d-flex flex-wrap gap-2">
+                                    <button class="btn btn-outline-info btn-sm" @onclick="ShowAssignModal">
+                                        <i class="fa-solid fa-user-plus me-1"></i> @Portuguese.OP_AssignOperator
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="ShowChangeStageModal">
+                                        <i class="fa-solid fa-rotate-left me-1"></i> @Portuguese.OP_ChangeStage
+                                    </button>
+                                </div>
+                            </AuthorizeView>
+                        </div>
+                    </div>
+                </AuthorizeView>
+
+                <!-- Tabs Card (History and Defects) -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 p-0">
+                        <ul class="nav nav-tabs nav-tabs-bottom" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link @(activeTab == "history" ? "active" : "") px-4 py-3" @onclick='() => activeTab = "history"'>
+                                    <i class="fa-solid fa-clock-rotate-left me-2"></i> @Portuguese.OP_History
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(activeTab == "defects" ? "active" : "") px-4 py-3" @onclick='() => activeTab = "defects"'>
+                                    <i class="fa-solid fa-bug me-2"></i> @Portuguese.QA_Title
+                                    <span class="badge bg-danger ms-2">@defects?.Count</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body p-4">
+                        @if (activeTab == "history")
+                        {
+                            <div class="timeline animate-fade-in">
+                                @if (history != null)
+                                {
+                                    @foreach (var log in history.OrderByDescending(h => h.ChangedAt))
+                                    {
+                                        <div class="timeline-item pb-4">
+                                            <div class="timeline-marker bg-primary"></div>
+                                            <div class="timeline-content">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <h6 class="mb-0 fw-bold">@TranslateStage(log.NewStage)</h6>
+                                                    <span class="text-muted small">@log.ChangedAt.ToString("g")</span>
+                                                </div>
+                                                <div class="mb-1">
+                                                    <span class="badge @GetStatusSoftClass(log.NewStatus) fs-xs">@TranslateStatus(log.NewStatus)</span>
+                                                    <span class="ms-2 text-dark small">Por: <strong>@log.UserName</strong></span>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(log.Note))
+                                                {
+                                                    <div class="p-2 bg-light rounded mt-2 border-start border-3 border-primary small italic">
+                                                        "@log.Note"
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive animate-fade-in">
+                                <table class="table table-hover align-middle">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>@Portuguese.QA_Reason</th>
+                                            <th>@Portuguese.Quantity</th>
+                                            <th>@Portuguese.QA_Photo</th>
+                                            <th>@Portuguese.OP_Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (defects != null && defects.Any())
+                                        {
+                                            @foreach (var defect in defects)
+                                            {
+                                                <tr>
+                                                    <td>@defect.Reason</td>
+                                                    <td><span class="badge bg-light text-danger">@defect.Quantity</span></td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(defect.PhotoUrl))
+                                                        {
+                                                            <button class="btn btn-sm btn-light" @onclick="() => ViewPhoto(defect.PhotoUrl)">
+                                                                <i class="fa-solid fa-image"></i>
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-link text-danger" @onclick="() => DeleteDefect(defect.Id)">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4" class="text-center py-4 text-muted">@Portuguese.QA_NoDefects</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Cards -->
+            <div class="col-md-4">
+                <div class="card mb-4 border-0 shadow-sm overflow-hidden">
+                    <div class="card-header bg-primary border-0 py-3">
+                        <h5 class="card-title mb-0 fw-bold">@Portuguese.OP_CurrentAssignment</h5>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        @if (order.UserId.HasValue)
+                        {
+                            <img src="@(string.IsNullOrEmpty(order.AssignedUserName) ? "/img/avatars/avatar.jpg" : "/img/avatars/avatar.jpg")" 
+                                 class="rounded-circle shadow-sm mb-3 border border-3 border-light" width="80" height="80" alt="Avatar">
+                            <h5 class="mb-1">@order.AssignedUserName</h5>
+                            <p class="text-muted small">@Portuguese.OP_OperatorAssigned</p>
+                            @if (order.SewingTeamName != null)
+                            {
+                                <div class="badge bg-info-subtle text-info px-3 py-2 rounded-pill">
+                                    <i class="fa-solid fa-users me-1"></i> @order.SewingTeamName
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="py-3">
+                                <div class="text-warning mb-3">
+                                    <i class="fa-solid fa-user-slash fa-3x"></i>
+                                </div>
+                                <h5>@Portuguese.OP_Unassigned</h5>
+                                <p class="text-muted small">Esta ordem ainda não foi atribuída a um operador.</p>
+                                <button class="btn btn-primary btn-sm mt-2" @onclick="ShowAssignModal">Atribuir Agora</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="card-title mb-0">Progresso Detalhado</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="progress-vertical">
+                            @foreach (var stage in Enum.GetValues<ProductionStage>())
+                            {
+                                <div class="d-flex mb-4">
+                                    <div class="me-3 text-center" style="width: 24px;">
+                                        @if (IsStageCompleted(stage))
+                                        {
+                                            <i class="fa-solid fa-circle-check text-success fs-lg"></i>
+                                        }
+                                        else if (IsStageCurrent(stage))
+                                        {
+                                            <i class="fa-solid fa-circle-play text-primary fs-lg animate-pulse"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fa-regular fa-circle text-muted fs-lg"></i>
+                                        }
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold @(IsStageCurrent(stage) ? "text-primary" : "")">@TranslateStage(stage.ToString())</div>
+                                        <div class="text-muted small">@(IsStageCompleted(stage) ? "Concluído" : IsStageCurrent(stage) ? "Em andamento" : "Pendente")</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal Atribuir -->
+@if (isAssigning)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Portuguese.OP_AssignOperator</h5>
+                    <button type="button" class="btn-close" @onclick="() => isAssigning = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <label class="form-label">Selecione o Operador/Oficina:</label>
+                    <select class="form-select form-select-lg mb-3" @bind="selectedUserId">
+                        <option value="0">-- Selecionar --</option>
+                        @if (assignableUsers != null)
+                        {
+                            @foreach (var u in assignableUsers)
+                            {
+                                <option value="@u.Id">@u.FullName (@u.Role)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" @onclick="() => isAssigning = false">Cancelar</button>
+                    <button type="button" class="btn btn-primary px-4" @onclick="ConfirmAssign">Atribuir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Alterar Estágio (Recuo) -->
+@if (isChangingStage)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Portuguese.OP_ChangeStage</h5>
+                    <button type="button" class="btn-close" @onclick="() => isChangingStage = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Novo Estágio:</label>
+                        <select class="form-select" @bind="targetStage">
+                            @foreach (var stage in Enum.GetValues<ProductionStage>())
+                            {
+                                <option value="@((int)stage)">@TranslateStage(stage.ToString())</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observação/Motivo:</label>
+                        <textarea class="form-control" rows="3" @bind="stageChangeNote" placeholder="Descreva o motivo da alteração..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" @onclick="() => isChangingStage = false">Cancelar</button>
+                    <button type="button" class="btn btn-danger px-4" @onclick="ConfirmChangeStage">Confirmar Alteração</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showQAForm)
+{
+    <QARegistryModal OrderId="Id" OnSuccess="OnQASuccess" OnClose="OnQAClose" />
+}
+
+@if (showCompleteModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title text-white">Finalizar Ordem</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseCompleteModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p>Tem certeza que deseja finalizar a produção da ordem <strong>@order?.LotCode</strong>?</p>
+                    <p>Esta ação irá:</p>
+                    <ul>
+                        <li>Encerrar o cronômetro de produção.</li>
+                        <li>Calcular os custos finais com base no tempo decorrido.</li>
+                        <li>Atualizar o estoque.</li>
+                    </ul>
+                    <div class="alert alert-warning">
+                        <strong>Quantidade:</strong> @order?.Quantity unidades
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCompleteModal">Cancelar</button>
+                    <button type="button" class="btn btn-success" @onclick="ConfirmCompleteOrder">Confirmar e Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private ProductionOrderDto? order;
+    private List<ProductionHistoryDto>? history;
+    private List<UserDto>? assignableUsers;
+    private bool loading = true;
+    private bool isAssigning = false;
+    private int selectedUserId;
+    private int targetStage;
+    private string stageChangeNote = "";
+    private bool isChangingStage = false;
+    private bool showCompleteModal = false;
+
+    private void ShowCompleteModal()
+    {
+        showCompleteModal = true;
+    }
+
+    private void CloseCompleteModal()
+    {
+        showCompleteModal = false;
+    }
+
+    private async Task ConfirmCompleteOrder()
+    {
+        showCompleteModal = false;
+        // Correct variable name used: LifecycleClient
+        var success = await LifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Produto finalizado e pronto");
+        if (success)
+        {
+            ToastService.ShowToast(Portuguese.Status_Completed, ToastLevel.Success);
+            await LoadData();
+        }
+        else
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (order == null) return;
+
+        try
+        {
+            ToastService.ShowToast("Gerando PDF...", ToastLevel.Info);
+
+            var response = await Http.GetAsync($"api/ProductionOrders/{Id}/pdf");
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Order_{order.LotCode}.pdf", streamRef);
+                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private string activeTab = "history";
+    private List<QADefectDto>? defects;
+    private bool showQAForm = false;
+    private string? selectedPhotoUrl;
+
+    private async Task ViewPhoto(string url)
+    {
+        selectedPhotoUrl = url;
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private async Task DeleteDefect(int id)
+    {
+        var response = await Http.DeleteAsync($"api/QA/defects/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+            await LoadDefects();
+        }
+    }
+
+    private async Task OnQASuccess()
+    {
+        await LoadDefects();
+        ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+    }
+
+    private void OnQAClose()
+    {
+        showQAForm = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        try
+        {
+            // Correct variable name used: QueryClient
+            order = await QueryClient.GetProductionOrderByIdAsync(Id);
+            if (order != null)
+            {
+                history = await QueryClient.GetHistoryByProductionOrderIdAsync(Id);
+                await LoadDefects();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadDefects()
+    {
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<QADefectDto>>>($"api/QA/orders/{Id}/defects");
+        if (response != null && response.Success)
+        {
+            defects = response.Data;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/orders");
+    }
+
+    private async Task AdvanceStage()
+    {
+        // Correct variable name used: LifecycleClient
+        var success = await LifecycleClient.AdvanceStageAsync(Id);
+        if (success)
+        {
+            ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+            await LoadData();
+        }
+        else
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+        }
+    }
+
+    private async Task ShowAssignModal()
+    {
+        await LoadUsers();
+        isAssigning = true;
+    }
+
+    private async Task LoadUsers()
+    {
+        try 
+        {
+            // The assignable endpoint already filters for Operational and Leader roles on the server
+            var response = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable", _jsonOptions);
+            if (response != null)
+            {
+                assignableUsers = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
+        }
+    }
+
+    private async Task ConfirmAssign()
+    {
+        if (selectedUserId == 0) return;
+        
+        // Correct variable name used: LifecycleClient
+        var success = await LifecycleClient.AssignTaskAsync(Id, selectedUserId);
+        if (success)
+        {
+            isAssigning = false;
+            ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+            await LoadData();
+        }
+        else
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+        }
+    }
+
+    private void ShowChangeStageModal()
+    {
+        if (order != null)
+        {
+            ProductionStage current;
+            if (Enum.TryParse<ProductionStage>(order.CurrentStage, out current))
+            {
+                targetStage = (int)current;
+            }
+        }
+        isChangingStage = true;
+    }
+
+    private async Task ConfirmChangeStage()
+    {
+        // Correct variable name used: LifecycleClient
+        var success = await LifecycleClient.ChangeStageAsync(Id, (ProductionStage)targetStage, stageChangeNote);
+        if (success)
+        {
+            isChangingStage = false;
+            ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
+            await LoadData();
+        }
+        else
+        {
+            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+        }
+    }
+
+    private string GetStatusSoftClass(string? status) => status?.ToLower() switch
+    {
+        "completed" or "finished" => "badge-soft-success",
+        "inproduction" => "badge-soft-primary",
+        "pending" => "badge-soft-warning",
+        "stopped" or "paused" => "badge-soft-danger",
+        _ => "bg-light text-muted"
+    };
+
+    private string TranslateStatus(string? status) => status?.ToLower() switch
+    {
+        "pending" => "Pendente",
+        "inproduction" => "Em Produção",
+        "stopped" => "Parado",
+        "completed" => "Finalizado",
+        "paused" => "Pausado",
+        "finished" => "Concluído",
+        "cancelled" => "Cancelado",
+        _ => status ?? ""
+    };
+
+    private string TranslateStage(string? stage) => stage?.ToLower() switch
+    {
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
+        _ => stage ?? ""
+    };
+
+    private bool IsStageCompleted(ProductionStage stage)
+    {
+        if (order == null) return false;
+        ProductionStage current;
+        if (Enum.TryParse<ProductionStage>(order.CurrentStage, out current))
+        {
+            if (order.CurrentStatus == "Completed") return true;
+            return current > stage;
+        }
+        return false;
+    }
+
+    private bool IsStageCurrent(ProductionStage stage)
+    {
+        if (order == null) return false;
+        if (order.CurrentStatus == "Completed") return false;
+        return order.CurrentStage == stage.ToString();
+    }
+}
