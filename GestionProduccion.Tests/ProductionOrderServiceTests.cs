@@ -54,6 +54,7 @@ public class ProductionOrderServiceTests : IDisposable
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
         mockClients.Setup(clients => clients.All).Returns(mockClientProxy.Object);
+        mockClients.Setup(clients => clients.Group(It.IsAny<string>())).Returns(mockClientProxy.Object);
         _mockHubContext.Setup(hub => hub.Clients).Returns(mockClients.Object);
 
         var context = new DefaultHttpContext();

@@ -41,7 +41,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         return order == null ? null : MapToDto(order);
     }
 
-    public async Task<List<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
+    public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
     {
         var query = await _orderRepository.GetQueryableAsync();
         var currentUserId = GetCurrentUserId();
@@ -54,6 +54,16 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         if (filter != null)
         {
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                query = query.Where(o => 
+                    (o.LotCode != null && o.LotCode.Contains(term)) ||
+                    (o.Product != null && (o.Product.Name.Contains(term) || o.Product.InternalCode.Contains(term))) ||
+                    (o.ClientName != null && o.ClientName.Contains(term))
+                );
+            }
+
             if (!string.IsNullOrWhiteSpace(filter.CurrentStage) && Enum.TryParse<ProductionStage>(filter.CurrentStage, true, out var stage))
                 query = query.Where(po => po.CurrentStage == stage);
 
@@ -76,8 +86,15 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
                 query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
         }
 
-        // Optimize: do not track entities for read operations, include necessary relations
-        // Use AsSplitQuery to avoid Cartesian explosion when loading multiple related entities
+        // Count before pagination
+        var totalCount = await query.CountAsync(ct);
+
+        // Apply pagination
+        int pageNumber = filter?.PageNumber ?? 1;
+        int pageSize = filter?.PageSize ?? 10;
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+
         var ordersList = await query
             .AsNoTracking()
             .AsSplitQuery()
@@ -85,9 +102,12 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(po => po.AssignedUser)
             .Include(po => po.AssignedTeam)
             .OrderByDescending(po => po.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(ct);
 
-        return ordersList.Select(MapToDto).ToList();
+        var dtos = ordersList.Select(MapToDto).ToList();
+        return new PaginatedResponseDto<ProductionOrderDto>(dtos, totalCount, pageNumber, pageSize);
     }
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default)

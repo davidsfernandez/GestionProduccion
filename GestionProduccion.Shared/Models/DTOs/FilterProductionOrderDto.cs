@@ -2,6 +2,7 @@ namespace GestionProduccion.Models.DTOs
 {
     public class FilterProductionOrderDto
     {
+        public string? SearchTerm { get; set; }
         public string? CurrentStage { get; set; }
         public string? CurrentStatus { get; set; }
         public int? UserId { get; set; }
@@ -9,5 +10,8 @@ namespace GestionProduccion.Models.DTOs
         public DateTime? EndDate { get; set; }
         public string? ClientName { get; set; }
         public string? Size { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
     }
 }

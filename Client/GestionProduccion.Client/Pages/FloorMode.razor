@@ -157,9 +157,17 @@
         try
         {
             loading = true;
-            // Fetch only active orders for floor mode
-            var allOrders = await QueryClient.ListProductionOrdersAsync(null);
-            orders = allOrders?
+            // Fetch active orders for floor mode using server-side filtering
+            var filter = new FilterProductionOrderDto
+            {
+                PageNumber = 1,
+                PageSize = 50 // Live dashboard limit
+            };
+            
+            var response = await QueryClient.ListProductionOrdersAsync(filter);
+            
+            // In Floor mode we show everything that's in production or pending
+            orders = response?.Items?
                 .Where(o => o.CurrentStatus != "Completed" && o.CurrentStatus != "Cancelled")
                 .ToList();
         }

@@ -16,6 +16,7 @@
 
 @using GestionProduccion.Client.Resources
 @using GestionProduccion.Domain.Enums
+@using GestionProduccion.Domain.Constants
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
@@ -40,7 +41,7 @@
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                                         <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
-                                               @bind="searchTerm" />
+                                               @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -50,7 +51,7 @@
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterTamanho" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
-                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
+                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="() => LoadOrders(1)" style="border-radius: 10px;">
                                         <i class="fa-solid fa-filter me-2"></i>Filtrar
                                     </button>
                                 </div>
@@ -82,7 +83,7 @@
                         </div>
                     </div>
                 }
-                else if (FilteredOrders == null || !FilteredOrders.Any())
+                else if (paginatedResponse == null || !paginatedResponse.Items.Any())
                 {
                     <div class="card-body">
                         <div class="alert alert-info mb-0 d-flex align-items-center justify-content-center py-4">
@@ -124,7 +125,7 @@
                             </div>
                         </div>
                     }
-                    <div class="table-responsive" style="border-radius: 0 0 15px 15px; overflow: hidden;">
+                    <div class="table-responsive" style="overflow: hidden;">
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
@@ -141,7 +142,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var order in FilteredOrders)
+                                @foreach (var order in paginatedResponse.Items)
                                 {
                                     <tr @key="order.Id">
                                         <td>
@@ -201,6 +202,41 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <div class="card-footer bg-white border-top py-3 px-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                            <div class="text-muted small">
+                                Exibindo <b>@paginatedResponse.Items.Count</b> de <b>@paginatedResponse.TotalCount</b> ordens
+                            </div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(!paginatedResponse.HasPreviousPage ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">
+                                            <i class="fa-solid fa-chevron-left"></i>
+                                        </button>
+                                    </li>
+                                    @{
+                                        int startPage = Math.Max(1, currentPage - 2);
+                                        int endPage = Math.Min(paginatedResponse.TotalPages, startPage + 4);
+                                        if (endPage - startPage < 4) startPage = Math.Max(1, endPage - 4);
+                                    }
+                                    @for (int i = startPage; i <= endPage; i++)
+                                    {
+                                        var pageNum = i;
+                                        <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                            <button class="page-link" @onclick="() => ChangePage(pageNum)">@pageNum</button>
+                                        </li>
+                                    }
+                                    <li class="page-item @(!paginatedResponse.HasNextPage ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">
+                                            <i class="fa-solid fa-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
@@ -215,26 +251,14 @@
 
 @code {
     private HashSet<int> selectedOrderIds = new();
-    private List<ProductionOrderDto>? orders;
+    private PaginatedResponseDto<ProductionOrderDto>? paginatedResponse;
     private bool loading = true;
     private string searchTerm = "";
     private string filterClient = "";
     private string filterTamanho = "";
-
-    private List<ProductionOrderDto>? FilteredOrders 
-    {
-        get 
-        {
-            if (orders == null) return null;
-            if (string.IsNullOrWhiteSpace(searchTerm)) return orders;
-            
-            return orders.Where(o => 
-                (o.LotCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (o.ProductName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (o.ProductCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-            ).ToList();
-        }
-    }
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private System.Threading.Timer? _searchTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -256,26 +280,53 @@
         await LoadOrders();
     }
 
-    private async Task LoadOrders()
+    private void HandleSearch()
+    {
+        _searchTimer?.Dispose();
+        _searchTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadOrders(1);
+                StateHasChanged();
+            });
+        }, null, 500, System.Threading.Timeout.Infinite);
+    }
+
+    private async Task LoadOrders(int? page = null)
     {
         try
         {
             loading = true;
+            if (page.HasValue) currentPage = page.Value;
+
             var filter = new FilterProductionOrderDto
             {
+                SearchTerm = searchTerm,
                 ClientName = filterClient,
                 Size = filterTamanho,
+                PageNumber = currentPage,
+                PageSize = pageSize
             };
 
-            orders = (await ProductionOrderQueryClient.ListProductionOrdersAsync(filter))?.ToList();
+            paginatedResponse = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
         }
         catch (Exception)
         {
-            orders = new List<ProductionOrderDto>();
+            paginatedResponse = new PaginatedResponseDto<ProductionOrderDto>();
         }
         finally
         {
             loading = false;
+        }
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        if (newPage != currentPage && newPage >= 1 && (paginatedResponse == null || newPage <= paginatedResponse.TotalPages))
+        {
+            currentPage = newPage;
+            await LoadOrders();
         }
     }
 
@@ -284,7 +335,7 @@
 
     private async Task DeleteOrder(ProductionOrderDto order)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta ação alterará as métricas de produção."))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta acción alterará las métricas de producción."))
         {
             try
             {
@@ -301,7 +352,7 @@
             }
             catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
-                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
+                ToastService.ShowToast("Não é posible excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
             }
             catch (Exception ex)
             {
@@ -310,7 +361,7 @@
         }
     }
 
-    private bool AllSelected => FilteredOrders != null && FilteredOrders.Any() && FilteredOrders.All(o => selectedOrderIds.Contains(o.Id));
+    private bool AllSelected => paginatedResponse?.Items != null && paginatedResponse.Items.Any() && paginatedResponse.Items.All(o => selectedOrderIds.Contains(o.Id));
 
     private void ToggleSelection(int id)
     {
@@ -322,12 +373,12 @@
 
     private void ToggleSelectAll(ChangeEventArgs e)
     {
-        if (FilteredOrders == null) return;
+        if (paginatedResponse?.Items == null) return;
         
         var isChecked = (bool)(e.Value ?? false);
         if (isChecked)
         {
-            foreach (var order in FilteredOrders)
+            foreach (var order in paginatedResponse.Items)
             {
                 selectedOrderIds.Add(order.Id);
             }
@@ -373,8 +424,27 @@
         try 
         {
             ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
-            // It uses Http client directly, as it calls a ReportService backend endpoint.
-            var response = await Http.GetAsync("api/ProductionOrders/export-csv");
+            // Construct the filter query string for CSV export
+            var filter = new FilterProductionOrderDto
+            {
+                SearchTerm = searchTerm,
+                ClientName = filterClient,
+                Size = filterTamanho,
+                PageNumber = 1,
+                PageSize = 10000 // Get all for export
+            };
+            
+            var queryParams = new List<string>
+            {
+                $"SearchTerm={System.Net.WebUtility.UrlEncode(filter.SearchTerm)}",
+                $"ClientName={filter.ClientName}",
+                $"Size={filter.Size}",
+                $"PageNumber={filter.PageNumber}",
+                $"PageSize={filter.PageSize}"
+            };
+            var queryString = "?" + string.Join("&", queryParams);
+
+            var response = await Http.GetAsync($"api/ProductionOrders/export-csv{queryString}");
             
             if (response.IsSuccessStatusCode)
             {
@@ -399,21 +469,24 @@
         try 
         {
             ToastService.ShowToast("Gerando Excel...", ToastLevel.Info);
-            // Construct the filter query string based on the current search term
+            // Construct the filter query string based on the current filters
             var filter = new FilterProductionOrderDto
             {
+                SearchTerm = searchTerm,
                 ClientName = filterClient,
                 Size = filterTamanho,
-                // Add Product search by searchTerm if needed
+                PageNumber = 1,
+                PageSize = 10000 // Get all for export
             };
-            var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
+            var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
+            var ordersToExport = response?.Items ?? new();
 
             // It uses Http client directly, as it calls a ExcelExportService backend endpoint.
-            var response = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", ordersToExport);
+            var postResponse = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", ordersToExport);
             
-            if (response.IsSuccessStatusCode)
+            if (postResponse.IsSuccessStatusCode)
             {
-                var fileStream = await response.Content.ReadAsStreamAsync();
+                var fileStream = await postResponse.Content.ReadAsStreamAsync();
                 using var streamRef = new DotNetStreamReference(stream: fileStream);
                 await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", streamRef);
                 ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
@@ -484,6 +557,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _searchTimer?.Dispose();
         try { await SignalR.StopConnection(); } catch { }
     }
 }

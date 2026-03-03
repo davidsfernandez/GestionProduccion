@@ -65,12 +65,12 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductionOrderDto>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter)
+    public async Task<ActionResult<PaginatedResponseDto<ProductionOrderDto>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter)
     {
         try
         {
-            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
-            return Ok(orders);
+            var result = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -359,8 +359,11 @@ public class ProductionOrdersController : ControllerBase
     {
         try
         {
-            var orders = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
-            var csvBytes = await reportService.GenerateOrdersCsvAsync(orders);
+            // Ensure we get all records if it's for export
+            if (filter != null) filter.PageSize = 100000; 
+            
+            var result = await _queryService.ListProductionOrdersAsync(filter, HttpContext.RequestAborted);
+            var csvBytes = await reportService.GenerateOrdersCsvAsync(result.Items);
             return File(csvBytes, "text/csv", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv");
         }
         catch (Exception ex)

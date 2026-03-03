@@ -26,11 +26,12 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
         return await _httpClient.GetFromJsonAsync<ProductionOrderDto>($"api/ProductionOrders/{id}", _options, ct);
     }
 
-    public async Task<List<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
+    public async Task<PaginatedResponseDto<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
     {
         var queryParams = new List<string>();
         if (filter != null)
         {
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm)) queryParams.Add($"SearchTerm={System.Net.WebUtility.UrlEncode(filter.SearchTerm)}");
             if (!string.IsNullOrWhiteSpace(filter.CurrentStage)) queryParams.Add($"CurrentStage={filter.CurrentStage}");
             if (!string.IsNullOrWhiteSpace(filter.CurrentStatus)) queryParams.Add($"CurrentStatus={filter.CurrentStatus}");
             if (filter.UserId.HasValue) queryParams.Add($"UserId={filter.UserId.Value}");
@@ -38,9 +39,11 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
             if (filter.EndDate.HasValue) queryParams.Add($"EndDate={filter.EndDate.Value:yyyy-MM-dd}");
             if (!string.IsNullOrWhiteSpace(filter.ClientName)) queryParams.Add($"ClientName={filter.ClientName}");
             if (!string.IsNullOrWhiteSpace(filter.Size)) queryParams.Add($"Size={filter.Size}");
+            queryParams.Add($"PageNumber={filter.PageNumber}");
+            queryParams.Add($"PageSize={filter.PageSize}");
         }
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        return await _httpClient.GetFromJsonAsync<List<ProductionOrderDto>>($"api/ProductionOrders{queryString}", _options, ct);
+        return await _httpClient.GetFromJsonAsync<PaginatedResponseDto<ProductionOrderDto>>($"api/ProductionOrders{queryString}", _options, ct);
     }
 
     public async Task<DashboardDto?> GetDashboardAsync(CancellationToken ct = default)
