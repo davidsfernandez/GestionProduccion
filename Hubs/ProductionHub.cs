@@ -7,16 +7,31 @@ namespace GestionProduccion.Hubs;
 /// </summary>
 public class ProductionHub : Hub
 {
-    /// <summary>
-    /// Notifies all connected clients about an update in a production order.
-    /// Called automatically from ProductionOrderService when changes occur.
-    /// </summary>
-    /// <param name="orderId">ID of the updated Production Order</param>
-    /// <param name="newStage">New process stage (Cutting, Sewing, Review, Packaging)</param>
-    /// <param name="newStatus">New status (InProduction, Stopped, Completed)</param>
-    public async Task NotifyUpdate(int orderId, string newStage, string newStatus)
+    public async Task JoinTeamGroup(int teamId)
     {
-        await Clients.All.SendAsync("ReceiveUpdate", orderId, newStage, newStatus);
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"Team_{teamId}");
+    }
+
+    public async Task LeaveTeamGroup(int teamId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Team_{teamId}");
+    }
+
+    public async Task JoinDashboardGroup()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Dashboards");
+    }
+
+    public async Task NotifyUpdate(int orderId, string newStage, string newStatus, int? teamId = null)
+    {
+        // Notify the specific team involved
+        if (teamId.HasValue)
+        {
+            await Clients.Group($"Team_{teamId.Value}").SendAsync("ReceiveUpdate", orderId, newStage, newStatus);
+        }
+
+        // Always notify Dashboards and TV screens
+        await Clients.Group("Dashboards").SendAsync("ReceiveUpdate", orderId, newStage, newStatus);
     }
 
     /// <summary>

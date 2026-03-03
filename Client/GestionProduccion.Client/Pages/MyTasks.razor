@@ -10,6 +10,9 @@
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
 @inject IProductionOrderLifecycleClient LifecycleClient
+@inject ISignalRService SignalR
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
 
 @using GestionProduccion.Client.Resources
 
@@ -239,8 +242,26 @@
     private int processingId = 0;
     private string activeTab = "production";
 
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateTask;
+        var user = authState.User;
+        
+        // Join Team Group for optimized SignalR notifications
+        var teamIdClaim = user.FindFirst("SewingTeamId")?.Value;
+        if (int.TryParse(teamIdClaim, out var teamId))
+        {
+            var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
+            await SignalR.StartConnection(hubUrl);
+            await SignalR.JoinTeamGroup(teamId);
+            
+            SignalR.OnUpdateReceived += async (id, stage, status) => {
+                await InvokeAsync(LoadAllTasks);
+            };
+        }
+
         await LoadAllTasks();
     }
 
@@ -378,4 +399,9 @@
         "Packaging" => "Embalagem",
         _ => stage
     };
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await SignalR.StopConnection(); } catch { }
+    }
 }

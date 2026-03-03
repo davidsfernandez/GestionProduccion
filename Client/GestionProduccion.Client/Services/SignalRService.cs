@@ -8,6 +8,8 @@ namespace GestionProduccion.Client.Services
     {
         Task StartConnection(string hubUrl);
         Task StopConnection();
+        Task JoinTeamGroup(int teamId);
+        Task JoinDashboardGroup();
         event Action<int, string, string>? OnUpdateReceived;
         event Action<string, string>? OnMessageReceived; // message, type
     }
@@ -20,6 +22,22 @@ namespace GestionProduccion.Client.Services
         public event Action<string, string>? OnMessageReceived;
 
         private Task? _startTask;
+
+        public async Task JoinTeamGroup(int teamId)
+        {
+            if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected)
+            {
+                await _hubConnection.SendAsync("JoinTeamGroup", teamId);
+            }
+        }
+
+        public async Task JoinDashboardGroup()
+        {
+            if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected)
+            {
+                await _hubConnection.SendAsync("JoinDashboardGroup");
+            }
+        }
 
         public async Task StartConnection(string hubUrl)
         {

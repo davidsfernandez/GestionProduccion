@@ -390,6 +390,7 @@
     {
         var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
         await SignalR.StartConnection(hubUrl);
+        await SignalR.JoinDashboardGroup();
 
         SignalR.OnUpdateReceived += (opId, stage, status) => {
             // Debounce to avoid flooding the server with requests on massive updates

@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject ISignalRService SignalR
 @implements IAsyncDisposable
 
 <style>
@@ -276,6 +277,7 @@ else
         await LoadPublicConfig();
         await LoadData();
         await StartSignalR();
+        await SignalR.JoinDashboardGroup();
         
         // Polling fallback every 30 seconds
         pollingTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadData), null, 30000, 30000);

@@ -70,7 +70,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var currentUserId = GetCurrentUserId();
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, currentUserId, $"Assigned to {user.FullName}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group($"Team_{order.SewingTeamId ?? 0}").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group("Dashboards").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
         return true;
     }
@@ -131,7 +132,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             await _taskService.CheckForLeaderChangeAsync(previousLeader);
         }
 
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group($"Team_{order.SewingTeamId ?? 0}").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group("Dashboards").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
         return true;
     }
@@ -180,7 +182,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group($"Team_{order.SewingTeamId ?? 0}").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group("Dashboards").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
         return true;
     }
@@ -210,7 +213,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, historyNote);
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group($"Team_{order.SewingTeamId ?? 0}").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.Group("Dashboards").SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
 
         return true;
     }
