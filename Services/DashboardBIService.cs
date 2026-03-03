@@ -21,32 +21,28 @@ public class DashboardBIService : IDashboardBIService
         var today = now.Date;
         var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
+        var sixtyDaysAgo = now.AddDays(-60);
+        var sevenDaysAgo = today.AddDays(-6);
 
-        // 1. Month Production (Completed this month)
-        var monthProduction = await _context.ProductionOrders
+        // Define all tasks for parallel execution
+        var monthProductionTask = _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .SumAsync(o => o.Quantity, ct);
 
-        // 2. Average Cost & Margin
-        var monthOrders = await _context.ProductionOrders
+        var monthOrdersTask = _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
             .ToListAsync(ct);
 
-        decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
-        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
-
-        // 3. Delayed Orders
-        var delayedCount = await _context.ProductionOrders
+        var delayedCountTask = _context.ProductionOrders
             .AsNoTracking()
             .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
                         && o.EstimatedCompletionAt < now)
             .CountAsync(ct);
 
-        // 4. Production by Workshop
-        var prodByWorkshop = await _context.ProductionOrders
+        var prodByWorkshopTask = _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.UserId.HasValue)
             .GroupBy(o => o.AssignedUser!.FullName)
@@ -57,15 +53,55 @@ public class DashboardBIService : IDashboardBIService
             })
             .ToListAsync(ct);
 
-        // 5. Weekly Production (OPTIMIZED: Single Query)
-        var sevenDaysAgo = today.AddDays(-6);
-        var weeklyRaw = await _context.ProductionOrders
+        var weeklyRawTask = _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
             .GroupBy(o => o.CompletedAt!.Value.Date)
             .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
             .ToListAsync(ct);
 
+        var productStatsTask = _context.ProductionOrders
+            .AsNoTracking()
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
+            .GroupBy(o => o.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                AvgMargin = g.Average(x => x.ProfitMargin)
+            })
+            .ToListAsync(ct);
+
+        // Optimized Stalled Stock using Subquery (Antijoin pattern)
+        var stalledProductsTask = _context.Products
+            .AsNoTracking()
+            .Where(p => !_context.ProductionOrders.Any(o => o.ProductId == p.Id && o.CreatedAt >= sixtyDaysAgo))
+            .Select(p => new StalledProductDto
+            {
+                Sku = p.MainSku,
+                Name = p.Name,
+                DaysSinceLastProduction = 60
+            })
+            .OrderBy(p => p.Sku)
+            .Take(10)
+            .ToListAsync(ct);
+
+        // Execute all independent tasks in parallel
+        await Task.WhenAll(
+            monthProductionTask, 
+            monthOrdersTask, 
+            delayedCountTask, 
+            prodByWorkshopTask, 
+            weeklyRawTask, 
+            productStatsTask, 
+            stalledProductsTask
+        );
+
+        // Post-processing
+        var monthOrders = await monthOrdersTask;
+        decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
+        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
+
+        var weeklyRaw = await weeklyRawTask;
         var weeklyData = new List<int>();
         var weeklyLabels = new List<string>();
         for (int i = 6; i >= 0; i--)
@@ -77,18 +113,7 @@ public class DashboardBIService : IDashboardBIService
             weeklyLabels.Add(date.ToString("ddd", ptBr).Replace(".", ""));
         }
 
-        // 6. Profitable Models
-        var productStats = await _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
-            .GroupBy(o => o.ProductId)
-            .Select(g => new
-            {
-                ProductId = g.Key,
-                AvgMargin = g.Average(x => x.ProfitMargin)
-            })
-            .ToListAsync(ct);
-
+        var productStats = await productStatsTask;
         var productIds = productStats.Select(x => x.ProductId).ToList();
         var products = await _context.Products
             .AsNoTracking()
@@ -106,38 +131,16 @@ public class DashboardBIService : IDashboardBIService
             .OrderByDescending(p => p.AverageMargin)
             .ToList();
 
-        // 7. Stalled Stock
-        var sixtyDaysAgo = now.AddDays(-60);
-        var activeProductIds = await _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CreatedAt >= sixtyDaysAgo)
-            .Select(o => o.ProductId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var stalledProducts = await _context.Products
-            .AsNoTracking()
-            .Where(p => !activeProductIds.Contains(p.Id))
-            .Select(p => new StalledProductDto
-            {
-                Sku = p.MainSku,
-                Name = p.Name,
-                DaysSinceLastProduction = 60
-            })
-            .OrderBy(p => p.Sku)
-            .Take(10)
-            .ToListAsync(ct);
-
         return new DashboardCompleteResponse
         {
-            MonthProductionQuantity = monthProduction,
+            MonthProductionQuantity = await monthProductionTask,
             MonthAverageCostPerPiece = Math.Round(avgCost, 2),
             MonthAverageMargin = Math.Round(avgMargin, 2),
-            DelayedOrdersCount = delayedCount,
-            ProductionByWorkshop = prodByWorkshop,
+            DelayedOrdersCount = await delayedCountTask,
+            ProductionByWorkshop = await prodByWorkshopTask,
             TopProfitableModels = profitabilityList.Take(5).ToList(),
             BottomProfitableModels = profitabilityList.OrderBy(p => p.AverageMargin).Take(5).ToList(),
-            StalledStock = stalledProducts,
+            StalledStock = await stalledProductsTask,
             WeeklyVolumeData = weeklyData,
             WeeklyLabels = weeklyLabels
         };
