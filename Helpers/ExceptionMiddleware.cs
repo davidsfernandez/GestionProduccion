@@ -65,7 +65,7 @@ public class ExceptionMiddleware
         {
             Status = (int)statusCode,
             Title = title,
-            Detail = _env.IsDevelopment() ? detail : "An error occurred while processing your request.",
+            Detail = _env.IsDevelopment() ? detail : GetSafeErrorMessage(exception),
             Instance = context.Request.Path
         };
 
@@ -81,5 +81,16 @@ public class ExceptionMiddleware
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(problem, options));
+    }
+
+    private string GetSafeErrorMessage(Exception ex)
+    {
+        return ex switch
+        {
+            KeyNotFoundException => "The requested resource was not found.",
+            InvalidOperationException => ex.Message, // Business logic exceptions are usually safe
+            GestionProduccion.Domain.Exceptions.DomainConstraintException => ex.Message,
+            _ => "An internal server error occurred. Please try again later."
+        };
     }
 }

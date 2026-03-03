@@ -104,10 +104,22 @@ builder.Services.AddAuthentication(options =>
     var jwtKey = builder.Configuration["Jwt:Key"];
 
     if (string.IsNullOrEmpty(jwtKey) || 
-        jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES" ||
-        jwtKey.Length < 32)
+        jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
     {
-        throw new InvalidOperationException("CRITICAL SECURITY ERROR: JWT Key is missing, insecure, or too short (min 32 chars). System startup aborted.");
+        // For testing environments we might allow a fallback, but for production it's critical.
+        if (builder.Environment.IsEnvironment("Testing"))
+        {
+            jwtKey = "a_very_long_test_key_at_least_32_chars_long";
+        }
+        else
+        {
+            throw new InvalidOperationException("CRITICAL SECURITY ERROR: JWT Key is missing or insecure. System startup aborted.");
+        }
+    }
+    
+    if (jwtKey.Length < 32)
+    {
+         throw new InvalidOperationException("CRITICAL SECURITY ERROR: JWT Key is too short (min 32 chars). System startup aborted.");
     }
 
     options.TokenValidationParameters = new TokenValidationParameters
@@ -199,10 +211,21 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true) // Required for SignalR + AllowCredentials
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials(); // Required for SignalR
+        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? new[] { "*" };
+        
+        if (allowedOrigins.Contains("*"))
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials(); // Required for SignalR
+        }
     });
 });
 
@@ -229,6 +252,7 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' ws: wss:;");
     await next();
 });
 
