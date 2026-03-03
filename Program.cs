@@ -53,7 +53,7 @@ if (builder.Environment.IsEnvironment("Testing"))
 else
 {
     builder.Services.AddDbContextPool<AppDbContext>(options =>
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+        options.UseMySql(connectionString!, ServerVersion.AutoDetect(connectionString),
             mysqlOptions => mysqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 10,
                 maxRetryDelay: TimeSpan.FromSeconds(5),

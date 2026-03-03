@@ -164,6 +164,34 @@ public class AppDbContext : DbContext
             .HasIndex(po => po.LotCode)
             .IsUnique();
 
+        // Performance Indexes for Dashboard and BI
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.CurrentStatus);
+        
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.CurrentStage);
+
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.CreatedAt);
+
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.CompletedAt);
+
+        modelBuilder.Entity<ProductionOrder>()
+            .HasIndex(po => po.EstimatedCompletionAt);
+
+        modelBuilder.Entity<ProductionHistory>()
+            .HasIndex(h => h.ChangedAt);
+
+        modelBuilder.Entity<QADefect>()
+            .HasIndex(d => d.ProductionOrderId);
+
+        modelBuilder.Entity<OperationalTask>()
+            .HasIndex(t => t.Status);
+
+        modelBuilder.Entity<OperationalTask>()
+            .HasIndex(t => t.Deadline);
+
         // --- RELATIONSHIP AND DELETE BEHAVIOR CONFIGURATION ---
 
         // Relationship: User -> ProductionOrder (1 to N)
