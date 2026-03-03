@@ -179,7 +179,7 @@
                                         </td>
                                         <td>
                                             <span class="badge @GetStatusSoftClass(order.CurrentStatus)">
-                                                @TranslateStatus(order.CurrentStatus)
+                                                @TranslationHelper.TranslateStatus(order.CurrentStatus)
                                             </span>
                                         </td>
                                         <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
@@ -309,27 +309,6 @@
             }
         }
     }
-
-    private string TranslateStage(string? stage) => stage?.ToLower() switch
-    {
-        "cutting" => "Corte",
-        "sewing" => "Costura",
-        "review" => "Revisão",
-        "packaging" => "Embalagem",
-        _ => stage ?? ""
-    };
-
-    private string TranslateStatus(string? status) => status?.ToLower() switch
-    {
-        "pending" => "Pendente",
-        "inproduction" => "Em Produção",
-        "stopped" => "Parado",
-        "completed" => "Finalizado",
-        "paused" => "Pausado",
-        "finished" => "Concluído",
-        "cancelled" => "Cancelado",
-        _ => status ?? ""
-    };
 
     private bool AllSelected => FilteredOrders != null && FilteredOrders.Any() && FilteredOrders.All(o => selectedOrderIds.Contains(o.Id));
 

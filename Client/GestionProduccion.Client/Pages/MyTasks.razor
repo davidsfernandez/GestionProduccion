@@ -120,11 +120,11 @@
                                             <div class="mb-3">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                                     <span class="small text-muted">Estágio Atual:</span>
-                                                    <span class="badge bg-info-subtle text-info px-3 py-2">@TranslateStage(order.CurrentStage)</span>
+                                                    <span class="badge bg-info-subtle text-info px-3 py-2">@TranslationHelper.TranslateStage(order.CurrentStage)</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <span class="small text-muted">Status:</span>
-                                                    <span class="badge @GetStatusSoftClass(order.CurrentStatus) px-3 py-2">@TranslateStatus(order.CurrentStatus)</span>
+                                                    <span class="badge @GetStatusSoftClass(order.CurrentStatus) px-3 py-2">@TranslationHelper.TranslateStatus(order.CurrentStatus)</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                                     <span class="small text-muted">Entrega:</span>
@@ -370,18 +370,6 @@
         }
     }
 
-    private string TranslateStatus(string? status) => status?.ToLower() switch
-    {
-        "pending" => "Pendente",
-        "inproduction" => "Em Produção",
-        "stopped" => "Parado",
-        "completed" => "Finalizado",
-        "paused" => "Pausado",
-        "finished" => "Concluído",
-        "cancelled" => "Cancelado",
-        _ => status ?? ""
-    };
-
     private string GetStatusSoftClass(string? status) => status?.ToLower() switch
     {
         "completed" or "finished" => "bg-success-soft text-success",
@@ -389,15 +377,6 @@
         "pending" => "bg-warning-soft text-warning",
         "stopped" or "paused" => "bg-danger-soft text-danger",
         _ => "bg-light text-muted"
-    };
-
-    private string TranslateStage(string stage) => stage switch
-    {
-        "Cutting" => "Corte",
-        "Sewing" => "Costura",
-        "Review" => "Revisão",
-        "Packaging" => "Embalagem",
-        _ => stage
     };
 
     public async ValueTask DisposeAsync()

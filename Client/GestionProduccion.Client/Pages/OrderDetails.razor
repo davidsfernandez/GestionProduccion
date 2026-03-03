@@ -45,7 +45,7 @@
             </div>
             <div class="col-auto ms-auto">
                 <span class="badge @GetStatusSoftClass(order.CurrentStatus) fs-sm px-3 py-2">
-                    @TranslateStatus(order.CurrentStatus)
+                    @TranslationHelper.TranslateStatus(order.CurrentStatus)
                 </span>
             </div>
         </div>
@@ -226,11 +226,11 @@
                                             <div class="timeline-marker bg-primary"></div>
                                             <div class="timeline-content">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <h6 class="mb-0 fw-bold">@TranslateStage(log.NewStage)</h6>
+                                                    <h6 class="mb-0 fw-bold">@TranslationHelper.TranslateStage(log.NewStage)</h6>
                                                     <span class="text-muted small">@log.ChangedAt.ToString("g")</span>
                                                 </div>
                                                 <div class="mb-1">
-                                                    <span class="badge @GetStatusSoftClass(log.NewStatus) fs-xs">@TranslateStatus(log.NewStatus)</span>
+                                                    <span class="badge @GetStatusSoftClass(log.NewStatus) fs-xs">@TranslationHelper.TranslateStatus(log.NewStatus)</span>
                                                     <span class="ms-2 text-dark small">Por: <strong>@log.UserName</strong></span>
                                                 </div>
                                                 @if (!string.IsNullOrEmpty(log.Note))
@@ -357,7 +357,7 @@
                                         }
                                     </div>
                                     <div class="flex-grow-1">
-                                        <div class="fw-bold @(IsStageCurrent(stage) ? "text-primary" : "")">@TranslateStage(stage.ToString())</div>
+                                        <div class="fw-bold @(IsStageCurrent(stage) ? "text-primary" : "")">@TranslationHelper.TranslateStage(stage)</div>
                                         <div class="text-muted small">@(IsStageCompleted(stage) ? "Concluído" : IsStageCurrent(stage) ? "Em andamento" : "Pendente")</div>
                                     </div>
                                 </div>
@@ -418,7 +418,7 @@
                         <select class="form-select" @bind="targetStage">
                             @foreach (var stage in Enum.GetValues<ProductionStage>())
                             {
-                                <option value="@((int)stage)">@TranslateStage(stage.ToString())</option>
+                                <option value="@((int)stage)">@TranslationHelper.TranslateStage(stage)</option>
                             }
                         </select>
                     </div>
@@ -451,11 +451,11 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseCompleteModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p>Tem certeza que deseja finalizar a produção da ordem <strong>@order?.LotCode</strong>?</p>
+                    <p>Tem certeza que desea finalizar a produção da ordem <strong>@order?.LotCode</strong>?</p>
                     <p>Esta ação irá:</p>
                     <ul>
                         <li>Encerrar o cronômetro de produção.</li>
-                        <li>Calcular os custos finais com base no tempo decorrido.</li>
+                        <li>Calcular os custos finales com base no tempo decorrido.</li>
                         <li>Atualizar o estoque.</li>
                     </ul>
                     <div class="alert alert-warning">
@@ -497,7 +497,6 @@
     private async Task ConfirmCompleteOrder()
     {
         showCompleteModal = false;
-        // Correct variable name used: LifecycleClient
         var success = await LifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Produto finalizado e pronto");
         if (success)
         {
@@ -586,7 +585,6 @@
         loading = true;
         try
         {
-            // Correct variable name used: QueryClient
             order = await QueryClient.GetProductionOrderByIdAsync(Id);
             if (order != null)
             {
@@ -620,7 +618,6 @@
 
     private async Task AdvanceStage()
     {
-        // Correct variable name used: LifecycleClient
         var success = await LifecycleClient.AdvanceStageAsync(Id);
         if (success)
         {
@@ -643,7 +640,6 @@
     {
         try 
         {
-            // The assignable endpoint already filters for Operational and Leader roles on the server
             var response = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable", _jsonOptions);
             if (response != null)
             {
@@ -660,7 +656,6 @@
     {
         if (selectedUserId == 0) return;
         
-        // Correct variable name used: LifecycleClient
         var success = await LifecycleClient.AssignTaskAsync(Id, selectedUserId);
         if (success)
         {
@@ -689,7 +684,6 @@
 
     private async Task ConfirmChangeStage()
     {
-        // Correct variable name used: LifecycleClient
         var success = await LifecycleClient.ChangeStageAsync(Id, (ProductionStage)targetStage, stageChangeNote);
         if (success)
         {
@@ -710,27 +704,6 @@
         "pending" => "badge-soft-warning",
         "stopped" or "paused" => "badge-soft-danger",
         _ => "bg-light text-muted"
-    };
-
-    private string TranslateStatus(string? status) => status?.ToLower() switch
-    {
-        "pending" => "Pendente",
-        "inproduction" => "Em Produção",
-        "stopped" => "Parado",
-        "completed" => "Finalizado",
-        "paused" => "Pausado",
-        "finished" => "Concluído",
-        "cancelled" => "Cancelado",
-        _ => status ?? ""
-    };
-
-    private string TranslateStage(string? stage) => stage?.ToLower() switch
-    {
-        "cutting" => "Corte",
-        "sewing" => "Costura",
-        "review" => "Revisão",
-        "packaging" => "Embalagem",
-        _ => stage ?? ""
     };
 
     private bool IsStageCompleted(ProductionStage stage)
