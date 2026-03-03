@@ -15,6 +15,7 @@ using GestionProduccion.Services.ProductionOrders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -29,6 +30,7 @@ public class ProductionOrderServiceTests : IDisposable
     private readonly Mock<IFinancialCalculatorService> _mockFinancialCalc;
     private readonly Mock<IProductService> _mockProductService;
     private readonly Mock<ITaskService> _mockTaskService;
+    private readonly Mock<ILogger<ProductionOrderMutationService>> _mockMutationLogger;
 
     private readonly ProductionOrderQueryService _queryService;
     private readonly ProductionOrderMutationService _mutationService;
@@ -47,6 +49,7 @@ public class ProductionOrderServiceTests : IDisposable
         _mockFinancialCalc = new Mock<IFinancialCalculatorService>();
         _mockProductService = new Mock<IProductService>();
         _mockTaskService = new Mock<ITaskService>();
+        _mockMutationLogger = new Mock<ILogger<ProductionOrderMutationService>>();
 
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
@@ -72,7 +75,8 @@ public class ProductionOrderServiceTests : IDisposable
             _mockProductRepo.Object,
             _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
-            _mockFinancialCalc.Object);
+            _mockFinancialCalc.Object,
+            _mockMutationLogger.Object);
 
         _lifecycleService = new ProductionOrderLifecycleService(
             orderRepo,
