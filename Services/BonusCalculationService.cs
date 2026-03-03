@@ -56,13 +56,10 @@ public class BonusCalculationService : IBonusCalculationService
         int totalProduced = teamOrders.Sum(o => o.Quantity);
         int onTimeOrders = teamOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
 
-        // Sum defects from QA Service
-        int totalDefects = 0;
-        foreach (var order in teamOrders)
-        {
-            var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
-            totalDefects += defects.Sum(d => d.Quantity);
-        }
+        // Sum defects from QA Service in bulk (Resolves N+1 problem)
+        var orderIds = teamOrders.Select(o => o.Id).ToList();
+        var allDefects = await _qaService.GetDefectsByOrdersAsync(orderIds);
+        int totalDefects = allDefects.Sum(d => d.Quantity);
 
         // --- CALCULATIONS ---
 
@@ -126,12 +123,9 @@ public class BonusCalculationService : IBonusCalculationService
         int totalProduced = userOrders.Sum(o => o.Quantity);
         int onTimeOrders = userOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
 
-        int totalDefects = 0;
-        foreach (var order in userOrders)
-        {
-            var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
-            totalDefects += defects.Sum(d => d.Quantity);
-        }
+        var orderIds = userOrders.Select(o => o.Id).ToList();
+        var allDefects = await _qaService.GetDefectsByOrdersAsync(orderIds);
+        int totalDefects = allDefects.Sum(d => d.Quantity);
 
         decimal productivityBonus = userOrders.Any() ? (decimal)rule.ProductivityPercentage : 0;
         decimal onTimeRatio = userOrders.Any() ? (decimal)onTimeOrders / userOrders.Count : 0;

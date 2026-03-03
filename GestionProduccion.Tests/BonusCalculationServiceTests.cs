@@ -71,7 +71,7 @@ public class BonusCalculationServiceTests : IDisposable
         var rule = new BonusRule { ProductivityPercentage = 100.0, DeadlineBonusPercentage = 20.0m };
         _mockRuleRepo.Setup(r => r.GetActiveRuleAsync()).ReturnsAsync(rule);
 
-        _mockQaService.Setup(qa => qa.GetDefectsByOrderAsync(It.IsAny<int>())).ReturnsAsync(new List<QADefect>());
+        _mockQaService.Setup(qa => qa.GetDefectsByOrdersAsync(It.IsAny<IEnumerable<int>>())).ReturnsAsync(new List<QADefect>());
 
         // Act
         // Use wide range
@@ -110,8 +110,8 @@ public class BonusCalculationServiceTests : IDisposable
         _mockRuleRepo.Setup(r => r.GetActiveRuleAsync()).ReturnsAsync(rule);
 
         // 6 defects on 100 items = 6% > 5% threshold
-        var defects = new List<QADefect> { new QADefect { Quantity = 6 } };
-        _mockQaService.Setup(qa => qa.GetDefectsByOrderAsync(2)).ReturnsAsync(defects);
+        var defects = new List<QADefect> { new QADefect { Quantity = 6, ProductionOrderId = 2 } };
+        _mockQaService.Setup(qa => qa.GetDefectsByOrdersAsync(It.Is<IEnumerable<int>>(ids => ids.Contains(2)))).ReturnsAsync(defects);
 
         // Act
         var result = await _service.CalculateTeamBonusAsync(2, fixedDate.AddDays(-10), fixedDate.AddDays(10));
@@ -167,7 +167,7 @@ public class BonusCalculationServiceTests : IDisposable
         // Rule: 100 (Prod) + 0 (Deadline for simplicity) = 100 Total
         var rule = new BonusRule { ProductivityPercentage = 100.0, DeadlineBonusPercentage = 0m };
         _mockRuleRepo.Setup(r => r.GetActiveRuleAsync()).ReturnsAsync(rule);
-        _mockQaService.Setup(qa => qa.GetDefectsByOrderAsync(It.IsAny<int>())).ReturnsAsync(new List<QADefect>());
+        _mockQaService.Setup(qa => qa.GetDefectsByOrdersAsync(It.IsAny<IEnumerable<int>>())).ReturnsAsync(new List<QADefect>());
 
         // Act
         var result = await _service.CalculateUserBonusAsync(1, fixedDate.AddDays(-10), fixedDate.AddDays(10));

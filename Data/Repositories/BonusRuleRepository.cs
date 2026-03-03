@@ -23,6 +23,11 @@ public class BonusRuleRepository : IBonusRuleRepository
         return await _context.BonusRules.ToListAsync();
     }
 
+    public Task<IQueryable<BonusRule>> GetQueryableAsync()
+    {
+        return Task.FromResult(_context.BonusRules.AsQueryable());
+    }
+
     public async Task DeleteAsync(BonusRule rule)
     {
         _context.BonusRules.Remove(rule);

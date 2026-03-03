@@ -2,6 +2,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestionProduccion.Services;
 
@@ -41,8 +42,20 @@ public class QAService : IQAService
 
     public async Task<List<QADefect>> GetDefectsByOrderAsync(int orderId)
     {
-        var all = await _defectRepo.GetAllAsync();
-        return all.Where(d => d.ProductionOrderId == orderId).ToList();
+        var query = await _defectRepo.GetQueryableAsync();
+        return await query.AsNoTracking()
+            .Where(d => d.ProductionOrderId == orderId)
+            .ToListAsync();
+    }
+
+    public async Task<List<QADefect>> GetDefectsByOrdersAsync(IEnumerable<int> orderIds)
+    {
+        if (orderIds == null || !orderIds.Any()) return new List<QADefect>();
+
+        var query = await _defectRepo.GetQueryableAsync();
+        return await query.AsNoTracking()
+            .Where(d => orderIds.Contains(d.ProductionOrderId))
+            .ToListAsync();
     }
 
     public async Task DeleteDefectAsync(int id)
