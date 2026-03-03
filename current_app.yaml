@@ -1,0 +1,129 @@
+id: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion-new-rg/providers/Microsoft.App/containerapps/gp-app
+identity:
+  type: None
+location: Brazil South
+name: gp-app
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    dapr: null
+    identitySettings: []
+    ingress:
+      additionalPortMappings: null
+      allowInsecure: false
+      clientCertificateMode: null
+      corsPolicy: null
+      customDomains: null
+      exposedPort: 0
+      external: true
+      fqdn: gp-app.whitewater-46657ee2.brazilsouth.azurecontainerapps.io
+      ipSecurityRestrictions: null
+      stickySessions: null
+      targetPort: 8080
+      traffic:
+      - latestRevision: true
+        weight: 100
+      transport: Auto
+    maxInactiveRevisions: null
+    registries:
+    - identity: ''
+      passwordSecretRef: gpacr3071azurecrio-gpacr3071
+      server: gpacr3071.azurecr.io
+      username: gpacr3071
+    runtime: null
+    secrets:
+    - name: gpacr3071azurecrio-gpacr3071
+    service: null
+  customDomainVerificationId: 46906EB7FB43242E37EAFA7ADC44B5B45EAF52832ABF610AEEB0AEE8C1F024C5
+  delegatedIdentities: []
+  environmentId: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion-new-rg/providers/Microsoft.App/managedEnvironments/gp-env
+  eventStreamEndpoint: https://brazilsouth.azurecontainerapps.dev/subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion-new-rg/containerApps/gp-app/eventstream
+  latestReadyRevisionName: gp-app--0000004
+  latestRevisionFqdn: gp-app--0000004.whitewater-46657ee2.brazilsouth.azurecontainerapps.io
+  latestRevisionName: gp-app--0000004
+  managedEnvironmentId: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion-new-rg/providers/Microsoft.App/managedEnvironments/gp-env
+  outboundIpAddresses:
+  - 20.226.185.233
+  - 20.226.185.243
+  - 20.226.186.22
+  - 20.226.186.95
+  - 4.228.165.239
+  - 4.228.166.5
+  - 4.228.165.232
+  - 4.228.166.105
+  - 4.228.166.39
+  - 4.228.166.3
+  - 191.232.170.51
+  - 191.232.242.178
+  - 4.201.180.126
+  - 104.41.36.159
+  - 4.201.122.231
+  - 4.201.202.182
+  - 4.201.202.192
+  - 20.206.107.17
+  - 191.233.251.124
+  - 4.201.180.21
+  - 20.206.185.144
+  - 20.206.187.47
+  - 20.206.187.195
+  - 20.206.187.185
+  - 4.228.135.176
+  - 4.228.135.12
+  - 4.228.132.91
+  - 4.228.134.38
+  - 4.228.132.247
+  - 4.228.135.14
+  - 20.226.187.57
+  provisioningState: Succeeded
+  runningStatus: Running
+  template:
+    containers:
+    - env:
+      - name: ASPNETCORE_URLS
+        value: http://+:8080
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - name: DOTNET_RUNNING_IN_CONTAINER
+        value: 'true'
+      - name: ConnectionStrings__DefaultConnection
+        value: Server=gp-db;Database=GestionProduccionDB;User Id=gp_admin;Password=gp_secure_pass_2026;AllowUserVariables=true;ConvertZeroDateTime=true;
+      - name: Jwt__Key
+        value: 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e
+      - name: Jwt__Issuer
+        value: GestionProduccion
+      - name: Jwt__Audience
+        value: GestionProduccionAPI
+      image: gpacr3071.azurecr.io/gestionproduccion:latest
+      name: gp-app
+      resources:
+        cpu: 0.5
+        ephemeralStorage: 2Gi
+        memory: 1Gi
+      volumeMounts:
+      - volumeName: avatars-volume
+        mountPath: /app/wwwroot/img/avatars
+    initContainers: null
+    revisionSuffix: ''
+    scale:
+      cooldownPeriod: 300
+      maxReplicas: 10
+      minReplicas: null
+      pollingInterval: 30
+      rules: null
+    serviceBinds: null
+    terminationGracePeriodSeconds: null
+    volumes:
+    - name: avatars-volume
+      storageName: gp-avatars-mount
+      storageType: AzureFile
+  workloadProfileName: Consumption
+resourceGroup: gestionproduccion-new-rg
+systemData:
+  createdAt: '2026-02-27T01:04:31.8573847'
+  createdBy: davidzodelin@gmail.com
+  createdByType: User
+  lastModifiedAt: '2026-02-27T05:37:55.4543748'
+  lastModifiedBy: davidzodelin@gmail.com
+  lastModifiedByType: User
+type: Microsoft.App/containerApps
+

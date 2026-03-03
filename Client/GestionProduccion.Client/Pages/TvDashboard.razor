@@ -243,6 +243,7 @@ else
     private System.Threading.Timer? pollingTimer;
     private System.Threading.Timer? clockTimer;
     private System.Threading.Timer? rotationTimer;
+    private System.Threading.Timer? debounceTimer;
     private DateTime currentTime = DateTime.Now;
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch
@@ -344,9 +345,13 @@ else
             .WithAutomaticReconnect()
             .Build();
 
-        hubConnection.On<int, string, string>("ReceiveUpdate", async (id, stage, status) =>
+        hubConnection.On<int, string, string>("ReceiveUpdate", (id, stage, status) =>
         {
-            await LoadData();
+            debounceTimer?.Dispose();
+            debounceTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(LoadData);
+            }, null, 2000, System.Threading.Timeout.Infinite);
         });
 
         hubConnection.Reconnecting += (ex) =>
@@ -379,6 +384,7 @@ else
         if (pollingTimer != null) await pollingTimer.DisposeAsync();
         if (clockTimer != null) await clockTimer.DisposeAsync();
         if (rotationTimer != null) await rotationTimer.DisposeAsync();
+        if (debounceTimer != null) await debounceTimer.DisposeAsync();
         if (hubConnection != null) await hubConnection.DisposeAsync();
     }
 }

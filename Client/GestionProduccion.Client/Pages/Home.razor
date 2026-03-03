@@ -384,19 +384,25 @@
     private bool loading = false;
     private bool isTvMode = false;
     private System.Threading.Timer? _timer;
+    private System.Threading.Timer? _debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
         var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
         await SignalR.StartConnection(hubUrl);
 
-        SignalR.OnUpdateReceived += async (opId, stage, status) => {
-            await InvokeAsync(async () => {
-                await LoadDashboard(); // Refresh on updates
-                await LoadRanking();    // Refresh ranking too
-                await LoadActiveTasks(); // Refresh tasks
-                StateHasChanged();
-            });
+        SignalR.OnUpdateReceived += (opId, stage, status) => {
+            // Debounce to avoid flooding the server with requests on massive updates
+            _debounceTimer?.Dispose();
+            _debounceTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () => {
+                    await LoadDashboard();
+                    await LoadRanking();
+                    await LoadActiveTasks();
+                    StateHasChanged();
+                });
+            }, null, 2000, System.Threading.Timeout.Infinite);
         };
 
         await LoadDashboard();

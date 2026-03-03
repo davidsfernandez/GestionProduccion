@@ -1,0 +1,119 @@
+id: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion/providers/Microsoft.App/containerapps/gestionproduccion
+identity:
+  type: None
+location: Brazil South
+name: gestionproduccion
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    dapr: null
+    identitySettings: []
+    ingress:
+      additionalPortMappings: null
+      allowInsecure: false
+      clientCertificateMode: Ignore
+      corsPolicy: null
+      customDomains: null
+      exposedPort: 0
+      external: true
+      fqdn: gestionproduccion.whiteocean-f0634b4c.brazilsouth.azurecontainerapps.io
+      ipSecurityRestrictions: null
+      stickySessions:
+        affinity: none
+      targetPort: 8080
+      traffic:
+      - latestRevision: true
+        weight: 100
+      transport: Auto
+    maxInactiveRevisions: 100
+    registries:
+    - identity: ''
+      passwordSecretRef: gestionproduccion54780eazurecrio-gestionproduccion54780e
+      server: gestionproduccion54780e.azurecr.io
+      username: gestionproduccion54780e
+    runtime: null
+    secrets:
+    - name: gestionproduccion54780eazurecrio-gestionproduccion54780e
+    service: null
+  customDomainVerificationId: 46906EB7FB43242E37EAFA7ADC44B5B45EAF52832ABF610AEEB0AEE8C1F024C5
+  delegatedIdentities: []
+  environmentId: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion/providers/Microsoft.App/managedEnvironments/gestionproduccion
+  eventStreamEndpoint: https://brazilsouth.azurecontainerapps.dev/subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion/containerApps/gestionproduccion/eventstream
+  latestReadyRevisionName: gestionproduccion--gn9we91
+  latestRevisionFqdn: gestionproduccion--0000003.whiteocean-f0634b4c.brazilsouth.azurecontainerapps.io
+  latestRevisionName: gestionproduccion--0000003
+  managedEnvironmentId: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion/providers/Microsoft.App/managedEnvironments/gestionproduccion
+  outboundIpAddresses:
+  - 20.206.185.144
+  - 20.206.187.47
+  - 20.206.187.195
+  - 20.206.187.185
+  - 4.228.135.176
+  - 4.228.135.12
+  - 4.228.132.91
+  - 4.228.134.38
+  - 4.228.132.247
+  - 4.228.135.14
+  - 191.232.170.51
+  - 191.232.242.178
+  - 4.201.180.126
+  - 104.41.36.159
+  - 4.201.122.231
+  - 4.201.202.182
+  - 4.201.202.192
+  - 20.206.107.17
+  - 191.233.251.124
+  - 4.201.180.21
+  - 20.226.185.233
+  - 20.226.185.243
+  - 20.226.186.22
+  - 20.226.186.95
+  - 4.228.165.239
+  - 4.228.166.5
+  - 4.228.165.232
+  - 4.228.166.105
+  - 4.228.166.39
+  - 4.228.166.3
+  - 191.235.49.62
+  provisioningState: Succeeded
+  runningStatus: Running
+  template:
+    containers:
+    - env:
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - name: ConnectionStrings__DefaultConnection
+        value: server=db.internal.whiteocean-f0634b4c.brazilsouth.azurecontainerapps.io;port=3306;database=GestionProduccionDB;user=gp_admin;password=gp_secure_pass_2026;AllowUserVariables=true;ConvertZeroDateTime=true;
+      - name: Jwt__Key
+        value: 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e
+      - name: Jwt__Issuer
+        value: GestionProduccion
+      - name: Jwt__Audience
+        value: GestionProduccionAPI
+      image: gestionproduccion54780e.azurecr.io/gestionproduccion:latest
+      name: containerapps-helloworld-latest
+      resources:
+        cpu: 0.5
+        ephemeralStorage: 2Gi
+        memory: 1Gi
+    initContainers: null
+    revisionSuffix: ''
+    scale:
+      cooldownPeriod: 300
+      maxReplicas: 1
+      minReplicas: 1
+      pollingInterval: 30
+      rules: null
+    serviceBinds: null
+    terminationGracePeriodSeconds: null
+    volumes: null
+  workloadProfileName: Consumption
+resourceGroup: gestionproduccion
+systemData:
+  createdAt: '2026-02-19T22:08:01.0373222'
+  createdBy: davidzodelin@gmail.com
+  createdByType: User
+  lastModifiedAt: '2026-02-20T19:22:35.4910718'
+  lastModifiedBy: davidzodelin@gmail.com
+  lastModifiedByType: User
+type: Microsoft.App/containerApps

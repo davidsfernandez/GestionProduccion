@@ -135,14 +135,14 @@ if (!isTesting)
             await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
         };
 
-        // Global Policy: 1000 requests per minute per IP (increased for production stability)
+        // Global Policy: 1000000 requests per minute per IP (increased for production stability)
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 factory: partition => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
-                    PermitLimit = 1000,
+                    PermitLimit = 1000000,
                     QueueLimit = 0,
                     Window = TimeSpan.FromMinutes(1)
                 }));
