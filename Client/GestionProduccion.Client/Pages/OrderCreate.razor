@@ -270,22 +270,22 @@
             isInitialLoading = true;
             
             // Parallel loading
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions); 
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions); 
             var productsTask = ProductClient.GetAllProductsAsync();
             var teamsTask = SewingTeamClient.GetAllTeamsAsync();
 
             await Task.WhenAll(usersTask, productsTask, teamsTask);
 
-            var allUsers = await usersTask;
-            if (allUsers != null)
+            var usersResp = await usersTask;
+            if (usersResp?.Success == true && usersResp.Data != null)
             {
-                users = allUsers.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                users = usersResp.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
             }
 
-            var allProducts = await productsTask;
-            if (allProducts != null)
+            var productsResp = await productsTask;
+            if (productsResp?.Success == true && productsResp.Data != null)
             {
-                products = allProducts;
+                products = productsResp.Data;
             }
 
             var teamsResp = await teamsTask;
