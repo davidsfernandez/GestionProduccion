@@ -86,10 +86,11 @@
                 else if (paginatedResponse == null || !paginatedResponse.Items.Any())
                 {
                     <div class="card-body">
-                        <div class="alert alert-info mb-0 d-flex align-items-center justify-content-center py-4">
-                            <i class="fa-solid fa-circle-info me-2 fs-4"></i>
-                            <div>@(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)</div>
-                        </div>
+                        <EmptyState Icon="fa-solid fa-box-archive" 
+                                    Title="@(string.IsNullOrEmpty(searchTerm) ? Portuguese.OP_NoOrdersFound : Portuguese.OP_NoOrdersMatch)"
+                                    Message="Tente ajustar seus filtros ou pesquisar por outro termo para encontrar o que procura."
+                                    OnAction="CreateNewOrder"
+                                    ActionText="@Portuguese.OP_NewOrder" />
                     </div>
                 }
                 else

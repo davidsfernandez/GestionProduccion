@@ -188,7 +188,8 @@ namespace GestionProduccion.Client.Resources
         public const string Cat_AvgTime = "Tempo Médio (min)";
         public const string Cat_Sizes = "Tamanhos";
         public const string Cat_NoProducts = "Nenhum produto encontrado.";
-        public const string Cat_SearchHint = "Buscar por SKU ou Nome...";
+        public const string Cat_NoProductsMatch = "Nenhum produto corresponde aos filtros.";
+        public const string Cat_SearchHint = "Buscar por SKU o Nome...";
         public const string Cat_EstSalePrice = "Preço Venda Estimado (R$)";
         public const string Cat_AvailSizes = "Tamanhos Disponíveis";
         public const string Cat_AddSize = "Adicionar";

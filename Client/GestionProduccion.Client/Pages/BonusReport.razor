@@ -168,18 +168,17 @@
         try
         {
             var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
 
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResp = await teamsTask;
             if (teamsResp?.Success == true) teams = teamsResp.Data;
 
-            users = await usersTask;
-            // Filter only operational/leaders for individual report
-            if (users != null)
+            var usersResp = await usersTask;
+            if (usersResp?.Success == true)
             {
-                users = users.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                users = usersResp.Data?.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
             }
         }
         catch (Exception)

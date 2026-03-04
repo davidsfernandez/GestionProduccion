@@ -22,7 +22,8 @@ public class ProductionOrderMutationClient : IProductionOrderMutationClient
         var response = await _httpClient.PostAsJsonAsync(url, request, ct);
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<ProductionOrderDto>(cancellationToken: ct);
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct);
+            return apiResponse?.Data;
         }
         return null;
     }
@@ -30,6 +31,11 @@ public class ProductionOrderMutationClient : IProductionOrderMutationClient
     public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
     {
         var response = await _httpClient.DeleteAsync($"api/ProductionOrders/{id}", ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(cancellationToken: ct);
+            return apiResponse?.Success ?? false;
+        }
+        return false;
     }
 }

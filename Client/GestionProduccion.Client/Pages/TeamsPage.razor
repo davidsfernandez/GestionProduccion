@@ -35,7 +35,15 @@
     }
     else if (teams == null || teams.Count == 0)
     {
-        <div class="alert alert-info">Nenhuma equipe encontrada.</div>
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <EmptyState Icon="fa-solid fa-people-group" 
+                            Title="Nenhuma equipe cadastrada"
+                            Message="As equipes permitem organizar a produção e rastrear a eficiência de cada grupo de costura."
+                            OnAction="ShowCreateModal"
+                            ActionText="Criar Primeira Equipe" />
+            </div>
+        </div>
     }
     else
     {
@@ -178,14 +186,15 @@
         try 
         {
             var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
 
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResponse = await teamsTask;
             teams = teamsResponse?.Data;
 
-            allUsers = await usersTask;
+            var usersResponse = await usersTask;
+            allUsers = usersResponse?.Data;
             eligibleUsers = allUsers?.Where(u => u.Role.ToString() == "Leader" || u.Role.ToString() == "Operational").ToList();
         }
         catch (Exception ex)

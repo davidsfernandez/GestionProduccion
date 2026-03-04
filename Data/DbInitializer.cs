@@ -46,6 +46,32 @@ public static class DbInitializer
                 });
             }
 
+            // 3. Ensure Admin user exists or reset its password for testing
+            var adminEmail = "admin@serona.com";
+            var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+            var hashedPw = BCrypt.Net.BCrypt.HashPassword("Admin123!");
+
+            if (adminUser == null)
+            {
+                logger.LogInformation("Seeding default admin user...");
+                await context.Users.AddAsync(new User
+                {
+                    FullName = "Administrador Serona",
+                    Email = adminEmail,
+                    PasswordHash = hashedPw,
+                    Role = UserRole.Administrator,
+                    IsActive = true,
+                    AvatarUrl = "/img/avatars/avatar.jpg",
+                    ExternalId = Guid.NewGuid()
+                });
+            }
+            else
+            {
+                logger.LogInformation("Resetting admin user password for testing...");
+                adminUser.PasswordHash = hashedPw;
+                context.Users.Update(adminUser);
+            }
+
             await context.SaveChangesAsync();
             logger.LogInformation("Database seeding completed.");
         }

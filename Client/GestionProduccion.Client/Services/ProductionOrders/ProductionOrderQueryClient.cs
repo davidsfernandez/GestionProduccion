@@ -23,7 +23,8 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
 
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<ProductionOrderDto>($"api/ProductionOrders/{id}", _options, ct);
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<ProductionOrderDto>>($"api/ProductionOrders/{id}", _options, ct);
+        return response?.Data;
     }
 
     public async Task<PaginatedResponseDto<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
@@ -43,16 +44,19 @@ public class ProductionOrderQueryClient : IProductionOrderQueryClient
             queryParams.Add($"PageSize={filter.PageSize}");
         }
         var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        return await _httpClient.GetFromJsonAsync<PaginatedResponseDto<ProductionOrderDto>>($"api/ProductionOrders{queryString}", _options, ct);
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>>($"api/ProductionOrders{queryString}", _options, ct);
+        return response?.Data;
     }
 
     public async Task<DashboardDto?> GetDashboardAsync(CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard", _options, ct);
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<DashboardDto>>("api/ProductionOrders/dashboard", _options, ct);
+        return response?.Data;
     }
 
     public async Task<List<ProductionHistoryDto>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<List<ProductionHistoryDto>>($"api/ProductionOrders/{orderId}/history", _options, ct);
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductionHistoryDto>>>($"api/ProductionOrders/{orderId}/history", _options, ct);
+        return response?.Data;
     }
 }

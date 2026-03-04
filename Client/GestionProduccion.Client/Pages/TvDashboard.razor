@@ -300,7 +300,11 @@ else
     {
         try
         {
-            publicConfig = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public");
+            var response = await Http.GetFromJsonAsync<ApiResponse<PublicConfigurationDto>>("api/Configuration/public");
+            if (response != null && response.Success)
+            {
+                publicConfig = response.Data;
+            }
         }
         catch { /* Ignore */ }
     }
@@ -310,14 +314,19 @@ else
         try
         {
             var oldVal = dashboard?.CompletedToday ?? 0;
-            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/tv-stats");
+            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardDto>>("api/ProductionOrders/tv-stats");
             
-            if (dashboard != null && dashboard.CompletedToday > oldVal && !showAnnouncement)
+            if (response != null && response.Success)
             {
-                highlightStats = true;
-                StateHasChanged();
-                await Task.Delay(1000);
-                highlightStats = false;
+                dashboard = response.Data;
+                
+                if (dashboard != null && dashboard.CompletedToday > oldVal && !showAnnouncement)
+                {
+                    highlightStats = true;
+                    StateHasChanged();
+                    await Task.Delay(1000);
+                    highlightStats = false;
+                }
             }
             StateHasChanged();
         }

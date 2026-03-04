@@ -21,10 +21,10 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("completo")]
-    public async Task<ActionResult<DashboardCompleteResponse>> GetComplete()
+    public async Task<ActionResult<ApiResponse<DashboardCompleteResponse>>> GetComplete()
     {
         var dashboard = await _dashboardService.GetCompleteDashboardAsync(HttpContext.RequestAborted);
-        return Ok(dashboard);
+        return Ok(new ApiResponse<DashboardCompleteResponse> { Success = true, Data = dashboard });
     }
 
     [HttpPost("refresh")]
@@ -32,6 +32,6 @@ public class DashboardController : ControllerBase
     public IActionResult RefreshCache()
     {
         _cache.Remove("DashboardComplete");
-        return Ok();
+        return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }
 }

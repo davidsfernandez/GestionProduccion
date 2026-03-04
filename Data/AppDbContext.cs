@@ -108,6 +108,11 @@ public class AppDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<User>()
+            .Property(u => u.ExternalId)
+            .HasColumnType("char(36)")
+            .IsRequired();
+
+        modelBuilder.Entity<User>()
             .Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(50);

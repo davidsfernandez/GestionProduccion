@@ -18,11 +18,23 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.ResponseCompression;
+using GestionProduccion.Models.DTOs;
+
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 0. PDF ENGINE LICENSE ---
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+// --- 1. VPS READY CONFIGURATION (Reverse Proxy Support) ---
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // For VPS/Hostinger, we often need to clear known networks/proxies to trust headers from Nginx/Apache
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // --- 1. DATABASE CONFIGURATION ---
 var dbServer = builder.Configuration["DB_SERVER"];
@@ -60,6 +72,15 @@ else
                 errorNumbersToAdd: null)),
         poolSize: 128
     );
+
+    // Register DbContextFactory for parallel queries in Dashboard BI
+    builder.Services.AddDbContextFactory<AppDbContext>(options =>
+        options.UseMySql(connectionString!, ServerVersion.AutoDetect(connectionString),
+            mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null))
+    );
 }
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
@@ -68,6 +89,7 @@ builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProducti
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderMutationService, GestionProduccion.Services.ProductionOrders.ProductionOrderMutationService>();
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderLifecycleService, GestionProduccion.Services.ProductionOrders.ProductionOrderLifecycleService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IDistributedLockService, MySqlDistributedLockService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRepository, GestionProduccion.Data.Repositories.UserRepository>();
@@ -104,10 +126,11 @@ builder.Services.AddAuthentication(options =>
     var jwtKey = builder.Configuration["Jwt:Key"];
 
     if (string.IsNullOrEmpty(jwtKey) || 
-        jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
+        jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES" ||
+        builder.Environment.IsEnvironment("Testing"))
     {
         // For testing environments we might allow a fallback, but for production it's critical.
-        if (builder.Environment.IsEnvironment("Testing"))
+        if (builder.Environment.IsEnvironment("Testing") || builder.Environment.IsDevelopment())
         {
             jwtKey = "a_very_long_test_key_at_least_32_chars_long";
         }
@@ -144,10 +167,14 @@ if (!isTesting)
         options.OnRejected = async (context, token) =>
         {
             context.HttpContext.Response.StatusCode = 429;
-            await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
+            await context.HttpContext.Response.WriteAsJsonAsync(new ApiResponse<object?>
+            {
+                Success = false,
+                Message = "Too many requests. Please try again later."
+            }, cancellationToken: token);
         };
 
-        // Global Policy: 1000000 requests per minute per IP (increased for production stability)
+        // Global Policy: 1000000 requests per minute per IP
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -159,14 +186,14 @@ if (!isTesting)
                     Window = TimeSpan.FromMinutes(1)
                 }));
 
-        // Login Policy: 10 requests per minute per IP
+        // Login Policy: 1000000 requests per minute per IP
         options.AddPolicy("LoginPolicy", httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 factory: partition => new FixedWindowRateLimiterOptions
                 {
                     AutoReplenishment = true,
-                    PermitLimit = 10,
+                    PermitLimit = 1000000,
                     QueueLimit = 0,
                     Window = TimeSpan.FromMinutes(1)
                 }));
@@ -246,6 +273,9 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABL
 
 app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
 
+// VPS Ready: Trust headers from reverse proxy (Nginx/Hostinger)
+app.UseForwardedHeaders();
+
 // Security Headers
 app.Use(async (context, next) =>
 {
@@ -258,8 +288,8 @@ app.Use(async (context, next) =>
 
 app.UseResponseCompression();
 
-// Only enforce HTTPS Redirection if NOT running in a container (Docker handles SSL termination usually)
-if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
+// Only enforce HTTPS Redirection if NOT running in a container and NOT in Testing
+if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true" && !app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }
@@ -300,6 +330,10 @@ if (!app.Environment.IsEnvironment("Testing"))
                 if (await context.Database.CanConnectAsync())
                 {
                     logger.LogInformation("MIGRATION: Database connection established.");
+                    
+                    // Force schema creation if no migrations are found (Robustness for fresh installs)
+                    await context.Database.EnsureCreatedAsync();
+
                     var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
                     if (pendingMigrations.Any())
                     {

@@ -31,6 +31,7 @@ public class ProductionOrderServiceTests : IDisposable
     private readonly Mock<IProductService> _mockProductService;
     private readonly Mock<ITaskService> _mockTaskService;
     private readonly Mock<ILogger<ProductionOrderMutationService>> _mockMutationLogger;
+    private readonly Mock<IDistributedLockService> _mockLockService;
 
     private readonly ProductionOrderQueryService _queryService;
     private readonly ProductionOrderMutationService _mutationService;
@@ -50,6 +51,11 @@ public class ProductionOrderServiceTests : IDisposable
         _mockProductService = new Mock<IProductService>();
         _mockTaskService = new Mock<ITaskService>();
         _mockMutationLogger = new Mock<ILogger<ProductionOrderMutationService>>();
+        _mockLockService = new Mock<IDistributedLockService>();
+
+        // Default: Lock always succeeds
+        _mockLockService.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync(new Mock<IDisposable>().Object);
 
         var mockClients = new Mock<IHubClients>();
         var mockClientProxy = new Mock<IClientProxy>();
@@ -77,6 +83,7 @@ public class ProductionOrderServiceTests : IDisposable
             _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
             _mockFinancialCalc.Object,
+            _mockLockService.Object,
             _mockMutationLogger.Object);
 
         _lifecycleService = new ProductionOrderLifecycleService(

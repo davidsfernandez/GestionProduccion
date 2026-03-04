@@ -52,7 +52,8 @@ public class DashboardTests : TestContext
             StalledStock = new List<StalledProductDto>()
         };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var apiResponse = new ApiResponse<DashboardCompleteResponse> { Success = true, Data = dashboardDto };
+        var json = JsonSerializer.Serialize(apiResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -78,7 +79,8 @@ public class DashboardTests : TestContext
             StalledStock = new List<StalledProductDto> { new(), new() }
         };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var apiResponse = new ApiResponse<DashboardCompleteResponse> { Success = true, Data = dashboardDto };
+        var json = JsonSerializer.Serialize(apiResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -108,7 +110,8 @@ public class DashboardTests : TestContext
             BottomProfitableModels = new List<ProductProfitabilityDto>()
         };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var apiResponse = new ApiResponse<DashboardCompleteResponse> { Success = true, Data = dashboardDto };
+        var json = JsonSerializer.Serialize(apiResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",

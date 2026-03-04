@@ -75,16 +75,16 @@ body {
 /* --- CARDS & CONTAINERS --- */
 .card, .modal-content {
     background-color: #fff !important;
-    border: none !important;
-    border-radius: var(--card-radius) !important;
-    box-shadow: var(--card-shadow) !important;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.04) !important;
     margin-bottom: 24px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08) !important;
 }
 
 .card-header {
@@ -368,6 +368,49 @@ body {
 .sidebar-profile:hover .profile-img {
     transform: scale(1.05);
     border-color: var(--serona-primary) !important;
+}
+
+/* --- MICRO-INTERACTIONS --- */
+.btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn:active {
+    transform: scale(0.95);
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 8px 20px rgba(0, 200, 153, 0.25) !important;
+}
+
+.card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 200, 153, 0.04) !important;
+}
+
+.form-control:focus {
+    transform: translateY(-1px);
+}
+
+.badge {
+    transition: all 0.2s ease;
+}
+
+.badge:hover {
+    filter: brightness(0.9);
 }
 
 /* --- ANIMATIONS (Phase 4.1) --- */

@@ -5,6 +5,7 @@
 @using GestionProduccion.Client.Resources
 @using System.Timers
 @using System.Globalization
+@using System.Text.Json
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -43,6 +44,14 @@
                     </div>
                 </div>
             }
+            else if (filteredProducts == null || !filteredProducts.Any())
+            {
+                <EmptyState Icon="fa-solid fa-shirt" 
+                            Title="@(string.IsNullOrEmpty(searchTerm) ? Portuguese.Cat_NoProducts : Portuguese.Cat_NoProductsMatch)"
+                            Message="Você pode cadastrar um novo produto manualmente para começar a emitir ordens de produção."
+                            OnAction="() => OpenModal()"
+                            ActionText="@Portuguese.Cat_NewProduct" />
+            }
             else
             {
                 <div class="table-responsive">
@@ -59,31 +68,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if (filteredProducts == null || !filteredProducts.Any())
+                            @foreach (var product in filteredProducts)
                             {
-                                <tr><td colspan="7" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var product in filteredProducts)
-                                {
-                                    <tr @key="product.Id">
-                                        <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
-                                        <td><strong>@product.InternalCode</strong></td>
-                                        <td>@product.Name</td>
-                                        <td>@product.FabricType</td>
-                                        <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
-                                        <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
-                                                <i class="fa-solid fa-pen"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product)" title="@Portuguese.Delete">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
+                                <tr @key="product.Id">
+                                    <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
+                                    <td><strong>@product.InternalCode</strong></td>
+                                    <td>@product.Name</td>
+                                    <td>@product.FabricType</td>
+                                    <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
+                                    <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteProduct(product)" title="@Portuguese.Delete">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                             }
                         </tbody>
                     </table>
@@ -195,8 +197,12 @@
         try
         {
             loading = true;
-            allProducts = await Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
-            filteredProducts = allProducts;
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products");
+            if (response != null && response.Success)
+            {
+                allProducts = response.Data;
+                filteredProducts = allProducts;
+            }
         }
         catch (Exception)
         {
@@ -309,13 +315,18 @@
             {
                 await Audio.PlayError();
                 var errorBody = await response.Content.ReadAsStringAsync();
-                string specificError = errorBody;
-                
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
+                string specificError = "Erro ao salvar produto";
+
+                try 
                 {
-                    specificError = "O código interno já existe no sistema";
+                    using var doc = JsonDocument.Parse(errorBody);
+                    if (doc.RootElement.TryGetProperty("message", out var msg))
+                    {
+                        specificError = msg.GetString() ?? specificError;
+                    }
                 }
-                
+                catch { /* Fallback to raw body */ }
+
                 ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
             }
         }

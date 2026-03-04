@@ -20,27 +20,47 @@ public class ProductionOrderLifecycleClient : IProductionOrderLifecycleClient
     public async Task<bool> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/assign", new { UserId = userId }, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct);
+            return apiResponse?.Success ?? false;
+        }
+        return false;
     }
 
     public async Task<bool> AdvanceStageAsync(int orderId, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsync($"api/ProductionOrders/{orderId}/advance-stage", null, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct);
+            return apiResponse?.Success ?? false;
+        }
+        return false;
     }
 
     public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, CancellationToken ct = default)
     {
         var request = new ChangeStageRequest { NewStage = newStage, Note = note };
         var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/change-stage", request, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(cancellationToken: ct);
+            return apiResponse?.Data ?? false;
+        }
+        return false;
     }
 
     public async Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, CancellationToken ct = default)
     {
         var request = new UpdateStatusRequest { NewStatus = newStatus, Note = note };
         var response = await _httpClient.PatchAsJsonAsync($"api/ProductionOrders/{orderId}/status", request, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct);
+            return apiResponse?.Success ?? false;
+        }
+        return false;
     }
 
     public async Task<BulkUpdateResult?> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, CancellationToken ct = default)
@@ -49,7 +69,8 @@ public class ProductionOrderLifecycleClient : IProductionOrderLifecycleClient
         var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-status", request, ct);
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<BulkUpdateResult>(cancellationToken: ct);
+            var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<BulkUpdateResult>>(cancellationToken: ct);
+            return apiResponse?.Data;
         }
         return null;
     }

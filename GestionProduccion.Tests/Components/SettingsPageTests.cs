@@ -45,7 +45,8 @@ public class SettingsPageTests : TestContext
     {
         // Arrange
         var config = new SystemConfigurationDto { CompanyName = "Test Co", OperationalHourlyCost = 10 };
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var apiResponse = new ApiResponse<SystemConfigurationDto> { Success = true, Data = config };
+        var json = JsonSerializer.Serialize(apiResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(

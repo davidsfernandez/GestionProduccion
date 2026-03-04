@@ -40,7 +40,11 @@
                 else if (users == null || !users.Any())
                 {
                     <div class="card-body">
-                        <div class="alert alert-info">Nenhum usuário encontrado.</div>
+                        <EmptyState Icon="fa-solid fa-users-slash" 
+                                    Title="Nenhum usuário encontrado"
+                                    Message="Cadastre os operadores e líderes que farão parte do sistema de produção."
+                                    OnAction="ShowCreateModal"
+                                    ActionText="Cadastrar Primeiro Usuário" />
                     </div>
                 }
                 else
@@ -244,7 +248,11 @@
         {
             loading = true;
             // Pass the injected JsonOptions to use the JsonStringEnumConverter
-            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
+            if (response != null && response.Success)
+            {
+                users = response.Data;
+            }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -332,9 +340,10 @@
             if (response.IsSuccessStatusCode)
             {
                 // Pass the injected JsonOptions to use the JsonStringEnumConverter
-                var newUser = await response.Content.ReadFromJsonAsync<UserDto>(JsonOptions);
-                if (newUser != null)
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
+                if (apiResponse != null && apiResponse.Success && apiResponse.Data != null)
                 {
+                    var newUser = apiResponse.Data;
                     if (isEditing)
                     {
                         var index = users?.FindIndex(u => u.Id == newUser.Id) ?? -1;

@@ -1,4 +1,5 @@
 using GestionProduccion.Data;
+using GestionProduccion.Services;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -32,6 +33,11 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
             {
                 options.UseInMemoryDatabase("IntegrationDb");
             });
+
+            // 2.5 Override Distributed Lock Service for Integration Tests
+            var lockDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IDistributedLockService));
+            if (lockDescriptor != null) services.Remove(lockDescriptor);
+            services.AddScoped<IDistributedLockService, InMemoryDistributedLockService>();
 
             // 3. Mockear servicios externos
             var emailServiceMock = new Mock<IEmailService>();

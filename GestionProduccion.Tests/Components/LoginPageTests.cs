@@ -46,7 +46,7 @@ public class LoginPageTests : TestContext
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("false") });
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("{\"success\":true,\"data\":false}") });
 
         var cut = RenderComponent<LoginPage>();
 

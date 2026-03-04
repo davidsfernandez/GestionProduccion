@@ -50,7 +50,8 @@ public class ReportsIntegrationTests : BaseIntegrationTest
             Size = "G"
         };
         var createResp = await Client.PostAsJsonAsync("/api/ProductionOrders", orderRequest);
-        var order = await createResp.Content.ReadFromJsonAsync<ProductionOrderDto>(JsonOptions);
+        var apiResponse = await createResp.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(JsonOptions);
+        var order = apiResponse?.Data;
 
         // Act
         var response = await Client.GetAsync($"/api/ProductionOrders/{order!.Id}/pdf");

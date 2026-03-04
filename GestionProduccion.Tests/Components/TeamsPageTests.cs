@@ -44,7 +44,7 @@ public class TeamsPageTests : TestContext
     {
         // Arrange
         // Return 0 eligible users
-        SetupMockJsonResponse("api/Users", new List<UserDto>());
+        SetupMockJsonResponse("api/Users", new ApiResponse<List<UserDto>> { Success = true, Data = new List<UserDto>() });
         SetupMockJsonResponse("api/SewingTeams", new ApiResponse<List<SewingTeamDto>> { Success = true, Data = new List<SewingTeamDto>() });
 
         // Act

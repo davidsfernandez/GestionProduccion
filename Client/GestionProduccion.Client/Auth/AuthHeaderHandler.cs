@@ -45,10 +45,11 @@ namespace GestionProduccion.Client.Auth
 
                     if (refreshResponse.IsSuccessStatusCode)
                     {
-                        var loginResponse = await refreshResponse.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
+                        var apiResponse = await refreshResponse.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>(cancellationToken: cancellationToken);
 
-                        if (loginResponse != null)
+                        if (apiResponse != null && apiResponse.Success && apiResponse.Data != null)
                         {
+                            var loginResponse = apiResponse.Data;
                             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", loginResponse.Token);
                             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", loginResponse.RefreshToken);
 

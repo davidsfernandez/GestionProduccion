@@ -442,7 +442,11 @@
         {
             if (dashboard == null) loading = true;
             // Use new endpoint with options
-            dashboard = await Http.GetFromJsonAsync<DashboardCompleteResponse>("api/Dashboard/completo", JsonOptions);
+            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardCompleteResponse>>("api/Dashboard/completo", JsonOptions);
+            if (response != null && response.Success)
+            {
+                dashboard = response.Data;
+            }
             StateHasChanged();
         }
         catch (Exception)

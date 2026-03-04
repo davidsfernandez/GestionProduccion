@@ -5,6 +5,7 @@
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 @inject JsonSerializerOptions JsonOptions
+@inject ToastService ToastService
 
 <div class="container-fluid p-0">
     <h3 class="h3 mb-4 text-dark">Configuração de Bonificações</h3>
@@ -65,8 +66,29 @@
     private async Task SaveRules()
     {
         saving = true;
-        var response = await Http.PutAsJsonAsync("api/BonusRules", rule);
-        saving = false;
-        // Logic for success toast
+        try
+        {
+            var response = await Http.PutAsJsonAsync("api/BonusRules", rule);
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>();
+                if (apiResponse != null && apiResponse.Success)
+                {
+                    ToastService.ShowToast("Regras de bonificação atualizadas!", ToastLevel.Success);
+                }
+            }
+            else
+            {
+                ToastService.ShowToast("Erro ao salvar regras.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            saving = false;
+        }
     }
 }

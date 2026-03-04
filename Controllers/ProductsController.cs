@@ -19,7 +19,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductDto>>> GetAll()
+    public async Task<ActionResult<ApiResponse<List<ProductDto>>>> GetAll()
     {
         var products = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
         var dtos = products.Select(p => new ProductDto
@@ -33,16 +33,16 @@ public class ProductsController : ControllerBase
             EstimatedSalePrice = p.EstimatedSalePrice
         }).ToList();
 
-        return Ok(dtos);
+        return Ok(new ApiResponse<List<ProductDto>> { Success = true, Data = dtos });
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> GetById(int id)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> GetById(int id)
     {
         var p = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
-        if (p == null) return NotFound();
+        if (p == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Product not found" });
 
-        return Ok(new ProductDto
+        var dto = new ProductDto
         {
             Id = p.Id,
             Name = p.Name,
@@ -51,12 +51,14 @@ public class ProductsController : ControllerBase
             MainSku = p.MainSku,
             AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
             EstimatedSalePrice = p.EstimatedSalePrice
-        });
+        };
+
+        return Ok(new ApiResponse<ProductDto> { Success = true, Data = dto });
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<ProductDto>> Create(CreateProductDto dto)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> Create(CreateProductDto dto)
     {
         try
         {
@@ -72,7 +74,6 @@ public class ProductsController : ControllerBase
 
             var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
 
-            // Map back to DTO manually for simplicity
             var result = new ProductDto
             {
                 Id = created.Id,
@@ -81,11 +82,11 @@ public class ProductsController : ControllerBase
                 EstimatedSalePrice = created.EstimatedSalePrice
             };
 
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, new ApiResponse<ProductDto> { Success = true, Data = result });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
     }
 
@@ -93,7 +94,7 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Update(int id, UpdateProductDto dto)
     {
-        if (id != dto.Id) return BadRequest();
+        if (id != dto.Id) return BadRequest(new ApiResponse<object?> { Success = false, Message = "ID mismatch" });
 
         try
         {
@@ -109,15 +110,15 @@ public class ProductsController : ControllerBase
             };
 
             await _productService.UpdateProductAsync(product, HttpContext.RequestAborted);
-            return NoContent();
+            return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound(new ApiResponse<object?> { Success = false, Message = "Product not found" });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
     }
 
@@ -128,31 +129,31 @@ public class ProductsController : ControllerBase
         try
         {
             await _productService.DeleteProductAsync(id, HttpContext.RequestAborted);
-            return NoContent();
+            return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound(new ApiResponse<object?> { Success = false, Message = "Product not found" });
         }
         catch (InvalidOperationException ex)
         {
-            // Capture the business rule exception (likely FK violation)
-            return Conflict(new { message = ex.Message });
+            return Conflict(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
     }
 
     [HttpGet("{id}/stats")]
-    public async Task<ActionResult<object>> GetStats(int id)
+    public async Task<ActionResult<ApiResponse<object>>> GetStats(int id)
     {
         var product = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Product not found" });
 
-        return Ok(new
+        var stats = new
         {
             ProductId = product.Id,
             AverageMinutes = product.AverageProductionTimeMinutes,
-            // Calculated estimation logic can be expanded here
-            EstimatedDays = Math.Round(product.AverageProductionTimeMinutes / 60 / 8, 1) // Assuming 8h work day
-        });
+            EstimatedDays = Math.Round(product.AverageProductionTimeMinutes / 60 / 8, 1)
+        };
+
+        return Ok(new ApiResponse<object> { Success = true, Data = stats });
     }
 }

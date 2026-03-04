@@ -19,18 +19,18 @@ public class ConfigurationController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<SystemConfigurationDto>> Get()
+    public async Task<ActionResult<ApiResponse<SystemConfigurationDto>>> Get()
     {
         var config = await _configService.GetConfigurationAsync();
-        return Ok(config);
+        return Ok(new ApiResponse<SystemConfigurationDto> { Success = true, Data = config });
     }
 
     [HttpGet("public")]
     [AllowAnonymous]
-    public async Task<ActionResult<PublicConfigurationDto>> GetPublic()
+    public async Task<ActionResult<ApiResponse<PublicConfigurationDto>>> GetPublic()
     {
         var config = await _configService.GetPublicConfigurationAsync();
-        return Ok(config);
+        return Ok(new ApiResponse<PublicConfigurationDto> { Success = true, Data = config });
     }
 
     [HttpPost]
@@ -40,20 +40,20 @@ public class ConfigurationController : ControllerBase
         try
         {
             await _configService.SaveConfigurationAsync(request);
-            return Ok();
+            return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
         }
     }
 
     [HttpGet("logo")]
     [AllowAnonymous]
-    public async Task<ActionResult<LogoDto>> GetLogo()
+    public async Task<ActionResult<ApiResponse<LogoDto>>> GetLogo()
     {
         var logo = await _configService.GetLogoAsync();
-        return Ok(new LogoDto { Base64Image = logo });
+        return Ok(new ApiResponse<LogoDto> { Success = true, Data = new LogoDto { Base64Image = logo } });
     }
 
     [HttpGet("test-exception")]

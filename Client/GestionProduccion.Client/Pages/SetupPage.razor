@@ -108,8 +108,8 @@
     {
         try
         {
-            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            if (!setupRequired)
+            var setupResp = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/auth/setup-required");
+            if (setupResp != null && setupResp.Success && !setupResp.Data)
             {
                 NavigationManager.NavigateTo("/login");
             }
@@ -155,8 +155,8 @@
                 var errorBody = await response.Content.ReadAsStringAsync();
                 try 
                 {
-                    var error = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(errorBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    errorMessage = error?.Message ?? "Erro ao configurar sistema.";
+                    var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<object>>(errorBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    errorMessage = apiResponse?.Message ?? "Erro ao configurar sistema.";
                 }
                 catch 
                 {

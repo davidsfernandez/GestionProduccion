@@ -17,12 +17,12 @@ public class QAController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<QADefectDto>> RegisterDefect([FromForm] int ProductionOrderId, [FromForm] string Reason, [FromForm] int Quantity, IFormFile? PhotoFile)
+    public async Task<ActionResult<ApiResponse<QADefectDto>>> RegisterDefect([FromForm] int ProductionOrderId, [FromForm] string Reason, [FromForm] int Quantity, IFormFile? PhotoFile)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
         {
-            return Unauthorized();
+            return Unauthorized(new ApiResponse<object?> { Success = false, Message = "Unauthorized" });
         }
 
         var dto = new CreateQADefectDto
@@ -34,14 +34,16 @@ public class QAController : ControllerBase
         };
 
         var defect = await _qaService.RegisterDefectAsync(dto, PhotoFile);
-        return Ok(new QADefectDto
+        var result = new QADefectDto
         {
             Id = defect.Id,
             Reason = defect.Reason,
             Quantity = defect.Quantity,
             ReportedAt = defect.ReportedAt,
             PhotoUrl = defect.PhotoUrl
-        });
+        };
+
+        return Ok(new ApiResponse<QADefectDto> { Success = true, Data = result });
     }
 
     [HttpGet("orders/{orderId}/defects")]
@@ -63,6 +65,6 @@ public class QAController : ControllerBase
     public async Task<IActionResult> DeleteDefect(int id)
     {
         await _qaService.DeleteDefectAsync(id);
-        return NoContent();
+        return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }
 }

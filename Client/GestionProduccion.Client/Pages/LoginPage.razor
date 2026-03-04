@@ -136,16 +136,19 @@
             StateHasChanged();
 
             // 1. Silent check for setup (First Priority) - Standardized to lowercase for Linux/Azure
-            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            if (setupRequired)
+            var setupResp = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/auth/setup-required");
+            if (setupResp != null && setupResp.Success && setupResp.Data)
             {
                 NavigationManager.NavigateTo("/setup");
                 return;
             }
 
             // 2. Fetch public branding info
-            var config = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public");
-            companyName = config?.CompanyName ?? "";
+            var configResp = await Http.GetFromJsonAsync<ApiResponse<PublicConfigurationDto>>("api/Configuration/public");
+            if (configResp != null && configResp.Success)
+            {
+                companyName = configResp.Data?.CompanyName ?? "";
+            }
             
             // 3. Load Logo
             await LoadCompanyLogo();
@@ -165,10 +168,10 @@
     {
         try
         {
-            var logoDto = await Http.GetFromJsonAsync<LogoDto>("api/Configuration/logo");
-            if (logoDto != null && !string.IsNullOrEmpty(logoDto.Base64Image))
+            var response = await Http.GetFromJsonAsync<ApiResponse<LogoDto>>("api/Configuration/logo");
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data?.Base64Image))
             {
-                companyLogo = logoDto.Base64Image;
+                companyLogo = response.Data.Base64Image;
             }
         }
         catch
@@ -189,9 +192,10 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-                if (result != null && !string.IsNullOrEmpty(result.Token))
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>();
+                if (apiResponse != null && apiResponse.Success && apiResponse.Data != null)
                 {
+                    var result = apiResponse.Data;
                     // Update global state immediately
                     UserState.SetUser(result.FullName ?? "Usuário", result.AvatarUrl);
                     
@@ -200,7 +204,7 @@
                 }
                 else
                 {
-                    errorMessage = "Token inválido recebido do servidor.";
+                    errorMessage = apiResponse?.Message ?? "Token inválido recebido do servidor.";
                 }
             }
             else

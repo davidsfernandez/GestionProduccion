@@ -168,7 +168,11 @@
     {
         try
         {
-            model = await Http.GetFromJsonAsync<SystemConfigurationDto>("api/Configuration");
+            var response = await Http.GetFromJsonAsync<ApiResponse<SystemConfigurationDto>>("api/Configuration");
+            if (response != null && response.Success)
+            {
+                model = response.Data;
+            }
         }
         catch (Exception ex)
         {
@@ -219,7 +223,11 @@
             var response = await Http.PostAsJsonAsync("api/Configuration", model);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Configurações salvas com sucesso!", ToastLevel.Success);
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<bool>>();
+                if (apiResponse != null && apiResponse.Success)
+                {
+                    ToastService.ShowToast("Configurações salvas com sucesso!", ToastLevel.Success);
+                }
             }
             else
             {

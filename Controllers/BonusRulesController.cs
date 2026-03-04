@@ -16,7 +16,7 @@ public class BonusRulesController : ControllerBase
         _ruleRepo = ruleRepo;
     }
 
-    [HttpGet("active")]
+    [HttpGet]
     public async Task<ActionResult<ApiResponse<BonusRuleDto>>> GetActive()
     {
         var rule = await _ruleRepo.GetActiveRuleAsync();
@@ -30,8 +30,11 @@ public class BonusRulesController : ControllerBase
                 DeadlineBonusPercentage = 5,
                 DefectLimitPercentage = 2,
                 DelayPenaltyPercentage = 5,
-                IsActive = true
+                IsActive = true,
+                UpdatedAt = DateTime.UtcNow
             };
+            await _ruleRepo.AddAsync(rule);
+            await _ruleRepo.SaveChangesAsync();
         }
 
         var dto = new BonusRuleDto
@@ -47,7 +50,7 @@ public class BonusRulesController : ControllerBase
         return Ok(new ApiResponse<BonusRuleDto> { Success = true, Data = dto });
     }
 
-    [HttpPost]
+    [HttpPut]
     public async Task<IActionResult> Update(BonusRuleDto dto)
     {
         var existing = await _ruleRepo.GetActiveRuleAsync();
@@ -67,6 +70,6 @@ public class BonusRulesController : ControllerBase
         await _ruleRepo.UpdateAsync(existing);
         await _ruleRepo.SaveChangesAsync();
 
-        return Ok(new ApiResponse<bool> { Success = true });
+        return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }
 }

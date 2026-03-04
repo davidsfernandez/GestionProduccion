@@ -39,8 +39,18 @@ RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot/img/avatars
 
 # Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation libfreetype6 libicu-dev && \
+    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation libfreetype6 libicu-dev unzip && \
     fc-cache -f -v && \
+    # Create lib directory
+    mkdir -p /app/wwwroot/lib && \
+    # Download FontAwesome
+    curl -L https://github.com/FortAwesome/Font-Awesome/releases/download/6.5.1/fontawesome-free-6.5.1-web.zip -o /tmp/fa.zip && \
+    unzip /tmp/fa.zip -d /tmp/fa && \
+    mv /tmp/fa/fontawesome-free-6.5.1-web /app/wwwroot/lib/font-awesome && \
+    # Download Chart.js
+    curl -L https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js -o /app/wwwroot/lib/chart.js && \
+    # Clean up
+    rm -rf /tmp/fa /tmp/fa.zip && \
     rm -rf /var/lib/apt/lists/*
 
 # Set entrypoint

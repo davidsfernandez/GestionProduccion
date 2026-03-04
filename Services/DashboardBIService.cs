@@ -8,11 +8,11 @@ namespace GestionProduccion.Services;
 
 public class DashboardBIService : IDashboardBIService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public DashboardBIService(AppDbContext context)
+    public DashboardBIService(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<DashboardCompleteResponse> GetCompleteDashboardAsync(CancellationToken ct = default)
@@ -24,66 +24,105 @@ public class DashboardBIService : IDashboardBIService
         var sixtyDaysAgo = now.AddDays(-60);
         var sevenDaysAgo = today.AddDays(-6);
 
-        // Define all tasks for parallel execution
-        var monthProductionTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
-            .SumAsync(o => o.Quantity, ct);
+        // Define functions to run each query in its own context
+        async Task<int> GetMonthProduction() 
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            return await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
+                .SumAsync(o => o.Quantity, ct);
+        }
 
-        var monthOrdersTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
-            .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
-            .ToListAsync(ct);
+        async Task<List<dynamic>> GetMonthOrders()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            var result = await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
+                .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
+                .ToListAsync(ct);
+            return result.Cast<dynamic>().ToList();
+        }
 
-        var delayedCountTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
-                        && o.EstimatedCompletionAt < now)
-            .CountAsync(ct);
+        async Task<int> GetDelayedCount()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            return await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
+                            && o.EstimatedCompletionAt < now)
+                .CountAsync(ct);
+        }
 
-        var prodByWorkshopTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.UserId.HasValue)
-            .GroupBy(o => o.AssignedUser!.FullName)
-            .Select(g => new WorkshopProductionDto
-            {
-                WorkshopName = g.Key,
-                Quantity = g.Sum(x => x.Quantity)
-            })
-            .ToListAsync(ct);
+        async Task<List<WorkshopProductionDto>> GetProdByWorkshop()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            return await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.UserId.HasValue)
+                .GroupBy(o => o.AssignedUser!.FullName)
+                .Select(g => new WorkshopProductionDto
+                {
+                    WorkshopName = g.Key,
+                    Quantity = g.Sum(x => x.Quantity)
+                })
+                .ToListAsync(ct);
+        }
 
-        var weeklyRawTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
-            .GroupBy(o => o.CompletedAt!.Value.Date)
-            .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
-            .ToListAsync(ct);
+        async Task<List<dynamic>> GetWeeklyRaw()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            var result = await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
+                .GroupBy(o => o.CompletedAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
+                .ToListAsync(ct);
+            return result.Cast<dynamic>().ToList();
+        }
 
-        var productStatsTask = _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
-            .GroupBy(o => o.ProductId)
-            .Select(g => new
-            {
-                ProductId = g.Key,
-                AvgMargin = g.Average(x => x.ProfitMargin)
-            })
-            .ToListAsync(ct);
+        async Task<List<dynamic>> GetProductStats()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            var result = await ctx.ProductionOrders
+                .AsNoTracking()
+                .Where(o => o.CurrentStatus == ProductionStatus.Completed)
+                .GroupBy(o => o.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    AvgMargin = g.Average(x => x.ProfitMargin)
+                })
+                .ToListAsync(ct);
+            return result.Cast<dynamic>().ToList();
+        }
 
-        // Optimized Stalled Stock using Subquery (Antijoin pattern)
-        var stalledProductsTask = _context.Products
-            .AsNoTracking()
-            .Where(p => !_context.ProductionOrders.Any(o => o.ProductId == p.Id && o.CreatedAt >= sixtyDaysAgo))
-            .Select(p => new StalledProductDto
-            {
-                Sku = p.MainSku,
-                Name = p.Name,
-                DaysSinceLastProduction = 60
-            })
-            .OrderBy(p => p.Sku)
-            .Take(10)
-            .ToListAsync(ct);
+        async Task<List<StalledProductDto>> GetStalledProducts()
+        {
+            using var ctx = await _contextFactory.CreateDbContextAsync(ct);
+            return await ctx.Products
+                .AsNoTracking()
+                .Where(p => !ctx.ProductionOrders.Any(o => o.ProductId == p.Id && o.CreatedAt >= sixtyDaysAgo))
+                .Select(p => new StalledProductDto
+                {
+                    Sku = p.MainSku,
+                    Name = p.Name,
+                    DaysSinceLastProduction = 60
+                })
+                .OrderBy(p => p.Sku)
+                .Take(10)
+                .ToListAsync(ct);
+        }
+
+        // Start tasks
+        var monthProductionTask = GetMonthProduction();
+        var monthOrdersTask = GetMonthOrders();
+        var delayedCountTask = GetDelayedCount();
+        var prodByWorkshopTask = GetProdByWorkshop();
+        var weeklyRawTask = GetWeeklyRaw();
+        var productStatsTask = GetProductStats();
+        var stalledProductsTask = GetStalledProducts();
 
         // Execute all independent tasks in parallel
         await Task.WhenAll(
@@ -98,8 +137,8 @@ public class DashboardBIService : IDashboardBIService
 
         // Post-processing
         var monthOrders = await monthOrdersTask;
-        decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
-        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
+        decimal avgCost = monthOrders.Any() ? (decimal)monthOrders.Average(o => (decimal)o.AverageCostPerPiece) : 0;
+        decimal avgMargin = monthOrders.Any() ? (decimal)monthOrders.Average(o => (decimal)o.ProfitMargin) : 0;
 
         var weeklyRaw = await weeklyRawTask;
         var weeklyData = new List<int>();
@@ -114,19 +153,21 @@ public class DashboardBIService : IDashboardBIService
         }
 
         var productStats = await productStatsTask;
-        var productIds = productStats.Select(x => x.ProductId).ToList();
-        var products = await _context.Products
+        var productIds = productStats.Select(x => (int)x.ProductId).ToList();
+        
+        using var finalCtx = await _contextFactory.CreateDbContextAsync(ct);
+        var products = await finalCtx.Products
             .AsNoTracking()
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => new { p.Name, p.MainSku }, ct);
 
         var profitabilityList = productStats
-            .Where(p => products.ContainsKey(p.ProductId))
+            .Where(p => products.ContainsKey((int)p.ProductId))
             .Select(p => new ProductProfitabilityDto
             {
-                Sku = products[p.ProductId].MainSku,
-                Name = products[p.ProductId].Name,
-                AverageMargin = p.AvgMargin
+                Sku = products[(int)p.ProductId].MainSku,
+                Name = products[(int)p.ProductId].Name,
+                AverageMargin = (decimal)p.AvgMargin
             })
             .OrderByDescending(p => p.AverageMargin)
             .ToList();

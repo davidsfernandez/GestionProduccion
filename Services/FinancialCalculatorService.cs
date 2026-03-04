@@ -9,11 +9,16 @@ public class FinancialCalculatorService : IFinancialCalculatorService
 {
     private readonly ISystemConfigurationRepository _configRepo;
     private readonly IProductRepository _productRepo;
+    private readonly IProductionOrderRepository _orderRepo;
 
-    public FinancialCalculatorService(ISystemConfigurationRepository configRepo, IProductRepository productRepo)
+    public FinancialCalculatorService(
+        ISystemConfigurationRepository configRepo, 
+        IProductRepository productRepo,
+        IProductionOrderRepository orderRepo)
     {
         _configRepo = configRepo;
         _productRepo = productRepo;
+        _orderRepo = orderRepo;
     }
 
     /// <summary>
@@ -24,7 +29,14 @@ public class FinancialCalculatorService : IFinancialCalculatorService
     /// <param name="order">The production order to calculate cost for.</param>
     public async Task CalculateFinalOrderCostAsync(ProductionOrder order)
     {
-        // 1. Ensure end time is set
+        // 1. Ensure history is loaded (Fix for hidden dependency)
+        if (order.History == null || !order.History.Any())
+        {
+            var history = await _orderRepo.GetHistoryByOrderIdAsync(order.Id);
+            order.History = history;
+        }
+
+        // 2. Ensure end time is set
         if (order.CompletedAt == null)
         {
             order.CompletedAt = DateTime.UtcNow;

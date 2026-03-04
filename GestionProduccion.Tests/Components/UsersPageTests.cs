@@ -43,7 +43,7 @@ public class UsersPageTests : TestContext
     public void UsersPage_ShouldShowValidationErrors_WhenEmailIsInvalid()
     {
         // Arrange
-        SetupMockJsonResponse("api/Users", new List<UserDto>());
+        SetupMockJsonResponse("api/Users", new ApiResponse<List<UserDto>> { Success = true, Data = new List<UserDto>() });
         SetupMockJsonResponse("api/SewingTeams", new ApiResponse<List<SewingTeamDto>> { Success = true, Data = new List<SewingTeamDto>() });
 
         var cut = RenderComponent<UsersPage>();
@@ -70,7 +70,7 @@ public class UsersPageTests : TestContext
     public void UsersPage_ShouldUpdateTable_WhenUserSavedSuccessfully()
     {
         // Arrange
-        SetupMockJsonResponse("api/Users", new List<UserDto>());
+        SetupMockJsonResponse("api/Users", new ApiResponse<List<UserDto>> { Success = true, Data = new List<UserDto>() });
         SetupMockJsonResponse("api/SewingTeams", new ApiResponse<List<SewingTeamDto>> { Success = true, Data = new List<SewingTeamDto>() });
 
         // Mock POST success
@@ -84,7 +84,8 @@ public class UsersPageTests : TestContext
         // Mock RE-FETCH after save
         var newUser = new UserDto { FullName = "New User", Email = "new@test.com", Role = GestionProduccion.Domain.Enums.UserRole.Operational };
         var updatedList = new List<UserDto> { newUser };
-        var jsonList = JsonSerializer.Serialize(updatedList, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Converters = { new JsonStringEnumConverter() } });
+        var apiResponse = new ApiResponse<List<UserDto>> { Success = true, Data = updatedList };
+        var jsonList = JsonSerializer.Serialize(apiResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Converters = { new JsonStringEnumConverter() } });
 
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(

@@ -55,21 +55,24 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
 
     private string GenerateJwtToken(UserRole role)
     {
-        var jwtSettings = Configuration.GetSection("Jwt");
         var secretKey = Configuration["Jwt:Key"];
-
+        
+        // Fallback for if it's REALLY missing (e.g. in environments where env vars aren't passed to tests)
         if (string.IsNullOrEmpty(secretKey) || secretKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
         {
-            secretKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
+             secretKey = "a_very_long_test_key_at_least_32_chars_long";
         }
 
-        var key = Encoding.ASCII.GetBytes(secretKey);
+        var key = Encoding.UTF8.GetBytes(secretKey);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, "1"),
+            new Claim(ClaimTypes.Email, "testuser@example.com"),
             new Claim(ClaimTypes.Name, "testuser"),
-            new Claim(ClaimTypes.Role, role.ToString())
+            new Claim(ClaimTypes.Role, role.ToString()),
+            new Claim("AvatarUrl", ""),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -77,8 +80,8 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
             Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            Issuer = jwtSettings["Issuer"] ?? "GestionProduccion",
-            Audience = jwtSettings["Audience"] ?? "GestionProduccionAPI"
+            Issuer = "GestionProduccion",
+            Audience = "GestionProduccionAPI"
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();

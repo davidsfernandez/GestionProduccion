@@ -22,6 +22,7 @@ public class MyTasksTests : TestContext
     private readonly Mock<HttpMessageHandler> _mockHttpHandler;
     private readonly HttpClient _httpClient;
     private readonly Mock<IProductionOrderLifecycleClient> _mockLifecycleClient;
+    private readonly Mock<ISignalRService> _mockSignalR;
 
     public MyTasksTests()
     {
@@ -41,6 +42,9 @@ public class MyTasksTests : TestContext
 
         _mockLifecycleClient = new Mock<IProductionOrderLifecycleClient>();
         Services.AddSingleton(_mockLifecycleClient.Object);
+
+        _mockSignalR = new Mock<ISignalRService>();
+        Services.AddSingleton(_mockSignalR.Object);
 
         var audioService = new AudioService(JSInterop.JSRuntime);
         Services.AddSingleton(audioService);

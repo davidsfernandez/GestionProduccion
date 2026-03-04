@@ -1,0 +1,52 @@
+@using GestionProduccion.Client.Resources
+
+<div class="empty-state-container d-flex flex-column align-items-center justify-content-center py-5 animate-fade-in">
+    <div class="empty-state-icon mb-4">
+        <div class="icon-circle shadow-sm">
+            <i class="@Icon fs-1 text-muted opacity-50"></i>
+        </div>
+    </div>
+    <h4 class="fw-bold text-dark mb-2">@Title</h4>
+    <p class="text-muted text-center max-w-400">@Message</p>
+    
+    @if (OnAction.HasDelegate)
+    {
+        <button class="btn btn-primary mt-3 shadow-sm px-4 rounded-pill" @onclick="OnAction">
+            <i class="@ActionIcon me-2"></i> @ActionText
+        </button>
+    }
+</div>
+
+<style>
+    .empty-state-container {
+        min-height: 300px;
+    }
+    .icon-circle {
+        width: 100px;
+        height: 100px;
+        background-color: var(--serona-light, #f8f9fa);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .max-w-400 {
+        max-width: 400px;
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "fa-solid fa-inbox";
+    [Parameter] public string Title { get; set; } = "Nenhum dado encontrado";
+    [Parameter] public string Message { get; set; } = "Não há informações para exibir neste momento.";
+    [Parameter] public string ActionText { get; set; } = "Adicionar Novo";
+    [Parameter] public string ActionIcon { get; set; } = "fa-solid fa-plus";
+    [Parameter] public EventCallback OnAction { get; set; }
+}

@@ -24,8 +24,11 @@ public class ProductClient : IProductClient
         _options = options;
     }
 
-    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default) =>
-        await _httpClient.GetFromJsonAsync<List<ProductDto>>("api/Products", _options, ct);
+    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products", _options, ct);
+        return response?.Data;
+    }
 }
 
 public interface ISewingTeamClient
