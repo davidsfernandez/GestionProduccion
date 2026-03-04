@@ -4,6 +4,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Services;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace GestionProduccion.Tests;
@@ -11,6 +12,7 @@ namespace GestionProduccion.Tests;
 public class DashboardBIServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly Mock<IDbContextFactory<AppDbContext>> _mockFactory;
     private readonly DashboardBIService _service;
 
     public DashboardBIServiceTests()
@@ -19,7 +21,12 @@ public class DashboardBIServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        _service = new DashboardBIService(_context);
+        
+        _mockFactory = new Mock<IDbContextFactory<AppDbContext>>();
+        _mockFactory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(() => new AppDbContext(options));
+
+        _service = new DashboardBIService(_mockFactory.Object);
     }
 
     public void Dispose()

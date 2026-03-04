@@ -12,13 +12,15 @@ public class FinancialCalculatorServiceTests
 {
     private readonly Mock<ISystemConfigurationRepository> _mockConfigRepo;
     private readonly Mock<IProductRepository> _mockProductRepo;
+    private readonly Mock<IProductionOrderRepository> _mockOrderRepo;
     private readonly FinancialCalculatorService _service;
 
     public FinancialCalculatorServiceTests()
     {
         _mockConfigRepo = new Mock<ISystemConfigurationRepository>();
         _mockProductRepo = new Mock<IProductRepository>();
-        _service = new FinancialCalculatorService(_mockConfigRepo.Object, _mockProductRepo.Object);
+        _mockOrderRepo = new Mock<IProductionOrderRepository>();
+        _service = new FinancialCalculatorService(_mockConfigRepo.Object, _mockProductRepo.Object, _mockOrderRepo.Object);
     }
 
     [Fact]

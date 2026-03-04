@@ -215,8 +215,8 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-                if (jsonResponse.TryGetProperty("url", out var urlProperty))
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<JsonElement>>();
+                if (apiResponse != null && apiResponse.Success && apiResponse.Data.TryGetProperty("url", out var urlProperty))
                 {
                     var newAvatarUrl = urlProperty.GetString();
                     if (!string.IsNullOrEmpty(newAvatarUrl))
