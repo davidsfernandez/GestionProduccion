@@ -10,7 +10,7 @@ namespace GestionProduccion.Client.Services;
 
 public interface IProductClient
 {
-    Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default);
+    Task<ApiResponse<List<ProductDto>>?> GetAllProductsAsync(CancellationToken ct = default);
 }
 
 public class ProductClient : IProductClient
@@ -24,10 +24,9 @@ public class ProductClient : IProductClient
         _options = options;
     }
 
-    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default)
+    public async Task<ApiResponse<List<ProductDto>>?> GetAllProductsAsync(CancellationToken ct = default)
     {
-        var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products", _options, ct);
-        return response?.Data;
+        return await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products", _options, ct);
     }
 }
 
