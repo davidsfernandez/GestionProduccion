@@ -61,10 +61,11 @@ public class ProductionOrderServiceTests : IDisposable
 
         var orderRepo = new ProductionOrderRepository(_context);
         var userRepo = new UserRepository(_context);
+        var outputRepo = new ProductionOrderOutputRepository(_context);
 
         _mockProductRepo.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product?)null);
 
-        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object);
+        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object, outputRepo);
 
         _mutationService = new ProductionOrderMutationService(
             orderRepo,
@@ -78,6 +79,7 @@ public class ProductionOrderServiceTests : IDisposable
             orderRepo,
             userRepo,
             _mockProductRepo.Object,
+            outputRepo,
             _mockHubContext.Object,
             _mockHttpContextAccessor.Object,
             _mockFinancialCalc.Object,

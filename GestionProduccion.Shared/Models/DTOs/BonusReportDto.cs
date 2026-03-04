@@ -15,6 +15,7 @@ public class BonusReportDto
     public int OnTimeOrders { get; set; }
     public int TotalProduced { get; set; }
     public int TotalDefects { get; set; }
+    public string? Message { get; set; }
     public List<OrderBonusDetail> Orders { get; set; } = new();
 }
 

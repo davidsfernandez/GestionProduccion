@@ -173,6 +173,11 @@
                                     <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
                                 </button>
 
+                                <button class="btn btn-info text-white flex-grow-1 flex-md-grow-0" @onclick="ShowPartialOutputModal"
+                                        disabled="@(order.CurrentStatus == "Completed")">
+                                    <i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial
+                                </button>
+
                                 <button class="btn btn-light border flex-grow-1 flex-md-grow-0" @onclick="() => showQAForm = true">
                                     <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i> @Portuguese.QA_Title
                                 </button>
@@ -471,6 +476,61 @@
     </div>
 }
 
+@if (isPartialOutputModalVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial - Estágio: @TranslateStage(order?.CurrentStage)</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => isPartialOutputModalVisible = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-4">Registre a quantidade de peças que foram concluídas neste estágio hoje. O sistema avançará o estágio automaticamente quando todas as peças forem concluídas.</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Tamanho</th>
+                                    <th class="text-center">Total Ordem</th>
+                                    <th class="text-center">Já Concluído</th>
+                                    <th class="text-center">Pendente</th>
+                                    <th class="text-center" style="width: 150px;">Qtd. Pronta Agora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in order.Sizes)
+                                {
+                                    var pending = s.Quantity - s.CompletedInCurrentStage;
+                                    <tr>
+                                        <td class="fw-bold">@s.Size</td>
+                                        <td class="text-center text-muted">@s.Quantity</td>
+                                        <td class="text-center text-success">@s.CompletedInCurrentStage</td>
+                                        <td class="text-center fw-bold @(pending > 0 ? "text-warning" : "text-muted")">@pending</td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm text-center" 
+                                                   min="0" max="@pending" 
+                                                   @bind="pendingOutputs[s.Id]" 
+                                                   disabled="@(pending <= 0)" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" @onclick="() => isPartialOutputModalVisible = false">Cancelar</button>
+                    <button type="button" class="btn btn-info text-white px-4" @onclick="ConfirmPartialOutput">
+                        <i class="fa-solid fa-save me-2"></i> Salvar Produção
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int Id { get; set; }
     private ProductionOrderDto? order;
@@ -483,6 +543,52 @@
     private string stageChangeNote = "";
     private bool isChangingStage = false;
     private bool showCompleteModal = false;
+    private bool isPartialOutputModalVisible = false;
+    private Dictionary<int, int> pendingOutputs = new();
+
+    private void ShowPartialOutputModal()
+    {
+        if (order != null && order.Sizes != null)
+        {
+            pendingOutputs = order.Sizes.ToDictionary(s => s.Id, s => 0);
+            isPartialOutputModalVisible = true;
+        }
+    }
+
+    private async Task ConfirmPartialOutput()
+    {
+        if (!pendingOutputs.Any(v => v.Value > 0))
+        {
+            ToastService.ShowToast("Por favor, insira pelo menos uma quantidade.", ToastLevel.Warning);
+            return;
+        }
+
+        try
+        {
+            var request = new PartialOutputRequest
+            {
+                SizeOutputs = pendingOutputs.Where(v => v.Value > 0).ToDictionary(k => k.Key, v => v.Value),
+                Note = "Baixa parcial via sistema"
+            };
+
+            var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/partial-output", request);
+            if (response.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Baixa parcial registrada com sucesso!", ToastLevel.Success);
+                isPartialOutputModalVisible = false;
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ToastService.ShowToast($"Erro: {error}", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro ao registrar baixa: {ex.Message}", ToastLevel.Error);
+        }
+    }
 
     private void ShowCompleteModal()
     {

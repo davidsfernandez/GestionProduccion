@@ -212,6 +212,14 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("dev-users")]
+    public async Task<IActionResult> GetDevUsers([FromServices] GestionProduccion.Data.AppDbContext context)
+    {
+        var users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(context.Users.Select(u => new { u.Email, u.Role, u.FullName }));
+        return Ok(users);
+    }
+
+    [AllowAnonymous]
     [HttpPost("setup")]
     public async Task<IActionResult> FirstTimeSetup([FromBody] RegisterUserDto request)
     {

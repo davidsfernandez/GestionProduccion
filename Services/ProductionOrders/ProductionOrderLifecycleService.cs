@@ -17,6 +17,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     private readonly IProductionOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IProductionOrderOutputRepository _outputRepository;
     private readonly IHubContext<ProductionHub> _hubContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductService _productService;
@@ -28,6 +29,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
         IProductRepository productRepository,
+        IProductionOrderOutputRepository outputRepository,
         IHubContext<ProductionHub> hubContext,
         IHttpContextAccessor httpContextAccessor,
         IFinancialCalculatorService financialCalculator,
@@ -37,6 +39,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _productRepository = productRepository;
+        _outputRepository = outputRepository;
         _hubContext = hubContext;
         _httpContextAccessor = httpContextAccessor;
         _financialCalculator = financialCalculator;
@@ -53,6 +56,88 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             return userId;
         }
         return 1;
+    }
+
+    public async Task<bool> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, int modifiedByUserId, CancellationToken ct = default)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order == null || sizeOutputs == null || !sizeOutputs.Any()) return false;
+
+        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
+        if (user != null && user.Role == UserRole.Operational)
+        {
+            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only record outputs for orders assigned to you.");
+        }
+
+        bool anyRegistered = false;
+        int totalQuantityInStageBefore = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
+
+        foreach (var output in sizeOutputs)
+        {
+            int sizeId = output.Key;
+            int quantity = output.Value;
+
+            if (quantity <= 0) continue;
+
+            var orderSize = order.Sizes.FirstOrDefault(s => s.Id == sizeId);
+            if (orderSize == null) continue;
+
+            // Validate against already completed in this stage
+            var existingOutputs = await _outputRepository.GetByOrderIdAsync(orderId);
+            int alreadyCompletedInStage = existingOutputs
+                .Where(o => o.ProductionOrderSizeId == sizeId && o.Stage == order.CurrentStage)
+                .Sum(o => o.Quantity);
+
+            if (alreadyCompletedInStage + quantity > orderSize.Quantity)
+            {
+                throw new InvalidOperationException($"Total output for size {orderSize.Size} in stage {order.CurrentStage} cannot exceed original quantity ({orderSize.Quantity}). Already completed: {alreadyCompletedInStage}. Requesting: {quantity}.");
+            }
+
+            var partialOutput = new ProductionOrderOutput
+            {
+                ProductionOrderId = orderId,
+                ProductionOrderSizeId = sizeId,
+                Stage = order.CurrentStage,
+                Quantity = quantity,
+                UserId = modifiedByUserId,
+                CreatedAt = DateTime.UtcNow,
+                Note = $"Partial output for {orderSize.Size}"
+            };
+
+            await _outputRepository.AddAsync(partialOutput);
+            anyRegistered = true;
+        }
+
+        if (anyRegistered)
+        {
+            await _outputRepository.SaveChangesAsync();
+            
+            // Check if ALL items are now completed for the current stage
+            int totalQuantityInStageAfter = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
+            
+            if (totalQuantityInStageAfter >= order.Quantity)
+            {
+                // Automaticaly advance stage if all pieces are done
+                if (order.CurrentStage != ProductionStage.Packaging)
+                {
+                    await AdvanceStageAsync(orderId, modifiedByUserId, ct);
+                }
+                else
+                {
+                    // If it was packaging, complete the order
+                    await UpdateStatusAsync(orderId, ProductionStatus.Completed, "Automatically completed after final packaging output.", modifiedByUserId, ct);
+                }
+            }
+            else
+            {
+                // Just update history and signal clients about partial progress
+                await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Registered partial output ({sizeOutputs.Values.Sum()} pieces).");
+                await _orderRepository.SaveChangesAsync();
+                await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+            }
+        }
+
+        return anyRegistered;
     }
 
     public async Task<bool> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)

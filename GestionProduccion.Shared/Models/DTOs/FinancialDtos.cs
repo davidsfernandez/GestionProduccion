@@ -25,6 +25,7 @@ public class DashboardCompleteResponse
     public int DelayedOrdersCount { get; set; }
 
     public List<WorkshopProductionDto> ProductionByWorkshop { get; set; } = new();
+    public List<TeamRankingDto> TeamRanking { get; set; } = new();
     public List<int> WeeklyVolumeData { get; set; } = new();
     public List<string> WeeklyLabels { get; set; } = new();
     public List<ProductProfitabilityDto> TopProfitableModels { get; set; } = new();
@@ -50,4 +51,11 @@ public class StalledProductDto
     public string Sku { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int DaysSinceLastProduction { get; set; }
+}
+
+public class TeamRankingDto
+{
+    public string TeamName { get; set; } = string.Empty;
+    public int TotalProduced { get; set; }
+    public double Efficiency { get; set; }
 }

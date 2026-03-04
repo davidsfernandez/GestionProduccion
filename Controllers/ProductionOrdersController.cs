@@ -264,6 +264,40 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpPost("{orderId}/partial-output")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<IActionResult> RegisterPartialOutput(int orderId, [FromBody] PartialOutputRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(new { message = "User ID claim not found or invalid." });
+            }
+
+            var result = await _lifecycleService.RegisterPartialOutputAsync(orderId, request.SizeOutputs, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(new { success = result, message = "Partial output registered successfully." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error registering partial output", error = ex.Message });
+        }
+    }
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteProductionOrder(int id)

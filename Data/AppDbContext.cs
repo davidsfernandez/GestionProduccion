@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<QADefect> QADefects { get; set; }
     public DbSet<OperationalTask> OperationalTasks { get; set; }
     public DbSet<ProductionOrderSize> ProductionOrderSizes { get; set; }
+    public DbSet<ProductionOrderOutput> ProductionOrderOutputs { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -32,6 +33,30 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // --- PRODUCTION OUTPUT CONFIGURATION ---
+        modelBuilder.Entity<ProductionOrderOutput>()
+            .HasOne(poo => poo.ProductionOrder)
+            .WithMany()
+            .HasForeignKey(poo => poo.ProductionOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductionOrderOutput>()
+            .HasOne(poo => poo.ProductionOrderSize)
+            .WithMany()
+            .HasForeignKey(poo => poo.ProductionOrderSizeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductionOrderOutput>()
+            .HasOne(poo => poo.ResponsibleUser)
+            .WithMany()
+            .HasForeignKey(poo => poo.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductionOrderOutput>()
+            .Property(poo => poo.Stage)
+            .HasConversion<string>()
+            .HasMaxLength(50);
 
         // --- QA AND TASKS CONFIGURATION ---
         modelBuilder.Entity<QADefect>()

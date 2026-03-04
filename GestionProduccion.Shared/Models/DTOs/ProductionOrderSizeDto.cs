@@ -11,4 +11,9 @@ public class ProductionOrderSizeDto
     public int ProductionOrderId { get; set; }
     public string Size { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    
+    /// <summary>
+    /// Quantity already completed in the current stage of the production order.
+    /// </summary>
+    public int CompletedInCurrentStage { get; set; }
 }

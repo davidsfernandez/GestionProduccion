@@ -81,6 +81,7 @@ builder.Services.AddMemoryCache(); // TV Dashboard optimization
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductRepository, GestionProduccion.Data.Repositories.ProductRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISewingTeamRepository, GestionProduccion.Data.Repositories.SewingTeamRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IBonusRuleRepository, GestionProduccion.Data.Repositories.BonusRuleRepository>();
+builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderOutputRepository, GestionProduccion.Data.Repositories.ProductionOrderOutputRepository>();
 builder.Services.AddScoped<IFinancialCalculatorService, FinancialCalculatorService>();
 builder.Services.AddScoped<IDashboardBIService, DashboardBIService>();
 builder.Services.AddScoped<IBonusCalculationService, BonusCalculationService>();

@@ -11,17 +11,20 @@ namespace GestionProduccion.Services.ProductionOrders;
 public class ProductionOrderQueryService : IProductionOrderQueryService
 {
     private readonly IProductionOrderRepository _orderRepository;
-    private readonly IUserRepository _userRepository; // Needed for current user logic
-    private readonly IHttpContextAccessor _httpContextAccessor; // Needed for GetCurrentUserId
+    private readonly IUserRepository _userRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IProductionOrderOutputRepository _outputRepository;
 
     public ProductionOrderQueryService(
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IProductionOrderOutputRepository outputRepository)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _httpContextAccessor = httpContextAccessor;
+        _outputRepository = outputRepository;
     }
 
     private int GetCurrentUserId()
@@ -38,7 +41,10 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
     {
         var order = await _orderRepository.GetByIdAsync(id);
-        return order == null ? null : MapToDto(order);
+        if (order == null) return null;
+
+        var outputs = await _outputRepository.GetByOrderIdAsync(id);
+        return MapToDto(order, outputs.ToList());
     }
 
     public async Task<List<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
@@ -220,6 +226,11 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     // --- Private mapping and utility methods ---
     private ProductionOrderDto MapToDto(ProductionOrder order)
     {
+        return MapToDto(order, new List<ProductionOrderOutput>());
+    }
+
+    private ProductionOrderDto MapToDto(ProductionOrder order, List<ProductionOrderOutput> outputs)
+    {
         return new ProductionOrderDto
         {
             Id = order.Id,
@@ -243,7 +254,10 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
                 Id = s.Id,
                 ProductionOrderId = s.ProductionOrderId,
                 Size = s.Size,
-                Quantity = s.Quantity
+                Quantity = s.Quantity,
+                CompletedInCurrentStage = outputs
+                    .Where(o => o.ProductionOrderSizeId == s.Id && o.Stage == order.CurrentStage)
+                    .Sum(o => o.Quantity)
             }).ToList() ?? new List<ProductionOrderSizeDto>(),
             AverageCostPerPiece = order.AverageCostPerPiece,
             ProfitMargin = order.ProfitMargin,

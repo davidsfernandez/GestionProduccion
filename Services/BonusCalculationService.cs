@@ -12,17 +12,20 @@ public class BonusCalculationService : IBonusCalculationService
     private readonly IProductionOrderRepository _orderRepo;
     private readonly IBonusRuleRepository _ruleRepo;
     private readonly IQAService _qaService;
+    private readonly IProductionOrderOutputRepository _outputRepo;
 
     public BonusCalculationService(
         ISewingTeamRepository teamRepo,
         IProductionOrderRepository orderRepo,
         IBonusRuleRepository ruleRepo,
-        IQAService qaService)
+        IQAService qaService,
+        IProductionOrderOutputRepository outputRepo)
     {
         _teamRepo = teamRepo;
         _orderRepo = orderRepo;
         _ruleRepo = ruleRepo;
         _qaService = qaService;
+        _outputRepo = outputRepo;
     }
 
     public async Task<BonusReportDto> CalculateTeamBonusAsync(int teamId, DateTime startDate, DateTime endDate)
@@ -30,18 +33,9 @@ public class BonusCalculationService : IBonusCalculationService
         var team = await _teamRepo.GetTeamWithMembersAsync(teamId);
         if (team == null) throw new KeyNotFoundException("Team not found.");
 
-        var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
-
-        // Query completed orders within range for this team (Server-Side Evaluation)
-        var query = await _orderRepo.GetQueryableAsync();
-        var teamOrders = await query
-            .AsNoTracking()
-            .Where(o => o.SewingTeamId == teamId &&
-                        o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
-                        o.CompletedAt >= startDate && o.CompletedAt <= endDate)
-            .ToListAsync();
-
-        if (!teamOrders.Any())
+        var rule = await _ruleRepo.GetActiveRuleAsync();
+        
+        if (rule == null)
         {
             return new BonusReportDto
             {
@@ -49,19 +43,50 @@ public class BonusCalculationService : IBonusCalculationService
                 TeamName = team.Name,
                 FinalBonusPercentage = 0,
                 TotalAmount = 0,
-                CompletedOrders = 0
+                Message = "Nenhuma regra de bônus ativa configurada."
             };
         }
 
-        int totalProduced = teamOrders.Sum(o => o.Quantity);
-        int onTimeOrders = teamOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
-
-        // Sum defects from QA Service
-        int totalDefects = 0;
-        foreach (var order in teamOrders)
+        // 1. Get all partial/total outputs for this team in the date range
+        var outputs = await _outputRepo.GetByTeamAndDateRangeAsync(teamId, startDate, endDate);
+        var outputsList = outputs.ToList();
+        
+        if (!outputsList.Any())
         {
-            var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
-            totalDefects += defects.Sum(d => d.Quantity);
+            return new BonusReportDto
+            {
+                TeamId = teamId,
+                TeamName = team.Name,
+                FinalBonusPercentage = 0,
+                TotalAmount = 0,
+                CompletedOrders = 0,
+                TotalProduced = 0
+            };
+        }
+
+        // 2. Sum productivity from events
+        int totalProduced = outputsList.Sum(o => o.Quantity);
+        
+        // 3. For performance (On-Time), we still look at the parent orders involved in these outputs
+        var involvedOrderIds = outputs.Select(o => o.ProductionOrderId).Distinct();
+        var teamOrders = new List<ProductionOrder>();
+        foreach(var id in involvedOrderIds)
+        {
+            var order = await _orderRepo.GetByIdAsync(id);
+            if (order != null) teamOrders.Add(order);
+        }
+
+        int onTimeOrders = teamOrders.Count(o => o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt);
+
+        // 4. Sum defects from QA Service for the involved orders in this period
+        int totalDefects = 0;
+        foreach (var orderId in involvedOrderIds)
+        {
+            var defects = await _qaService.GetDefectsByOrderAsync(orderId);
+            // We only count defects reported in this period
+            totalDefects += defects
+                .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate)
+                .Sum(d => d.Quantity);
         }
 
         // --- CALCULATIONS ---
@@ -70,7 +95,7 @@ public class BonusCalculationService : IBonusCalculationService
         decimal productivityBonus = (decimal)rule.ProductivityPercentage;
 
         // 2. Deadline Performance
-        decimal onTimeRatio = (decimal)onTimeOrders / teamOrders.Count;
+        decimal onTimeRatio = teamOrders.Any() ? (decimal)onTimeOrders / teamOrders.Count : 1;
         decimal deadlineBonus = onTimeRatio * rule.DeadlineBonusPercentage;
 
         // 3. Quality Penalty
@@ -92,17 +117,17 @@ public class BonusCalculationService : IBonusCalculationService
             DeadlinePerformance = Math.Round(onTimeRatio * 100, 2),
             DefectPercentage = Math.Round(defectRatio, 2),
             FinalBonusPercentage = Math.Round(finalBonus, 2),
-            TotalAmount = 0, // Would need a base salary reference here
-            CompletedOrders = teamOrders.Count,
+            TotalAmount = 0, 
+            CompletedOrders = involvedOrderIds.Count(), // Number of orders they worked on
             OnTimeOrders = onTimeOrders,
             TotalProduced = totalProduced,
             TotalDefects = totalDefects,
             Orders = teamOrders.Select(o => new OrderBonusDetail
             {
                 LotCode = o.LotCode,
-                IsOnTime = o.CompletedAt <= o.EstimatedCompletionAt,
-                Defects = 0, // Could be detailed per order if needed
-                Contribution = Math.Round(finalBonus / teamOrders.Count, 2)
+                IsOnTime = o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt,
+                Defects = 0, 
+                Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
             }).ToList()
         };
     }
@@ -113,28 +138,34 @@ public class BonusCalculationService : IBonusCalculationService
         if (user == null) throw new KeyNotFoundException("User not found.");
 
         var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
-        var query = await _orderRepo.GetQueryableAsync();
 
-        // 1. Get Individual Orders
-        var userOrders = await query
-            .AsNoTracking()
-            .Where(o => o.UserId == userId &&
-                        o.CurrentStatus == Domain.Enums.ProductionStatus.Completed &&
-                        o.CompletedAt >= startDate && o.CompletedAt <= endDate)
-            .ToListAsync();
+        // 1. Get all partial/total outputs for this user in the date range
+        var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
 
-        int totalProduced = userOrders.Sum(o => o.Quantity);
-        int onTimeOrders = userOrders.Count(o => o.CompletedAt <= o.EstimatedCompletionAt);
-
-        int totalDefects = 0;
-        foreach (var order in userOrders)
+        if (!outputs.Any())
         {
-            var defects = await _qaService.GetDefectsByOrderAsync(order.Id);
-            totalDefects += defects.Sum(d => d.Quantity);
+            return new BonusReportDto
+            {
+                TeamName = user.FullName,
+                FinalBonusPercentage = 0,
+                TotalProduced = 0,
+                CompletedOrders = 0
+            };
         }
 
-        decimal productivityBonus = userOrders.Any() ? (decimal)rule.ProductivityPercentage : 0;
-        decimal onTimeRatio = userOrders.Any() ? (decimal)onTimeOrders / userOrders.Count : 0;
+        int totalProduced = outputs.Sum(o => o.Quantity);
+        var involvedOrderIds = outputs.Select(o => o.ProductionOrderId).Distinct();
+        
+        int totalDefects = 0;
+        foreach (var orderId in involvedOrderIds)
+        {
+            var defects = await _qaService.GetDefectsByOrderAsync(orderId);
+            totalDefects += defects
+                .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ReportedByUserId == userId)
+                .Sum(d => d.Quantity);
+        }
+
+        decimal productivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
 
         decimal individualBonus = productivityBonus;
@@ -154,12 +185,11 @@ public class BonusCalculationService : IBonusCalculationService
 
         return new BonusReportDto
         {
-            TeamName = user.FullName, // Using TeamName field for the User's name
+            TeamName = user.FullName,
             ProductivityPercentage = individualBonus,
-            DeadlinePerformance = Math.Round(onTimeRatio * 100, 2),
             DefectPercentage = Math.Round(defectRatio, 2),
             FinalBonusPercentage = Math.Round(finalBonus, 2),
-            CompletedOrders = userOrders.Count,
+            CompletedOrders = involvedOrderIds.Count(),
             TotalProduced = totalProduced,
             TotalDefects = totalDefects
         };

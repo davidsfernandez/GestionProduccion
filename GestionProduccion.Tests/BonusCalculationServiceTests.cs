@@ -21,6 +21,7 @@ public class BonusCalculationServiceTests : IDisposable
     private readonly Mock<IQAService> _mockQaService;
     private readonly SewingTeamRepository _teamRepo;
     private readonly ProductionOrderRepository _orderRepo;
+    private readonly ProductionOrderOutputRepository _outputRepo;
 
     public BonusCalculationServiceTests()
     {
@@ -31,10 +32,11 @@ public class BonusCalculationServiceTests : IDisposable
 
         _teamRepo = new SewingTeamRepository(_context);
         _orderRepo = new ProductionOrderRepository(_context);
+        _outputRepo = new ProductionOrderOutputRepository(_context);
         _mockRuleRepo = new Mock<IBonusRuleRepository>();
         _mockQaService = new Mock<IQAService>();
 
-        _service = new BonusCalculationService(_teamRepo, _orderRepo, _mockRuleRepo.Object, _mockQaService.Object);
+        _service = new BonusCalculationService(_teamRepo, _orderRepo, _mockRuleRepo.Object, _mockQaService.Object, _outputRepo);
     }
 
     public void Dispose()

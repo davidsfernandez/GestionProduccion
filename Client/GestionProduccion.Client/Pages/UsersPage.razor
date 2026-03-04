@@ -263,7 +263,10 @@
     private void ShowCreateModal()
     {
         isEditing = false;
-        userModel = new UserFormModel();
+        userModel = new UserFormModel
+        {
+            Role = UserRole.Operational // Ensure default is Operational
+        };
         showModal = true;
     }
 

@@ -327,6 +327,45 @@
                         </div>
                     </div>
 
+                    <!-- TEAM RANKING -->
+                    <div class="card flex-fill animate-fade-in-up delay-3 mb-4">
+                        <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Ranking por Equipes</h5>
+                            <span class="badge bg-primary-soft text-primary">Produtividade Mensal</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @if (dashboard.TeamRanking != null && dashboard.TeamRanking.Any())
+                                {
+                                    @for (int i = 0; i < dashboard.TeamRanking.Count; i++)
+                                    {
+                                        var team = dashboard.TeamRanking[i];
+                                        <div class="list-group-item border-0 px-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3 fw-bold @(i == 0 ? "text-warning" : "text-muted")" style="width: 25px;">@(i + 1)º</div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-0 fw-bold">@team.TeamName</h6>
+                                                    <div class="progress mt-2" style="height: 6px;">
+                                                        <div class="progress-bar @(i == 0 ? "bg-warning" : "bg-primary")" 
+                                                             style="width: @(Math.Min(100, (team.TotalProduced * 100.0 / Math.Max(1, dashboard.MonthProductionQuantity))))%"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="ms-3 text-end">
+                                                    <span class="d-block fw-bold text-dark">@team.TotalProduced</span>
+                                                    <small class="text-muted fs-xxs">peças</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="p-4 text-center text-muted small">Aguardando dados de produção das equipes.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ACTIVE ADMIN TASKS (ADMIN/LEADER ONLY) -->
                     <AuthorizeView Roles="Administrator,Leader">
                         <div class="card flex-fill animate-fade-in-up delay-4">
