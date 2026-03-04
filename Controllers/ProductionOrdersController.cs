@@ -137,7 +137,7 @@ public class ProductionOrdersController : ControllerBase
 
     [HttpPost("{orderId}/assign")]
     [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<ApiResponse<bool>>> AssignTask(int orderId, [FromBody] AssignTaskRequest request)
+    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> AssignTask(int orderId, [FromBody] AssignTaskRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -147,7 +147,7 @@ public class ProductionOrdersController : ControllerBase
         try
         {
             var result = await _lifecycleService.AssignTaskAsync(orderId, request.UserId, HttpContext.RequestAborted);
-            return Ok(new ApiResponse<bool> { Success = true, Data = result });
+            return Ok(new ApiResponse<ProductionOrderDto> { Success = true, Data = result });
         }
         catch (KeyNotFoundException ex)
         {
@@ -165,7 +165,7 @@ public class ProductionOrdersController : ControllerBase
 
     [HttpPatch("{orderId}/status")]
     [Authorize(Roles = "Administrator,Leader,Operational")]
-    public async Task<ActionResult<ApiResponse<bool>>> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
+    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
     {
         try
         {
@@ -176,11 +176,19 @@ public class ProductionOrdersController : ControllerBase
             }
 
             var result = await _lifecycleService.UpdateStatusAsync(orderId, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
-            return Ok(new ApiResponse<bool> { Success = true, Data = result });
+            return Ok(new ApiResponse<ProductionOrderDto> { Success = true, Data = result });
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new ApiResponse<object?> { Success = false, Message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Error updating status", Data = ex.Message });
         }
     }
 
@@ -207,7 +215,7 @@ public class ProductionOrdersController : ControllerBase
 
     [HttpPost("{orderId}/change-stage")]
     [Authorize(Roles = "Administrator,Leader,Operational")]
-    public async Task<ActionResult<ApiResponse<bool>>> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)
+    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> ChangeStage(int orderId, [FromBody] ChangeStageRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -222,8 +230,7 @@ public class ProductionOrdersController : ControllerBase
             }
 
             var result = await _lifecycleService.ChangeStageAsync(orderId, request.NewStage, request.Note, modifiedByUserId, HttpContext.RequestAborted);
-            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Order not found." });
-            return Ok(new ApiResponse<bool> { Success = true, Data = result });
+            return Ok(new ApiResponse<ProductionOrderDto> { Success = true, Data = result });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -241,7 +248,7 @@ public class ProductionOrdersController : ControllerBase
 
     [HttpPost("{orderId}/advance-stage")]
     [Authorize(Roles = "Administrator,Leader,Operational")]
-    public async Task<ActionResult<ApiResponse<bool>>> AdvanceStage(int orderId)
+    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> AdvanceStage(int orderId)
     {
         try
         {
@@ -252,7 +259,7 @@ public class ProductionOrdersController : ControllerBase
             }
 
             var result = await _lifecycleService.AdvanceStageAsync(orderId, modifiedByUserId, HttpContext.RequestAborted);
-            return Ok(new ApiResponse<bool> { Success = true, Data = result });
+            return Ok(new ApiResponse<ProductionOrderDto> { Success = true, Data = result });
         }
         catch (KeyNotFoundException ex)
         {
@@ -261,6 +268,10 @@ public class ProductionOrdersController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Error advancing stage", Data = ex.Message });
         }
     }
 

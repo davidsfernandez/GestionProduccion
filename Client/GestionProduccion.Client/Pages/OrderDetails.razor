@@ -496,18 +496,19 @@
 
     private async Task ConfirmCompleteOrder()
     {
-        showCompleteModal = false;
-        var success = await LifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Produto finalizado e pronto");
-        if (success)
+        var result = await LifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Produto finalizado e pronto");
+        if (result != null && result.Success)
         {
+            showCompleteModal = false;
             ToastService.ShowToast(Portuguese.Status_Completed, ToastLevel.Success);
             await LoadData();
         }
         else
         {
-            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            ToastService.ShowToast(result?.Message ?? Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
+
 
     private async Task DownloadPdf()
     {
@@ -618,15 +619,15 @@
 
     private async Task AdvanceStage()
     {
-        var success = await LifecycleClient.AdvanceStageAsync(Id);
-        if (success)
+        var result = await LifecycleClient.AdvanceStageAsync(Id);
+        if (result != null && result.Success)
         {
             ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
             await LoadData();
         }
         else
         {
-            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            ToastService.ShowToast(result?.Message ?? Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
 
@@ -640,10 +641,10 @@
     {
         try 
         {
-            var response = await Http.GetFromJsonAsync<List<UserDto>>("api/ProductionOrders/assignable", _jsonOptions);
-            if (response != null)
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/ProductionOrders/assignable", _jsonOptions);
+            if (response != null && response.Success)
             {
-                assignableUsers = response;
+                assignableUsers = response.Data;
             }
         }
         catch (Exception ex)
@@ -656,8 +657,8 @@
     {
         if (selectedUserId == 0) return;
         
-        var success = await LifecycleClient.AssignTaskAsync(Id, selectedUserId);
-        if (success)
+        var result = await LifecycleClient.AssignTaskAsync(Id, selectedUserId);
+        if (result != null && result.Success)
         {
             isAssigning = false;
             ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
@@ -665,7 +666,7 @@
         }
         else
         {
-            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            ToastService.ShowToast(result?.Message ?? Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
 
@@ -684,8 +685,8 @@
 
     private async Task ConfirmChangeStage()
     {
-        var success = await LifecycleClient.ChangeStageAsync(Id, (ProductionStage)targetStage, stageChangeNote);
-        if (success)
+        var result = await LifecycleClient.ChangeStageAsync(Id, (ProductionStage)targetStage, stageChangeNote);
+        if (result != null && result.Success)
         {
             isChangingStage = false;
             ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Success);
@@ -693,7 +694,7 @@
         }
         else
         {
-            ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
+            ToastService.ShowToast(result?.Message ?? Portuguese.Msg_Error, ToastLevel.Error);
         }
     }
 
