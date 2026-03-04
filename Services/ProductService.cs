@@ -95,17 +95,24 @@ public class ProductService : IProductService
 
         var query = await _orderRepository.GetQueryableAsync();
         
-        // Use SQL-side calculation for average duration in minutes
-        // We use COALESCE for StartedAt ?? CreatedAt logic in SQL
-        var averageMinutes = await query
+        // Fetch only necessary columns to memory for safe calculation.
+        // This avoids LINQ translation issues with complex date arithmetic across different DB providers.
+        var ordersData = await query
             .AsNoTracking()
             .Where(o => o.ProductId == productId && o.CurrentStatus == Domain.Enums.ProductionStatus.Completed && o.CompletedAt.HasValue)
-            .Select(o => EF.Functions.DateDiffMinute(o.StartedAt ?? o.CreatedAt, o.CompletedAt!.Value))
-            .Where(diff => diff > 0)
-            .Cast<double?>()
-            .AverageAsync(ct) ?? 0;
+            .Select(o => new { o.StartedAt, o.CreatedAt, o.CompletedAt })
+            .ToListAsync(ct);
 
-        product.AverageProductionTimeMinutes = averageMinutes;
-        await _productRepository.UpdateAsync(product);
+        if (ordersData.Any())
+        {
+            var averageMinutes = ordersData
+                .Select(o => (o.CompletedAt!.Value - (o.StartedAt ?? o.CreatedAt)).TotalMinutes)
+                .Where(m => m > 0)
+                .DefaultIfEmpty(0)
+                .Average();
+
+            product.AverageProductionTimeMinutes = averageMinutes;
+            await _productRepository.UpdateAsync(product);
+        }
     }
 }
