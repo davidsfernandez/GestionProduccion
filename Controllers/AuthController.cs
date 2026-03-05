@@ -182,8 +182,6 @@ public class AuthController : ControllerBase
         var baseUrl = _configuration["App:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
         var resetLink = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(request.Email)}";
         
-        _logger.LogInformation("DEBUG: Password reset link generated: {Link}", resetLink);
-
         var emailBody = $@"
             <div style='font-family: sans-serif; max-width: 600px; margin: auto;'>
                 <h2 style='color: #3B7DDD;'>Redefinição de Senha - Gestão de Produção</h2>

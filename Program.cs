@@ -213,10 +213,13 @@ var app = builder.Build();
 // --- 8. MIDDLEWARE PIPELINE (Correct Order) ---
 
 // Support for Nginx Forwarded Headers (Cloud/Docker compatibility)
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 // Enable Swagger in Dev or if explicitly enabled via Env Var (e.g. in Docker)
 if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
