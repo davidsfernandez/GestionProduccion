@@ -182,7 +182,7 @@ else
                 <div class="tv-panel">
                     <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em Produção</div>
                     <div style="overflow-y: hidden; flex: 1;">
-                        @foreach (var order in dashboard.TodaysOrders.Where(o => o.CurrentStatus != "Completed").Take(5)) 
+                        @foreach (var order in dashboard.TodaysOrders.Where(o => o.CurrentStatus != "Completed" && o.CurrentStage == "Sewing").Take(5)) 
                         {
                             var displaySku = !string.IsNullOrEmpty(order.Product?.MainSku) ? order.Product.MainSku : order.LotCode;
                             <div class="list-item" @key="order.Id">

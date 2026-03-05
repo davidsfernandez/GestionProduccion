@@ -170,4 +170,52 @@ public class ProductionOrderServiceTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal(50.0m, result.CompletionRate);
     }
+
+    [Fact]
+    public async Task GetDashboardAsync_ShouldReturnSumOfQuantitiesForCompletedToday()
+    {
+        // Arrange
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+
+        var orders = new List<ProductionOrder>
+        {
+            // Completed today - should be summed
+            new() { 
+                Id = 201, LotCode = "OP-SUM-1", Quantity = 100, 
+                CurrentStatus = ProductionStatus.Completed, 
+                CompletedAt = today.AddHours(2), 
+                CreatedAt = yesterday, UpdatedAt = today 
+            },
+            new() { 
+                Id = 202, LotCode = "OP-SUM-2", Quantity = 50, 
+                CurrentStatus = ProductionStatus.Completed, 
+                CompletedAt = today.AddHours(5), 
+                CreatedAt = yesterday, UpdatedAt = today 
+            },
+            // Completed yesterday - should NOT be summed
+            new() { 
+                Id = 203, LotCode = "OP-SUM-3", Quantity = 75, 
+                CurrentStatus = ProductionStatus.Completed, 
+                CompletedAt = yesterday.AddHours(23), 
+                CreatedAt = yesterday, UpdatedAt = yesterday 
+            },
+            // Not completed - should NOT be summed
+            new() { 
+                Id = 204, LotCode = "OP-SUM-4", Quantity = 200, 
+                CurrentStatus = ProductionStatus.InProduction, 
+                CreatedAt = today, UpdatedAt = today 
+            }
+        };
+
+        _context.ProductionOrders.AddRange(orders);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _queryService.GetDashboardAsync();
+
+        // Assert
+        // Expected: 100 + 50 = 150
+        Assert.Equal(150, result.CompletedToday);
+    }
 }

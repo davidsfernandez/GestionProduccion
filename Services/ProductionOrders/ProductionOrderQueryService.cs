@@ -108,7 +108,9 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .AsNoTracking();
 
         var totalActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
-        var completedToday = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today);
+        var completedToday = ordersWithRelations
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
+            .Sum(o => o.Quantity);
 
         var activeOrdersList = ordersWithRelations
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
