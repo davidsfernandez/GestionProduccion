@@ -18,6 +18,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -210,6 +211,13 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // --- 8. MIDDLEWARE PIPELINE (Correct Order) ---
+
+// Support for Nginx Forwarded Headers (Cloud/Docker compatibility)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Enable Swagger in Dev or if explicitly enabled via Env Var (e.g. in Docker)
 if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
 {

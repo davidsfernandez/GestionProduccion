@@ -177,14 +177,31 @@ public class AuthController : ControllerBase
 
         var token = await _userService.RequestPasswordResetAsync(request.Email);
 
-        if (token == null) return Ok(new { message = "If the email exists, a reset link has been sent." });
+        if (token == null) return Ok(new { message = "Se o e-mail existir, um link de redefinição foi enviado." });
 
-        var resetLink = $"https://tu-dominio.com/reset-password?token={token}&email={Uri.EscapeDataString(request.Email)}";
-        var emailBody = $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 15 minutes.</p>";
+        var baseUrl = _configuration["App:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+        var resetLink = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(request.Email)}";
+        
+        _logger.LogInformation("DEBUG: Password reset link generated: {Link}", resetLink);
 
-        await _emailService.SendEmailAsync(request.Email, "Reset Password", emailBody);
+        var emailBody = $@"
+            <div style='font-family: sans-serif; max-width: 600px; margin: auto;'>
+                <h2 style='color: #3B7DDD;'>Redefinição de Senha - Gestão de Produção</h2>
+                <p>Olá,</p>
+                <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+                <p>Clique no botão abaixo para escolher uma nova senha:</p>
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='{resetLink}' style='background-color: #3B7DDD; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Redefinir Senha</a>
+                </div>
+                <p style='color: #666; font-size: 0.9em;'>Este link expira em 60 minutos.</p>
+                <p style='color: #666; font-size: 0.9em;'>Se você não solicitou esta alteração, ignore este e-mail.</p>
+                <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
+                <p style='font-size: 0.8em; color: #999;'>Este é um e-mail automático, por favor não responda.</p>
+            </div>";
 
-        return Ok(new { message = "If the email exists, a reset link has been sent." });
+        await _emailService.SendEmailAsync(request.Email, "Redefinição de Senha - Gestão de Produção", emailBody);
+
+        return Ok(new { message = "Se o e-mail existir, um link de redefinição foi enviado." });
     }
 
     [HttpPost("reset-password")]

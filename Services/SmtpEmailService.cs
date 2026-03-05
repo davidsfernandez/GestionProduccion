@@ -19,21 +19,24 @@ public class SmtpEmailService : IEmailService
     {
         try
         {
-            var host = _configuration["Smtp:Host"] ?? "localhost";
-            var port = int.Parse(_configuration["Smtp:Port"] ?? "587");
-            var username = _configuration["Smtp:Username"];
-            var password = _configuration["Smtp:Password"];
-            var enableSsl = bool.Parse(_configuration["Smtp:EnableSsl"] ?? "true");
+            var host = _configuration["SMTP_HOST"] ?? _configuration["Smtp:Host"] ?? "localhost";
+            var portStr = _configuration["SMTP_PORT"] ?? _configuration["Smtp:Port"] ?? "587";
+            var port = int.Parse(portStr);
+            var username = _configuration["SMTP_USER"] ?? _configuration["Smtp:Username"];
+            var password = _configuration["SMTP_PASS"] ?? _configuration["Smtp:Password"];
+            
+            var fromEmail = _configuration["SMTP_FROM_EMAIL"] ?? username ?? "no-reply@gestionproduccion.com";
+            var fromName = _configuration["SMTP_FROM_NAME"] ?? "Gestão de Produção";
 
             using var client = new SmtpClient(host, port)
             {
-                Credentials = new NetworkCredential(username, password),
-                EnableSsl = enableSsl
+                Credentials = !string.IsNullOrEmpty(username) ? new NetworkCredential(username, password) : null,
+                EnableSsl = port == 587 || port == 465 || bool.Parse(_configuration["SMTP_SSL"] ?? "true")
             };
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(username ?? "no-reply@gestionproduccion.com"),
+                From = new MailAddress(fromEmail, fromName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true
@@ -41,11 +44,11 @@ public class SmtpEmailService : IEmailService
             mailMessage.To.Add(to);
 
             await client.SendMailAsync(mailMessage);
+            _logger.LogInformation("Email successfully sent to {To} via {Host}", to, host);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {To}", to);
-            // Don't throw to avoid exposing system errors to user
+            _logger.LogError(ex, "Failed to send email to {To}. Check your SMTP environment variables.", to);
         }
     }
 }

@@ -228,7 +228,7 @@ public class UserService : IUserService
         {
             UserId = user.Id,
             TokenHash = tokenHash,
-            ExpiryDate = DateTime.UtcNow.AddMinutes(15),
+            ExpiryDate = DateTime.UtcNow.AddHours(1), // Increased to 60 minutes
             IsUsed = false,
             CreatedAt = DateTime.UtcNow
         });
