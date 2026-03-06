@@ -71,13 +71,13 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">@Portuguese.User_Email</label>
-                                <InputText class="form-control" @bind-Value="model.Email" placeholder="admin@empresa.com" />
+                                <InputText class="form-control" @bind-Value="model.Email" placeholder="admin@empresa.com" autocomplete="username" />
                                 <ValidationMessage For="@(() => model.Email)" class="text-danger small" />
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">@Portuguese.User_Password</label>
-                                <InputText type="password" class="form-control" @bind-Value="model.Password" placeholder="Senha forte" />
+                                <InputText type="password" class="form-control" @bind-Value="model.Password" placeholder="Senha forte" autocomplete="new-password" />
                                 <ValidationMessage For="@(() => model.Password)" class="text-danger small" />
                             </div>
                         </div>

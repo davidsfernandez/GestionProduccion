@@ -48,8 +48,26 @@ namespace GestionProduccion.Client.Services
 
                 _hubConnection = new HubConnectionBuilder()
                     .WithUrl(hubUrl)
-                    .WithAutomaticReconnect()
+                    .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
                     .Build();
+
+                _hubConnection.Closed += async (error) =>
+                {
+                    Console.WriteLine($"SignalR Connection Closed: {error?.Message}");
+                    await Task.CompletedTask;
+                };
+
+                _hubConnection.Reconnecting += async (error) =>
+                {
+                    Console.WriteLine($"SignalR Reconnecting...: {error?.Message}");
+                    await Task.CompletedTask;
+                };
+
+                _hubConnection.Reconnected += async (connectionId) =>
+                {
+                    Console.WriteLine($"SignalR Reconnected. New ID: {connectionId}");
+                    await Task.CompletedTask;
+                };
 
                 _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>
                 {
@@ -70,16 +88,18 @@ namespace GestionProduccion.Client.Services
                     catch { }
                 });
 
+                Console.WriteLine($"Starting SignalR connection to: {hubUrl}");
                 _startTask = _hubConnection.StartAsync();
                 await _startTask;
+                Console.WriteLine("SignalR Connected successfully.");
             }
             catch (OperationCanceledException)
             {
-                // Expected when navigating away
+                Console.WriteLine("SignalR Connection attempt cancelled.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Silent connection error
+                Console.WriteLine($"SignalR Connection Error: {ex.Message}");
             }
         }
 

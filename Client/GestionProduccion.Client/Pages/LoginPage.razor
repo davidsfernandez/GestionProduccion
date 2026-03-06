@@ -63,7 +63,7 @@
                                         <label class="form-label text-muted small fw-bold">@Portuguese.User_Email</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i class="fa-solid fa-envelope text-muted"></i></span>
-                                            <InputText class="form-control form-control-lg bg-light" @bind-Value="loginModel.Email" placeholder="Digite seu e-mail" />
+                                            <InputText class="form-control form-control-lg bg-light" @bind-Value="loginModel.Email" placeholder="Digite seu e-mail" autocomplete="username" />
                                         </div>
                                         <ValidationMessage For="@(() => loginModel.Email)" class="text-danger small mt-1" />
                                     </div>
@@ -72,7 +72,7 @@
                                         <label class="form-label text-muted small fw-bold">@Portuguese.User_Password</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-0"><i class="fa-solid fa-lock text-muted"></i></span>
-                                            <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg bg-light" @bind-Value="loginModel.Password" placeholder="Sua senha" />
+                                            <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg bg-light" @bind-Value="loginModel.Password" placeholder="Sua senha" autocomplete="current-password" />
                                             <button class="btn btn-light border-0" type="button" @onclick="() => showPassword = !showPassword">
                                                 <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye") text-muted"></i>
                                             </button>

@@ -27,7 +27,7 @@ properties:
       fqdn: gestionproduccion.whiteocean-f0634b4c.brazilsouth.azurecontainerapps.io
       ipSecurityRestrictions: null
       stickySessions:
-        affinity: none
+        affinity: sticky
       targetPort: 8080
       traffic:
       - latestRevision: true

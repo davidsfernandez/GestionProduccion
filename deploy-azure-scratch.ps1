@@ -79,7 +79,8 @@ az containerapp create `
   --registry-username $AcrUsername `
   --registry-password $AcrPassword `
   --env-vars "ASPNETCORE_URLS=http://+:8080" "ASPNETCORE_ENVIRONMENT=Production" "DOTNET_RUNNING_IN_CONTAINER=true" "ConnectionStrings__DefaultConnection=$ConnectionString" "Jwt__Key=9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e" "Jwt__Issuer=GestionProduccion" "Jwt__Audience=GestionProduccionAPI" `
-  --cpu 0.5 --memory 1.0Gi > $null
+  --cpu 0.5 --memory 1.0Gi `
+  --sticky-sessions sticky > $null
 
 # Result
 $AppUrl = az containerapp show --name $WebAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn --output tsv

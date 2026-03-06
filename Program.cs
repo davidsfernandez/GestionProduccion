@@ -338,6 +338,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 
 app.MapControllers();
 app.MapRazorPages();
+app.UseWebSockets();
 app.MapHub<ProductionHub>("/productionHub").RequireCors("AllowAll");
 app.MapFallbackToFile("index.html");
 
