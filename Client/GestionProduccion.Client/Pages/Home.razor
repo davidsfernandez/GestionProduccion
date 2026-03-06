@@ -55,7 +55,7 @@
                 <div class="col-xl-8">
                     <div class="card p-5 text-center border-0 shadow-sm">
                         <div class="spinner-border text-primary mx-auto" role="status"></div>
-                        <div class="mt-3 text-muted">Carregando mÃ©tricas de produÃ§Ã£o...</div>
+                        <div class="mt-3 text-muted">Carregando métricas de produção...</div>
                     </div>
                 </div>
                 <div class="col-xl-4"><SkeletonCard /><SkeletonCard /></div>
@@ -72,7 +72,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo mÃ©dio por peÃ§a</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Custo médio por peça</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-primary-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -91,7 +91,7 @@
                                         <h3 class="mb-2 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-success")">
                                             @dashboard.MonthAverageMargin.ToString("N1")%
                                         </h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem mÃ©dia</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Margem média</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-success-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -108,7 +108,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <h3 class="mb-2 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
-                                        <p class="mb-0 text-muted small fw-bold uppercase">ProduÃ§Ã£o do mÃªs</p>
+                                        <p class="mb-0 text-muted small fw-bold uppercase">Produção do mês</p>
                                     </div>
                                     <div class="d-inline-block ms-3">
                                         <div class="bg-info-soft rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -148,7 +148,7 @@
                     <!-- WEEKLY PRODUCTION CHART -->
                     <div class="card flex-fill w-100 animate-fade-in-up mb-4">
                         <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">ProduÃ§Ã£o Ãšltimos 7 Dias</h5>
+                            <h5 class="card-title mb-0">Produção Ãšltimos 7 Dias</h5>
                             <i class="fa-solid fa-chart-line text-muted"></i>
                         </div>
                         <div class="card-body py-3">
@@ -169,7 +169,7 @@
                                     <thead>
                                         <tr>
                                             <th>Modelo</th>
-                                            <th class="text-end">Margem MÃ©dia</th>
+                                            <th class="text-end">Margem Média</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -188,7 +188,7 @@
                                             <tr>
                                                 <td colspan="2" class="text-center py-4 text-muted small">
                                                     <i class="fa-solid fa-chart-line opacity-25 d-block mb-2 fs-3"></i>
-                                                    Aguardando dados de produÃ§Ã£o para calcular lucratividade.
+                                                    Aguardando dados de produção para calcular lucratividade.
                                                 </td>
                                             </tr>
                                         }
@@ -201,7 +201,7 @@
                     <!-- WORKSHOP PRODUCTION CHART -->
                     <div class="card flex-fill w-100 animate-fade-in-up delay-4">
                         <div class="card-header border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">ProduÃ§Ã£o por Oficina</h5>
+                            <h5 class="card-title mb-0">Produção por Oficina</h5>
                             <i class="fa-solid fa-chart-bar text-muted"></i>
                         </div>
                         <div class="card-body py-3">
@@ -214,7 +214,7 @@
                                     <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                                         <i class="fa-solid fa-chart-bar text-muted fs-3"></i>
                                     </div>
-                                    <div class="text-muted small">Sem dados de produÃ§Ã£o este mÃªs.</div>
+                                    <div class="text-muted small">Sem dados de produção este mês.</div>
                                 </div>
                             }
                         </div>
@@ -260,7 +260,7 @@
                     <AuthorizeView Roles="Administrator">
                         <div class="card flex-fill animate-fade-in-up delay-1">
                             <div class="card-header border-0 pt-4 px-4 bg-danger bg-opacity-10">
-                                <h5 class="card-title mb-0 text-danger">AtenÃ§Ã£o: Margem Baixa</h5>
+                                <h5 class="card-title mb-0 text-danger">Atenção: Margem Baixa</h5>
                             </div>
                             <div class="card-body p-0">
                                 <ul class="list-group list-group-flush">
@@ -284,7 +284,7 @@
                                     {
                                         <div class="p-4 text-center text-muted">
                                             <i class="fa-solid fa-thumbs-up text-success fs-3 mb-2"></i>
-                                            <p class="mb-0 small fw-bold">Todas as margens saudÃ¡veis.</p>
+                                            <p class="mb-0 small fw-bold">Todas as margens saudáveis.</p>
                                         </div>
                                     }
                                 </ul>
@@ -320,7 +320,7 @@
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <h6 class="mb-0 fw-bold">@entry.UserName</h6>
-                                                    <small class="text-muted fs-xs">@entry.CompletedTasks conclusÃµes</small>
+                                                    <small class="text-muted fs-xs">@entry.CompletedTasks conclusões</small>
                                                 </div>
                                                 <div class="text-end">
                                                     <span class="badge badge-soft-primary rounded-pill">@entry.Score.ToString("N0") pts</span>
@@ -331,7 +331,7 @@
                                 }
                                 else
                                 {
-                                    <div class="p-4 text-center text-muted small">Sem dados de ranking disponÃ­veis.</div>
+                                    <div class="p-4 text-center text-muted small">Sem dados de ranking disponíveis.</div>
                                 }
                             </div>
                         </div>
@@ -362,7 +362,7 @@
                                                 </div>
                                                 <div class="ms-3 text-end">
                                                     <span class="d-block fw-bold text-dark">@team.TotalProduced</span>
-                                                    <small class="text-muted fs-xxs">peÃ§as</small>
+                                                    <small class="text-muted fs-xxs">peças</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -370,7 +370,7 @@
                                 }
                                 else
                                 {
-                                    <div class="p-4 text-center text-muted small">Aguardando dados de produÃ§Ã£o das equipes.</div>
+                                    <div class="p-4 text-center text-muted small">Aguardando dados de produção das equipes.</div>
                                 }
                             </div>
                         </div>
@@ -402,7 +402,7 @@
                                                          style="width: @(Math.Min(100, task.ProgressPercentage))%"></div>
                                                 </div>
                                                 <div class="d-flex justify-content-between mt-1">
-                                                    <small class="text-muted fs-xxs">ResponsÃ¡vel: @task.AssignedUserName</small>
+                                                    <small class="text-muted fs-xxs">Responsável: @task.AssignedUserName</small>
                                                     <small class="text-muted fs-xxs">@task.Deadline?.ToString("dd/MM HH:mm")</small>
                                                 </div>
                                             </li>

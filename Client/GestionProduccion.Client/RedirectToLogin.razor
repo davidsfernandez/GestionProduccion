@@ -72,7 +72,7 @@
             }
             else
             {
-                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API estÃ¡ online.";
+                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API está online.";
                 StateHasChanged();
                 await Task.Delay(3000);
                 NavigationManager.NavigateTo("/login", true);
@@ -90,7 +90,7 @@
             }
             else
             {
-                statusMessage = $"Falha crÃ­tica: {ex.Message}. Redirecionando...";
+                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando...";
                 StateHasChanged();
                 await Task.Delay(3000);
                 NavigationManager.NavigateTo("/login", true);

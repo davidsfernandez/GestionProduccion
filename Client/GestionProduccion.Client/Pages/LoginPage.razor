@@ -203,21 +203,21 @@
                 if (result != null && !string.IsNullOrEmpty(result.Token))
                 {
                     // Update global state immediately
-                    UserState.SetUser(result.FullName ?? "UsuÃ¡rio", result.AvatarUrl);
+                    UserState.SetUser(result.FullName ?? "Usuário", result.AvatarUrl);
                     
                     await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(result.Token, result.RefreshToken);
                     NavigationManager.NavigateTo("/");
                 }
                 else
                 {
-                    errorMessage = "Token invÃ¡lido recebido do servidor.";
+                    errorMessage = "Token inválido recebido do servidor.";
                 }
             }
             else
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    errorMessage = "Credenciais invÃ¡lidas. Verifique seu e-mail e senha.";
+                    errorMessage = "Credenciais inválidas. Verifique seu e-mail e senha.";
                 }
                 else
                 {
