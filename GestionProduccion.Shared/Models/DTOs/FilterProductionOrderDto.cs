@@ -1,9 +1,9 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
  * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
+ * or use of this software, via any medium, is strictly prohibited. 
  * 
  * Proprietary and Confidential.
  */
@@ -12,6 +12,7 @@ namespace GestionProduccion.Models.DTOs
 {
     public class FilterProductionOrderDto
     {
+        public string? SearchTerm { get; set; }
         public string? CurrentStage { get; set; }
         public string? CurrentStatus { get; set; }
         public int? UserId { get; set; }
@@ -21,5 +22,3 @@ namespace GestionProduccion.Models.DTOs
         public string? Size { get; set; }
     }
 }
-
-

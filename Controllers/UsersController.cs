@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -13,6 +13,7 @@ using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace GestionProduccion.Controllers;
 
@@ -32,13 +33,12 @@ public class UsersController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<List<UserDto>>> GetUsers()
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetUsers()
     {
         try
         {
             var users = await _userService.GetActiveUsersAsync();
-
-            return Ok(users.Select(u => new UserDto
+            var dtos = users.Select(u => new UserDto
             {
                 Id = u.Id,
                 ExternalId = u.ExternalId,
@@ -49,30 +49,32 @@ public class UsersController : ControllerBase
                 IsActive = u.IsActive,
                 SewingTeamId = u.SewingTeamId,
                 SewingTeamName = u.SewingTeam?.Name
-            }).ToList());
+            }).ToList();
+
+            return Ok(ApiResponse<List<UserDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving users", error = ex.Message });
+            return StatusCode(500, ApiResponse<List<UserDto>>.FailureResult("Error retrieving users", new List<string> { ex.Message }));
         }
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserDto>> GetUser(int id)
+    public async Task<ActionResult<ApiResponse<UserDto>>> GetUser(int id)
     {
         try
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var currentUserId))
-                return Unauthorized();
+                return Unauthorized(ApiResponse<UserDto>.FailureResult("Unauthorized"));
 
             if (currentUserId != id && !User.IsInRole("Administrator") && !User.IsInRole("Leader"))
                 return Forbid();
 
             var user = await _userService.GetUserByIdAsync(id);
-            if (user == null) return NotFound();
+            if (user == null) return NotFound(ApiResponse<UserDto>.FailureResult("User not found"));
 
-            return Ok(new UserDto
+            var dto = new UserDto
             {
                 Id = user.Id,
                 ExternalId = user.ExternalId,
@@ -83,27 +85,29 @@ public class UsersController : ControllerBase
                 IsActive = user.IsActive,
                 SewingTeamId = user.SewingTeamId,
                 SewingTeamName = user.SewingTeam?.Name
-            });
+            };
+
+            return Ok(ApiResponse<UserDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving user", error = ex.Message });
+            return StatusCode(500, ApiResponse<UserDto>.FailureResult("Error retrieving user", new List<string> { ex.Message }));
         }
     }
 
     [HttpPost("upload-avatar")]
     [Authorize]
-    public async Task<IActionResult> UploadAvatar(IFormFile file)
+    public async Task<ActionResult<ApiResponse<string>>> UploadAvatar(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded.");
+            return BadRequest(ApiResponse<string>.FailureResult("No file uploaded."));
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-            return Unauthorized();
+            return Unauthorized(ApiResponse<string>.FailureResult("Unauthorized"));
 
         if (!file.ContentType.StartsWith("image/"))
-            return BadRequest("Only image files are allowed.");
+            return BadRequest(ApiResponse<string>.FailureResult("Only image files are allowed."));
 
         try
         {
@@ -122,31 +126,30 @@ public class UsersController : ControllerBase
             }
 
             var newAvatarUrl = $"/img/avatars/{fileName}";
-
             var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
 
-            if (!success) return StatusCode(500, "Failed to update user record in database.");
+            if (!success) return StatusCode(500, ApiResponse<string>.FailureResult("Failed to update user record in database."));
 
-            return Ok(new { url = newAvatarUrl });
+            return Ok(ApiResponse<string>.SuccessResult(newAvatarUrl, "Avatar uploaded successfully"));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error uploading avatar", error = ex.Message });
+            return StatusCode(500, ApiResponse<string>.FailureResult("Error uploading avatar", new List<string> { ex.Message }));
         }
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
+    public async Task<ActionResult<ApiResponse<UserDto>>> CreateUser(CreateUserRequest request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResponse<UserDto>.FailureResult("Validation failed"));
 
         try
         {
             var existingUser = await _userService.GetUserByEmailAsync(request.Email);
             if (existingUser != null)
             {
-                return Conflict(new { message = $"User with email '{request.Email}' already exists." });
+                return Conflict(ApiResponse<UserDto>.FailureResult($"User with email '{request.Email}' already exists."));
             }
 
             var user = new User
@@ -160,7 +163,6 @@ public class UsersController : ControllerBase
             };
 
             var createdUser = await _userService.CreateUserAsync(user);
-
             var userDto = new UserDto
             {
                 Id = createdUser.Id,
@@ -172,22 +174,22 @@ public class UsersController : ControllerBase
                 SewingTeamId = createdUser.SewingTeamId
             };
 
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, userDto);
+            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, ApiResponse<UserDto>.SuccessResult(userDto, "User created successfully"));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error creating user", error = ex.Message });
+            return StatusCode(500, ApiResponse<UserDto>.FailureResult("Error creating user", new List<string> { ex.Message }));
         }
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> UpdateUser(int id, UpdateUserRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> UpdateUser(int id, UpdateUserRequest request)
     {
         try
         {
             var user = await _userService.GetUserByIdAsync(id);
-            if (user == null) return NotFound(new { message = "User not found" });
+            if (user == null) return NotFound(ApiResponse<object>.FailureResult("User not found"));
 
             user.FullName = request.FullName;
             user.Email = request.Email;
@@ -200,36 +202,33 @@ public class UsersController : ControllerBase
             }
 
             await _userService.UpdateUserAsync(user);
-            return NoContent();
+            return Ok(ApiResponse<object>.SuccessResult(null, "User updated successfully"));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error updating user", error = ex.Message });
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error updating user", new List<string> { ex.Message }));
         }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<ActionResult<ApiResponse<object>>> DeleteUser(int id)
     {
         try
         {
-            // Security Check: Block deactivation if user has active production orders
             var hasActiveOrders = await _userService.HasActiveOrdersAsync(id);
             if (hasActiveOrders)
             {
-                return Conflict(new { message = "NÃ£o Ã© possÃ­vel desativar este usuÃ¡rio pois ele possui Ordens de ProduÃ§Ã£o ativas atribuÃ­das. Finalize ou reatribua as ordens primeiro." });
+                return Conflict(ApiResponse<object>.FailureResult("Não é possível desativar este usuário pois ele possui Ordens de Produção ativas atribuídas."));
             }
 
             var success = await _userService.DeactivateUserAsync(id);
-            if (!success) return NotFound(new { message = "User not found" });
-            return NoContent();
+            if (!success) return NotFound(ApiResponse<object>.FailureResult("User not found"));
+            return Ok(ApiResponse<object>.SuccessResult(null, "User deactivated successfully"));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error deactivating user", error = ex.Message });
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error deactivating user", new List<string> { ex.Message }));
         }
     }
 }
-
-

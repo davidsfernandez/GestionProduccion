@@ -18,10 +18,10 @@ namespace GestionProduccion.Client.Services.ProductionOrders;
 
 public interface IProductionOrderQueryClient
 {
-    Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default);
-    Task<List<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default);
-    Task<DashboardDto?> GetDashboardAsync(CancellationToken ct = default);
-    Task<List<ProductionHistoryDto>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default);
+    Task<ApiResponse<ProductionOrderDto>?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default);
+    Task<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int page = 1, int pageSize = 10, CancellationToken ct = default);
+    Task<ApiResponse<DashboardDto>?> GetDashboardAsync(CancellationToken ct = default);
+    Task<ApiResponse<List<ProductionHistoryDto>>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default);
 }
 
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -8,60 +8,52 @@
  * Proprietary and Confidential.
  */
 
-using GestionProduccion.Domain.Enums;
-using GestionProduccion.Models.DTOs; // From Shared
-using System.Collections.Generic;
-using System.Net.Http;
+using GestionProduccion.Models.DTOs;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
+using System.Web;
 
 namespace GestionProduccion.Client.Services.ProductionOrders;
 
 public class ProductionOrderQueryClient : IProductionOrderQueryClient
 {
     private readonly HttpClient _httpClient;
-    private readonly JsonSerializerOptions _options;
 
-    public ProductionOrderQueryClient(HttpClient httpClient, JsonSerializerOptions options)
+    public ProductionOrderQueryClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _options = options;
     }
 
-    public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
+    public async Task<ApiResponse<ProductionOrderDto>?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<ProductionOrderDto>($"api/ProductionOrders/{id}", _options, ct);
+        return await _httpClient.GetFromJsonAsync<ApiResponse<ProductionOrderDto>>($"api/ProductionOrders/{id}", ct);
     }
 
-    public async Task<List<ProductionOrderDto>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
+    public async Task<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>?> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var queryParams = new List<string>();
+        var query = HttpUtility.ParseQueryString(string.Empty);
+        query["page"] = page.ToString();
+        query["pageSize"] = pageSize.ToString();
+
         if (filter != null)
         {
-            if (!string.IsNullOrWhiteSpace(filter.CurrentStage)) queryParams.Add($"CurrentStage={filter.CurrentStage}");
-            if (!string.IsNullOrWhiteSpace(filter.CurrentStatus)) queryParams.Add($"CurrentStatus={filter.CurrentStatus}");
-            if (filter.UserId.HasValue) queryParams.Add($"UserId={filter.UserId.Value}");
-            if (filter.StartDate.HasValue) queryParams.Add($"StartDate={filter.StartDate.Value:yyyy-MM-dd}");
-            if (filter.EndDate.HasValue) queryParams.Add($"EndDate={filter.EndDate.Value:yyyy-MM-dd}");
-            if (!string.IsNullOrWhiteSpace(filter.ClientName)) queryParams.Add($"ClientName={filter.ClientName}");
-            if (!string.IsNullOrWhiteSpace(filter.Size)) queryParams.Add($"Size={filter.Size}");
+            if (!string.IsNullOrEmpty(filter.SearchTerm)) query["SearchTerm"] = filter.SearchTerm;
+            if (!string.IsNullOrEmpty(filter.CurrentStage)) query["CurrentStage"] = filter.CurrentStage;
+            if (!string.IsNullOrEmpty(filter.CurrentStatus)) query["CurrentStatus"] = filter.CurrentStatus;
+            if (filter.UserId.HasValue) query["UserId"] = filter.UserId.ToString();
+            if (filter.StartDate.HasValue) query["StartDate"] = filter.StartDate.Value.ToString("yyyy-MM-dd");
+            if (filter.EndDate.HasValue) query["EndDate"] = filter.EndDate.Value.ToString("yyyy-MM-dd");
         }
-        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        return await _httpClient.GetFromJsonAsync<List<ProductionOrderDto>>($"api/ProductionOrders{queryString}", _options, ct);
+
+        return await _httpClient.GetFromJsonAsync<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>>($"api/ProductionOrders?{query}", ct);
     }
 
-    public async Task<DashboardDto?> GetDashboardAsync(CancellationToken ct = default)
+    public async Task<ApiResponse<DashboardDto>?> GetDashboardAsync(CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/dashboard", _options, ct);
+        return await _httpClient.GetFromJsonAsync<ApiResponse<DashboardDto>>("api/ProductionOrders/dashboard", ct);
     }
 
-    public async Task<List<ProductionHistoryDto>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default)
+    public async Task<ApiResponse<List<ProductionHistoryDto>>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default)
     {
-        return await _httpClient.GetFromJsonAsync<List<ProductionHistoryDto>>($"api/ProductionOrders/{orderId}/history", _options, ct);
+        return await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductionHistoryDto>>>($"api/ProductionOrders/{orderId}/history", ct);
     }
 }
-
-

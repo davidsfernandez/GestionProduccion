@@ -254,7 +254,11 @@
         {
             loading = true;
             // Pass the injected JsonOptions to use the JsonStringEnumConverter
-            users = await Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
+            if (response != null && response.Success)
+            {
+                users = response.Data;
+            }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -262,7 +266,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {

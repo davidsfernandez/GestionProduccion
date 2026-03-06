@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -33,7 +33,8 @@
             }
         </div>
 
-        <!-- PERFIL EN SIDEBAR (Serona Standard) -->        <AuthorizeView>
+        <!-- PERFIL EN SIDEBAR (Serona Standard) -->
+        <AuthorizeView>
             <Authorized>
                 <div class="sidebar-profile">
                     <div class="position-relative d-inline-block">
@@ -162,7 +163,6 @@
         {
             return "/img/avatars/avatar.jpg";
         }
-        // Ensure leading slash for consistency
         var finalUrl = url.StartsWith("/") ? url : "/" + url;
         return $"{finalUrl}?t={DateTime.Now.Ticks}";
     }
@@ -187,7 +187,6 @@
         }
         catch
         {
-            // Fallback to text logo if fetch fails
             CompanyLogo = null;
         }
     }
@@ -210,8 +209,6 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            // Immediate update from claims (JWT)
-            // Use the consistent claim name 'AvatarUrl'
             var avatarClaim = user.FindFirst("AvatarUrl");
             if (avatarClaim != null && !string.IsNullOrEmpty(avatarClaim.Value))
             {
@@ -223,10 +220,10 @@
             {
                 try
                 {
-                    var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId}");
-                    if (userDto != null)
+                    var response = await Http.GetFromJsonAsync<ApiResponse<UserDto>>($"api/Users/{userId}");
+                    if (response != null && response.Success && response.Data != null)
                     {
-                        UserState.UpdateAvatar(userDto.AvatarUrl);
+                        UserState.UpdateAvatar(response.Data.AvatarUrl);
                     }
                 }
                 catch
@@ -247,7 +244,7 @@
         "leader" => Portuguese.Role_Leader,
         "operational" => Portuguese.Role_Operator,
         "operator" => Portuguese.Role_Operator,
-        "sewer" => Portuguese.Role_Operator, // Map legacy role to current terminology
+        "sewer" => Portuguese.Role_Operator,
         "workshop" => Portuguese.Role_Workshop,
         _ => role ?? ""
     };
@@ -258,6 +255,3 @@
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }
-
-
-

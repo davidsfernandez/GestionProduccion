@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -29,44 +29,60 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductDto>>> GetAll()
+    public async Task<ActionResult<ApiResponse<List<ProductDto>>>> GetAll()
     {
-        var products = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
-        var dtos = products.Select(p => new ProductDto
+        try
         {
-            Id = p.Id,
-            Name = p.Name,
-            InternalCode = p.InternalCode,
-            FabricType = p.FabricType,
-            MainSku = p.MainSku,
-            AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
-            EstimatedSalePrice = p.EstimatedSalePrice
-        }).ToList();
+            var products = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
+            var dtos = products.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                InternalCode = p.InternalCode,
+                FabricType = p.FabricType,
+                MainSku = p.MainSku,
+                AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
+                EstimatedSalePrice = p.EstimatedSalePrice
+            }).ToList();
 
-        return Ok(dtos);
+            return Ok(ApiResponse<List<ProductDto>>.SuccessResult(dtos));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<List<ProductDto>>.FailureResult("Error retrieving products", new List<string> { ex.Message }));
+        }
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> GetById(int id)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> GetById(int id)
     {
-        var p = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
-        if (p == null) return NotFound();
-
-        return Ok(new ProductDto
+        try
         {
-            Id = p.Id,
-            Name = p.Name,
-            InternalCode = p.InternalCode,
-            FabricType = p.FabricType,
-            MainSku = p.MainSku,
-            AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
-            EstimatedSalePrice = p.EstimatedSalePrice
-        });
+            var p = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
+            if (p == null) return NotFound(ApiResponse<ProductDto>.FailureResult("Product not found"));
+
+            var dto = new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                InternalCode = p.InternalCode,
+                FabricType = p.FabricType,
+                MainSku = p.MainSku,
+                AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
+                EstimatedSalePrice = p.EstimatedSalePrice
+            };
+
+            return Ok(ApiResponse<ProductDto>.SuccessResult(dto));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<ProductDto>.FailureResult("Error retrieving product", new List<string> { ex.Message }));
+        }
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<ProductDto>> Create(CreateProductDto dto)
+    public async Task<ActionResult<ApiResponse<ProductDto>>> Create(CreateProductDto dto)
     {
         try
         {
@@ -81,8 +97,6 @@ public class ProductsController : ControllerBase
             };
 
             var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
-
-            // Map back to DTO manually for simplicity
             var result = new ProductDto
             {
                 Id = created.Id,
@@ -91,19 +105,23 @@ public class ProductsController : ControllerBase
                 EstimatedSalePrice = created.EstimatedSalePrice
             };
 
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponse<ProductDto>.SuccessResult(result, "Product created successfully"));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ApiResponse<ProductDto>.FailureResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<ProductDto>.FailureResult("Error creating product", new List<string> { ex.Message }));
         }
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Update(int id, UpdateProductDto dto)
+    public async Task<ActionResult<ApiResponse<object>>> Update(int id, UpdateProductDto dto)
     {
-        if (id != dto.Id) return BadRequest();
+        if (id != dto.Id) return BadRequest(ApiResponse<object>.FailureResult("ID mismatch"));
 
         try
         {
@@ -119,52 +137,65 @@ public class ProductsController : ControllerBase
             };
 
             await _productService.UpdateProductAsync(product, HttpContext.RequestAborted);
-            return NoContent();
+            return Ok(ApiResponse<object>.SuccessResult(null, "Product updated successfully"));
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound(ApiResponse<object>.FailureResult("Product not found"));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ApiResponse<object>.FailureResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error updating product", new List<string> { ex.Message }));
         }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         try
         {
             await _productService.DeleteProductAsync(id, HttpContext.RequestAborted);
-            return NoContent();
+            return Ok(ApiResponse<object>.SuccessResult(null, "Product deleted successfully"));
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound(ApiResponse<object>.FailureResult("Product not found"));
         }
         catch (InvalidOperationException ex)
         {
-            // Capture the business rule exception (likely FK violation)
-            return Conflict(new { message = ex.Message });
+            return Conflict(ApiResponse<object>.FailureResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error deleting product", new List<string> { ex.Message }));
         }
     }
 
     [HttpGet("{id}/stats")]
-    public async Task<ActionResult<object>> GetStats(int id)
+    public async Task<ActionResult<ApiResponse<object>>> GetStats(int id)
     {
-        var product = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
-        if (product == null) return NotFound();
-
-        return Ok(new
+        try
         {
-            ProductId = product.Id,
-            AverageMinutes = product.AverageProductionTimeMinutes,
-            // Calculated estimation logic can be expanded here
-            EstimatedDays = Math.Round(product.AverageProductionTimeMinutes / 60 / 8, 1) // Assuming 8h work day
-        });
+            var product = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
+            if (product == null) return NotFound(ApiResponse<object>.FailureResult("Product not found"));
+
+            var stats = new
+            {
+                ProductId = product.Id,
+                AverageMinutes = product.AverageProductionTimeMinutes,
+                EstimatedDays = Math.Round(product.AverageProductionTimeMinutes / 60 / 8, 1)
+            };
+
+            return Ok(ApiResponse<object>.SuccessResult(stats));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error retrieving stats", new List<string> { ex.Message }));
+        }
     }
 }
-
-

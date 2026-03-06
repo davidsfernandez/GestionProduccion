@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -17,7 +17,7 @@
 @inject IProductionOrderQueryClient ProductionOrderQueryClient
 @inject IProductionOrderMutationClient ProductionOrderMutationClient
 @inject IProductionOrderLifecycleClient ProductionOrderLifecycleClient
-@inject HttpClient Http // Still needed for Export-Excel endpoint logic
+@inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject ISignalRService SignalR
@@ -26,6 +26,7 @@
 
 @using GestionProduccion.Client.Resources
 @using GestionProduccion.Domain.Enums
+@using System.Timers
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
@@ -50,7 +51,7 @@
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                                         <input type="search" class="form-control border-0 px-2" placeholder="@Portuguese.OP_SearchPlaceholder"
-                                               @bind="searchTerm" />
+                                               @bind="searchTerm" @oninput="OnSearchInput" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -60,7 +61,7 @@
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_SizePlaceholder" @bind="filterTamanho" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
-                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
+                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="() => LoadOrders(1)" style="border-radius: 10px;">
                                         <i class="fa-solid fa-filter me-2"></i>@Portuguese.Filter
                                     </button>
                                 </div>
@@ -92,7 +93,7 @@
                         </div>
                     </div>
                 }
-                else if (FilteredOrders == null || !FilteredOrders.Any())
+                else if (paginatedData == null || !paginatedData.Items.Any())
                 {
                     <div class="card-body">
                         <div class="alert alert-info mb-0 d-flex align-items-center justify-content-center py-4">
@@ -134,7 +135,7 @@
                             </div>
                         </div>
                     }
-                    <div class="table-responsive" style="border-radius: 0 0 15px 15px; overflow: hidden;">
+                    <div class="table-responsive" style="overflow: visible;">
                         <table class="table table-hover my-0">
                             <thead>
                                 <tr>
@@ -151,7 +152,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var order in FilteredOrders)
+                                @foreach (var order in paginatedData.Items)
                                 {
                                     <tr @key="order.Id">
                                         <td>
@@ -211,6 +212,30 @@
                             </tbody>
                         </table>
                     </div>
+
+                    @* Pagination Controls *@
+                    <div class="card-footer bg-white border-0 py-3">
+                        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                            <div class="text-muted small">
+                                Exibindo <b>@paginatedData.Items.Count</b> de <b>@paginatedData.TotalItems</b> ordens
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0 shadow-none">
+                                    <li class="page-item @(!paginatedData.HasPreviousPage ? "disabled" : "")">
+                                        <button class="page-link border-0" @onclick="() => LoadOrders(paginatedData.PageNumber - 1)">
+                                            <i class="fa-solid fa-chevron-left me-1"></i> Anterior
+                                        </button>
+                                    </li>
+                                    <li class="page-item active"><span class="page-link border-0">@paginatedData.PageNumber / @paginatedData.TotalPages</span></li>
+                                    <li class="page-item @(!paginatedData.HasNextPage ? "disabled" : "")">
+                                        <button class="page-link border-0" @onclick="() => LoadOrders(paginatedData.PageNumber + 1)">
+                                            Próximo <i class="fa-solid fa-chevron-right ms-1"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
@@ -225,26 +250,12 @@
 
 @code {
     private HashSet<int> selectedOrderIds = new();
-    private List<ProductionOrderDto>? orders;
+    private PaginatedResponseDto<ProductionOrderDto>? paginatedData;
     private bool loading = true;
     private string searchTerm = "";
     private string filterClient = "";
     private string filterTamanho = "";
-
-    private List<ProductionOrderDto>? FilteredOrders 
-    {
-        get 
-        {
-            if (orders == null) return null;
-            if (string.IsNullOrWhiteSpace(searchTerm)) return orders;
-            
-            return orders.Where(o => 
-                (o.LotCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (o.ProductName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (o.ProductCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-            ).ToList();
-        }
-    }
+    private Timer? debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -254,38 +265,61 @@
             await SignalR.StartConnection(hubUrl);
 
             SignalR.OnUpdateReceived += async (opId, stage, status) => {
-                await LoadOrders();
+                await LoadOrders(paginatedData?.PageNumber ?? 1);
                 await InvokeAsync(StateHasChanged);
             };
         }
-        catch (Exception)
-        {
-            // Silent error for SignalR
-        }
+        catch (Exception) { /* Silent */ }
 
-        await LoadOrders();
+        await LoadOrders(1);
     }
 
-    private async Task LoadOrders()
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        debounceTimer?.Stop();
+        debounceTimer?.Dispose();
+
+        debounceTimer = new Timer(500);
+        debounceTimer.Elapsed += async (s, ev) => {
+            await InvokeAsync(async () => await LoadOrders(1));
+            debounceTimer.Stop();
+        };
+        debounceTimer.AutoReset = false;
+        debounceTimer.Start();
+    }
+
+    private async Task LoadOrders(int page = 1)
     {
         try
         {
             loading = true;
             var filter = new FilterProductionOrderDto
             {
+                SearchTerm = searchTerm,
                 ClientName = filterClient,
                 Size = filterTamanho,
             };
 
-            orders = (await ProductionOrderQueryClient.ListProductionOrdersAsync(filter))?.ToList();
+            var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, page, 10);
+            if (response != null && response.Success)
+            {
+                paginatedData = response.Data;
+            }
+            else
+            {
+                ToastService.ShowToast(response?.Message ?? Portuguese.Err_Connection, ToastLevel.Error);
+                paginatedData = new PaginatedResponseDto<ProductionOrderDto>();
+            }
         }
         catch (Exception)
         {
-            orders = new List<ProductionOrderDto>();
+            paginatedData = new PaginatedResponseDto<ProductionOrderDto>();
         }
         finally
         {
             loading = false;
+            StateHasChanged();
         }
     }
 
@@ -302,16 +336,12 @@
                 if (success)
                 {
                     ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
-                    await LoadOrders();
+                    await LoadOrders(paginatedData?.PageNumber ?? 1);
                 }
                 else
                 {
                     ToastService.ShowToast($"Erro ao excluir ordem.", ToastLevel.Error);
                 }
-            }
-            catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
-            {
-                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
             }
             catch (Exception ex)
             {
@@ -319,15 +349,6 @@
             }
         }
     }
-
-    private string TranslateStage(string? stage) => stage?.ToLower() switch
-    {
-        "cutting" => Portuguese.Stage_Cutting,
-        "sewing" => Portuguese.Stage_Sewing,
-        "review" => Portuguese.Stage_Review,
-        "packaging" => Portuguese.Stage_Packaging,
-        _ => stage ?? ""
-    };
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
@@ -341,55 +362,35 @@
         _ => status ?? ""
     };
 
-    private bool AllSelected => FilteredOrders != null && FilteredOrders.Any() && FilteredOrders.All(o => selectedOrderIds.Contains(o.Id));
+    private bool AllSelected => paginatedData?.Items != null && paginatedData.Items.Any() && paginatedData.Items.All(o => selectedOrderIds.Contains(o.Id));
 
     private void ToggleSelection(int id)
     {
-        if (selectedOrderIds.Contains(id))
-            selectedOrderIds.Remove(id);
-        else
-            selectedOrderIds.Add(id);
+        if (selectedOrderIds.Contains(id)) selectedOrderIds.Remove(id);
+        else selectedOrderIds.Add(id);
     }
 
     private void ToggleSelectAll(ChangeEventArgs e)
     {
-        if (FilteredOrders == null) return;
-        
+        if (paginatedData?.Items == null) return;
         var isChecked = (bool)(e.Value ?? false);
-        if (isChecked)
-        {
-            foreach (var order in FilteredOrders)
-            {
-                selectedOrderIds.Add(order.Id);
-            }
-        }
-        else
-        {
-            selectedOrderIds.Clear();
-        }
+        if (isChecked) { foreach (var order in paginatedData.Items) selectedOrderIds.Add(order.Id); }
+        else selectedOrderIds.Clear();
     }
 
     private async Task BulkUpdate(int status)
     {
         if (selectedOrderIds.Count == 0) return;
-        
         try
         {
             loading = true;
-            // Send request to backend
             ProductionStatus newStatus = (ProductionStatus)status;
-            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa via lista");
-            
+            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa");
             if (result != null)
             {
-                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas! {result.SuccessCount} sucesso, {result.FailureCount} falhas.", ToastLevel.Success);
+                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas!", ToastLevel.Success);
                 selectedOrderIds.Clear();
-                await LoadOrders();
-            }
-            else
-            {
-                ToastService.ShowToast("Erro ao atualizar ordens.", ToastLevel.Error);
-                loading = false; // Reset loading if not reloading
+                await LoadOrders(paginatedData?.PageNumber ?? 1);
             }
         }
         catch (Exception ex)
@@ -404,25 +405,15 @@
         try 
         {
             ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
-            // It uses Http client directly, as it calls a ReportService backend endpoint.
             var response = await Http.GetAsync("api/ProductionOrders/export-csv");
-            
             if (response.IsSuccessStatusCode)
             {
                 var fileStream = await response.Content.ReadAsStreamAsync();
                 using var streamRef = new DotNetStreamReference(stream: fileStream);
                 await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_{DateTime.Now:yyyyMMdd}.csv", streamRef);
-                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
-            }
-            else
-            {
-                ToastService.ShowToast("Erro ao exportar CSV", ToastLevel.Error);
             }
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
     private async Task ExportToExcel()
@@ -430,34 +421,20 @@
         try 
         {
             ToastService.ShowToast("Gerando Excel...", ToastLevel.Info);
-            // Construct the filter query string based on the current search term
-            var filter = new FilterProductionOrderDto
+            var filter = new FilterProductionOrderDto { SearchTerm = searchTerm };
+            var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, 1, 1000);
+            if (response != null && response.Success)
             {
-                ClientName = filterClient,
-                Size = filterTamanho,
-                // Add Product search by searchTerm if needed
-            };
-            var ordersToExport = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter);
-
-            // It uses Http client directly, as it calls a ExcelExportService backend endpoint.
-            var response = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", ordersToExport);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var fileStream = await response.Content.ReadAsStreamAsync();
-                using var streamRef = new DotNetStreamReference(stream: fileStream);
-                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", streamRef);
-                ToastService.ShowToast("Download iniciado!", ToastLevel.Success);
-            }
-            else
-            {
-                ToastService.ShowToast("Erro ao exportar Excel", ToastLevel.Error);
+                var exportResponse = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", response.Data?.Items);
+                if (exportResponse.IsSuccessStatusCode)
+                {
+                    var fileStream = await exportResponse.Content.ReadAsStreamAsync();
+                    using var streamRef = new DotNetStreamReference(stream: fileStream);
+                    await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Orders_Export_{DateTime.Now:yyyyMMdd}.xlsx", streamRef);
+                }
             }
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
     private async Task DownloadOrderReport(int id)
@@ -469,17 +446,9 @@
             {
                 var content = await response.Content.ReadAsByteArrayAsync();
                 await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
-                ToastService.ShowToast(Portuguese.Msg_OrderUpdated, ToastLevel.Info);
-            }
-            else
-            {
-                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
     private async Task DownloadDailyReport()
@@ -491,17 +460,9 @@
             {
                 var content = await response.Content.ReadAsByteArrayAsync();
                 await JSRuntime.InvokeVoidAsync("downloadFile", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf", "application/pdf", content);
-                ToastService.ShowToast(Portuguese.Success, ToastLevel.Info);
-            }
-            else
-            {
-                ToastService.ShowToast(Portuguese.Msg_Error, ToastLevel.Error);
             }
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
     private string GetStatusSoftClass(string? status) => status?.ToLower() switch
@@ -515,6 +476,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        debounceTimer?.Dispose();
         try { await SignalR.StopConnection(); } catch { }
     }
 }

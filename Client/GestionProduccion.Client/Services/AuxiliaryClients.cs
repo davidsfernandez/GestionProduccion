@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -20,7 +20,7 @@ namespace GestionProduccion.Client.Services;
 
 public interface IProductClient
 {
-    Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default);
+    Task<ApiResponse<List<ProductDto>>?> GetAllProductsAsync(CancellationToken ct = default);
 }
 
 public class ProductClient : IProductClient
@@ -34,8 +34,8 @@ public class ProductClient : IProductClient
         _options = options;
     }
 
-    public async Task<List<ProductDto>?> GetAllProductsAsync(CancellationToken ct = default) =>
-        await _httpClient.GetFromJsonAsync<List<ProductDto>>("api/Products", _options, ct);
+    public async Task<ApiResponse<List<ProductDto>>?> GetAllProductsAsync(CancellationToken ct = default) =>
+        await _httpClient.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products", _options, ct);
 }
 
 public interface ISewingTeamClient
@@ -57,4 +57,3 @@ public class SewingTeamClient : ISewingTeamClient
     public async Task<ApiResponse<List<SewingTeamDto>>?> GetAllTeamsAsync(CancellationToken ct = default) =>
         await _httpClient.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", _options, ct);
 }
-

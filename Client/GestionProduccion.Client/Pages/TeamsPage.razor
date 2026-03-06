@@ -189,15 +189,22 @@
         try 
         {
             var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
 
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResponse = await teamsTask;
-            teams = teamsResponse?.Data;
+            if (teamsResponse != null && teamsResponse.Success)
+            {
+                teams = teamsResponse.Data;
+            }
 
-            allUsers = await usersTask;
-            eligibleUsers = allUsers?.Where(u => u.Role.ToString() == "Leader" || u.Role.ToString() == "Operational").ToList();
+            var usersResponse = await usersTask;
+            if (usersResponse != null && usersResponse.Success)
+            {
+                allUsers = usersResponse.Data;
+                eligibleUsers = allUsers?.Where(u => u.Role == UserRole.Leader || u.Role == UserRole.Operational).ToList();
+            }
         }
         catch (Exception ex)
         {

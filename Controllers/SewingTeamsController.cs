@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -30,87 +30,106 @@ public class SewingTeamsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<SewingTeamDto>>>> GetAll()
     {
-        var teams = await _teamService.GetAllTeamsAsync();
-        return Ok(new ApiResponse<List<SewingTeamDto>> { Success = true, Data = teams });
+        try
+        {
+            var teams = await _teamService.GetAllTeamsAsync();
+            return Ok(ApiResponse<List<SewingTeamDto>>.SuccessResult(teams));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<List<SewingTeamDto>>.FailureResult("Error retrieving teams", new List<string> { ex.Message }));
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<SewingTeamDto>>> GetById(int id)
     {
-        var team = await _teamService.GetTeamByIdAsync(id);
-        if (team == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
+        try
+        {
+            var team = await _teamService.GetTeamByIdAsync(id);
+            if (team == null) return NotFound(ApiResponse<SewingTeamDto>.FailureResult("Equipe não encontrada."));
 
-        return Ok(new ApiResponse<SewingTeamDto> { Success = true, Data = team });
+            return Ok(ApiResponse<SewingTeamDto>.SuccessResult(team));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<SewingTeamDto>.FailureResult("Error retrieving team", new List<string> { ex.Message }));
+        }
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Create(CreateSewingTeamRequest request)
+    public async Task<ActionResult<ApiResponse<SewingTeamDto>>> Create(CreateSewingTeamRequest request)
     {
         try
         {
             var createdTeam = await _teamService.CreateTeamAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = createdTeam.Id }, new ApiResponse<SewingTeamDto> { Success = true, Data = createdTeam });
+            return CreatedAtAction(nameof(GetById), new { id = createdTeam.Id }, ApiResponse<SewingTeamDto>.SuccessResult(createdTeam, "Equipe criada com sucesso."));
         }
         catch (GestionProduccion.Domain.Exceptions.DomainConstraintException ex)
         {
-            return BadRequest(new ApiResponse<object?> { Success = false, Message = ex.Message });
+            return BadRequest(ApiResponse<SewingTeamDto>.FailureResult(ex.Message));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro interno ao criar equipe.", Data = null });
+            return StatusCode(500, ApiResponse<SewingTeamDto>.FailureResult("Erro interno ao crear equipe.", new List<string> { ex.Message }));
         }
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Update(int id, SewingTeamDto dto)
+    public async Task<ActionResult<ApiResponse<SewingTeamDto>>> Update(int id, SewingTeamDto dto)
     {
         try
         {
             var updatedTeam = await _teamService.UpdateTeamAsync(id, dto);
-            return Ok(new ApiResponse<SewingTeamDto> { Success = true, Data = updatedTeam });
+            return Ok(ApiResponse<SewingTeamDto>.SuccessResult(updatedTeam, "Equipe atualizada com sucesso."));
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
+            return NotFound(ApiResponse<SewingTeamDto>.FailureResult("Equipe não encontrada."));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro ao atualizar equipe.", Data = null });
+            return StatusCode(500, ApiResponse<SewingTeamDto>.FailureResult("Erro ao actualizar equipe.", new List<string> { ex.Message }));
         }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
     {
         try
         {
             var result = await _teamService.DeleteTeamAsync(id);
-            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
+            if (!result) return NotFound(ApiResponse<bool>.FailureResult("Equipe não encontrada."));
 
-            return Ok(new ApiResponse<bool> { Success = true, Data = true });
+            return Ok(ApiResponse<bool>.SuccessResult(true, "Equipe excluída com sucesso."));
         }
         catch (GestionProduccion.Domain.Exceptions.DomainConstraintException ex)
         {
-            return Conflict(new ApiResponse<object?> { Success = false, Message = ex.Message });
+            return Conflict(ApiResponse<bool>.FailureResult(ex.Message));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(500, new ApiResponse<object?> { Success = false, Message = "Erro ao excluir equipe.", Data = null });
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Erro ao excluir equipe.", new List<string> { ex.Message }));
         }
     }
 
     [HttpPatch("{id}/toggle-status")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> ToggleStatus(int id)
+    public async Task<ActionResult<ApiResponse<bool>>> ToggleStatus(int id)
     {
-        var result = await _teamService.ToggleTeamStatusAsync(id);
-        if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe no encontrada." });
+        try
+        {
+            var result = await _teamService.ToggleTeamStatusAsync(id);
+            if (!result) return NotFound(ApiResponse<bool>.FailureResult("Equipe no encontrada."));
 
-        return Ok(new ApiResponse<bool> { Success = true, Data = true });
+            return Ok(ApiResponse<bool>.SuccessResult(true));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Error toggling team status", new List<string> { ex.Message }));
+        }
     }
 }
-
-

@@ -135,14 +135,22 @@
     {
         try
         {
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
             var tasksTask = Http.GetFromJsonAsync<ApiResponse<List<TaskDto>>>("api/Tasks", JsonOptions);
 
             await Task.WhenAll(usersTask, tasksTask);
 
-            users = await usersTask;
+            var usersResp = await usersTask;
+            if (usersResp != null && usersResp.Success)
+            {
+                users = usersResp.Data;
+            }
+
             var tasksResp = await tasksTask;
-            if (tasksResp?.Success == true) tasks = tasksResp.Data;
+            if (tasksResp?.Success == true)
+            {
+                tasks = tasksResp.Data;
+            }
         }
         catch (Exception)
         {

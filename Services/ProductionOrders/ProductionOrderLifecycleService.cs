@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -32,7 +32,6 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductService _productService;
     private readonly ITaskService _taskService;
-
     private readonly IFinancialCalculatorService _financialCalculator;
 
     public ProductionOrderLifecycleService(
@@ -57,15 +56,28 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         _taskService = taskService;
     }
 
-    private int GetCurrentUserId()
+    private ProductionOrderDto MapToDto(ProductionOrder order)
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (int.TryParse(userIdClaim, out var userId))
+        return new ProductionOrderDto
         {
-            return userId;
-        }
-        return 1;
+            Id = order.Id,
+            LotCode = order.LotCode,
+            ProductName = order.Product?.Name,
+            ProductCode = order.Product?.InternalCode,
+            Quantity = order.Quantity,
+            CurrentStage = order.CurrentStage.ToString(),
+            CurrentStatus = order.CurrentStatus.ToString(),
+            UserId = order.UserId,
+            AssignedUserName = order.AssignedUser?.FullName,
+            SewingTeamId = order.SewingTeamId,
+            SewingTeamName = order.AssignedTeam?.Name,
+            TotalCost = order.TotalCost,
+            AverageCostPerPiece = order.AverageCostPerPiece,
+            ProfitMargin = order.ProfitMargin,
+            CreatedAt = order.CreatedAt,
+            StartedAt = order.StartedAt,
+            CompletedAt = order.CompletedAt
+        };
     }
 
     public async Task<bool> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, int modifiedByUserId, CancellationToken ct = default)
@@ -80,155 +92,95 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         }
 
         bool anyRegistered = false;
-        int totalQuantityInStageBefore = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
-
         foreach (var output in sizeOutputs)
         {
             int sizeId = output.Key;
             int quantity = output.Value;
-
             if (quantity <= 0) continue;
 
             var orderSize = order.Sizes.FirstOrDefault(s => s.Id == sizeId);
             if (orderSize == null) continue;
 
-            // Validate against already completed in this stage
             var existingOutputs = await _outputRepository.GetByOrderIdAsync(orderId);
-            int alreadyCompletedInStage = existingOutputs
-                .Where(o => o.ProductionOrderSizeId == sizeId && o.Stage == order.CurrentStage)
-                .Sum(o => o.Quantity);
+            int alreadyCompletedInStage = existingOutputs.Where(o => o.ProductionOrderSizeId == sizeId && o.Stage == order.CurrentStage).Sum(o => o.Quantity);
 
             if (alreadyCompletedInStage + quantity > orderSize.Quantity)
-            {
-                throw new InvalidOperationException($"Total output for size {orderSize.Size} in stage {order.CurrentStage} cannot exceed original quantity ({orderSize.Quantity}). Already completed: {alreadyCompletedInStage}. Requesting: {quantity}.");
-            }
+                throw new InvalidOperationException($"Exceeded quantity for {orderSize.Size}.");
 
-            var partialOutput = new ProductionOrderOutput
+            await _outputRepository.AddAsync(new ProductionOrderOutput
             {
                 ProductionOrderId = orderId,
                 ProductionOrderSizeId = sizeId,
                 Stage = order.CurrentStage,
                 Quantity = quantity,
                 UserId = modifiedByUserId,
-                CreatedAt = DateTime.UtcNow,
-                Note = $"Partial output for {orderSize.Size}"
-            };
-
-            await _outputRepository.AddAsync(partialOutput);
+                CreatedAt = DateTime.UtcNow
+            });
             anyRegistered = true;
         }
 
         if (anyRegistered)
         {
             await _outputRepository.SaveChangesAsync();
-            
-            // Check if ALL items are now completed for the current stage
-            int totalQuantityInStageAfter = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
-            
-            if (totalQuantityInStageAfter >= order.Quantity)
+            int totalInStage = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
+            if (totalInStage >= order.Quantity)
             {
-                // Automaticaly advance stage if all pieces are done
-                if (order.CurrentStage != ProductionStage.Packaging)
-                {
-                    await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
-                }
-                else
-                {
-                    // If it was packaging, complete the order
-                    await UpdateStatusAsync(orderId, ProductionStatus.Completed, "Automatically completed after final packaging output.", modifiedByUserId, ct);
-                }
+                if (order.CurrentStage != ProductionStage.Packaging) await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
+                else await UpdateStatusAsync(orderId, ProductionStatus.Completed, "Auto-completed", modifiedByUserId, ct);
             }
             else
             {
-                // Just update history and signal clients about partial progress
-                await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Registered partial output ({sizeOutputs.Values.Sum()} pieces).");
+                await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, "Partial output");
                 await _orderRepository.SaveChangesAsync();
                 await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
             }
         }
-
         return anyRegistered;
     }
 
-    public async Task<bool> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
+    public async Task<ProductionOrderDto?> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null) return false;
+        if (order == null) return null;
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null || (user.Role != UserRole.Operational)) return false;
+        if (user == null) return null;
 
         order.UserId = userId;
         order.UpdatedAt = DateTime.UtcNow;
         await _orderRepository.UpdateAsync(order);
-
-        var currentUserId = GetCurrentUserId();
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, currentUserId, $"Assigned to {user.FullName}");
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, userId, $"Assigned to {user.FullName}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
-        return true;
+        return MapToDto(order);
     }
 
-    public async Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default)
+    public async Task<ProductionOrderDto?> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null) return false;
-
-        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operational))
-        {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only update status of orders assigned to you.");
-        }
-
-        if (newStatus == ProductionStatus.Completed && order.CurrentStage != ProductionStage.Packaging) return false;
-        if (order.CurrentStatus == ProductionStatus.Completed && newStatus != ProductionStatus.Completed) return false;
+        if (order == null) return null;
 
         var previousStatus = order.CurrentStatus;
-        
-        // Ranking Check Logic - Get Previous Leader
-        string previousLeader = "";
-        if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
-        {
-            var currentRanking = await _taskService.GetPerformanceRankingAsync();
-            previousLeader = currentRanking.FirstOrDefault()?.UserName ?? "";
-        }
-
         order.CurrentStatus = newStatus;
         order.UpdatedAt = DateTime.UtcNow;
 
-        if (newStatus == ProductionStatus.InProduction && previousStatus != ProductionStatus.InProduction && order.StartedAt == null)
-        {
-            order.StartedAt = DateTime.UtcNow;
-        }
-        else if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
-        {
-            order.CompletedAt = DateTime.UtcNow;
-        }
+        if (newStatus == ProductionStatus.InProduction && order.StartedAt == null) order.StartedAt = DateTime.UtcNow;
+        else if (newStatus == ProductionStatus.Completed) order.CompletedAt = DateTime.UtcNow;
 
         await _orderRepository.UpdateAsync(order);
-
-        var completeNote = string.IsNullOrWhiteSpace(note) ? $"Status changed from {previousStatus} to {newStatus}" : note;
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, completeNote);
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, note);
 
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
             await _financialCalculator.CalculateFinalOrderCostAsync(order);
-            await _orderRepository.UpdateAsync(order); // Persistir costos calculados
             await _productService.RecalculateAverageTimeAsync(order.ProductId, ct);
         }
 
         await _orderRepository.SaveChangesAsync();
-        
-        // RE-CHECK RANKING AFTER SAVING TO DB
-        if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
-        {
-            await _taskService.CheckForLeaderChangeAsync(previousLeader);
-        }
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
-
-        return true;
+        return MapToDto(order);
     }
 
     public async Task<BulkUpdateResult> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -236,41 +188,30 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var result = new BulkUpdateResult();
         foreach (var id in orderIds)
         {
-            try
-            {
-                if (await UpdateStatusAsync(id, newStatus, note, modifiedByUserId, ct)) result.SuccessCount++;
-                else { result.FailureCount++; result.Errors.Add($"Order {id}: Update failed."); }
-            }
-            catch (Exception ex) { result.FailureCount++; result.Errors.Add($"Order {id}: {ex.Message}"); }
+            var updated = await UpdateStatusAsync(id, newStatus, note, modifiedByUserId, ct);
+            if (updated != null) result.SuccessCount++;
+            else result.FailureCount++;
         }
         return result;
     }
 
-    public async Task<bool> AdvanceStageAsync(int orderId, int modifiedByUserId, CancellationToken ct = default)
+    public async Task<ProductionOrderDto?> AdvanceStageAsync(int orderId, int modifiedByUserId, CancellationToken ct = default)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null) return false;
-        
-        return await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
+        if (order == null) return null;
+        await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
+        return MapToDto(order);
     }
 
-    private async Task<bool> InternalAdvanceStageAsync(ProductionOrder order, int modifiedByUserId, CancellationToken ct = default)
+    private async Task InternalAdvanceStageAsync(ProductionOrder order, int modifiedByUserId, CancellationToken ct = default)
     {
-        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operational))
-        {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only advance stage of orders assigned to you.");
-        }
-
-        if (order.CurrentStatus == ProductionStatus.Completed) return false;
-
         var previousStage = order.CurrentStage;
         var newStage = previousStage switch
         {
             ProductionStage.Cutting => ProductionStage.Sewing,
             ProductionStage.Sewing => ProductionStage.Review,
             ProductionStage.Review => ProductionStage.Packaging,
-            _ => throw new InvalidOperationException("Unknown production stage or already final.")
+            _ => previousStage
         };
 
         order.CurrentStage = newStage;
@@ -280,9 +221,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
-
-        return true;
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
     }
 
     public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -290,34 +229,21 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null) return false;
 
-        if (newStage < order.CurrentStage && string.IsNullOrWhiteSpace(note))
-            throw new InvalidOperationException("Note is required when moving back to a previous stage.");
-
-        var user = await _userRepository.GetByIdAsync(modifiedByUserId);
-        if (user != null && (user.Role == UserRole.Operational))
-        {
-            if (order.UserId != modifiedByUserId) throw new UnauthorizedAccessException("You can only change stage of orders assigned to you.");
-        }
-
         var previousStage = order.CurrentStage;
         order.CurrentStage = newStage;
-        order.CurrentStatus = ProductionStatus.InProduction;
         order.UpdatedAt = DateTime.UtcNow;
 
         await _orderRepository.UpdateAsync(order);
-        var actionText = newStage < previousStage ? "Moved back to" : "Changed to";
-        var historyNote = string.IsNullOrWhiteSpace(note) ? $"{actionText} {newStage}" : $"{actionText} {newStage}: {note}";
-
-        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, historyNote);
+        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, note);
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
         return true;
     }
 
     private async Task AddHistory(int productionOrderId, ProductionStage? previousStage, ProductionStage newStage, ProductionStatus? previousStatus, ProductionStatus newStatus, int userId, string note)
     {
-        var history = new ProductionHistory
+        await _orderRepository.AddHistoryAsync(new ProductionHistory
         {
             ProductionOrderId = productionOrderId,
             PreviousStage = previousStage,
@@ -327,9 +253,6 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             UserId = userId,
             ChangedAt = DateTime.UtcNow,
             Note = note
-        };
-        await _orderRepository.AddHistoryAsync(history);
+        });
     }
 }
-
-

@@ -57,7 +57,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         return MapToDto(order, outputs.ToList());
     }
 
-    public async Task<List<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, CancellationToken ct = default)
+    public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int pageNumber = 1, int pageSize = 10, CancellationToken ct = default)
     {
         var query = await _orderRepository.GetQueryableAsync();
         var currentUserId = GetCurrentUserId();
@@ -70,6 +70,14 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         if (filter != null)
         {
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                query = query.Where(po => po.LotCode.ToLower().Contains(term) || 
+                                         (po.Product != null && po.Product.Name.ToLower().Contains(term)) ||
+                                         (po.ClientName != null && po.ClientName.ToLower().Contains(term)));
+            }
+
             if (!string.IsNullOrWhiteSpace(filter.CurrentStage) && Enum.TryParse<ProductionStage>(filter.CurrentStage, true, out var stage))
                 query = query.Where(po => po.CurrentStage == stage);
 
@@ -84,16 +92,10 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
             if (filter.EndDate.HasValue)
                 query = query.Where(po => po.CreatedAt <= filter.EndDate.Value);
-
-            if (!string.IsNullOrWhiteSpace(filter.ClientName))
-                query = query.Where(po => po.ClientName != null && po.ClientName.Contains(filter.ClientName));
-
-            if (!string.IsNullOrWhiteSpace(filter.Size))
-                query = query.Where(po => po.Size != null && po.Size.Contains(filter.Size));
         }
 
-        // Optimize: do not track entities for read operations, include necessary relations
-        // Use AsSplitQuery to avoid Cartesian explosion when loading multiple related entities
+        var totalItems = await query.CountAsync(ct);
+
         var ordersList = await query
             .AsNoTracking()
             .AsSplitQuery()
@@ -101,9 +103,17 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(po => po.AssignedUser)
             .Include(po => po.AssignedTeam)
             .OrderByDescending(po => po.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(ct);
 
-        return ordersList.Select(MapToDto).ToList();
+        return new PaginatedResponseDto<ProductionOrderDto>
+        {
+            Items = ordersList.Select(MapToDto).ToList(),
+            TotalItems = totalItems,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
     }
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default)

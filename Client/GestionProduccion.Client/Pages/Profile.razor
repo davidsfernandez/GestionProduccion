@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -168,7 +168,7 @@
     {
         if (firstRender)
         {
-             await JSRuntime.InvokeVoidAsync("feather.replace");
+             try { await JSRuntime.InvokeVoidAsync("feather.replace"); } catch { }
         }
     }
 
@@ -185,13 +185,14 @@
 
     private async Task LoadUserProfile()
     {
-        try 
+        try
         {
             if (userId.HasValue)
             {
-                 var userDto = await Http.GetFromJsonAsync<UserDto>($"api/Users/{userId.Value}");
-                 if (userDto != null)
+                 var response = await Http.GetFromJsonAsync<ApiResponse<UserDto>>($"api/Users/{userId.Value}");
+                 if (response != null && response.Success && response.Data != null)
                  {
+                     var userDto = response.Data;
                      avatarUrl = userDto.AvatarUrl;
                      userName = userDto.FullName;
                      userRole = userDto.Role.ToString();
@@ -225,17 +226,13 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-                if (jsonResponse.TryGetProperty("url", out var urlProperty))
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                if (apiResponse != null && apiResponse.Success && !string.IsNullOrEmpty(apiResponse.Data))
                 {
-                    var newAvatarUrl = urlProperty.GetString();
-                    if (!string.IsNullOrEmpty(newAvatarUrl))
-                    {
-                        avatarUrl = newAvatarUrl;
-                        UserState.UpdateAvatar(newAvatarUrl);
-                        ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
-                        StateHasChanged();
-                    }
+                    avatarUrl = apiResponse.Data;
+                    UserState.UpdateAvatar(apiResponse.Data);
+                    ToastService.ShowToast("Foto de perfil atualizada!", ToastLevel.Success);
+                    StateHasChanged();
                 }
             }
             else
@@ -289,6 +286,3 @@
         }
     }
 }
-
-
-

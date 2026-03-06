@@ -167,11 +167,18 @@
         try
         {
             loading = true;
-            // Fetch only active orders for floor mode
-            var allOrders = await QueryClient.ListProductionOrdersAsync(null);
-            orders = allOrders?
-                .Where(o => o.CurrentStatus != "Completed" && o.CurrentStatus != "Cancelled")
-                .ToList();
+            // Fetch only active orders for floor mode (increased page size for visibility)
+            var response = await QueryClient.ListProductionOrdersAsync(null, 1, 50);
+            if (response != null && response.Success)
+            {
+                orders = response.Data?.Items
+                    .Where(o => o.CurrentStatus != "Completed" && o.CurrentStatus != "Cancelled")
+                    .ToList();
+            }
+            else
+            {
+                orders = new List<ProductionOrderDto>();
+            }
         }
         catch (Exception)
         {

@@ -205,8 +205,12 @@
         try
         {
             loading = true;
-            allProducts = await Http.GetFromJsonAsync<List<ProductDto>>("api/Products");
-            filteredProducts = allProducts;
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<ProductDto>>>("api/Products");
+            if (response != null && response.Success)
+            {
+                allProducts = response.Data;
+                filteredProducts = allProducts;
+            }
         }
         catch (Exception)
         {

@@ -702,12 +702,20 @@
         loading = true;
         try
         {
-            // Correct variable name used: QueryClient
-            order = await QueryClient.GetProductionOrderByIdAsync(Id);
-            if (order != null)
+            var orderResponse = await QueryClient.GetProductionOrderByIdAsync(Id);
+            if (orderResponse != null && orderResponse.Success)
             {
-                history = await QueryClient.GetHistoryByProductionOrderIdAsync(Id);
+                order = orderResponse.Data;
+                var historyResponse = await QueryClient.GetHistoryByProductionOrderIdAsync(Id);
+                if (historyResponse != null && historyResponse.Success)
+                {
+                    history = historyResponse.Data;
+                }
                 await LoadDefects();
+            }
+            else
+            {
+                ToastService.ShowToast(orderResponse?.Message ?? Portuguese.Err_NotFound, ToastLevel.Error);
             }
         }
         catch (Exception ex)
