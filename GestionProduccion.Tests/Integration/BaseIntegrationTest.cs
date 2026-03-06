@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
@@ -91,17 +101,17 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // NO llamar a EnsureDeleted aquí porque borraría la DB que acabamos de crear en el constructor para este test
+        // NO llamar a EnsureDeleted aquÃ­ porque borrarÃ­a la DB que acabamos de crear en el constructor para este test
         db.Database.EnsureCreated();
 
-        // Limpiar tablas específicas si es necesario, pero InMemory con nombre único ya debería estar vacío
+        // Limpiar tablas especÃ­ficas si es necesario, pero InMemory con nombre Ãºnico ya deberÃ­a estar vacÃ­o
 
         // 1. Producto
         var product = new Product
         {
             Name = "Camiseta Test",
             InternalCode = "CAM-001",
-            FabricType = "Algodón",
+            FabricType = "AlgodÃ³n",
             MainSku = "CAM001-TEST",
             EstimatedSalePrice = 100.0m,
             AverageProductionTimeMinutes = 30.0
@@ -109,9 +119,9 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         db.Products.Add(product);
 
         // 2. Equipos
-        var team1 = new SewingTeam { Name = "Equipo Integración 1", IsActive = true };
+        var team1 = new SewingTeam { Name = "Equipo IntegraciÃ³n 1", IsActive = true };
         db.SewingTeams.Add(team1);
-        var team2 = new SewingTeam { Name = "Equipo Integración 2", IsActive = true };
+        var team2 = new SewingTeam { Name = "Equipo IntegraciÃ³n 2", IsActive = true };
         db.SewingTeams.Add(team2);
 
         // 3. Usuarios
@@ -135,7 +145,7 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         };
         db.Users.Add(op);
 
-        // 4. Configuración
+        // 4. ConfiguraciÃ³n
         db.SystemConfigurations.Add(new SystemConfiguration
         {
             Key = "MainConfig",
@@ -145,3 +155,4 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         await db.SaveChangesAsync();
     }
 }
+

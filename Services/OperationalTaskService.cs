@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Data;
 using GestionProduccion.Domain.Entities;
@@ -40,7 +50,7 @@ public class OperationalTaskService : ITaskService
             // The leader changed! Notify everyone
             await _hubContext.Clients.All.SendAsync("ReceiveMessage", new
             {
-                message = $"Novo líder no ranking! {currentLeader.UserName} assumiu o 1º lugar com {currentLeader.CompletedTasks} tarefas concluídas! 🏆",
+                message = $"Novo lÃ­der no ranking! {currentLeader.UserName} assumiu o 1Âº lugar com {currentLeader.CompletedTasks} tarefas concluÃ­das! ðŸ†",
                 timestamp = DateTime.UtcNow,
                 type = "LeaderChange"
             });
@@ -179,3 +189,4 @@ public class OperationalTaskService : ITaskService
         return Math.Max(0, Math.Round(progress, 1));
     }
 }
+

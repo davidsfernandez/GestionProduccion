@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using FluentAssertions;
 using GestionProduccion.Data.Repositories;
 using GestionProduccion.Domain.Entities;
@@ -102,3 +112,4 @@ public class FinancialCalculatorServiceTests
         order.TotalCost.Should().Be(50m); // 5h * 10
     }
 }
+

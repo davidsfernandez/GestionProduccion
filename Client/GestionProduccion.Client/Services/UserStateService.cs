@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using System;
 
 namespace GestionProduccion.Client.Services;
@@ -9,7 +19,7 @@ public class UserStateService
     private string? _avatarUrl;
     private string? _userName;
     private string _themeName = "default";
-    private string _companyName = "Gestão de Produção";
+    private string _companyName = "GestÃ£o de ProduÃ§Ã£o";
 
     public string ThemeName
     {
@@ -82,3 +92,4 @@ public class UserStateService
 
     private void NotifyStateChanged() => OnChange?.Invoke();
 }
+

@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
@@ -118,7 +128,7 @@ public class UserService : IUserService
         {
             if (existingUser.IsActive)
             {
-                throw new InvalidOperationException($"O usuário com o e-mail '{user.Email}' já existe e está ativo.");
+                throw new InvalidOperationException($"O usuÃ¡rio com o e-mail '{user.Email}' jÃ¡ existe e estÃ¡ ativo.");
             }
             else
             {
@@ -314,3 +324,4 @@ public class UserService : IUserService
         return orders.Any(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Finished);
     }
 }
+

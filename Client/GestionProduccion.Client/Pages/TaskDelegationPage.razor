@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/delegar-tarefas"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -23,21 +33,21 @@
                         <DataAnnotationsValidator />
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Título da Tarefa</label>
+                            <label class="form-label small fw-bold">TÃ­tulo da Tarefa</label>
                             <InputText class="form-control" @bind-Value="createModel.Title" placeholder="Ex: Comprar linhas" />
                             <ValidationMessage For="@(() => createModel.Title)" class="text-danger small" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Descrição</label>
+                            <label class="form-label small fw-bold">DescriÃ§Ã£o</label>
                             <InputTextArea class="form-control" @bind-Value="createModel.Description" rows="3" placeholder="Detalhes da tarefa..." />
                             <ValidationMessage For="@(() => createModel.Description)" class="text-danger small" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Responsável</label>
+                            <label class="form-label small fw-bold">ResponsÃ¡vel</label>
                             <InputSelect class="form-select" @bind-Value="createModel.AssignedUserId">
-                                <option value="0">Selecione um usuário...</option>
+                                <option value="0">Selecione um usuÃ¡rio...</option>
                                 @if (users != null)
                                 {
                                     @foreach (var user in users)
@@ -74,7 +84,7 @@
                             <thead class="bg-light">
                                 <tr>
                                     <th class="ps-4">Tarefa</th>
-                                    <th>Responsável</th>
+                                    <th>ResponsÃ¡vel</th>
                                     <th>Prazo</th>
                                     <th>Status</th>
                                 </tr>
@@ -143,7 +153,7 @@
     {
         if (createModel.AssignedUserId == 0)
         {
-            ToastService.ShowToast("Selecione um responsável.", ToastLevel.Warning);
+            ToastService.ShowToast("Selecione um responsÃ¡vel.", ToastLevel.Warning);
             return;
         }
 
@@ -184,7 +194,8 @@
     {
         "Pending" => "Pendente",
         "InProgress" => "Em Andamento",
-        "Completed" => "Concluída",
+        "Completed" => "ConcluÃ­da",
         _ => status
     };
 }
+

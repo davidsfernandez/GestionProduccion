@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/profile"
 @using GestionProduccion.Models.DTOs
 @using GestionProduccion.Client.Services
@@ -36,14 +46,14 @@
                             </label>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-1 text-dark">@(string.IsNullOrEmpty(userName) ? "Usuário" : userName)</h4>
+                    <h4 class="fw-bold mb-1 text-dark">@(string.IsNullOrEmpty(userName) ? "UsuÃ¡rio" : userName)</h4>
                     @if (!string.IsNullOrEmpty(userRole))
                     {
                         <div class="text-muted mb-3"><span class="badge bg-primary-soft">@TranslateRole(userRole)</span></div>
                     }
                 </div>
                 <div class="card-body border-top py-4">
-                    <h5 class="card-title mb-4">Informações de Conta</h5>
+                    <h5 class="card-title mb-4">InformaÃ§Ãµes de Conta</h5>
                     <ul class="list-unstyled mb-0">
                         <li class="mb-3 d-flex align-items-center text-muted">
                             <i class="fa-solid fa-envelope me-3 text-primary opacity-50" style="width: 20px;"></i> 
@@ -55,7 +65,7 @@
                         <li class="mb-0 d-flex align-items-center text-muted">
                             <i class="fa-solid fa-id-card me-3 text-primary opacity-50" style="width: 20px;"></i>
                             <div>
-                                <small class="d-block xsmall fw-bold uppercase">ID do Usuário</small>
+                                <small class="d-block xsmall fw-bold uppercase">ID do UsuÃ¡rio</small>
                                 <span class="text-dark">#@userId</span>
                             </div>
                         </li>
@@ -279,3 +289,4 @@
         }
     }
 }
+

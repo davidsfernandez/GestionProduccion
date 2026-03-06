@@ -1,11 +1,21 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 # Docker Setup Script - GestionProduccion
 # Interactive setup for first-time run
-Write-Host "🚀 Starting GestionProduccion Docker Setup..." -ForegroundColor Cyan
+Write-Host "ðŸš€ Starting GestionProduccion Docker Setup..." -ForegroundColor Cyan
 
 # 1. Check for .env file
 $envFile = ".env"
 if (!(Test-Path $envFile)) {
-    Write-Host "📝 First time setup detected. Please configure your environment." -ForegroundColor Yellow
+    Write-Host "ðŸ“ First time setup detected. Please configure your environment." -ForegroundColor Yellow
     
     # Prompt for Database Credentials
     $dbUser = Read-Host "Enter Database Username (default: gp_admin)"
@@ -19,7 +29,7 @@ if (!(Test-Path $envFile)) {
 
     # Generate Secure JWT Key
     $jwtKey = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 64 | % {[char]$_})
-    Write-Host "🔑 Generated secure JWT Key for this instance." -ForegroundColor Gray
+    Write-Host "ðŸ”‘ Generated secure JWT Key for this instance." -ForegroundColor Gray
 
     # Create .env content
     $envContent = @"
@@ -35,36 +45,37 @@ JWT_AUDIENCE=GestionProduccionAPI
 "@
     
     Set-Content -Path $envFile -Value $envContent
-    Write-Host "✅ Configuration saved to .env" -ForegroundColor Green
+    Write-Host "âœ… Configuration saved to .env" -ForegroundColor Green
 } else {
-    Write-Host "✅ Configuration found (.env). Using existing settings." -ForegroundColor Green
+    Write-Host "âœ… Configuration found (.env). Using existing settings." -ForegroundColor Green
 }
 
 # 2. Check Docker
-Write-Host "🐳 Checking Docker status..." -ForegroundColor Cyan
+Write-Host "ðŸ³ Checking Docker status..." -ForegroundColor Cyan
 docker info > $null 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Error: Docker is not running or not accessible." -ForegroundColor Red
+    Write-Host "âŒ Error: Docker is not running or not accessible." -ForegroundColor Red
     Write-Host "Please start Docker Desktop and try again." -ForegroundColor Gray
     exit 1
 }
 
 # 3. Ask for Clean Reset (Critical for Setup Wizard)
-$doReset = Read-Host "⚠️ Do you want to factory reset the database to trigger Setup Wizard? (y/n)"
+$doReset = Read-Host "âš ï¸ Do you want to factory reset the database to trigger Setup Wizard? (y/n)"
 if ($doReset -eq 'y') {
-    Write-Host "🔥 Removing old containers and volumes..." -ForegroundColor Yellow
+    Write-Host "ðŸ”¥ Removing old containers and volumes..." -ForegroundColor Yellow
     docker-compose down -v
 }
 
 # 4. Build and Start
-Write-Host "🚀 Building and starting containers..." -ForegroundColor Cyan
+Write-Host "ðŸš€ Building and starting containers..." -ForegroundColor Cyan
 docker-compose up -d --build
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n🎉 SUCCESS! Application is running." -ForegroundColor Green
-    Write-Host "👉 App URL: http://localhost:8080" -ForegroundColor Cyan
-    Write-Host "👉 Database: Port 3307" -ForegroundColor Gray
+    Write-Host "`nðŸŽ‰ SUCCESS! Application is running." -ForegroundColor Green
+    Write-Host "ðŸ‘‰ App URL: http://localhost:8080" -ForegroundColor Cyan
+    Write-Host "ðŸ‘‰ Database: Port 3307" -ForegroundColor Gray
     Write-Host "To stop: docker-compose down" -ForegroundColor Gray
 } else {
-    Write-Host "❌ Failed to start containers." -ForegroundColor Red
+    Write-Host "âŒ Failed to start containers." -ForegroundColor Red
 }
+

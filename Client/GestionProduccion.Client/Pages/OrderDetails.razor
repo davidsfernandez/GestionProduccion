@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/orders/{Id:int}"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -143,7 +153,7 @@
                                         <div class="h3 mb-0 text-dark fw-bold">@order.TotalCost.ToString("C", new CultureInfo("pt-BR"))</div>
                                     </div>
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
-                                        <div class="text-muted small uppercase mb-1">Custo Real Unitário</div>
+                                        <div class="text-muted small uppercase mb-1">Custo Real UnitÃ¡rio</div>
                                         <div class="h3 mb-0 text-primary fw-bold">@order.AverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</div>
                                     </div>
                                     <div class="col-md-4">
@@ -331,7 +341,7 @@
                                     <i class="fa-solid fa-user-slash fa-3x"></i>
                                 </div>
                                 <h5>@Portuguese.OP_Unassigned</h5>
-                                <p class="text-muted small">Esta ordem ainda não foi atribuída a um operador.</p>
+                                <p class="text-muted small">Esta ordem ainda nÃ£o foi atribuÃ­da a um operador.</p>
                                 <button class="btn btn-primary btn-sm mt-2" @onclick="ShowAssignModal">Atribuir Agora</button>
                             </div>
                         }
@@ -363,7 +373,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="fw-bold @(IsStageCurrent(stage) ? "text-primary" : "")">@TranslateStage(stage.ToString())</div>
-                                        <div class="text-muted small">@(IsStageCompleted(stage) ? "Concluído" : IsStageCurrent(stage) ? "Em andamento" : "Pendente")</div>
+                                        <div class="text-muted small">@(IsStageCompleted(stage) ? "ConcluÃ­do" : IsStageCurrent(stage) ? "Em andamento" : "Pendente")</div>
                                     </div>
                                 </div>
                             }
@@ -407,7 +417,7 @@
     </div>
 }
 
-<!-- Modal Alterar Estágio (Recuo) -->
+<!-- Modal Alterar EstÃ¡gio (Recuo) -->
 @if (isChangingStage)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -419,7 +429,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Novo Estágio:</label>
+                        <label class="form-label">Novo EstÃ¡gio:</label>
                         <select class="form-select" @bind="targetStage">
                             @foreach (var stage in Enum.GetValues<ProductionStage>())
                             {
@@ -428,13 +438,13 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Observação/Motivo:</label>
-                        <textarea class="form-control" rows="3" @bind="stageChangeNote" placeholder="Descreva o motivo da alteração..."></textarea>
+                        <label class="form-label">ObservaÃ§Ã£o/Motivo:</label>
+                        <textarea class="form-control" rows="3" @bind="stageChangeNote" placeholder="Descreva o motivo da alteraÃ§Ã£o..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" @onclick="() => isChangingStage = false">Cancelar</button>
-                    <button type="button" class="btn btn-danger px-4" @onclick="ConfirmChangeStage">Confirmar Alteração</button>
+                    <button type="button" class="btn btn-danger px-4" @onclick="ConfirmChangeStage">Confirmar AlteraÃ§Ã£o</button>
                 </div>
             </div>
         </div>
@@ -456,10 +466,10 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseCompleteModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p>Tem certeza que deseja finalizar a produção da ordem <strong>@order?.LotCode</strong>?</p>
-                    <p>Esta ação irá:</p>
+                    <p>Tem certeza que deseja finalizar a produÃ§Ã£o da ordem <strong>@order?.LotCode</strong>?</p>
+                    <p>Esta aÃ§Ã£o irÃ¡:</p>
                     <ul>
-                        <li>Encerrar o cronômetro de produção.</li>
+                        <li>Encerrar o cronÃ´metro de produÃ§Ã£o.</li>
                         <li>Calcular os custos finais com base no tempo decorrido.</li>
                         <li>Atualizar o estoque.</li>
                     </ul>
@@ -482,11 +492,11 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial - Estágio: @TranslateStage(order?.CurrentStage)</h5>
+                    <h5 class="modal-title"><i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial - EstÃ¡gio: @TranslateStage(order?.CurrentStage)</h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="() => isPartialOutputModalVisible = false"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted mb-4">Registre a quantidade de peças que foram concluídas neste estágio hoje. O sistema avançará o estágio automaticamente quando todas as peças forem concluídas.</p>
+                    <p class="text-muted mb-4">Registre a quantidade de peÃ§as que foram concluÃ­das neste estÃ¡gio hoje. O sistema avanÃ§arÃ¡ o estÃ¡gio automaticamente quando todas as peÃ§as forem concluÃ­das.</p>
                     
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
@@ -494,7 +504,7 @@
                                 <tr>
                                     <th>Tamanho</th>
                                     <th class="text-center">Total Ordem</th>
-                                    <th class="text-center">Já Concluído</th>
+                                    <th class="text-center">JÃ¡ ConcluÃ­do</th>
                                     <th class="text-center">Pendente</th>
                                     <th class="text-center" style="width: 150px;">Qtd. Pronta Agora</th>
                                 </tr>
@@ -523,7 +533,7 @@
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" @onclick="() => isPartialOutputModalVisible = false">Cancelar</button>
                     <button type="button" class="btn btn-info text-white px-4" @onclick="ConfirmPartialOutput">
-                        <i class="fa-solid fa-save me-2"></i> Salvar Produção
+                        <i class="fa-solid fa-save me-2"></i> Salvar ProduÃ§Ã£o
                     </button>
                 </div>
             </div>
@@ -758,7 +768,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro ao carregar usuÃ¡rios: {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -821,11 +831,11 @@
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "pending" => "Pendente",
-        "inproduction" => "Em Produção",
+        "inproduction" => "Em ProduÃ§Ã£o",
         "stopped" => "Parado",
         "completed" => "Finalizado",
         "paused" => "Pausado",
-        "finished" => "Concluído",
+        "finished" => "ConcluÃ­do",
         "cancelled" => "Cancelado",
         _ => status ?? ""
     };
@@ -834,7 +844,7 @@
     {
         "cutting" => "Corte",
         "sewing" => "Costura",
-        "review" => "Revisão",
+        "review" => "RevisÃ£o",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };
@@ -858,3 +868,4 @@
         return order.CurrentStage == stage.ToString();
     }
 }
+

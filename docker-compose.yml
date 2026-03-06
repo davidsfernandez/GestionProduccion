@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 services:
   app:
     build:
@@ -27,6 +37,7 @@ services:
         condition: service_healthy
     volumes:
       - avatars_data:/app/wwwroot/img/avatars
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
     networks:
       - app-network
 
@@ -54,7 +65,9 @@ services:
 volumes:
   mysql_data:
   avatars_data:
+  dataprotection_keys:
 
 networks:
   app-network:
     driver: bridge
+

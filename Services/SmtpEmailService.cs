@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Services.Interfaces;
 using System.Net.Mail;
 using System.Net;
@@ -26,7 +36,7 @@ public class SmtpEmailService : IEmailService
             var password = _configuration["SMTP_PASS"] ?? _configuration["Smtp:Password"];
             
             var fromEmail = _configuration["SMTP_FROM_EMAIL"] ?? username ?? "no-reply@gestionproduccion.com";
-            var fromName = _configuration["SMTP_FROM_NAME"] ?? "Gestão de Produção";
+            var fromName = _configuration["SMTP_FROM_NAME"] ?? "GestÃ£o de ProduÃ§Ã£o";
 
             using var client = new SmtpClient(host, port)
             {
@@ -52,3 +62,4 @@ public class SmtpEmailService : IEmailService
         }
     }
 }
+

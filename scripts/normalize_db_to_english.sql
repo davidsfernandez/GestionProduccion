@@ -1,9 +1,19 @@
+Ôªø/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 -- ============================================
--- NORMALIZACI”N DE BD A INGL…S
+-- NORMALIZACI√ìN DE BD A INGL√âS
 -- GestionProduccionDB
 -- ============================================
 -- 
--- Este script renombra tablas y columnas de portuguÈs a inglÈs
+-- Este script renombra tablas y columnas de portugu√©s a ingl√©s
 -- BACKUP RECOMENDADO ANTES DE EJECUTAR
 
 USE GestionProduccionDB;
@@ -69,17 +79,17 @@ ALTER TABLE ProductionHistories
     CHANGE COLUMN Observacao Note VARCHAR(500);
 
 -- ============================================
--- STEP 6: RECREAR ÕNDICES
+-- STEP 6: RECREAR √çNDICES
 -- ============================================
 
--- Eliminar Ìndices antiguos si existen
+-- Eliminar √≠ndices antiguos si existen
 DROP INDEX IF EXISTS IX_OrdensProducao_CodigoUnico ON ProductionOrders;
 DROP INDEX IF EXISTS IX_OrdensProducao_UsuarioId ON ProductionOrders;
 DROP INDEX IF EXISTS IX_HistoricoProducoes_OrdemProducaoId ON ProductionHistories;
 DROP INDEX IF EXISTS IX_HistoricoProducoes_UsuarioId ON ProductionHistories;
 DROP INDEX IF EXISTS IX_Usuarios_Email ON Users;
 
--- Crear nuevos Ìndices con nombres en inglÈs
+-- Crear nuevos √≠ndices con nombres en ingl√©s
 CREATE UNIQUE INDEX IX_ProductionOrders_UniqueCode ON ProductionOrders(UniqueCode);
 CREATE INDEX IX_ProductionOrders_UserId ON ProductionOrders(UserId);
 CREATE INDEX IX_ProductionHistories_ProductionOrderId ON ProductionHistories(ProductionOrderId);
@@ -92,7 +102,7 @@ CREATE UNIQUE INDEX IX_Users_Email ON Users(Email);
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
--- VERIFICACI”N
+-- VERIFICACI√ìN
 -- ============================================
 
 -- Mostrar estructura de tablas
@@ -107,7 +117,8 @@ SELECT COUNT(*) as ProductionOrdersCount FROM ProductionOrders;
 SELECT COUNT(*) as HistoriesCount FROM ProductionHistories;
 
 -- Resultado esperado:
--- ? Tablas renombradas a inglÈs
--- ? Columnas renombradas a inglÈs
+-- ? Tablas renombradas a ingl√©s
+-- ? Columnas renombradas a ingl√©s
 -- ? Datos preservados
--- ? Õndices recreados
+-- ? √çndices recreados
+

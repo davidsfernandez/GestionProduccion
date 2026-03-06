@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using System.Net;
 using System.Net.Http.Json;
 using GestionProduccion.Domain.Enums;
@@ -106,7 +116,7 @@ public class TransactionalFlowTests : BaseIntegrationTest
         var deleteResp = await Client.DeleteAsync($"/api/SewingTeams/{teamAId}");
         deleteResp.EnsureSuccessStatusCode();
 
-        // Act: Verificar reasignación del usuario a algún equipo activo (distinto al borrado)
+        // Act: Verificar reasignaciÃ³n del usuario a algÃºn equipo activo (distinto al borrado)
         var getUserResp = await Client.GetAsync($"/api/Users/{opUserId}");
         var getUserResult = await getUserResp.Content.ReadFromJsonAsync<UserDto>(JsonOptions);
 
@@ -115,3 +125,4 @@ public class TransactionalFlowTests : BaseIntegrationTest
         getUserResult!.SewingTeamId.Should().NotBe(teamAId, "User must be reassigned away from the deleted team");
     }
 }
+

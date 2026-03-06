@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Domain.Constants;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
@@ -120,7 +130,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
                 // Automaticaly advance stage if all pieces are done
                 if (order.CurrentStage != ProductionStage.Packaging)
                 {
-                    await AdvanceStageAsync(orderId, modifiedByUserId, ct);
+                    await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
                 }
                 else
                 {
@@ -240,7 +250,12 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null) return false;
+        
+        return await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
+    }
 
+    private async Task<bool> InternalAdvanceStageAsync(ProductionOrder order, int modifiedByUserId, CancellationToken ct = default)
+    {
         var user = await _userRepository.GetByIdAsync(modifiedByUserId);
         if (user != null && (user.Role == UserRole.Operational))
         {
@@ -316,3 +331,4 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.AddHistoryAsync(history);
     }
 }
+

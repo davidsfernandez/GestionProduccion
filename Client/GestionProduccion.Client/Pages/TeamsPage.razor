@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/equipes"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -10,13 +20,13 @@
 
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark">Gestão de Equipes</h3>
+        <h3 class="h3 text-dark">GestÃ£o de Equipes</h3>
         <div>
             @if (!HasEligibleUsers && !loading)
             {
                 <div class="alert alert-warning py-2 px-3 mb-0 d-inline-block me-3 small">
                     <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                    Não é possível criar equipes. Cadastre usuários com cargo Líder ou Operacional primeiro.
+                    NÃ£o Ã© possÃ­vel criar equipes. Cadastre usuÃ¡rios com cargo LÃ­der ou Operacional primeiro.
                 </div>
             }
             <button class="btn btn-primary" @onclick="ShowCreateModal" disabled="@(!HasEligibleUsers)">
@@ -48,7 +58,7 @@
                                 <th>Nome da Equipe</th>
                                 <th>Membros</th>
                                 <th>Status</th>
-                                <th class="text-end">Ações</th>
+                                <th class="text-end">AÃ§Ãµes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -281,7 +291,7 @@
             else
             {
                 var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error, "Erro de Negócio");
+                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error, "Erro de NegÃ³cio");
             }
         }
         catch (Exception ex)
@@ -296,7 +306,7 @@
 
     private async Task DeleteTeam(SewingTeamDto team)
     {
-        var msg = "ATENÇÃO: Ao excluir esta equipe, todos os seus membros serão transferidos automaticamente para outras equipes ativas baseando-se na carga de trabalho. Deseja continuar?";
+        var msg = "ATENÃ‡ÃƒO: Ao excluir esta equipe, todos os seus membros serÃ£o transferidos automaticamente para outras equipes ativas baseando-se na carga de trabalho. Deseja continuar?";
         
         if (await JSRuntime.InvokeAsync<bool>("confirm", msg))
         {
@@ -306,12 +316,12 @@
                 if (response.IsSuccessStatusCode)
                 {
                     await LoadData();
-                    ToastService.ShowToast("Equipe excluída e membros reatribuídos", ToastLevel.Success);
+                    ToastService.ShowToast("Equipe excluÃ­da e membros reatribuÃ­dos", ToastLevel.Success);
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                    ToastService.ShowToast(error?.Message ?? "Erro: Não há outras equipes para receber os funcionários.", ToastLevel.Error, "Bloqueio de Reatribuição");
+                    ToastService.ShowToast(error?.Message ?? "Erro: NÃ£o hÃ¡ outras equipes para receber os funcionÃ¡rios.", ToastLevel.Error, "Bloqueio de ReatribuiÃ§Ã£o");
                 }
                 else
                 {
@@ -325,3 +335,4 @@
         }
     }
 }
+

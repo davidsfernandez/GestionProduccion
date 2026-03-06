@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Domain.Entities;
@@ -208,7 +218,7 @@ public class UsersController : ControllerBase
             var hasActiveOrders = await _userService.HasActiveOrdersAsync(id);
             if (hasActiveOrders)
             {
-                return Conflict(new { message = "Não é possível desativar este usuário pois ele possui Ordens de Produção ativas atribuídas. Finalize ou reatribua as ordens primeiro." });
+                return Conflict(new { message = "NÃ£o Ã© possÃ­vel desativar este usuÃ¡rio pois ele possui Ordens de ProduÃ§Ã£o ativas atribuÃ­das. Finalize ou reatribua as ordens primeiro." });
             }
 
             var success = await _userService.DeactivateUserAsync(id);
@@ -221,3 +231,4 @@ public class UsersController : ControllerBase
         }
     }
 }
+

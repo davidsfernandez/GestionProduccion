@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/orders/create"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -29,14 +39,14 @@
         <div class="col-12 col-lg-8 col-xl-7">
             <div class="card shadow-sm border-0">
                 <div class="card-header border-0 pt-4 px-4 bg-white">
-                    <h5 class="card-title mb-0">Nova Ordem de Produção</h5>
+                    <h5 class="card-title mb-0">Nova Ordem de ProduÃ§Ã£o</h5>
                 </div>
                 <div class="card-body p-4">
                     @if (isInitialLoading)
                     {
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status"></div>
-                            <div class="mt-2 text-muted">Carregando seletores dinâmicos...</div>
+                            <div class="mt-2 text-muted">Carregando seletores dinÃ¢micos...</div>
                         </div>
                     }
                     else
@@ -50,8 +60,8 @@
                                     <div class="alert alert-success d-flex align-items-center" role="alert">
                                         <i class="fa-solid fa-wand-magic-sparkles me-3 fs-4"></i>
                                         <div>
-                                            <strong>Geração Automática</strong>
-                                            <div class="small">O código do lote (OP) será gerado automaticamente pelo sistema após salvar.</div>
+                                            <strong>GeraÃ§Ã£o AutomÃ¡tica</strong>
+                                            <div class="small">O cÃ³digo do lote (OP) serÃ¡ gerado automaticamente pelo sistema apÃ³s salvar.</div>
                                         </div>
                                     </div>
                                 </div>
@@ -192,7 +202,7 @@
                     <h5 class="card-title fw-bold">Resumo da Ordem</h5>
                     <div class="mt-4">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Código:</span>
+                            <span>CÃ³digo:</span>
                             <span class="fw-bold">Gerado al Salvar</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
@@ -211,8 +221,8 @@
                 <div class="d-flex">
                     <i class="fa-solid fa-circle-info fa-2x me-3"></i>
                     <div>
-                        <h6 class="fw-bold mb-1">Dica de Produção</h6>
-                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estágio de <strong>Corte</strong> con status <strong>Em Produção</strong>.</p>
+                        <h6 class="fw-bold mb-1">Dica de ProduÃ§Ã£o</h6>
+                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estÃ¡gio de <strong>Corte</strong> con status <strong>Em ProduÃ§Ã£o</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -260,7 +270,7 @@
 
     private void HandleInvalidSubmit()
     {
-        ToastService.ShowToast("Erro de validação: Verifique los campos en rojo", ToastLevel.Warning, "Erro de Validação");
+        ToastService.ShowToast("Erro de validaÃ§Ã£o: Verifique los campos en rojo", ToastLevel.Warning, "Erro de ValidaÃ§Ã£o");
     }
 
     private async Task LoadInitialData()
@@ -297,7 +307,7 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
-            ToastService.ShowToast("Erro ao carregar dados para o formulário. Verifique sua conexão.", ToastLevel.Error);
+            ToastService.ShowToast("Erro ao carregar dados para o formulÃ¡rio. Verifique sua conexÃ£o.", ToastLevel.Error);
         }
         finally
         {
@@ -328,7 +338,7 @@
             
             if (result != null)
             {
-                ToastService.ShowToast("Ordem de Produção gerada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast("Ordem de ProduÃ§Ã£o gerada com sucesso!", ToastLevel.Success);
                 createModel = new CreateProductionOrderRequest 
                 { 
                     EstimatedCompletionAt = DateTime.Now.AddDays(7),
@@ -359,3 +369,4 @@
         NavigationManager.NavigateTo("/orders");
     }
 }
+

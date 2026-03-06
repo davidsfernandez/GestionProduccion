@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 
@@ -62,7 +72,7 @@
             }
             else
             {
-                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API está online.";
+                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API estÃ¡ online.";
                 StateHasChanged();
                 await Task.Delay(3000);
                 NavigationManager.NavigateTo("/login", true);
@@ -80,7 +90,7 @@
             }
             else
             {
-                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando...";
+                statusMessage = $"Falha crÃ­tica: {ex.Message}. Redirecionando...";
                 StateHasChanged();
                 await Task.Delay(3000);
                 NavigationManager.NavigateTo("/login", true);
@@ -88,3 +98,4 @@
         }
     }
 }
+

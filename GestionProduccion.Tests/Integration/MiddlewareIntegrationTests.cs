@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +31,17 @@ public class MiddlewareIntegrationTests : BaseIntegrationTest
         // O mejor, asumimos que el middleware captura excepciones de los controladores.
 
         // Act
-        // Llamamos a un endpoint con ID inválido que cause una excepción de dominio o similar no controlada
+        // Llamamos a un endpoint con ID invÃ¡lido que cause una excepciÃ³n de dominio o similar no controlada
         // En este caso, usaremos una ruta inexistente primero para ver 404, 
-        // pero el prompt pide 500 específicamente. 
-        // Si no hay un endpoint "rompible", el test fallará y procederé a la autosanación 
+        // pero el prompt pide 500 especÃ­ficamente. 
+        // Si no hay un endpoint "rompible", el test fallarÃ¡ y procederÃ© a la autosanaciÃ³n 
         // creando uno temporal en un controlador para validar el middleware.
         var response = await Client.GetAsync("/api/Configuration/test-exception");
 
         // Assert
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            // Si el endpoint de prueba no existe, el sistema de autosanación debe "crearlo" 
+            // Si el endpoint de prueba no existe, el sistema de autosanaciÃ³n debe "crearlo" 
             // o arreglar el middleware si no responde adecuadamente.
             // Para cumplir con la directiva, el test espera 500.
         }
@@ -69,3 +79,4 @@ public class MiddlewareIntegrationTests : BaseIntegrationTest
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }
+

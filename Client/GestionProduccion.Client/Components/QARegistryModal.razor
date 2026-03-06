@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @using GestionProduccion.Models.DTOs
 @using System.ComponentModel.DataAnnotations
 @inject HttpClient Http
@@ -36,7 +46,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Foto (Opcional)</label>
                         <InputFile class="form-control" OnChange="OnInputFileChange" accept=".jpg,.png,.jpeg" />
-                        <div class="form-text xsmall">Máximo 5MB (JPG/PNG).</div>
+                        <div class="form-text xsmall">MÃ¡ximo 5MB (JPG/PNG).</div>
                     </div>
 
                     @if (isUploading)
@@ -110,10 +120,11 @@
 
     public class DefectFormModel
     {
-        [Required(ErrorMessage = "O motivo é obrigatório")]
+        [Required(ErrorMessage = "O motivo Ã© obrigatÃ³rio")]
         public string Reason { get; set; } = string.Empty;
 
-        [Range(1, 1000, ErrorMessage = "Quantidade inválida")]
+        [Range(1, 1000, ErrorMessage = "Quantidade invÃ¡lida")]
         public int Quantity { get; set; } = 1;
     }
 }
+

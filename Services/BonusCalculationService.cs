@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
@@ -43,7 +53,7 @@ public class BonusCalculationService : IBonusCalculationService
                 TeamName = team.Name,
                 FinalBonusPercentage = 0,
                 TotalAmount = 0,
-                Message = "Nenhuma regra de bônus ativa configurada."
+                Message = "Nenhuma regra de bÃ´nus ativa configurada."
             };
         }
 
@@ -195,3 +205,4 @@ public class BonusCalculationService : IBonusCalculationService
         };
     }
 }
+

@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/setup"
 @layout Layout.EmptyLayout
 @using System.Net.Http.Json
@@ -15,7 +25,7 @@
                         <i class="fa-solid fa-rocket text-primary fs-2"></i>
                     </div>
                     <h2 class="fw-bold text-dark">@Portuguese.Welcome!</h2>
-                    <p class="text-muted">Configuração Inicial do Sistema</p>
+                    <p class="text-muted">ConfiguraÃ§Ã£o Inicial do Sistema</p>
                 </div>
 
                 @if (success)
@@ -30,17 +40,17 @@
                 else
                 {
                     <p class="small text-muted mb-4 text-center">
-                        Detectamos que este é o primeiro acesso. Crie uma conta de <strong>Administrador</strong> para começar.
+                        Detectamos que este Ã© o primeiro acesso. Crie uma conta de <strong>Administrador</strong> para comeÃ§ar.
                     </p>
 
                     <EditForm Model="@model" OnValidSubmit="HandleSetup">
                         <DataAnnotationsValidator />
 
                         <div class="row">
-                            <div class="col-12"><h6 class="fw-bold mb-3 border-bottom pb-2">Informações da Empresa</h6></div>
+                            <div class="col-12"><h6 class="fw-bold mb-3 border-bottom pb-2">InformaÃ§Ãµes da Empresa</h6></div>
                             <div class="col-md-7 mb-3">
-                                <label class="form-label small fw-bold">Nome da Fábrica/Empresa</label>
-                                <InputText class="form-control" @bind-Value="model.CompanyName" placeholder="Ex: Serona Confecções" />
+                                <label class="form-label small fw-bold">Nome da FÃ¡brica/Empresa</label>
+                                <InputText class="form-control" @bind-Value="model.CompanyName" placeholder="Ex: Serona ConfecÃ§Ãµes" />
                                 <ValidationMessage For="@(() => model.CompanyName)" class="text-danger small" />
                             </div>
                             <div class="col-md-5 mb-3">
@@ -78,7 +88,7 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
                                 }
-                                Finalizar Configuração e Iniciar
+                                Finalizar ConfiguraÃ§Ã£o e Iniciar
                             </button>
                         </div>
 
@@ -184,3 +194,4 @@
         public string Message { get; set; } = "";
     }
 }
+

@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using Bunit;
 using Bunit.TestDoubles;
 using FluentAssertions;
@@ -57,7 +67,7 @@ public class TeamsPageTests : TestContext
         var btn = cut.Find("button.btn-primary");
         btn.HasAttribute("disabled").Should().BeTrue("Create button should be disabled if no users exist");
 
-        cut.Markup.Should().Contain("Não é possível criar equipes", "Warning message should be displayed");
+        cut.Markup.Should().Contain("NÃ£o Ã© possÃ­vel criar equipes", "Warning message should be displayed");
     }
 
     private void SetupMockJsonResponse<T>(string url, T response)
@@ -71,3 +81,4 @@ public class TeamsPageTests : TestContext
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
     }
 }
+

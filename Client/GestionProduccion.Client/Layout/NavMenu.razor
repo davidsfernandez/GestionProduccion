@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @using GestionProduccion.Client.Resources
 @using Microsoft.AspNetCore.Components.Authorization
 @using GestionProduccion.Models.DTOs
@@ -19,7 +29,7 @@
             }
             else
             {
-                <span class="align-middle text-white fw-bold">GESTÃO DE PRODUÇÃO</span>
+                <span class="align-middle text-white fw-bold">GESTÃƒO DE PRODUÃ‡ÃƒO</span>
             }
         </div>
 
@@ -31,7 +41,7 @@
                         <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
                              style="width: 14px; height: 14px; border-width: 2px !important;"></div>
                     </div>
-                    <span class="profile-name">@(context.User.Identity?.Name ?? "Usuário")</span>
+                    <span class="profile-name">@(context.User.Identity?.Name ?? "UsuÃ¡rio")</span>
                     <span class="profile-role">
                         @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
                     </span>
@@ -43,13 +53,13 @@
                         <img src="/img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
                     </div>
                     <span class="profile-name">Convidado</span>
-                    <span class="profile-role">Inicie sessão</span>
+                    <span class="profile-role">Inicie sessÃ£o</span>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
 
         <ul class="sidebar-nav">
-            <li class="menu-label">Produção</li>
+            <li class="menu-label">ProduÃ§Ã£o</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All" @onclick="CollapseSidebar">
@@ -72,7 +82,7 @@
             </AuthorizeView>
 
             <AuthorizeView Roles="Administrator,Leader">
-                <li class="menu-label">Gestão de Fábrica</li>
+                <li class="menu-label">GestÃ£o de FÃ¡brica</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-layer-group"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
@@ -96,7 +106,7 @@
             </AuthorizeView>
 
             <AuthorizeView Roles="Administrator">
-                <li class="menu-label">Inteligência & BI</li>
+                <li class="menu-label">InteligÃªncia & BI</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="relatorios" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-chart-pie"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
@@ -104,7 +114,7 @@
                 </li>
             </AuthorizeView>
 
-            <li class="menu-label">Configurações</li>
+            <li class="menu-label">ConfiguraÃ§Ãµes</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="profile" @onclick="CollapseSidebar">
@@ -248,3 +258,4 @@
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }
+

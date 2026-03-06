@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using System.ComponentModel.DataAnnotations;
 
 namespace GestionProduccion.Client.Models;
@@ -14,6 +24,7 @@ public class ResetPasswordModel
     public string NewPassword { get; set; } = string.Empty;
 
     [Required]
-    [Compare("NewPassword", ErrorMessage = "As senhas não coincidem.")]
+    [Compare("NewPassword", ErrorMessage = "As senhas nÃ£o coincidem.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
+

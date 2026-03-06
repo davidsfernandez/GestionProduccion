@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/usuarios"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -26,7 +36,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header border-0 pb-0">
-                    <h5 class="card-title mb-0">Lista de Usuários</h5>
+                    <h5 class="card-title mb-0">Lista de UsuÃ¡rios</h5>
                 </div>
                 
                 @if (loading)
@@ -40,7 +50,7 @@
                 else if (users == null || !users.Any())
                 {
                     <div class="card-body">
-                        <div class="alert alert-info">Nenhum usuário encontrado.</div>
+                        <div class="alert alert-info">Nenhum usuÃ¡rio encontrado.</div>
                     </div>
                 }
                 else
@@ -252,7 +262,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro ao carregar usuÃ¡rios: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -289,9 +299,9 @@
     private string TranslateRole(string role) => role switch
     {
         "Administrator" => "Administrador",
-        "Leader" => "Líder",
+        "Leader" => "LÃ­der",
         "Operational" => "Costureira/Costureiro",
-        "Office" => "Escritório",
+        "Office" => "EscritÃ³rio",
         _ => role
     };
 
@@ -385,12 +395,12 @@
                 }
 
                 errorMessage = specificError;
-                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de ValidaÃ§Ã£o");
             }
         }
         catch (HttpRequestException)
         {
-            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
+            ToastService.ShowToast("Servidor inacessÃ­vel", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -414,12 +424,12 @@
                 {
                     var user = users?.FirstOrDefault(u => u.Id == id);
                     if (user != null) users?.Remove(user);
-                    ToastService.ShowToast("Usuário desativado com sucesso", ToastLevel.Success);
+                    ToastService.ShowToast("UsuÃ¡rio desativado com sucesso", ToastLevel.Success);
                     StateHasChanged();
                 }
                 else 
                 {
-                    ToastService.ShowToast("Erro ao desativar usuário", ToastLevel.Error);
+                    ToastService.ShowToast("Erro ao desativar usuÃ¡rio", ToastLevel.Error);
                 }
             }
             catch (Exception ex)
@@ -442,10 +452,10 @@
         [System.ComponentModel.DataAnnotations.EmailAddress]
         public string Email { get; set; } = "";
         
-        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mÃ­nimo 6 caracteres.")]
         public string Password { get; set; } = "";
 
-        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas não coincidem.")]
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas nÃ£o coincidem.")]
         public string ConfirmPassword { get; set; } = "";
         
         public UserRole Role { get; set; } = UserRole.Operational;
@@ -453,3 +463,4 @@
         public int? SewingTeamId { get; set; }
     }
 }
+

@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -28,7 +38,7 @@ public class SewingTeamsController : ControllerBase
     public async Task<ActionResult<ApiResponse<SewingTeamDto>>> GetById(int id)
     {
         var team = await _teamService.GetTeamByIdAsync(id);
-        if (team == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
+        if (team == null) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
 
         return Ok(new ApiResponse<SewingTeamDto> { Success = true, Data = team });
     }
@@ -63,7 +73,7 @@ public class SewingTeamsController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
+            return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
         }
         catch (Exception)
         {
@@ -78,7 +88,7 @@ public class SewingTeamsController : ControllerBase
         try
         {
             var result = await _teamService.DeleteTeamAsync(id);
-            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe não encontrada." });
+            if (!result) return NotFound(new ApiResponse<object?> { Success = false, Message = "Equipe nÃ£o encontrada." });
 
             return Ok(new ApiResponse<bool> { Success = true, Data = true });
         }
@@ -102,3 +112,4 @@ public class SewingTeamsController : ControllerBase
         return Ok(new ApiResponse<bool> { Success = true, Data = true });
     }
 }
+

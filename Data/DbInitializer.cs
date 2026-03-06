@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +31,7 @@ public static class DbInitializer
                 await context.SystemConfigurations.AddAsync(new SystemConfiguration
                 {
                     Key = "MainConfig",
-                    CompanyName = "Minha Fábrica",
+                    CompanyName = "Minha FÃ¡brica",
                     CompanyTaxId = "00.000.000/0001-00",
                     LogoBase64 = "",
                     DailyFixedCost = 500.00m,
@@ -125,3 +135,4 @@ public static class DbInitializer
         }
     }
 }
+

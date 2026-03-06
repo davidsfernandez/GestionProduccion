@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using Bunit;
 using Bunit.TestDoubles;
 using FluentAssertions;
@@ -75,7 +85,7 @@ public class OrderDetailsTests : TestContext
 
         // Assert
         cut.WaitForState(() => cut.FindAll("h5.card-title").Count > 0);
-        cut.Markup.Should().Contain("Análise Financeira");
+        cut.Markup.Should().Contain("AnÃ¡lise Financeira");
         cut.Markup.Should().Contain("R$ 25,50"); // Specific check
     }
 
@@ -104,6 +114,7 @@ public class OrderDetailsTests : TestContext
 
         // Assert
         cut.WaitForState(() => cut.FindAll("h5.card-title").Count > 0);
-        cut.Markup.Should().NotContain("Análise Financeira");
+        cut.Markup.Should().NotContain("AnÃ¡lise Financeira");
     }
 }
+

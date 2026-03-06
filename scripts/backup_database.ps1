@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 # Script para hacer backup de la BD GestionProduccionDB (Windows)
 # Uso: PowerShell -ExecutionPolicy Bypass -File backup_database.ps1
 
@@ -32,7 +42,7 @@ try {
     }
     
     if (-not $MysqldumpPath) {
-        throw "mysqldump no encontrado. Aseg�rate de que MySQL est� instalado y en PATH."
+        throw "mysqldump no encontrado. Asegï¿½rate de que MySQL estï¿½ instalado y en PATH."
     }
     
     # Ejecutar mysqldump
@@ -43,7 +53,7 @@ try {
         $FileSize = (Get-Item $BackupFile).Length
         $FileSizeKB = [math]::Round($FileSize / 1KB, 2)
         Write-Host "? Backup creado exitosamente" -ForegroundColor Green
-        Write-Host "?? Tama�o: $FileSizeKB KB"
+        Write-Host "?? Tamaï¿½o: $FileSizeKB KB"
     } else {
         throw "Error al ejecutar mysqldump (exit code: $LASTEXITCODE)"
     }
@@ -51,3 +61,4 @@ try {
     Write-Host "? Error al crear backup: $_" -ForegroundColor Red
     exit 1
 }
+

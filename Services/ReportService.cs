@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Services.ProductionOrders;
 using QuestPDF.Fluent;
@@ -72,9 +82,9 @@ public class ReportService : IReportService
                             }
                             else
                             {
-                                col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold().FontColor(Colors.White);
+                                col.Item().Text("ERP CONFECÃ‡ÃƒO").FontSize(20).Bold().FontColor(Colors.White);
                             }
-                            col.Item().Text("FICHA DE PRODUÇÃO").FontSize(16).Bold().FontColor(Colors.Grey.Lighten2);
+                            col.Item().Text("FICHA DE PRODUÃ‡ÃƒO").FontSize(16).Bold().FontColor(Colors.Grey.Lighten2);
                             col.Item().Text(config?.CompanyName ?? "David Fernandez").FontSize(12).FontColor(Colors.Grey.Lighten2);  
                         });
 
@@ -102,7 +112,7 @@ public class ReportService : IReportService
                                 columns.RelativeColumn();
                             });
 
-                            table.Cell().Text(t => { t.Span("Lote / Código: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(12); });
+                            table.Cell().Text(t => { t.Span("Lote / CÃ³digo: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(12); });
                             table.Cell().Text(t => { t.Span("SKU: ").Bold(); t.Span(order.ProductCode ?? "N/A").FontSize(12); });    
 
                             table.Cell().Text(t => { t.Span("Produto: ").Bold(); t.Span($"{order.ProductName ?? "N/A"}"); });
@@ -117,15 +127,15 @@ public class ReportService : IReportService
                                 }
                                 else
                                 {
-                                    col.Item().Text(order.Size ?? "Único");
+                                    col.Item().Text(order.Size ?? "Ãšnico");
                                 }
                             });
                             table.Cell().Text(t => { t.Span("Status: ").Bold(); t.Span(TranslateStatus(order.CurrentStatus)); });    
 
-                            table.Cell().Text(t => { t.Span("Equipe: ").Bold(); t.Span(order.SewingTeamName ?? "Não atribuída"); });
-                            table.Cell().Text(t => { t.Span("Operário: ").Bold(); t.Span(order.AssignedUserName ?? "Não atribuído"); });
+                            table.Cell().Text(t => { t.Span("Equipe: ").Bold(); t.Span(order.SewingTeamName ?? "NÃ£o atribuÃ­da"); });
+                            table.Cell().Text(t => { t.Span("OperÃ¡rio: ").Bold(); t.Span(order.AssignedUserName ?? "NÃ£o atribuÃ­do"); });
 
-                            table.Cell().Text(t => { t.Span("Início: ").Bold(); t.Span(order.StartedAt?.ToString("g") ?? "Não iniciado"); });
+                            table.Cell().Text(t => { t.Span("InÃ­cio: ").Bold(); t.Span(order.StartedAt?.ToString("g") ?? "NÃ£o iniciado"); });
                             table.Cell().Text(t => { t.Span("Fim Real: ").Bold(); t.Span(order.CompletedAt?.ToString("g") ?? "-"); });
 
                             table.Cell().Text(t => { t.Span("Prazo Estimado: ").Bold(); t.Span(order.EstimatedCompletionAt.ToShortDateString()); });
@@ -142,7 +152,7 @@ public class ReportService : IReportService
                                 var avgHistoricalMinutes = order.Product?.AverageProductionTimeMinutes ?? 0;
                                 var perfIndex = avgHistoricalMinutes > 0 ? (avgHistoricalMinutes / (totalEffectiveMinutes / Math.Max(1, order.Quantity))) * 100 : 100;
 
-                                c.Item().Text("Métricas de Produção").Bold().FontSize(11).FontColor(Colors.Grey.Darken2);
+                                c.Item().Text("MÃ©tricas de ProduÃ§Ã£o").Bold().FontSize(11).FontColor(Colors.Grey.Darken2);
                                 c.Item().Text(t => { t.Span("Tempo Efetivo: ").Bold(); t.Span($"{totalEffectiveMinutes:N1} min"); });
                                 c.Item().Text(t => { t.Span("Total de Pausas: ").Bold(); t.Span(pauseCount.ToString()); });
 
@@ -151,7 +161,7 @@ public class ReportService : IReportService
                                     c.Item().Text(t => {
                                         t.Span("Desempenho: ").Bold();
                                         t.Span($"{perfIndex:N1}% ").FontColor(perfIndex >= 90 ? Colors.Green.Medium : Colors.Red.Medium);
-                                        t.Span(perfIndex >= 100 ? "(Acima da média)" : "(Abaixo da média)").FontSize(8).Italic();  
+                                        t.Span(perfIndex >= 100 ? "(Acima da mÃ©dia)" : "(Abaixo da mÃ©dia)").FontSize(8).Italic();  
                                     });
                                 }
                             });
@@ -160,7 +170,7 @@ public class ReportService : IReportService
                             {
                                 row.ConstantItem(150).Background(Colors.Red.Lighten5).Padding(10).AlignCenter().Column(c =>
                                 {
-                                    c.Item().Text("ATENÇÃO: ATRASO").Bold().FontColor(Colors.Red.Medium);
+                                    c.Item().Text("ATENÃ‡ÃƒO: ATRASO").Bold().FontColor(Colors.Red.Medium);
                                     var delay = ((order.CompletedAt ?? DateTime.UtcNow) - order.EstimatedCompletionAt).TotalDays;    
                                     c.Item().Text($"{delay:N1} dias de atraso").FontSize(9);
                                 });
@@ -177,14 +187,14 @@ public class ReportService : IReportService
                                 c.Item().Row(r =>
                                 {
                                     r.RelativeItem().Text(t => { t.Span("Custo Total Lote: ").Bold(); t.Span($"R$ {order.TotalCost:N2}"); });
-                                    r.RelativeItem().Text(t => { t.Span("Custo Real Unitário: ").Bold(); t.Span($"R$ {order.AverageCostPerPiece:N2}"); });
+                                    r.RelativeItem().Text(t => { t.Span("Custo Real UnitÃ¡rio: ").Bold(); t.Span($"R$ {order.AverageCostPerPiece:N2}"); });
                                     r.RelativeItem().Text(t => { t.Span("Margem: ").Bold(); t.Span($"{order.ProfitMargin:N1}%"); }); 
                                 });
                             });
                         }
 
                         // HISTORY TABLE
-                        x.Item().PaddingTop(10).Text("Histórico de Movimentação").Bold().FontSize(12);
+                        x.Item().PaddingTop(10).Text("HistÃ³rico de MovimentaÃ§Ã£o").Bold().FontSize(12);
                         x.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -199,7 +209,7 @@ public class ReportService : IReportService
                             {
                                 header.Cell().Element(CellStyle).Text("Data");
                                 header.Cell().Element(CellStyle).Text("Etapa");
-                                header.Cell().Element(CellStyle).Text("Responsável");
+                                header.Cell().Element(CellStyle).Text("ResponsÃ¡vel");
                                 header.Cell().Element(CellStyle).Text("Obs");
                                 static IContainer CellStyle(IContainer container) => container.Background(Colors.Grey.Lighten4).Padding(5).BorderBottom(1).BorderColor(Colors.Black);
                             });
@@ -218,7 +228,7 @@ public class ReportService : IReportService
                     page.Footer().AlignCenter().Row(row =>
                     {
                         row.RelativeItem().Text(x => { x.Span("Gerado em: "); x.Span(DateTime.Now.ToString("g")); });
-                        row.RelativeItem().AlignRight().Text(x => { x.Span("Página "); x.CurrentPageNumber(); });
+                        row.RelativeItem().AlignRight().Text(x => { x.Span("PÃ¡gina "); x.CurrentPageNumber(); });
                     });
                 });
             });
@@ -255,9 +265,9 @@ public class ReportService : IReportService
                         row.RelativeItem().Column(col =>
                         {
                             if (logoBytes != null) col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
-                            else col.Item().Text("ERP CONFECÇÃO").FontSize(20).Bold();
+                            else col.Item().Text("ERP CONFECÃ‡ÃƒO").FontSize(20).Bold();
 
-                            col.Item().Text("Relatório Diário de Produção").FontSize(16).Bold().FontColor(Colors.Grey.Darken3);  
+                            col.Item().Text("RelatÃ³rio DiÃ¡rio de ProduÃ§Ã£o").FontSize(16).Bold().FontColor(Colors.Grey.Darken3);  
                             col.Item().Text(config?.CompanyName ?? "David Fernandez").FontSize(12).FontColor(Colors.Grey.Medium);    
                             col.Item().Text($"Data: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);    
                         });
@@ -272,9 +282,9 @@ public class ReportService : IReportService
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Resumo Estatístico").Bold();
+                                c.Item().Text("Resumo EstatÃ­stico").Bold();
                                 c.Item().Text($"Total Produzido Hoje: {dashboard?.CompletedToday ?? 0}");
-                                c.Item().Text($"Taxa de Conclusão: {dashboard?.CompletionRate ?? 0:N1}%");
+                                c.Item().Text($"Taxa de ConclusÃ£o: {dashboard?.CompletionRate ?? 0:N1}%");
                             });
                         });
 
@@ -287,7 +297,7 @@ public class ReportService : IReportService
                                 columns.RelativeColumn(3); // Lote
                                 columns.RelativeColumn(4); // Produto
                                 columns.RelativeColumn(3); // Equipe
-                                columns.RelativeColumn(3); // Operário
+                                columns.RelativeColumn(3); // OperÃ¡rio
                                 columns.RelativeColumn(2); // Status
                             });
 
@@ -297,7 +307,7 @@ public class ReportService : IReportService
                                 header.Cell().Element(HeaderStyle).Text("Lote/OP");
                                 header.Cell().Element(HeaderStyle).Text("Produto");
                                 header.Cell().Element(HeaderStyle).Text("Equipe");
-                                                            header.Cell().Element(HeaderStyle).Text("Operário");
+                                                            header.Cell().Element(HeaderStyle).Text("OperÃ¡rio");
                                                             header.Cell().Element(HeaderStyle).Text("Status");
                                                             static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Darken3).Padding(5).AlignCenter().DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(9).FontFamily(DefaultFont));
                                                         });
@@ -319,7 +329,7 @@ public class ReportService : IReportService
                         });
                     });
 
-                    page.Footer().AlignCenter().Text(x => { x.Span("Página "); x.CurrentPageNumber(); });
+                    page.Footer().AlignCenter().Text(x => { x.Span("PÃ¡gina "); x.CurrentPageNumber(); });
                 });
             });
             return document.GeneratePdf();
@@ -368,7 +378,7 @@ public class ReportService : IReportService
     {
         "cutting" => "Corte",
         "sewing" => "Costura",
-        "review" => "Revisão",
+        "review" => "RevisÃ£o",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };
@@ -376,12 +386,13 @@ public class ReportService : IReportService
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "pending" => "Pendente",
-        "inproduction" => "Em Produção",
+        "inproduction" => "Em ProduÃ§Ã£o",
         "stopped" => "Parado",
         "completed" => "Finalizado",
         "paused" => "Pausado",
-        "finished" => "Concluído",
+        "finished" => "ConcluÃ­do",
         "cancelled" => "Cancelado",
         _ => status ?? ""
     };
 }
+

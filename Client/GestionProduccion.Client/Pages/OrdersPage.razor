@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/orders"
 @using GestionProduccion.Models.DTOs
 @using GestionProduccion.Client.Services
@@ -39,7 +49,7 @@
                                 <div class="col-md-5">
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou Código..."
+                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou CÃ³digo..."
                                                @bind="searchTerm" />
                                     </div>
                                 </div>
@@ -103,7 +113,7 @@
                                     </div>
                                     <div>
                                         <span class="fw-bold text-dark d-block">@selectedOrderIds.Count selecionados</span>
-                                        <span class="text-muted xsmall">Ações em massa para as ordens selecionadas</span>
+                                        <span class="text-muted xsmall">AÃ§Ãµes em massa para as ordens selecionadas</span>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
@@ -137,7 +147,7 @@
                                     <th>Equipe / Operador</th>
                                     <th>Status</th>
                                     <th class="d-none d-lg-table-cell">Entrega</th>
-                                    <th class="text-end text-nowrap">Ações</th>
+                                    <th class="text-end text-nowrap">AÃ§Ãµes</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -187,7 +197,7 @@
                                             <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="Detalhes">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="Relatório">
+                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="RelatÃ³rio">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                             <AuthorizeView Roles="Administrator">
@@ -284,14 +294,14 @@
 
     private async Task DeleteOrder(ProductionOrderDto order)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta ação alterará as métricas de produção."))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta aÃ§Ã£o alterarÃ¡ as mÃ©tricas de produÃ§Ã£o."))
         {
             try
             {
                 var success = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
                 if (success)
                 {
-                    ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
+                    ToastService.ShowToast("Ordem de produÃ§Ã£o removida.", ToastLevel.Success);
                     await LoadOrders();
                 }
                 else
@@ -301,7 +311,7 @@
             }
             catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
-                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
+                ToastService.ShowToast("NÃ£o Ã© possÃ­vel excluir: Esta ordem possui restriÃ§Ãµes de domÃ­nio ou jÃ¡ estÃ¡ finalizada.", ToastLevel.Warning);
             }
             catch (Exception ex)
             {
@@ -314,7 +324,7 @@
     {
         "cutting" => "Corte",
         "sewing" => "Costura",
-        "review" => "Revisão",
+        "review" => "RevisÃ£o",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };
@@ -322,11 +332,11 @@
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "pending" => "Pendente",
-        "inproduction" => "Em Produção",
+        "inproduction" => "Em ProduÃ§Ã£o",
         "stopped" => "Parado",
         "completed" => "Finalizado",
         "paused" => "Pausado",
-        "finished" => "Concluído",
+        "finished" => "ConcluÃ­do",
         "cancelled" => "Cancelado",
         _ => status ?? ""
     };
@@ -368,7 +378,7 @@
             loading = true;
             // Send request to backend
             ProductionStatus newStatus = (ProductionStatus)status;
-            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa via lista");
+            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "AtualizaÃ§Ã£o em massa via lista");
             
             if (result != null)
             {
@@ -508,3 +518,4 @@
         try { await SignalR.StopConnection(); } catch { }
     }
 }
+

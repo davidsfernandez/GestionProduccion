@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/relatorios"
 @page "/bonus-report"
 @using GestionProduccion.Models.DTOs
@@ -10,16 +20,16 @@
 @inject ToastService ToastService
 
 <div class="container-fluid p-0 animate-fade-in">
-    <h3 class="h3 mb-4 text-dark">Relatório Financeiro e Bonificações</h3>
+    <h3 class="h3 mb-4 text-dark">RelatÃ³rio Financeiro e BonificaÃ§Ãµes</h3>
 
     <div class="card shadow-sm border-0 mb-4 rounded-4">
         <div class="card-body p-4">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Modo de Análise</label>
+                    <label class="form-label small fw-bold">Modo de AnÃ¡lise</label>
                     <select class="form-select" @onchange="OnModeChanged">
-                        <option value="team">Análise por Equipe</option>
-                        <option value="user">Análise por Funcionário</option>
+                        <option value="team">AnÃ¡lise por Equipe</option>
+                        <option value="user">AnÃ¡lise por FuncionÃ¡rio</option>
                     </select>
                 </div>
 
@@ -40,9 +50,9 @@
                     }
                     else
                     {
-                        <label class="form-label small fw-bold">Selecione o Funcionário</label>
+                        <label class="form-label small fw-bold">Selecione o FuncionÃ¡rio</label>
                         <select class="form-select" @bind="selectedId">
-                            <option value="0">Selecione um funcionário...</option>
+                            <option value="0">Selecione um funcionÃ¡rio...</option>
                             @if (users != null)
                             {
                                 @foreach (var user in users)
@@ -55,7 +65,7 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Mês de Referência</label>
+                    <label class="form-label small fw-bold">MÃªs de ReferÃªncia</label>
                     <input type="month" class="form-control" @bind="selectedMonth" />
                 </div>
 
@@ -77,7 +87,7 @@
                     <h1 class="display-4 fw-bold @(report.FinalBonusPercentage == 0 ? "text-danger" : "text-success")">
                         @report.FinalBonusPercentage.ToString("F1")%
                     </h1>
-                    <p class="mb-0 fw-bold uppercase small text-muted">Bonificação Final</p>
+                    <p class="mb-0 fw-bold uppercase small text-muted">BonificaÃ§Ã£o Final</p>
                     <small class="text-muted">@(reportMode == "team" ? "Desempenho Coletivo" : "Individual + Proporcional Equipe")</small>
                 </div>
             </div>
@@ -110,12 +120,12 @@
 
         <div class="card shadow-sm border-0 mt-4 rounded-4 overflow-hidden animate-fade-in-up delay-1">
             <div class="card-header bg-white py-3 border-0 pt-4 px-4">
-                <h5 class="mb-0 fw-bold">Detalhamento da Produção - @report.TeamName</h5>
+                <h5 class="mb-0 fw-bold">Detalhamento da ProduÃ§Ã£o - @report.TeamName</h5>
             </div>
             <div class="card-body p-4">
                 <div class="row text-center g-4">
                     <div class="col-md-3 border-end">
-                        <p class="text-muted mb-1 small uppercase fw-bold">Lotes Concluídos</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">Lotes ConcluÃ­dos</p>
                         <h3 class="text-dark fw-bold">@report.CompletedOrders</h3>
                     </div>
                     <div class="col-md-3 border-end">
@@ -127,7 +137,7 @@
                         <h3 class="@(report.TotalDefects > 0 ? "text-danger" : "text-success") fw-bold">@report.TotalDefects</h3>
                     </div>
                     <div class="col-md-3">
-                        <p class="text-muted mb-1 small uppercase fw-bold">Bônus Estimado</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">BÃ´nus Estimado</p>
                         <h3 class="text-success fw-bold">@report.TotalAmount.ToString("C", new CultureInfo("pt-BR"))</h3>
                     </div>
                 </div>
@@ -141,7 +151,7 @@
                 <i class="fa-solid fa-circle-info fa-2x me-3 opacity-50"></i>
                 <div>
                     <h6 class="fw-bold mb-1">Nenhum dado encontrado</h6>
-                    <p class="mb-0 small">Nenhuma produção registrada para o período e alvo selecionados.</p>
+                    <p class="mb-0 small">Nenhuma produÃ§Ã£o registrada para o perÃ­odo e alvo selecionados.</p>
                 </div>
             </div>
         </div>
@@ -221,12 +231,12 @@
             }
             else
             {
-                ToastService.ShowToast(response?.Message ?? "Erro ao calcular bônus.", ToastLevel.Warning);
+                ToastService.ShowToast(response?.Message ?? "Erro ao calcular bÃ´nus.", ToastLevel.Warning);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro de conexão: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro de conexÃ£o: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -235,3 +245,4 @@
         }
     }
 }
+

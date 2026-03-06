@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 using GestionProduccion.Data;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
@@ -40,7 +50,7 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
             var fileStorageMock = new Mock<IFileStorageService>();
             services.AddSingleton(fileStorageMock.Object);
 
-            // 4. Asegurar que la DB esté creada para pruebas
+            // 4. Asegurar que la DB estÃ© creada para pruebas
             var sp = services.BuildServiceProvider();
             using (var scope = sp.CreateScope())
             {
@@ -51,3 +61,4 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
         });
     }
 }
+

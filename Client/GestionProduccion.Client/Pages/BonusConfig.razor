@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/configuracao-bonus"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -7,7 +17,7 @@
 @inject JsonSerializerOptions JsonOptions
 
 <div class="container-fluid p-0">
-    <h3 class="h3 mb-4 text-dark">Configuração de Bonificações</h3>
+    <h3 class="h3 mb-4 text-dark">ConfiguraÃ§Ã£o de BonificaÃ§Ãµes</h3>
 
     @if (rule == null)
     {
@@ -20,13 +30,13 @@
         <div class="card shadow-sm border-0 col-lg-6">
             <div class="card-body p-4">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Bônus por Produtividade (%)</label>
+                    <label class="form-label fw-bold">BÃ´nus por Produtividade (%)</label>
                     <input type="number" step="0.5" class="form-control" @bind="rule.ProductivityPercentage" />
                     <small class="text-muted">Percentual base se as metas forem atingidas.</small>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Bônus por Prazo (%)</label>
+                    <label class="form-label fw-bold">BÃ´nus por Prazo (%)</label>
                     <input type="number" step="0.5" class="form-control" @bind="rule.DeadlineBonusPercentage" />
                     <small class="text-muted">Adicional para entregas antecipadas ou no prazo.</small>
                 </div>
@@ -34,7 +44,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Limite de Defeitos (%)</label>
                     <input type="number" step="0.1" class="form-control" @bind="rule.DefectLimitPercentage" />
-                    <small class="text-muted">Se ultrapassar este limite de defeitos por lote, o bônus é cancelado.</small>
+                    <small class="text-muted">Se ultrapassar este limite de defeitos por lote, o bÃ´nus Ã© cancelado.</small>
                 </div>
 
                 <div class="mb-4">
@@ -45,7 +55,7 @@
 
                 <button class="btn btn-primary w-100 py-2" @onclick="SaveRules" disabled="@saving">
                     @if (saving) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                    Salvar Configurações
+                    Salvar ConfiguraÃ§Ãµes
                 </button>
             </div>
         </div>
@@ -70,3 +80,4 @@
         // Logic for success toast
     }
 }
+

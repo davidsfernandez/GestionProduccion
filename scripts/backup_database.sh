@@ -1,3 +1,13 @@
+﻿/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 #!/bin/bash
 
 # Script para hacer backup de la BD GestionProduccionDB
@@ -18,8 +28,9 @@ mysqldump -u root -p'REPLACE_WITH_YOUR_PASSWORD' GestionProduccionDB > "$BACKUP_
 
 if [ $? -eq 0 ]; then
     echo "? Backup creado exitosamente"
-    echo "?? Tama�o: $(ls -lh "$BACKUP_FILE" | awk '{print $5}')"
+    echo "?? Tamaï¿½o: $(ls -lh "$BACKUP_FILE" | awk '{print $5}')"
 else
     echo "? Error al crear backup"
     exit 1
 fi
+

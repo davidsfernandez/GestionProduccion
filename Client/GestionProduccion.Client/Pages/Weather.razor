@@ -1,11 +1,21 @@
+Ôªø/*
+ * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+ * 
+ * This software and its associated documentation files are the exclusive property 
+ * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+ * or use of this software, via any medium, is strictly prohibited.
+ * 
+ * Proprietary and Confidential.
+ */
+
 @page "/weather"
 @inject HttpClient Http
 
-<PageTitle>Previs„o do Tempo</PageTitle>
+<PageTitle>Previs√£o do Tempo</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <h3 class="text-dark mb-0">Previs„o do Tempo</h3>
+        <h3 class="text-dark mb-0">Previs√£o do Tempo</h3>
     </div>
 
     <div class="row">
@@ -73,3 +83,4 @@
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
     }
 }
+
