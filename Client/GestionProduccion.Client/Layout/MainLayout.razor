@@ -26,7 +26,7 @@
 {
     <div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-white">
         <div class="spinner-border text-primary" role="status"></div>
-        <h5 class="text-muted fw-bold">Inicializando sistema...</h5>
+        <h5 class="text-muted fw-bold">@Portuguese.Msg_SystemInitializing</h5>
     </div>
 }
 else
@@ -147,7 +147,7 @@ else
             }
             else
             {
-                ToastService.ShowToast(message, ToastLevel.Info, "NotificaÃ§Ã£o");
+                ToastService.ShowToast(message, ToastLevel.Info, Portuguese.Toast_SystemNotice);
             }
             StateHasChanged();
         });

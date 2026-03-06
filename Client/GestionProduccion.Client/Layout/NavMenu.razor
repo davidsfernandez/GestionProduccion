@@ -29,7 +29,7 @@
             }
             else
             {
-                <span class="align-middle text-white fw-bold">GESTÃƒO DE PRODUÃ‡ÃƒO</span>
+                <span class="align-middle text-white fw-bold">GESTÃO DE PRODUÇÃO</span>
             }
         </div>
 
@@ -41,7 +41,7 @@
                         <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
                              style="width: 14px; height: 14px; border-width: 2px !important;"></div>
                     </div>
-                    <span class="profile-name">@(context.User.Identity?.Name ?? "UsuÃ¡rio")</span>
+                    <span class="profile-name">@(context.User.Identity?.Name ?? Portuguese.User_User)</span>
                     <span class="profile-role">
                         @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
                     </span>
@@ -52,14 +52,14 @@
                     <div class="position-relative d-inline-block">
                         <img src="/img/avatars/avatar.jpg" class="profile-img" alt="Guest" />
                     </div>
-                    <span class="profile-name">Convidado</span>
-                    <span class="profile-role">Inicie sessÃ£o</span>
+                    <span class="profile-name">@Portuguese.Guest</span>
+                    <span class="profile-role">@Portuguese.PleaseLogin</span>
                 </div>
             </NotAuthorized>
         </AuthorizeView>
 
         <ul class="sidebar-nav">
-            <li class="menu-label">ProduÃ§Ã£o</li>
+            <li class="menu-label">@Portuguese.Menu_Production</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="" Match="NavLinkMatch.All" @onclick="CollapseSidebar">
@@ -82,7 +82,7 @@
             </AuthorizeView>
 
             <AuthorizeView Roles="Administrator,Leader">
-                <li class="menu-label">GestÃ£o de FÃ¡brica</li>
+                <li class="menu-label">@Portuguese.Menu_FactoryManagement</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-layer-group"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
@@ -106,7 +106,7 @@
             </AuthorizeView>
 
             <AuthorizeView Roles="Administrator">
-                <li class="menu-label">InteligÃªncia & BI</li>
+                <li class="menu-label">@Portuguese.Menu_IntelligenceBI</li>
                 <li class="sidebar-item">
                     <NavLink class="sidebar-link" href="relatorios" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-chart-pie"></i> <span class="align-middle">@Portuguese.Nav_Reports</span>
@@ -114,7 +114,7 @@
                 </li>
             </AuthorizeView>
 
-            <li class="menu-label">ConfiguraÃ§Ãµes</li>
+            <li class="menu-label">@Portuguese.Menu_Settings</li>
 
             <li class="sidebar-item">
                 <NavLink class="sidebar-link" href="profile" @onclick="CollapseSidebar">

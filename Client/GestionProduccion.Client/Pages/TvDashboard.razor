@@ -185,12 +185,12 @@ else
                 <div class="tv-panel @(highlightStats ? "highlight-flash" : "")">
                     <div class="tv-panel-header"><i class="fa-solid fa-check-circle"></i> Produzido Hoje</div>
                     <div class="stat-value">@dashboard.CompletedToday</div>
-                    <div class="text-center text-muted h4">PeÃ§as</div>
+                    <div class="text-center text-muted h4">Peças</div>
                 </div>
 
                 <!-- Panel 2: Items In Production -->
                 <div class="tv-panel">
-                    <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em ProduÃ§Ã£o</div>
+                    <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em Produção</div>
                     <div style="overflow-y: hidden; flex: 1;">
                         @foreach (var order in dashboard.TodaysOrders.Where(o => o.CurrentStatus != "Completed" && o.CurrentStage == "Sewing").Take(5)) 
                         {
@@ -205,14 +205,14 @@ else
 
                 <!-- Panel 3: Efficiency -->
                 <div class="tv-panel">
-                    <div class="tv-panel-header"><i class="fa-solid fa-chart-line"></i> EficiÃªncia DiÃ¡ria</div>
+                    <div class="tv-panel-header"><i class="fa-solid fa-chart-line"></i> Eficiência Diária</div>
                     <div class="stat-value" style="color: @(dashboard.CompletionRate >= 80 ? "#00C899" : "#fcb92c")">
                         @dashboard.CompletionRate.ToString("0.##")%
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3 px-3">
                         <div class="text-muted h4 mb-0">Meta: 100%</div>
                         <div class="text-muted h4 mb-0 fw-bold">
-                            <i class="fa-regular fa-clock me-2"></i> @dashboard.AverageTimePerPieceMinutes.ToString("F1") min/peÃ§a
+                            <i class="fa-regular fa-clock me-2"></i> @dashboard.AverageTimePerPieceMinutes.ToString("F1") min/peça
                         </div>
                     </div>
                 </div>
@@ -259,11 +259,11 @@ else
     private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
         "cutting" => "Corte",
-        "preparation" => "PreparaÃ§Ã£o",
-        "prep" => "PreparaÃ§Ã£o",
+        "preparation" => "Preparação",
+        "prep" => "Preparação",
         "sewing" => "Costura",
-        "review" => "RevisÃ£o",
-        "qa" => "RevisÃ£o",
+        "review" => "Revisão",
+        "qa" => "Revisão",
         "packaging" => "Embalagem",
         _ => stage ?? ""
     };
@@ -274,7 +274,7 @@ else
         
         var lower = action.ToLower();
         if (lower.Contains("created")) return "Ordem Criada";
-        if (lower.Contains("advanced to")) return $"AvanÃ§ado para {TranslateStage(lower.Replace("advanced to ", "").Trim())}";
+        if (lower.Contains("advanced to")) return $"Avançado para {TranslateStage(lower.Replace("advanced to ", "").Trim())}";
         if (lower.Contains("finalized")) return "Finalizado";
         if (lower.Contains("stopped")) return "Parado";
         

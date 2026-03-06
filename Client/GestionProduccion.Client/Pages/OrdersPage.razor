@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -49,19 +49,19 @@
                                 <div class="col-md-5">
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                        <input type="search" class="form-control border-0 px-2" placeholder="Produto ou CÃ³digo..."
+                                        <input type="search" class="form-control border-0 px-2" placeholder="@Portuguese.OP_SearchPlaceholder"
                                                @bind="searchTerm" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
-                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Cliente..." @bind="filterClient" style="border-radius: 10px;" />
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_ClientPlaceholder" @bind="filterClient" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
-                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="Tamanho..." @bind="filterTamanho" style="border-radius: 10px;" />
+                                    <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_SizePlaceholder" @bind="filterTamanho" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
                                     <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="LoadOrders" style="border-radius: 10px;">
-                                        <i class="fa-solid fa-filter me-2"></i>Filtrar
+                                        <i class="fa-solid fa-filter me-2"></i>@Portuguese.Filter
                                     </button>
                                 </div>
                             </div>
@@ -112,23 +112,23 @@
                                         <i class="fa-solid fa-check-double text-primary"></i>
                                     </div>
                                     <div>
-                                        <span class="fw-bold text-dark d-block">@selectedOrderIds.Count selecionados</span>
-                                        <span class="text-muted xsmall">AÃ§Ãµes em massa para as ordens selecionadas</span>
+                                        <span class="fw-bold text-dark d-block">@selectedOrderIds.Count @Portuguese.Selected</span>
+                                        <span class="text-muted xsmall">@Portuguese.BulkActions para as ordens selecionadas</span>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-warning btn-sm px-3" @onclick="() => BulkUpdate(3)">
-                                        <i class="fa-solid fa-pause me-1"></i> Pausar
+                                        <i class="fa-solid fa-pause me-1"></i> @Portuguese.Pause
                                     </button>
                                     <button class="btn btn-outline-success btn-sm px-3" @onclick="() => BulkUpdate(0)">
-                                        <i class="fa-solid fa-play me-1"></i> Retomar
+                                        <i class="fa-solid fa-play me-1"></i> @Portuguese.Resume
                                     </button>
                                     <button class="btn btn-outline-danger btn-sm px-3" @onclick="() => BulkUpdate(1)">
-                                        <i class="fa-solid fa-stop me-1"></i> Parar
+                                        <i class="fa-solid fa-stop me-1"></i> @Portuguese.Stop
                                     </button>
                                     <div class="vr mx-2"></div>
                                     <button class="btn btn-light btn-sm px-3" @onclick="() => selectedOrderIds.Clear()">
-                                        Cancelar
+                                        @Portuguese.Cancel
                                     </button>
                                 </div>
                             </div>
@@ -141,13 +141,13 @@
                                     <th style="width: 40px;">
                                         <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll" checked="@AllSelected" />
                                     </th>
-                                    <th>SKU / Produto</th>
-                                    <th class="d-none d-md-table-cell">Lote</th>
-                                    <th>Tamanho</th>
-                                    <th>Equipe / Operador</th>
-                                    <th>Status</th>
-                                    <th class="d-none d-lg-table-cell">Entrega</th>
-                                    <th class="text-end text-nowrap">AÃ§Ãµes</th>
+                                    <th>SKU / @Portuguese.Product</th>
+                                    <th class="d-none d-md-table-cell">@Portuguese.OP_BatchCount</th>
+                                    <th>@Portuguese.Cat_Sizes</th>
+                                    <th>Equipe / @Portuguese.Role_Operator</th>
+                                    <th>@Portuguese.OP_Status</th>
+                                    <th class="d-none d-lg-table-cell">@Portuguese.OP_Delivery</th>
+                                    <th class="text-end text-nowrap">@Portuguese.Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -194,14 +194,14 @@
                                         </td>
                                         <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
                                         <td class="text-end text-nowrap">
-                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="Detalhes">
+                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="RelatÃ³rio">
+                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                             <AuthorizeView Roles="Administrator">
-                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteOrder(order)" title="Excluir">
+                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteOrder(order)" title="@Portuguese.Delete">
                                                     <i class="fa-solid fa-trash"></i>
                                                 </button>
                                             </AuthorizeView>
@@ -294,14 +294,14 @@
 
     private async Task DeleteOrder(ProductionOrderDto order)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta aÃ§Ã£o alterarÃ¡ as mÃ©tricas de produÃ§Ã£o."))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Tem certeza que deseja excluir a ordem {order.LotCode}? Esta ação alterará as métricas de produção."))
         {
             try
             {
                 var success = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
                 if (success)
                 {
-                    ToastService.ShowToast("Ordem de produÃ§Ã£o removida.", ToastLevel.Success);
+                    ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
                     await LoadOrders();
                 }
                 else
@@ -311,7 +311,7 @@
             }
             catch (HttpRequestException hex) when (hex.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
-                ToastService.ShowToast("NÃ£o Ã© possÃ­vel excluir: Esta ordem possui restriÃ§Ãµes de domÃ­nio ou jÃ¡ estÃ¡ finalizada.", ToastLevel.Warning);
+                ToastService.ShowToast("Não é possível excluir: Esta ordem possui restrições de domínio ou já está finalizada.", ToastLevel.Warning);
             }
             catch (Exception ex)
             {
@@ -322,22 +322,22 @@
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
-        "cutting" => "Corte",
-        "sewing" => "Costura",
-        "review" => "RevisÃ£o",
-        "packaging" => "Embalagem",
+        "cutting" => Portuguese.Stage_Cutting,
+        "sewing" => Portuguese.Stage_Sewing,
+        "review" => Portuguese.Stage_Review,
+        "packaging" => Portuguese.Stage_Packaging,
         _ => stage ?? ""
     };
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
-        "pending" => "Pendente",
-        "inproduction" => "Em ProduÃ§Ã£o",
-        "stopped" => "Parado",
-        "completed" => "Finalizado",
-        "paused" => "Pausado",
-        "finished" => "ConcluÃ­do",
-        "cancelled" => "Cancelado",
+        "pending" => Portuguese.Pending,
+        "inproduction" => Portuguese.Status_InProduction,
+        "stopped" => Portuguese.Status_Stopped,
+        "completed" => Portuguese.Status_Finished,
+        "paused" => Portuguese.Status_Paused,
+        "finished" => Portuguese.Status_Completed,
+        "cancelled" => Portuguese.Cancelled,
         _ => status ?? ""
     };
 
@@ -378,7 +378,7 @@
             loading = true;
             // Send request to backend
             ProductionStatus newStatus = (ProductionStatus)status;
-            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "AtualizaÃ§Ã£o em massa via lista");
+            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa via lista");
             
             if (result != null)
             {
@@ -518,6 +518,3 @@
         try { await SignalR.StopConnection(); } catch { }
     }
 }
-
-
-

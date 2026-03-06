@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -17,20 +17,21 @@
 @inject IJSRuntime JSRuntime
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
+@using GestionProduccion.Client.Resources
 
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark">GestÃ£o de Equipes</h3>
+        <h3 class="h3 text-dark">@Portuguese.Team_Title</h3>
         <div>
             @if (!HasEligibleUsers && !loading)
             {
                 <div class="alert alert-warning py-2 px-3 mb-0 d-inline-block me-3 small">
                     <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                    NÃ£o Ã© possÃ­vel criar equipes. Cadastre usuÃ¡rios com cargo LÃ­der ou Operacional primeiro.
+                    @Portuguese.Team_ErrNoEligibleUsers
                 </div>
             }
             <button class="btn btn-primary" @onclick="ShowCreateModal" disabled="@(!HasEligibleUsers)">
-                <i class="fa-solid fa-plus me-2"></i>Adicionar Equipe
+                <i class="fa-solid fa-plus me-2"></i>@Portuguese.Team_AddTeam
             </button>
         </div>
     </div>
@@ -39,13 +40,13 @@
     {
         <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Carregando...</span>
+                <span class="visually-hidden">@Portuguese.Loading</span>
             </div>
         </div>
     }
     else if (teams == null || teams.Count == 0)
     {
-        <div class="alert alert-info">Nenhuma equipe encontrada.</div>
+        <div class="alert alert-info">@Portuguese.Team_NoTeamsFound</div>
     }
     else
     {
@@ -55,10 +56,10 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Nome da Equipe</th>
-                                <th>Membros</th>
-                                <th>Status</th>
-                                <th class="text-end">AÃ§Ãµes</th>
+                                <th>@Portuguese.Team_Name</th>
+                                <th>@Portuguese.Team_Members</th>
+                                <th>@Portuguese.OP_Status</th>
+                                <th class="text-end">@Portuguese.Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -71,14 +72,14 @@
                                     </td>
                                     <td>
                                         <span class="badge @(team.IsActive ? "bg-success" : "bg-danger")">
-                                            @(team.IsActive ? "Ativo" : "Inativo")
+                                            @(team.IsActive ? Portuguese.User_Active : Portuguese.User_Inactive)
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-light me-1" @onclick="() => EditTeam(team)" title="Editar">
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => EditTeam(team)" title="@Portuguese.Edit">
                                             <i class="fa-solid fa-pen"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteTeam(team)" title="Excluir">
+                                        <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteTeam(team)" title="@Portuguese.Delete">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </td>
@@ -98,13 +99,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">@(isEditing ? "Editar Equipe" : "Nova Equipe")</h5>
+                    <h5 class="modal-title fw-bold">@(isEditing ? Portuguese.Team_EditTeam : Portuguese.Team_NewTeam)</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-4">
                     @if (!isEditing)
                     {
-                        <p class="small text-muted mb-4">Selecione pelo menos um membro para criar a equipe.</p>
+                        <p class="small text-muted mb-4">@Portuguese.Team_SelectMemberHint</p>
                     }
                     
                     <EditForm Model="createRequest" OnValidSubmit="HandleSubmit">
@@ -112,12 +113,12 @@
                         <ValidationSummary class="text-danger small mb-3" />
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold small">Nome da Equipe</label>
+                            <label class="form-label fw-bold small">@Portuguese.Team_Name</label>
                             <InputText class="form-control form-control-lg" @bind-Value="createRequest.Name" placeholder="Ex: Equipe de Costura A" />
                             <ValidationMessage For="@(() => createRequest.Name)" class="text-danger small" />
                         </div>
 
-                        <label class="form-label fw-bold small">Gerenciar Membros</label>
+                        <label class="form-label fw-bold small">@Portuguese.Team_ManageMembers</label>
                         <div class="border rounded p-3 bg-light mb-3" style="max-height: 250px; overflow-y: auto;">
                             @if (eligibleUsers != null)
                             {
@@ -139,22 +140,22 @@
                             }
                         </div>
                         <div class="small text-muted mt-1 mb-3">
-                            @(isEditing ? teamModel.SelectedUserIds.Count : createRequest.InitialUserIds.Count) selecionado(s)
+                            @(isEditing ? teamModel.SelectedUserIds.Count : createRequest.InitialUserIds.Count) @Portuguese.Selected
                         </div>
 
                         @if (isEditing)
                         {
                             <div class="form-check mb-3">
                                 <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
-                                <label class="form-check-label" for="activeCheck">Equipe Ativa</label>
+                                <label class="form-check-label" for="activeCheck">@Portuguese.Team_ActiveTeam</label>
                             </div>
                         }
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal">Cancelar</button>
+                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal">@Portuguese.Cancel</button>
                             <button type="submit" class="btn btn-primary px-4 shadow-sm" 
                                     disabled="@(isSaving || (isEditing && teamModel.SelectedUserIds.Count == 0) || (!isEditing && createRequest.InitialUserIds.Count == 0))">
-                                @(isSaving ? "Salvando..." : "Salvar Equipe")
+                                @(isSaving ? Portuguese.OP_Saving : Portuguese.Team_SaveTeam)
                             </button>
                         </div>
                     </EditForm>
@@ -200,7 +201,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar dados: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Team_ErrLoadData} {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -286,17 +287,17 @@
                     await LoadData(); // Full reload to refresh member counts and eligible users
                 }
                 showModal = false;
-                ToastService.ShowToast(isEditing ? "Membros da equipe atualizados" : "Equipe salva com sucesso", ToastLevel.Success);
+                ToastService.ShowToast(isEditing ? Portuguese.Team_SuccessMembersUpdated : Portuguese.Team_SuccessSaved, ToastLevel.Success);
             }
             else
             {
                 var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                ToastService.ShowToast(error?.Message ?? "Erro ao salvar equipe", ToastLevel.Error, "Erro de NegÃ³cio");
+                ToastService.ShowToast(error?.Message ?? Portuguese.Team_ErrSave, ToastLevel.Error, Portuguese.Team_ErrBusiness);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -306,7 +307,7 @@
 
     private async Task DeleteTeam(SewingTeamDto team)
     {
-        var msg = "ATENÃ‡ÃƒO: Ao excluir esta equipe, todos os seus membros serÃ£o transferidos automaticamente para outras equipes ativas baseando-se na carga de trabalho. Deseja continuar?";
+        var msg = Portuguese.Team_ConfirmDelete;
         
         if (await JSRuntime.InvokeAsync<bool>("confirm", msg))
         {
@@ -316,25 +317,22 @@
                 if (response.IsSuccessStatusCode)
                 {
                     await LoadData();
-                    ToastService.ShowToast("Equipe excluÃ­da e membros reatribuÃ­dos", ToastLevel.Success);
+                    ToastService.ShowToast(Portuguese.Team_SuccessDeleted, ToastLevel.Success);
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                    ToastService.ShowToast(error?.Message ?? "Erro: NÃ£o hÃ¡ outras equipes para receber os funcionÃ¡rios.", ToastLevel.Error, "Bloqueio de ReatribuiÃ§Ã£o");
+                    ToastService.ShowToast(error?.Message ?? Portuguese.Team_ErrNoOtherTeams, ToastLevel.Error, Portuguese.Team_ReassignmentBlock);
                 }
                 else
                 {
-                    ToastService.ShowToast("Erro ao excluir equipe", ToastLevel.Error);
+                    ToastService.ShowToast(Portuguese.Team_ErrSave, ToastLevel.Error);
                 }
             }
             catch (Exception ex)
             {
-                ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+                ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
             }
         }
     }
 }
-
-
-

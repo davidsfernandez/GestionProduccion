@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -105,7 +105,7 @@
                                         }
                                         else if (!string.IsNullOrEmpty(order.Size))
                                         {
-                                            <div class="text-muted small">Tamanho: @order.Size</div>
+                                            <div class="text-muted small">@Portuguese.OP_Size: @order.Size</div>
                                         }
                                     </div>
                                 </div>
@@ -149,15 +149,15 @@
                             <div class="card-body p-4">
                                 <div class="row text-center align-items-center">
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
-                                        <div class="text-muted small uppercase mb-1">Custo Total Lote</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_TotalBatchCost</div>
                                         <div class="h3 mb-0 text-dark fw-bold">@order.TotalCost.ToString("C", new CultureInfo("pt-BR"))</div>
                                     </div>
                                     <div class="col-md-4 mb-3 mb-md-0 border-end">
-                                        <div class="text-muted small uppercase mb-1">Custo Real UnitÃ¡rio</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_RealUnitCost</div>
                                         <div class="h3 mb-0 text-primary fw-bold">@order.AverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="text-muted small uppercase mb-1">Margem de Lucro</div>
+                                        <div class="text-muted small uppercase mb-1">@Portuguese.OP_ProfitMargin</div>
                                         <div class="h3 mb-0 @(order.ProfitMargin > 0 ? "text-success" : "text-danger") fw-bold">
                                             @order.ProfitMargin.ToString("N1")%
                                         </div>
@@ -185,7 +185,7 @@
 
                                 <button class="btn btn-info text-white flex-grow-1 flex-md-grow-0" @onclick="ShowPartialOutputModal"
                                         disabled="@(order.CurrentStatus == "Completed")">
-                                    <i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial
+                                    <i class="fa-solid fa-boxes-packing me-2"></i> @Portuguese.OP_PartialOutput
                                 </button>
 
                                 <button class="btn btn-light border flex-grow-1 flex-md-grow-0" @onclick="() => showQAForm = true">
@@ -246,7 +246,7 @@
                                                 </div>
                                                 <div class="mb-1">
                                                     <span class="badge @GetStatusSoftClass(log.NewStatus) fs-xs">@TranslateStatus(log.NewStatus)</span>
-                                                    <span class="ms-2 text-dark small">Por: <strong>@log.UserName</strong></span>
+                                                    <span class="ms-2 text-dark small">@Portuguese.OP_By: <strong>@log.UserName</strong></span>
                                                 </div>
                                                 @if (!string.IsNullOrEmpty(log.Note))
                                                 {
@@ -341,8 +341,8 @@
                                     <i class="fa-solid fa-user-slash fa-3x"></i>
                                 </div>
                                 <h5>@Portuguese.OP_Unassigned</h5>
-                                <p class="text-muted small">Esta ordem ainda nÃ£o foi atribuÃ­da a um operador.</p>
-                                <button class="btn btn-primary btn-sm mt-2" @onclick="ShowAssignModal">Atribuir Agora</button>
+                                <p class="text-muted small">@Portuguese.OP_NotAssignedYet</p>
+                                <button class="btn btn-primary btn-sm mt-2" @onclick="ShowAssignModal">@Portuguese.OP_AssignNow</button>
                             </div>
                         }
                     </div>
@@ -350,7 +350,7 @@
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0">Progresso Detalhado</h5>
+                        <h5 class="card-title mb-0">@Portuguese.OP_DetailedProgress</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="progress-vertical">
@@ -373,7 +373,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="fw-bold @(IsStageCurrent(stage) ? "text-primary" : "")">@TranslateStage(stage.ToString())</div>
-                                        <div class="text-muted small">@(IsStageCompleted(stage) ? "ConcluÃ­do" : IsStageCurrent(stage) ? "Em andamento" : "Pendente")</div>
+                                        <div class="text-muted small">@(IsStageCompleted(stage) ? Portuguese.Status_Completed : IsStageCurrent(stage) ? Portuguese.OP_InAndamento : Portuguese.Pending)</div>
                                     </div>
                                 </div>
                             }
@@ -396,9 +396,9 @@
                     <button type="button" class="btn-close" @onclick="() => isAssigning = false"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <label class="form-label">Selecione o Operador/Oficina:</label>
+                    <label class="form-label">@Portuguese.OP_SelectOperator</label>
                     <select class="form-select form-select-lg mb-3" @bind="selectedUserId">
-                        <option value="0">-- Selecionar --</option>
+                        <option value="0">@Portuguese.OP_Select</option>
                         @if (assignableUsers != null)
                         {
                             @foreach (var u in assignableUsers)
@@ -409,15 +409,15 @@
                     </select>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" @onclick="() => isAssigning = false">Cancelar</button>
-                    <button type="button" class="btn btn-primary px-4" @onclick="ConfirmAssign">Atribuir</button>
+                    <button type="button" class="btn btn-light" @onclick="() => isAssigning = false">@Portuguese.Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" @onclick="ConfirmAssign">@Portuguese.OP_Assign</button>
                 </div>
             </div>
         </div>
     </div>
 }
 
-<!-- Modal Alterar EstÃ¡gio (Recuo) -->
+<!-- Modal Alterar Estágio (Recuo) -->
 @if (isChangingStage)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -429,7 +429,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Novo EstÃ¡gio:</label>
+                        <label class="form-label">@Portuguese.OP_NewStageLabel</label>
                         <select class="form-select" @bind="targetStage">
                             @foreach (var stage in Enum.GetValues<ProductionStage>())
                             {
@@ -438,13 +438,13 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">ObservaÃ§Ã£o/Motivo:</label>
-                        <textarea class="form-control" rows="3" @bind="stageChangeNote" placeholder="Descreva o motivo da alteraÃ§Ã£o..."></textarea>
+                        <label class="form-label">@Portuguese.OP_ReasonNote</label>
+                        <textarea class="form-control" rows="3" @bind="stageChangeNote" placeholder="@Portuguese.OP_ChangeReasonPlaceholder"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" @onclick="() => isChangingStage = false">Cancelar</button>
-                    <button type="button" class="btn btn-danger px-4" @onclick="ConfirmChangeStage">Confirmar AlteraÃ§Ã£o</button>
+                    <button type="button" class="btn btn-light" @onclick="() => isChangingStage = false">@Portuguese.Cancel</button>
+                    <button type="button" class="btn btn-danger px-4" @onclick="ConfirmChangeStage">@Portuguese.OP_ConfirmChange</button>
                 </div>
             </div>
         </div>
@@ -462,24 +462,24 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title text-white">Finalizar Ordem</h5>
+                    <h5 class="modal-title text-white">@Portuguese.OP_FinalizeOrder</h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseCompleteModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p>Tem certeza que deseja finalizar a produÃ§Ã£o da ordem <strong>@order?.LotCode</strong>?</p>
-                    <p>Esta aÃ§Ã£o irÃ¡:</p>
+                    <p>@Portuguese.OP_ConfirmFinalizeOrder <strong>@order?.LotCode</strong>?</p>
+                    <p>@Portuguese.OP_FinalizeActionWill</p>
                     <ul>
-                        <li>Encerrar o cronÃ´metro de produÃ§Ã£o.</li>
-                        <li>Calcular os custos finais com base no tempo decorrido.</li>
-                        <li>Atualizar o estoque.</li>
+                        <li>@Portuguese.OP_FinalizeStopTimer</li>
+                        <li>@Portuguese.OP_FinalizeCalcCosts</li>
+                        <li>@Portuguese.OP_FinalizeUpdateStock</li>
                     </ul>
                     <div class="alert alert-warning">
-                        <strong>Quantidade:</strong> @order?.Quantity unidades
+                        <strong>@Portuguese.Quantity:</strong> @order?.Quantity unidades
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseCompleteModal">Cancelar</button>
-                    <button type="button" class="btn btn-success" @onclick="ConfirmCompleteOrder">Confirmar e Finalizar</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCompleteModal">@Portuguese.Cancel</button>
+                    <button type="button" class="btn btn-success" @onclick="ConfirmCompleteOrder">@Portuguese.OP_ConfirmAndFinalize</button>
                 </div>
             </div>
         </div>
@@ -492,21 +492,21 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="fa-solid fa-boxes-packing me-2"></i> Baixa Parcial - EstÃ¡gio: @TranslateStage(order?.CurrentStage)</h5>
+                    <h5 class="modal-title"><i class="fa-solid fa-boxes-packing me-2"></i> @Portuguese.OP_PartialOutputStage @TranslateStage(order?.CurrentStage)</h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="() => isPartialOutputModalVisible = false"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted mb-4">Registre a quantidade de peÃ§as que foram concluÃ­das neste estÃ¡gio hoje. O sistema avanÃ§arÃ¡ o estÃ¡gio automaticamente quando todas as peÃ§as forem concluÃ­das.</p>
+                    <p class="text-muted mb-4">@Portuguese.OP_PartialOutputDesc</p>
                     
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead class="bg-light">
                                 <tr>
-                                    <th>Tamanho</th>
-                                    <th class="text-center">Total Ordem</th>
-                                    <th class="text-center">JÃ¡ ConcluÃ­do</th>
-                                    <th class="text-center">Pendente</th>
-                                    <th class="text-center" style="width: 150px;">Qtd. Pronta Agora</th>
+                                    <th>@Portuguese.OP_Size</th>
+                                    <th class="text-center">@Portuguese.OP_TotalOrder</th>
+                                    <th class="text-center">@Portuguese.OP_AlreadyCompleted</th>
+                                    <th class="text-center">@Portuguese.Pending</th>
+                                    <th class="text-center" style="width: 150px;">@Portuguese.OP_QtyReadyNow</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -531,9 +531,9 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" @onclick="() => isPartialOutputModalVisible = false">Cancelar</button>
+                    <button type="button" class="btn btn-light" @onclick="() => isPartialOutputModalVisible = false">@Portuguese.Cancel</button>
                     <button type="button" class="btn btn-info text-white px-4" @onclick="ConfirmPartialOutput">
-                        <i class="fa-solid fa-save me-2"></i> Salvar ProduÃ§Ã£o
+                        <i class="fa-solid fa-save me-2"></i> @Portuguese.OP_SaveProduction
                     </button>
                 </div>
             </div>
@@ -569,7 +569,7 @@
     {
         if (!pendingOutputs.Any(v => v.Value > 0))
         {
-            ToastService.ShowToast("Por favor, insira pelo menos uma quantidade.", ToastLevel.Warning);
+            ToastService.ShowToast(Portuguese.OP_ErrMinQty, ToastLevel.Warning);
             return;
         }
 
@@ -584,19 +584,19 @@
             var response = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/partial-output", request);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Baixa parcial registrada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.OP_SuccessPartialOutput, ToastLevel.Success);
                 isPartialOutputModalVisible = false;
                 await LoadData();
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                ToastService.ShowToast($"Erro: {error}", ToastLevel.Error);
+                ToastService.ShowToast($"{Portuguese.Msg_Error}: {error}", ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao registrar baixa: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -632,7 +632,7 @@
 
         try
         {
-            ToastService.ShowToast("Gerando PDF...", ToastLevel.Info);
+            ToastService.ShowToast(Portuguese.OP_GeneratingPdf, ToastLevel.Info);
 
             var response = await Http.GetAsync($"api/ProductionOrders/{Id}/pdf");
             if (response.IsSuccessStatusCode)
@@ -768,7 +768,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar usuÃ¡rios: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.OP_ErrLoadUsers} {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -830,22 +830,22 @@
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
-        "pending" => "Pendente",
-        "inproduction" => "Em ProduÃ§Ã£o",
-        "stopped" => "Parado",
-        "completed" => "Finalizado",
-        "paused" => "Pausado",
-        "finished" => "ConcluÃ­do",
-        "cancelled" => "Cancelado",
+        "pending" => Portuguese.Pending,
+        "inproduction" => Portuguese.Status_InProduction,
+        "stopped" => Portuguese.Status_Stopped,
+        "completed" => Portuguese.Status_Finished,
+        "paused" => Portuguese.Status_Paused,
+        "finished" => Portuguese.Status_Completed,
+        "cancelled" => Portuguese.Cancelled,
         _ => status ?? ""
     };
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch
     {
-        "cutting" => "Corte",
-        "sewing" => "Costura",
-        "review" => "RevisÃ£o",
-        "packaging" => "Embalagem",
+        "cutting" => Portuguese.Stage_Cutting,
+        "sewing" => Portuguese.Stage_Sewing,
+        "review" => Portuguese.Stage_Review,
+        "packaging" => Portuguese.Stage_Packaging,
         _ => stage ?? ""
     };
 
@@ -868,6 +868,3 @@
         return order.CurrentStage == stage.ToString();
     }
 }
-
-
-

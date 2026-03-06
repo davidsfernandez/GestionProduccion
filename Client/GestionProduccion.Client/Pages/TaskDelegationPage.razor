@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -16,38 +16,39 @@
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
+@using GestionProduccion.Client.Resources
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark mb-0">Delegar Tarefas Administrativas</h3>
+        <h3 class="h3 text-dark mb-0">@Portuguese.Task_DelegateAdmin</h3>
     </div>
 
     <div class="row">
         <div class="col-12 col-lg-5 mb-4">
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="card-title fw-bold mb-0">Nova Tarefa</h5>
+                    <h5 class="card-title fw-bold mb-0">@Portuguese.Task_NewTask</h5>
                 </div>
                 <div class="card-body p-4">
                     <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">TÃ­tulo da Tarefa</label>
+                            <label class="form-label small fw-bold">@Portuguese.Task_TitleLabel</label>
                             <InputText class="form-control" @bind-Value="createModel.Title" placeholder="Ex: Comprar linhas" />
                             <ValidationMessage For="@(() => createModel.Title)" class="text-danger small" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">DescriÃ§Ã£o</label>
-                            <InputTextArea class="form-control" @bind-Value="createModel.Description" rows="3" placeholder="Detalhes da tarefa..." />
+                            <label class="form-label small fw-bold">@Portuguese.Task_Description</label>
+                            <InputTextArea class="form-control" @bind-Value="createModel.Description" rows="3" placeholder="@Portuguese.Task_DescriptionPlaceholder" />
                             <ValidationMessage For="@(() => createModel.Description)" class="text-danger small" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">ResponsÃ¡vel</label>
+                            <label class="form-label small fw-bold">@Portuguese.Task_Responsible</label>
                             <InputSelect class="form-select" @bind-Value="createModel.AssignedUserId">
-                                <option value="0">Selecione um usuÃ¡rio...</option>
+                                <option value="0">@Portuguese.Task_SelectUser</option>
                                 @if (users != null)
                                 {
                                     @foreach (var user in users)
@@ -60,13 +61,13 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label small fw-bold">Prazo Limite</label>
+                            <label class="form-label small fw-bold">@Portuguese.Task_Deadline</label>
                             <InputDate class="form-control" @bind-Value="createModel.Deadline" />
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 shadow-sm" disabled="@isSubmitting">
                             @if (isSubmitting) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                            Delegar Tarefa
+                            @Portuguese.OP_AssignTask
                         </button>
                     </EditForm>
                 </div>
@@ -76,17 +77,17 @@
         <div class="col-12 col-lg-7">
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="card-title fw-bold mb-0">Tarefas Delegadas Recentes</h5>
+                    <h5 class="card-title fw-bold mb-0">@Portuguese.Task_RecentDelegated</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead class="bg-light">
                                 <tr>
-                                    <th class="ps-4">Tarefa</th>
-                                    <th>ResponsÃ¡vel</th>
-                                    <th>Prazo</th>
-                                    <th>Status</th>
+                                    <th class="ps-4">@Portuguese.Task_Task</th>
+                                    <th>@Portuguese.Task_Responsible</th>
+                                    <th>@Portuguese.Task_DeadlineShort</th>
+                                    <th>@Portuguese.OP_Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -107,7 +108,7 @@
                                 else
                                 {
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">Carregando...</td>
+                                        <td colspan="4" class="text-center py-4 text-muted">@Portuguese.Loading</td>
                                     </tr>
                                 }
                             </tbody>
@@ -145,7 +146,7 @@
         }
         catch (Exception)
         {
-            ToastService.ShowToast("Erro ao carregar dados.", ToastLevel.Error);
+            ToastService.ShowToast(Portuguese.Task_ErrLoadData, ToastLevel.Error);
         }
     }
 
@@ -153,7 +154,7 @@
     {
         if (createModel.AssignedUserId == 0)
         {
-            ToastService.ShowToast("Selecione um responsÃ¡vel.", ToastLevel.Warning);
+            ToastService.ShowToast(Portuguese.Task_ErrSelectResponsible, ToastLevel.Warning);
             return;
         }
 
@@ -163,18 +164,18 @@
             var response = await Http.PostAsJsonAsync("api/Tasks", createModel, JsonOptions);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Tarefa delegada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Msg_TaskAssigned, ToastLevel.Success);
                 createModel = new CreateTaskDto { Deadline = DateTime.Now.AddDays(1) };
                 await LoadData(); // Refresh list
             }
             else
             {
-                ToastService.ShowToast("Erro ao criar tarefa.", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Task_ErrCreate, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -192,12 +193,9 @@
 
     private string TranslateStatus(string status) => status switch
     {
-        "Pending" => "Pendente",
-        "InProgress" => "Em Andamento",
-        "Completed" => "ConcluÃ­da",
+        "Pending" => Portuguese.Pending,
+        "InProgress" => Portuguese.Task_InProgress,
+        "Completed" => Portuguese.Task_Completed,
         _ => status
     };
 }
-
-
-

@@ -17,7 +17,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-danger">Reportar Defeito</h5>
+                <h5 class="modal-title fw-bold text-danger">@Portuguese.OP_ReportDefect</h5>
                 <button type="button" class="btn-close" @onclick="Close"></button>
             </div>
             <div class="modal-body">
@@ -25,7 +25,7 @@
                     <DataAnnotationsValidator />
                     
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Motivo do Defeito</label>
+                        <label class="form-label small fw-bold">@Portuguese.QA_Reason</label>
                         <InputSelect class="form-select" @bind-Value="model.Reason">
                             <option value="">Selecione...</option>
                             <option value="Costura Torta">Costura Torta</option>
@@ -38,15 +38,15 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Quantidade Afetada</label>
+                        <label class="form-label small fw-bold">@Portuguese.Quantity Afetada</label>
                         <InputNumber class="form-control" @bind-Value="model.Quantity" />
                         <ValidationMessage For="@(() => model.Quantity)" class="text-danger small" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Foto (Opcional)</label>
+                        <label class="form-label small fw-bold">@Portuguese.QA_Photo (Opcional)</label>
                         <InputFile class="form-control" OnChange="OnInputFileChange" accept=".jpg,.png,.jpeg" />
-                        <div class="form-text xsmall">MÃ¡ximo 5MB (JPG/PNG).</div>
+                        <div class="form-text xsmall">Máximo 5MB (JPG/PNG).</div>
                     </div>
 
                     @if (isUploading)
@@ -58,7 +58,7 @@
                     }
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button type="button" class="btn btn-light" @onclick="Close">Cancelar</button>
+                        <button type="button" class="btn btn-light" @onclick="Close">@Portuguese.Cancel</button>
                         <button type="submit" class="btn btn-danger" disabled="@isUploading">Registrar</button>
                     </div>
                 </EditForm>
@@ -108,7 +108,7 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", "Erro: " + ex.Message);
+            await JS.InvokeVoidAsync("alert", Portuguese.Msg_Error + ": " + ex.Message);
         }
         finally
         {
@@ -120,10 +120,10 @@
 
     public class DefectFormModel
     {
-        [Required(ErrorMessage = "O motivo Ã© obrigatÃ³rio")]
+        [Required(ErrorMessage = "O motivo é obrigatório")]
         public string Reason { get; set; } = string.Empty;
 
-        [Range(1, 1000, ErrorMessage = "Quantidade invÃ¡lida")]
+        [Range(1, 1000, ErrorMessage = "Quantidade inválida")]
         public int Quantity { get; set; } = 1;
     }
 }

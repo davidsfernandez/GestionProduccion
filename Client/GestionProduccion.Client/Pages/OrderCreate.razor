@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -39,14 +39,14 @@
         <div class="col-12 col-lg-8 col-xl-7">
             <div class="card shadow-sm border-0">
                 <div class="card-header border-0 pt-4 px-4 bg-white">
-                    <h5 class="card-title mb-0">Nova Ordem de ProduÃ§Ã£o</h5>
+                    <h5 class="card-title mb-0">@Portuguese.OP_NewOrderTitle</h5>
                 </div>
                 <div class="card-body p-4">
                     @if (isInitialLoading)
                     {
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status"></div>
-                            <div class="mt-2 text-muted">Carregando seletores dinÃ¢micos...</div>
+                            <div class="mt-2 text-muted">@Portuguese.OP_LoadingSelectors</div>
                         </div>
                     }
                     else
@@ -60,16 +60,16 @@
                                     <div class="alert alert-success d-flex align-items-center" role="alert">
                                         <i class="fa-solid fa-wand-magic-sparkles me-3 fs-4"></i>
                                         <div>
-                                            <strong>GeraÃ§Ã£o AutomÃ¡tica</strong>
-                                            <div class="small">O cÃ³digo do lote (OP) serÃ¡ gerado automaticamente pelo sistema apÃ³s salvar.</div>
+                                            <strong>@Portuguese.OP_AutoGeneration</strong>
+                                            <div class="small">@Portuguese.OP_AutoGenerationDesc</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Produto</label>
+                                    <label class="form-label fw-bold">@Portuguese.Product</label>
                                     <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
-                                        <option value="0" disabled>Selecione um Produto...</option>
+                                        <option value="0" disabled>@Portuguese.OP_SelectProduct</option>
                                         @if (products != null)
                                         {
                                             @foreach (var prod in products)
@@ -82,7 +82,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Data Estimada de Entrega</label>
+                                    <label class="form-label fw-bold">@Portuguese.OP_EstimatedDelivery</label>
                                     <InputDate @bind-Value="createModel.EstimatedCompletionAt" class="form-control form-control-lg" />
                                     <ValidationMessage For="@(() => createModel.EstimatedCompletionAt)" class="text-danger small" />
                                 </div>
@@ -90,9 +90,9 @@
                                 <div class="col-12 mb-4">
                                     <div class="card bg-light border-0 shadow-none">
                                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                                            <label class="form-label fw-bold mb-0">Grade de Tamanhos / Quantidades</label>
+                                            <label class="form-label fw-bold mb-0">@Portuguese.Cat_Sizes</label>
                                             <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddSizeRow">
-                                                <i class="fa-solid fa-plus me-1"></i> Adicionar Tamanho
+                                                <i class="fa-solid fa-plus me-1"></i> @Portuguese.OP_AddSize
                                             </button>
                                         </div>
                                         <div class="card-body pt-0">
@@ -100,8 +100,8 @@
                                                 <table class="table table-sm table-borderless align-middle mb-0">
                                                     <thead>
                                                         <tr>
-                                                            <th>Tamanho</th>
-                                                            <th style="width: 150px;">Qtd</th>
+                                                            <th>@Portuguese.OP_Size</th>
+                                                            <th style="width: 150px;">@Portuguese.OP_Qty</th>
                                                             <th style="width: 40px;"></th>
                                                         </tr>
                                                     </thead>
@@ -143,14 +143,14 @@
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Cliente (Opcional)</label>
+                                    <label class="form-label fw-bold">@Portuguese.OP_ClientOptional</label>
                                     <InputText @bind-Value="createModel.ClientName" class="form-control form-control-lg" />
                                 </div>
 
                                 <div class="col-md-6 mb-4">
-                                    <label class="form-label fw-bold">Equipe de Costura (Opcional)</label>
+                                    <label class="form-label fw-bold">@Portuguese.OP_SewingTeamOptional</label>
                                     <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select form-select-lg">
-                                        <option value="">Atribuir Equipe (Opcional)...</option>
+                                        <option value="">@Portuguese.OP_AssignTeamOptional</option>
                                         @if (teams != null)
                                         {
                                             @foreach (var team in teams)
@@ -162,9 +162,9 @@
                                 </div>
 
                                 <div class="col-md-12 mb-4">
-                                    <label class="form-label fw-bold">Atribuir Operador (Opcional)</label>
+                                    <label class="form-label fw-bold">@Portuguese.OP_AssignOperatorOptional</label>
                                     <InputSelect @bind-Value="createModel.UserId" class="form-select form-select-lg">
-                                        <option value="">Atribuir Operador (Opcional)...</option>
+                                        <option value="">@Portuguese.OP_AssignOperatorOptionalPlaceholder</option>
                                         @if (users != null)
                                         {
                                             @foreach (var user in users)
@@ -177,16 +177,16 @@
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-2">
-                                <button type="button" class="btn btn-light px-4" @onclick="Cancel" disabled="@isSubmitting">Cancelar</button>
+                                <button type="button" class="btn btn-light px-4" @onclick="Cancel" disabled="@isSubmitting">@Portuguese.Cancel</button>
                                 <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="@isSubmitting">
                                     @if (isSubmitting)
                                     {
                                         <span class="spinner-border spinner-border-sm me-2"></span>
-                                        <span>Salvando...</span>
+                                        <span>@Portuguese.OP_Saving</span>
                                     }
                                     else
                                     {
-                                        <span>Salvar Ordem</span>
+                                        <span>@Portuguese.OP_SaveOrder</span>
                                     }
                                 </button>
                             </div>
@@ -199,18 +199,18 @@
         <div class="col-12 col-lg-4">
             <div class="card bg-primary border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="card-title fw-bold">Resumo da Ordem</h5>
+                    <h5 class="card-title fw-bold">@Portuguese.OP_OrderSummary</h5>
                     <div class="mt-4">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>CÃ³digo:</span>
-                            <span class="fw-bold">Gerado al Salvar</span>
+                            <span>@Portuguese.OP_Code:</span>
+                            <span class="fw-bold">@Portuguese.OP_GeneratedOnSave</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Quantidade:</span>
+                            <span>@Portuguese.Quantity:</span>
                             <span class="fw-bold">@GetTotalQuantity()</span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span>Entrega:</span>
+                            <span>@Portuguese.OP_Delivery:</span>
                             <span class="fw-bold">@createModel.EstimatedCompletionAt.ToShortDateString()</span>
                         </div>
                     </div>
@@ -221,8 +221,8 @@
                 <div class="d-flex">
                     <i class="fa-solid fa-circle-info fa-2x me-3"></i>
                     <div>
-                        <h6 class="fw-bold mb-1">Dica de ProduÃ§Ã£o</h6>
-                        <p class="mb-0 small opacity-75">As ordens criadas iniciam automaticamente no estÃ¡gio de <strong>Corte</strong> con status <strong>Em ProduÃ§Ã£o</strong>.</p>
+                        <h6 class="fw-bold mb-1">@Portuguese.OP_ProductionTip</h6>
+                        <p class="mb-0 small opacity-75">@((MarkupString)Portuguese.OP_ProductionTipDesc)</p>
                     </div>
                 </div>
             </div>
@@ -270,7 +270,7 @@
 
     private void HandleInvalidSubmit()
     {
-        ToastService.ShowToast("Erro de validaÃ§Ã£o: Verifique los campos en rojo", ToastLevel.Warning, "Erro de ValidaÃ§Ã£o");
+        ToastService.ShowToast(Portuguese.OP_ErrValidationFieldsRed, ToastLevel.Warning, Portuguese.Cat_ErrValidation);
     }
 
     private async Task LoadInitialData()
@@ -307,7 +307,7 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
-            ToastService.ShowToast("Erro ao carregar dados para o formulÃ¡rio. Verifique sua conexÃ£o.", ToastLevel.Error);
+            ToastService.ShowToast(Portuguese.OP_ErrLoadFormData, ToastLevel.Error);
         }
         finally
         {
@@ -322,7 +322,7 @@
         // Validation for sizes
         if (createModel.Sizes == null || !createModel.Sizes.Any() || createModel.Sizes.Any(s => string.IsNullOrEmpty(s.Size)))
         {
-            ToastService.ShowToast("Selecione os tamanhos e quantidades corretamente.", ToastLevel.Warning);
+            ToastService.ShowToast(Portuguese.OP_ErrSelectSizes, ToastLevel.Warning);
             return;
         }
         
@@ -338,7 +338,7 @@
             
             if (result != null)
             {
-                ToastService.ShowToast("Ordem de ProduÃ§Ã£o gerada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.OP_SuccessGenerated, ToastLevel.Success);
                 createModel = new CreateProductionOrderRequest 
                 { 
                     EstimatedCompletionAt = DateTime.Now.AddDays(7),
@@ -369,6 +369,3 @@
         NavigationManager.NavigateTo("/orders");
     }
 }
-
-
-

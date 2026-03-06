@@ -36,7 +36,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header border-0 pb-0">
-                    <h5 class="card-title mb-0">Lista de UsuÃ¡rios</h5>
+                    <h5 class="card-title mb-0">Lista de Usuários</h5>
                 </div>
                 
                 @if (loading)
@@ -50,7 +50,7 @@
                 else if (users == null || !users.Any())
                 {
                     <div class="card-body">
-                        <div class="alert alert-info">Nenhum usuÃ¡rio encontrado.</div>
+                        <div class="alert alert-info">Nenhum usuário encontrado.</div>
                     </div>
                 }
                 else
@@ -91,11 +91,11 @@
                                         <td>
                                             @if (user.IsActive)
                                             {
-                                                <span class="badge bg-success-soft text-success fw-bold">Ativo</span>
+                                                <span class="badge bg-success-soft text-success fw-bold">@Portuguese.User_Active</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-danger-soft text-danger fw-bold">Inativo</span>
+                                                <span class="badge bg-danger-soft text-danger fw-bold">@Portuguese.User_Inactive</span>
                                             }
                                         </td>
                                         <td class="text-end text-nowrap">
@@ -145,13 +145,13 @@
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Name</label>
-                                <InputText class="form-control form-control-lg" @bind-Value="userModel.FullName" placeholder="Nome completo" />
+                                <InputText class="form-control form-control-lg" @bind-Value="userModel.FullName" placeholder="@Portuguese.User_FullNamePlaceholder" />
                                 <ValidationMessage For="@(() => userModel.FullName)" class="text-danger xsmall mt-1" />
                             </div>
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Email</label>
-                                <InputText class="form-control form-control-lg" @bind-Value="userModel.Email" placeholder="email@exemplo.com" />
+                                <InputText class="form-control form-control-lg" @bind-Value="userModel.Email" placeholder="@Portuguese.User_EmailPlaceholder" />
                                 <ValidationMessage For="@(() => userModel.Email)" class="text-danger xsmall mt-1" />
                             </div>
 
@@ -163,7 +163,7 @@
                                         <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
                                     </button>
                                 </div>
-                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">Deixe em blanco para manter a atual</small> }
+                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">@Portuguese.User_PassHint</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
 
@@ -262,7 +262,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar usuÃ¡rios: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"Erro ao carregar usuários: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -298,10 +298,10 @@
 
     private string TranslateRole(string role) => role switch
     {
-        "Administrator" => "Administrador",
-        "Leader" => "LÃ­der",
-        "Operational" => "Costureira/Costureiro",
-        "Office" => "EscritÃ³rio",
+        "Administrator" => Portuguese.Role_Admin,
+        "Leader" => Portuguese.Role_Leader,
+        "Operational" => Portuguese.Role_Operator,
+        "Office" => Portuguese.Role_Office,
         _ => role
     };
 
@@ -395,12 +395,12 @@
                 }
 
                 errorMessage = specificError;
-                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de ValidaÃ§Ã£o");
+                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de Validação");
             }
         }
         catch (HttpRequestException)
         {
-            ToastService.ShowToast("Servidor inacessÃ­vel", ToastLevel.Error);
+            ToastService.ShowToast("Servidor inacessível", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -424,12 +424,12 @@
                 {
                     var user = users?.FirstOrDefault(u => u.Id == id);
                     if (user != null) users?.Remove(user);
-                    ToastService.ShowToast("UsuÃ¡rio desativado com sucesso", ToastLevel.Success);
+                    ToastService.ShowToast("Usuário desativado com sucesso", ToastLevel.Success);
                     StateHasChanged();
                 }
                 else 
                 {
-                    ToastService.ShowToast("Erro ao desativar usuÃ¡rio", ToastLevel.Error);
+                    ToastService.ShowToast("Erro ao desativar usuário", ToastLevel.Error);
                 }
             }
             catch (Exception ex)
@@ -452,10 +452,10 @@
         [System.ComponentModel.DataAnnotations.EmailAddress]
         public string Email { get; set; } = "";
         
-        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mÃ­nimo 6 caracteres.")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "A senha deve ter no mínimo 6 caracteres.")]
         public string Password { get; set; } = "";
 
-        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas nÃ£o coincidem.")]
+        [System.ComponentModel.DataAnnotations.Compare("Password", ErrorMessage = "As senhas não coincidem.")]
         public string ConfirmPassword { get; set; } = "";
         
         public UserRole Role { get; set; } = UserRole.Operational;

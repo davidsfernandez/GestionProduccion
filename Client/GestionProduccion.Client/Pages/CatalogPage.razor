@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -60,11 +60,11 @@
                         <thead>
                             <tr>
                                 <th>SKU</th>
-                                <th>CÃ³digo</th>
-                                <th>Nome do Produto</th>
+                                <th>@Portuguese.OP_Code</th>
+                                <th>@Portuguese.Product</th>
                                 <th>@Portuguese.Cat_FabricType</th>
                                 <th>@Portuguese.Cat_AvgTime</th>
-                                <th>PreÃ§o</th>
+                                <th>@Portuguese.Cat_Price</th>
                                 <th class="text-end">@Portuguese.Actions</th>
                             </tr>
                         </thead>
@@ -119,7 +119,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">@Portuguese.User_Name</label>
-                                <InputText class="form-control" @bind-Value="editingProduct.Name" placeholder="Ex: Camiseta BÃ¡sica" />
+                                <InputText class="form-control" @bind-Value="editingProduct.Name" placeholder="Ex: Camiseta Básica" />
                                 <ValidationMessage For="@(() => editingProduct.Name)" class="text-danger small" />
                             </div>
                             <div class="col-md-6 mb-3">
@@ -128,7 +128,7 @@
                                 <ValidationMessage For="@(() => editingProduct.InternalCode)" class="text-danger small" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">SKU Principal</label>
+                                <label class="form-label fw-bold">@Portuguese.Cat_MainSku</label>
                                 <InputText class="form-control" @bind-Value="editingProduct.MainSku" placeholder="Ex: SKU-123" />
                                 <ValidationMessage For="@(() => editingProduct.MainSku)" class="text-danger small" />
                             </div>
@@ -137,11 +137,11 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">@Portuguese.Cat_FabricType</label>
-                                <InputText class="form-control" @bind-Value="editingProduct.FabricType" placeholder="Ex: AlgodÃ£o 30.1" />
+                                <InputText class="form-control" @bind-Value="editingProduct.FabricType" placeholder="Ex: Algodão 30.1" />
                                 <ValidationMessage For="@(() => editingProduct.FabricType)" class="text-danger small" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Tempo MÃ©dio (minutos)</label>
+                                <label class="form-label fw-bold">@Portuguese.Cat_AvgTimeMinutes</label>
                                 <InputNumber class="form-control" @bind-Value="editingProduct.AverageProductionTimeMinutes" step="any" />
                                 <ValidationMessage For="@(() => editingProduct.AverageProductionTimeMinutes)" class="text-danger small" />
                             </div>
@@ -149,7 +149,7 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">PreÃ§o Estimado</label>
+                                <label class="form-label fw-bold">@Portuguese.Cat_EstPrice</label>
                                 <InputNumber class="form-control" @bind-Value="editingProduct.EstimatedSalePrice" step="any" />
                                 <ValidationMessage For="@(() => editingProduct.EstimatedSalePrice)" class="text-danger small" />
                             </div>
@@ -165,7 +165,7 @@
                                 }
                                 else
                                 {
-                                    <span><i class="fa-solid fa-save me-2"></i>Salvar Produto</span>
+                                    <span><i class="fa-solid fa-save me-2"></i>@Portuguese.Cat_SaveProduct</span>
                                 }
                             </button>
                         </div>
@@ -189,7 +189,7 @@
 
     private void HandleInvalidSubmit()
     {
-        ToastService.ShowToast("Erro de validaÃ§Ã£o: Verifique os campos em vermelho", ToastLevel.Warning, "Erro de ValidaÃ§Ã£o");
+        ToastService.ShowToast(Portuguese.Cat_ErrValidationFields, ToastLevel.Warning, Portuguese.Cat_ErrValidation);
     }
 
     protected override async Task OnInitializedAsync()
@@ -323,15 +323,15 @@
                 
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
                 {
-                    specificError = "O cÃ³digo interno jÃ¡ existe no sistema";
+                    specificError = Portuguese.Cat_ErrDuplicateCode;
                 }
                 
-                ToastService.ShowToast(specificError, ToastLevel.Error, "Erro de ValidaÃ§Ã£o");
+                ToastService.ShowToast(specificError, ToastLevel.Error, Portuguese.Cat_ErrValidation);
             }
         }
         catch (HttpRequestException)
         {
-            ToastService.ShowToast("Servidor inacessÃ­vel", ToastLevel.Error);
+            ToastService.ShowToast(Portuguese.Cat_ErrServerInaccessible, ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -357,7 +357,7 @@
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    ToastService.ShowToast("NÃ£o Ã© possÃ­vel excluir um produto que possui ordens de produÃ§Ã£o ativas", ToastLevel.Error, "Conflito de Dados");
+                    ToastService.ShowToast(Portuguese.Cat_ErrDeleteActiveOrders, ToastLevel.Error, Portuguese.Cat_ConflictData);
                 }
                 else
                 {
@@ -367,7 +367,7 @@
             }
             catch (HttpRequestException)
             {
-                ToastService.ShowToast("Servidor inacessÃ­vel", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Cat_ErrServerInaccessible, ToastLevel.Error);
             }
             catch (Exception ex)
             {
@@ -381,6 +381,3 @@
         debounceTimer?.Dispose();
     }
 }
-
-
-

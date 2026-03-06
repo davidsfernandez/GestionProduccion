@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -16,11 +16,11 @@
 @inject ToastService ToastService
 @inject GestionProduccion.Client.Services.UserStateService UserState
 
-<PageTitle>ConfiguraÃ§Ãµes do Sistema</PageTitle>
+<PageTitle>@Portuguese.Set_Title</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark mb-0">ConfiguraÃ§Ãµes do Sistema</h3>
+        <h3 class="h3 text-dark mb-0">@Portuguese.Set_Title</h3>
     </div>
 
     @if (model == null)
@@ -38,16 +38,16 @@
                     
                     <div class="card shadow-sm border-0 mb-4 rounded-4">
                         <div class="card-header bg-white border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold">InformaÃ§Ãµes da Empresa</h5>
+                            <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_CompanyInfo</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="row">
                                 <div class="col-md-8 mb-3">
-                                    <label class="form-label fw-bold">Nome da Empresa</label>
-                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyName" placeholder="Ex: Serona ConfecÃ§Ãµes" />
+                                    <label class="form-label fw-bold">@Portuguese.Set_CompanyName</label>
+                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyName" placeholder="Ex: Serona Confecções" />
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold">CNPJ / Documento</label>
+                                    <label class="form-label fw-bold">@Portuguese.Set_CompanyTaxId</label>
                                     <InputText class="form-control form-control-lg" @bind-Value="model.CompanyTaxId" placeholder="00.000.000/0001-00" />
                                 </div>
                             </div>
@@ -56,7 +56,7 @@
 
                     <div class="card shadow-sm border-0 mb-4 rounded-4">
                         <div class="card-header bg-white border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold">Identidade Visual (Logo)</h5>
+                            <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_VisualIdentity</h5>
                         </div>
                         <div class="card-body p-4 text-center">
                             @if (!string.IsNullOrEmpty(model.LogoBase64))
@@ -64,7 +64,7 @@
                                 <div class="mb-4">
                                     <img src="@model.LogoBase64" alt="Preview Logo" class="img-thumbnail shadow-sm" style="max-height: 120px; object-fit: contain;" />
                                     <div class="mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveLogo">Remover Logo</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveLogo">@Portuguese.Set_RemoveLogo</button>
                                     </div>
                                 </div>
                             }
@@ -72,12 +72,12 @@
                             {
                                 <div class="py-4 border-2 border-dashed rounded-3 mb-4 bg-light">
                                     <i class="fa-solid fa-image fa-3x text-muted opacity-25 mb-2"></i>
-                                    <p class="text-muted small">Nenhum logotipo carregado.</p>
+                                    <p class="text-muted small">@Portuguese.Set_NoLogo</p>
                                 </div>
                             }
 
                             <div class="col-md-6 mx-auto">
-                                <label class="form-label small text-muted">Carregar novo logotipo (PNG ou JPG, mÃ¡x. 1MB)</label>
+                                <label class="form-label small text-muted">@Portuguese.Set_UploadLogoHint</label>
                                 <InputFile class="form-control" OnChange="OnLogoFileChange" accept="image/png, image/jpeg" />
                             </div>
                         </div>
@@ -85,10 +85,10 @@
 
                     <div class="card shadow-sm border-0 mb-4 rounded-4">
                         <div class="card-header bg-white border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold">PersonalizaÃ§Ã£o (Tema)</h5>
+                            <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_ThemeCustomization</h5>
                         </div>
                         <div class="card-body p-4">
-                            <label class="form-label d-block mb-3">Escolha a cor principal da plataforma:</label>
+                            <label class="form-label d-block mb-3">@Portuguese.Set_ThemeChoice</label>
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="theme-option @(model.ThemeName == "default" ? "active" : "")" @onclick='() => SetTheme("default")' style="background: #00C899;" title="Verde Serona"></div>
                                 <div class="theme-option @(model.ThemeName == "theme-blue" ? "active" : "")" @onclick='() => SetTheme("theme-blue")' style="background: #3B7DDD;" title="Azul"></div>
@@ -117,19 +117,19 @@
 
                     <div class="card shadow-sm border-0 mb-4 rounded-4">
                         <div class="card-header bg-white border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold">ParÃ¢metros Financeiros</h5>
+                            <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_FinancialParams</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Custo Fixo DiÃ¡rio (R$)</label>
+                                    <label class="form-label fw-bold">@Portuguese.Set_DailyFixedCost</label>
                                     <InputNumber class="form-control" @bind-Value="model.DailyFixedCost" />
-                                    <small class="text-muted">Gastos de aluguel, luz, adm, etc.</small>
+                                    <small class="text-muted">@Portuguese.Set_DailyFixedCostHint</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Custo Hora Operacional (R$)</label>
+                                    <label class="form-label fw-bold">@Portuguese.Set_HourlyCost</label>
                                     <InputNumber class="form-control" @bind-Value="model.OperationalHourlyCost" />
-                                    <small class="text-muted">Valor mÃ©dio pago por hora aos operÃ¡rios.</small>
+                                    <small class="text-muted">@Portuguese.Set_HourlyCostHint</small>
                                 </div>
                             </div>
                         </div>
@@ -137,13 +137,13 @@
 
                     <div class="card shadow-sm border-0 mb-4 rounded-4">
                         <div class="card-header bg-white border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold">Modo TV</h5>
+                            <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_TvMode</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Aviso Informativo</label>
-                                <InputTextArea class="form-control" @bind-Value="model.TvAnnouncement" rows="3" placeholder="Mensagem para exibir no Modo TV..." />
-                                <small class="text-muted">Este texto serÃ¡ exibido alternadamente na tela do Modo TV.</small>
+                                <label class="form-label fw-bold">@Portuguese.Set_TvAnnouncement</label>
+                                <InputTextArea class="form-control" @bind-Value="model.TvAnnouncement" rows="3" placeholder="@Portuguese.Set_TvAnnouncementPlaceholder" />
+                                <small class="text-muted">@Portuguese.Set_TvAnnouncementHint</small>
                             </div>
                         </div>
                     </div>
@@ -151,7 +151,7 @@
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <button type="submit" class="btn btn-primary px-5 py-2 shadow-sm" disabled="@isSaving">
                             @if (isSaving) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                            <i class="fa-solid fa-save me-2"></i> Salvar ConfiguraÃ§Ãµes
+                            <i class="fa-solid fa-save me-2"></i> @Portuguese.Set_SaveSettings
                         </button>
                     </div>
                 </EditForm>
@@ -159,10 +159,10 @@
 
             <div class="col-12 col-lg-4">
                 <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
-                    <h6 class="fw-bold"><i class="fa-solid fa-circle-info me-2"></i>Importante</h6>
+                    <h6 class="fw-bold"><i class="fa-solid fa-circle-info me-2"></i>@Portuguese.Set_Important</h6>
                     <p class="small mb-0 opacity-75">
-                        Essas informaÃ§Ãµes serÃ£o utilizadas no cabeÃ§alho de todos os relatÃ³rios PDF gerados pelo sistema.
-                        Certifique-se de usar uma imagem de alta qualidade com fundo transparente (PNG) para melhores resultados.
+                        @Portuguese.Set_ReportHint
+                        @Portuguese.Set_LogoQualityHint
                     </p>
                 </div>
             </div>
@@ -182,7 +182,7 @@
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro ao carregar configuraÃ§Ãµes: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Set_ErrLoad} {ex.Message}", ToastLevel.Error);
         }
     }
 
@@ -193,7 +193,7 @@
         {
             if (file.Size > 1048576)
             {
-                ToastService.ShowToast("O arquivo Ã© muito grande. MÃ¡ximo 1MB.", ToastLevel.Warning);
+                ToastService.ShowToast(Portuguese.Set_ErrFileTooLarge, ToastLevel.Warning);
                 return;
             }
 
@@ -206,7 +206,7 @@
             }
             catch (Exception ex)
             {
-                ToastService.ShowToast($"Erro ao ler imagem: {ex.Message}", ToastLevel.Error);
+                ToastService.ShowToast($"{Portuguese.Set_ErrReadImage} {ex.Message}", ToastLevel.Error);
             }
         }
     }
@@ -229,16 +229,16 @@
             var response = await Http.PostAsJsonAsync("api/Configuration", model);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("ConfiguraÃ§Ãµes salvas com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(Portuguese.Set_SuccessSave, ToastLevel.Success);
             }
             else
             {
-                ToastService.ShowToast("Erro ao salvar no servidor.", ToastLevel.Error);
+                ToastService.ShowToast(Portuguese.Set_ErrSave, ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
         }
         finally
         {
@@ -246,6 +246,3 @@
         }
     }
 }
-
-
-
