@@ -37,3 +37,4 @@ public class OrderBonusDetail
     public decimal Contribution { get; set; }
 }
 
+

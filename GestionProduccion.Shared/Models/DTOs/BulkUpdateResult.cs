@@ -17,3 +17,4 @@ public class BulkUpdateResult
     public List<string> Errors { get; set; } = new List<string>();
 }
 
+

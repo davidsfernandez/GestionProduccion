@@ -34,3 +34,4 @@ public interface IProductionOrderLifecycleService
     Task<bool> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, int modifiedByUserId, CancellationToken ct = default);
 }
 
+

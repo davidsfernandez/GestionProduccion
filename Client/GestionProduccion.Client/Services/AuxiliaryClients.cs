@@ -57,3 +57,4 @@ public class SewingTeamClient : ISewingTeamClient
     public async Task<ApiResponse<List<SewingTeamDto>>?> GetAllTeamsAsync(CancellationToken ct = default) =>
         await _httpClient.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", _options, ct);
 }
+

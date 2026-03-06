@@ -17,3 +17,4 @@ public interface IDashboardBIService
     Task<DashboardCompleteResponse> GetCompleteDashboardAsync(CancellationToken ct = default);
 }
 
+

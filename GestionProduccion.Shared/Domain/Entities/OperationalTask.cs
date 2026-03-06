@@ -39,3 +39,4 @@ public class OperationalTask
     public virtual User? AssignedUser { get; set; }
 }
 
+

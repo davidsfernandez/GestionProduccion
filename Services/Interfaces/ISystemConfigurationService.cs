@@ -23,3 +23,4 @@ public interface ISystemConfigurationService
     Task UpdateLogoAsync(string base64Logo);
 }
 
+

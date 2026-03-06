@@ -17,3 +17,4 @@ public interface IFileStorageService
     string GetUrl(string fileName, string folder);
 }
 
+

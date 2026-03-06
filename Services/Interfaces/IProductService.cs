@@ -23,3 +23,4 @@ public interface IProductService
     Task RecalculateAverageTimeAsync(int productId, CancellationToken ct = default);
 }
 
+

@@ -47,3 +47,4 @@ public class SystemConfiguration
     public string? ThemeName { get; set; }
 }
 
+

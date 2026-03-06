@@ -41,3 +41,4 @@ public class TaskDto
     public bool IsOverdue => ProgressPercentage > 100 && Status != "Completed";
 }
 
+

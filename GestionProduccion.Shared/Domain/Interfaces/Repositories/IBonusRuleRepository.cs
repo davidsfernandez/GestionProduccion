@@ -17,3 +17,4 @@ public interface IBonusRuleRepository : IRepository<BonusRule>
     Task<BonusRule?> GetActiveRuleAsync();
 }
 
+

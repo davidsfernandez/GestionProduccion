@@ -40,3 +40,4 @@ public class QADefect
     public bool IsResolved { get; set; }
 }
 
+

@@ -122,3 +122,4 @@ SELECT COUNT(*) as HistoriesCount FROM ProductionHistories;
 -- ? Datos preservados
 -- ? Índices recreados
 
+

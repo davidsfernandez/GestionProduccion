@@ -20,3 +20,4 @@ public class RankingEntryDto
     public double Score { get; set; }
 }
 
+

@@ -16,3 +16,4 @@ public class PublicConfigurationDto
     public string? LogoBase64 { get; set; }
 }
 
+

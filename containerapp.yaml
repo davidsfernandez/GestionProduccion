@@ -1,12 +1,10 @@
-﻿/*
- * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
- * 
- * This software and its associated documentation files are the exclusive property 
- * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
- * 
- * Proprietary and Confidential.
- */
+﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# 
+# This software and its associated documentation files are the exclusive property 
+# of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+# or use of this software, via any medium, is strictly prohibited.
+# 
+# Proprietary and Confidential.
 
 id: /subscriptions/b58fddd5-2490-4b74-ba67-3e3f548ca558/resourceGroups/gestionproduccion/providers/Microsoft.App/containerapps/gestionproduccion
 identity:
@@ -127,4 +125,5 @@ systemData:
   lastModifiedBy: davidzodelin@gmail.com
   lastModifiedByType: User
 type: Microsoft.App/containerApps
+
 

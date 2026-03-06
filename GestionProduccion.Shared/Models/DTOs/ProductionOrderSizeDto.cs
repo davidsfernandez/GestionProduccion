@@ -28,3 +28,4 @@ public class ProductionOrderSizeDto
     public int CompletedInCurrentStage { get; set; }
 }
 
+

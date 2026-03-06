@@ -24,3 +24,4 @@ public interface IProductionOrderQueryClient
     Task<List<ProductionHistoryDto>?> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default);
 }
 
+

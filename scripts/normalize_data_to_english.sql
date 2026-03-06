@@ -56,3 +56,4 @@ UPDATE ProductionHistories SET NewStatus = 'Paused' WHERE NewStatus IN ('Pausado
 UPDATE ProductionHistories SET NewStatus = 'Completed' WHERE NewStatus IN ('Finalizado', 'ConcluÃ­do');
 UPDATE ProductionHistories SET NewStatus = 'Stopped' WHERE NewStatus IN ('Parado');
 
+

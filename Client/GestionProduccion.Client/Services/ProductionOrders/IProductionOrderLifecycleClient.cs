@@ -25,3 +25,4 @@ public interface IProductionOrderLifecycleClient
     Task<BulkUpdateResult?> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, CancellationToken ct = default);
 }
 
+

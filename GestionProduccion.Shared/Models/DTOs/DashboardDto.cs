@@ -73,3 +73,4 @@ public class ChartPointDto
     public double Value { get; set; }
 }
 
+

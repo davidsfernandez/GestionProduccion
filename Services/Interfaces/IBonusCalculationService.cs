@@ -18,3 +18,4 @@ public interface IBonusCalculationService
     Task<BonusReportDto> CalculateUserBonusAsync(int userId, DateTime startDate, DateTime endDate);
 }
 
+

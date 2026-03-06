@@ -16,3 +16,4 @@ public class DomainConstraintException : Exception
     public DomainConstraintException(string message, Exception innerException) : base(message, innerException) { }
 }
 
+

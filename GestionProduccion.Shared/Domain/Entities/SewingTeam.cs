@@ -30,3 +30,4 @@ public class SewingTeam
     public virtual ICollection<ProductionOrder> AssignedOrders { get; set; } = new List<ProductionOrder>();
 }
 
+

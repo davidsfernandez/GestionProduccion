@@ -1,12 +1,10 @@
-﻿/*
- * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
- * 
- * This software and its associated documentation files are the exclusive property 
- * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
- * 
- * Proprietary and Confidential.
- */
+﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# 
+# This software and its associated documentation files are the exclusive property 
+# of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+# or use of this software, via any medium, is strictly prohibited.
+# 
+# Proprietary and Confidential.
 
 $ResourceGroup = "gestionproduccion-new-rg"
 $Location = "eastus2"
@@ -87,4 +85,5 @@ az containerapp create `
 $AppUrl = az containerapp show --name $WebAppName --resource-group $ResourceGroup --query properties.configuration.ingress.fqdn --output tsv
 Write-Host "[*] Despliegue Completado!" -ForegroundColor Green
 Write-Host "URL de la aplicacion: https://$AppUrl" -ForegroundColor Cyan
+
 

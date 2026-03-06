@@ -1,12 +1,10 @@
-﻿/*
- * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
- * 
- * This software and its associated documentation files are the exclusive property 
- * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
- * 
- * Proprietary and Confidential.
- */
+﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# 
+# This software and its associated documentation files are the exclusive property 
+# of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+# or use of this software, via any medium, is strictly prohibited.
+# 
+# Proprietary and Confidential.
 
 $LogFile = "deploy-watcher.log"
 Write-Output "=== Vigilante de Despliegue de Azure Iniciado ===" > $LogFile
@@ -25,3 +23,4 @@ while ($true) {
     Write-Output "[$timestamp] Azure sigue purgando recursos. Reintentando en 15 segundos..." >> $LogFile
     Start-Sleep -Seconds 15
 }
+

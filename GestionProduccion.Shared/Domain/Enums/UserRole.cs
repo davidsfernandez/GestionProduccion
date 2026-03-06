@@ -21,3 +21,4 @@ public enum UserRole
     Office = 3         // Administrative/Office role
 }
 
+

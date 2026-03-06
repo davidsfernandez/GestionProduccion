@@ -28,3 +28,4 @@ public class UpdateBonusRuleDto
     public decimal DelayPenaltyPercentage { get; set; }
 }
 
+

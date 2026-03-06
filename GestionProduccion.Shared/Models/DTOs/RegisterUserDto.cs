@@ -32,3 +32,4 @@ public class RegisterUserDto
     public string? LogoBase64 { get; set; }
 }
 
+

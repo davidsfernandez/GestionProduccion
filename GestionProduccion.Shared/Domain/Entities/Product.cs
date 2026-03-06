@@ -40,3 +40,4 @@ public class Product
     public decimal EstimatedSalePrice { get; set; }
 }
 
+

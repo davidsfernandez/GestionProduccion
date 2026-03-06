@@ -30,3 +30,4 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Verificación
 SHOW TABLES;
 
+

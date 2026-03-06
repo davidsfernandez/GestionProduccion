@@ -29,3 +29,4 @@ public class CreateQADefectDto
     public int ReportedByUserId { get; set; }
 }
 
+

@@ -1,3 +1,11 @@
+﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# 
+# This software and its associated documentation files are the exclusive property 
+# of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
+# or use of this software, via any medium, is strictly prohibited.
+# 
+# Proprietary and Confidential.
+
 # Stage 1: Build & Restore
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -45,3 +53,4 @@ RUN apt-get update && \
 
 # Set entrypoint
 ENTRYPOINT ["dotnet", "GestionProduccion.dll"]
+

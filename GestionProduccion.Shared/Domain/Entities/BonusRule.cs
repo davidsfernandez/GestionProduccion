@@ -38,3 +38,4 @@ public class BonusRule
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+

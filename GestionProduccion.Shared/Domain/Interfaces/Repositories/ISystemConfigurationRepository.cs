@@ -22,3 +22,4 @@ public interface ISystemConfigurationRepository
     Task SetValueAsync(string key, string? value);
 }
 
+
