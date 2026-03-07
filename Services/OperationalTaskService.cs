@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -47,10 +47,9 @@ public class OperationalTaskService : ITaskService
 
         if (currentLeader != null && currentLeader.UserName != previousLeaderName)
         {
-            // The leader changed! Notify everyone
             await _hubContext.Clients.All.SendAsync("ReceiveMessage", new
             {
-                message = $"Novo lÃ­der no ranking! {currentLeader.UserName} assumiu o 1Âº lugar com {currentLeader.CompletedTasks} tarefas concluÃ­das! ðŸ†",
+                message = $"Novo líder no ranking! {currentLeader.UserName} assumiu o 1º lugar com {currentLeader.CompletedTasks} tarefas concluídas! 🏆",
                 timestamp = DateTime.UtcNow,
                 type = "LeaderChange"
             });
@@ -76,22 +75,24 @@ public class OperationalTaskService : ITaskService
 
     public async Task<List<TaskDto>> GetUserTasksAsync(int userId)
     {
-        return await _context.OperationalTasks
+        var tasks = await _context.OperationalTasks
             .AsNoTracking()
             .Where(t => t.AssignedUserId == userId && t.Status != OpTaskStatus.Completed)
             .OrderBy(t => t.Deadline)
-            .Select(t => MapToDto(t))
             .ToListAsync();
+            
+        return tasks.Select(MapToDto).ToList();
     }
 
     public async Task<List<TaskDto>> GetAllTasksAsync()
     {
-        return await _context.OperationalTasks
+        var tasks = await _context.OperationalTasks
             .AsNoTracking()
             .Include(t => t.AssignedUser)
             .OrderByDescending(t => t.CreatedAt)
-            .Select(t => MapToDto(t))
             .ToListAsync();
+            
+        return tasks.Select(MapToDto).ToList();
     }
 
     public async Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status)
@@ -100,8 +101,6 @@ public class OperationalTaskService : ITaskService
         if (task != null)
         {
             var oldStatus = task.Status;
-            
-            // Ranking Check Logic - Get Previous Leader
             string previousLeader = "";
             if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
             {
@@ -115,7 +114,6 @@ public class OperationalTaskService : ITaskService
 
             if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
             {
-                // Re-check ranking and notify if leader changed
                 await CheckForLeaderChangeAsync(previousLeader);
             }
         }
@@ -142,9 +140,8 @@ public class OperationalTaskService : ITaskService
             })
             .ToListAsync(cancellationToken);
 
-        var result = rawData
+        return rawData
             .Select(u => {
-                // Calculation: Production Orders weight 15, Admin Tasks weight 5
                 double calculatedScore = (u.CompletedOrdersCount * 15.0) + (u.CompletedTasksCount * 5.0);
                 return new RankingEntryDto
                 {
@@ -157,11 +154,8 @@ public class OperationalTaskService : ITaskService
                 };
             })
             .OrderByDescending(r => r.Score)
-            .ThenByDescending(r => r.CompletedOrders)
             .Take(10)
             .ToList();
-
-        return result;
     }
 
     private static TaskDto MapToDto(OperationalTask t) => new TaskDto
@@ -171,7 +165,7 @@ public class OperationalTaskService : ITaskService
         Description = t.Description,
         AssignedUserName = t.AssignedUser?.FullName ?? "N/A",
         Status = t.Status.ToString(),
-        CreationDate = t.CreatedAt,
+        CreatedAt = t.CreatedAt,
         Deadline = t.Deadline,
         ProgressPercentage = CalculateProgress(t)
     };
@@ -183,11 +177,7 @@ public class OperationalTaskService : ITaskService
 
         var total = (t.Deadline.Value - t.CreatedAt).TotalSeconds;
         var elapsed = (DateTime.UtcNow - t.CreatedAt).TotalSeconds;
-
-        // Do not clamp to 100, allowing UI to show "Overdue" state if > 100%
         var progress = (elapsed / total) * 100;
         return Math.Max(0, Math.Round(progress, 1));
     }
 }
-
-

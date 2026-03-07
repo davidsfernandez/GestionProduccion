@@ -23,6 +23,9 @@ namespace GestionProduccion.Client.Resources
         public const string Loading = "Carregando...";
         public const string Success = "Sucesso!";
         public const string Error = "Erro!";
+        public const string Error_Title = "Ops! Algo deu errado";
+        public const string Error_GenericMessage = "Ocorreu um erro inesperado nesta parte do sistema. Nossa equipe técnica foi notificada.";
+        public const string Error_Retry = "Tentar Novamente";
         public const string Actions = "Ações";
         public const string Search = "Buscar";
         public const string Filter = "Filtrar";

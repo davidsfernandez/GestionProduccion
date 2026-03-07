@@ -43,7 +43,7 @@ public class TasksController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         var orders = await _orderQueryService.GetTeamProductionOrdersAsync(userId);
-        return Ok(new ApiResponse<List<ProductionOrderDto>> { Success = true, Data = orders });
+        return Ok(ApiResponse<List<ProductionOrderDto>>.SuccessResult(orders));
     }
 
     [HttpGet("my-admin")]
@@ -51,7 +51,7 @@ public class TasksController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         var tasks = await _taskService.GetUserTasksAsync(userId);
-        return Ok(new ApiResponse<List<TaskDto>> { Success = true, Data = tasks });
+        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks));
     }
 
     [HttpGet]
@@ -59,7 +59,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetAll()
     {
         var tasks = await _taskService.GetAllTasksAsync();
-        return Ok(new ApiResponse<List<TaskDto>> { Success = true, Data = tasks });
+        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks));
     }
 
     [HttpPost]
@@ -67,21 +67,21 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<TaskDto>>> Create(CreateTaskDto dto)
     {
         var task = await _taskService.CreateTaskAsync(dto);
-        return Ok(new ApiResponse<TaskDto> { Success = true, Message = "Task created" });
+        return Ok(ApiResponse<TaskDto>.SuccessResult(null, "Task created"));
     }
 
     [HttpPatch("{id}/status")]
     public async Task<ActionResult<ApiResponse<string>>> UpdateStatus(int id, [FromBody] OpTaskStatus status)
     {
         await _taskService.UpdateTaskStatusAsync(id, status);
-        return Ok(new ApiResponse<string> { Success = true, Message = "Status updated" });
+        return Ok(ApiResponse<string>.SuccessResult(null, "Status updated"));
     }
 
     [HttpPatch("{id}/complete")]
     public async Task<ActionResult<ApiResponse<string>>> Complete(int id)
     {
         await _taskService.CompleteTaskAsync(id);
-        return Ok(new ApiResponse<string> { Success = true, Message = "Task completed" });
+        return Ok(ApiResponse<string>.SuccessResult(null, "Task completed"));
     }
 
     [HttpGet("ranking")]
@@ -95,12 +95,12 @@ public class TasksController : ControllerBase
                 return await _taskService.GetPerformanceRankingAsync();
             });
 
-            return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = ranking ?? new List<RankingEntryDto>() });
+            return Ok(ApiResponse<List<RankingEntryDto>>.SuccessResult(ranking ?? new List<RankingEntryDto>()));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to calculate performance ranking");
-            return Ok(new ApiResponse<List<RankingEntryDto>> { Success = true, Data = new List<RankingEntryDto>() });
+            return Ok(ApiResponse<List<RankingEntryDto>>.SuccessResult(new List<RankingEntryDto>()));
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -15,6 +15,7 @@
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject GestionProduccion.Client.Services.UserStateService UserState
+@inject NavigationManager NavigationManager
 
 <PageTitle>@Portuguese.Set_Title</PageTitle>
 
@@ -178,7 +179,11 @@
     {
         try
         {
-            model = await Http.GetFromJsonAsync<SystemConfigurationDto>("api/Configuration");
+            var response = await Http.GetFromJsonAsync<ApiResponse<SystemConfigurationDto>>("api/Configuration");
+            if (response != null && response.Success)
+            {
+                model = response.Data;
+            }
         }
         catch (Exception ex)
         {
@@ -229,11 +234,15 @@
             var response = await Http.PostAsJsonAsync("api/Configuration", model);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast(Portuguese.Set_SuccessSave, ToastLevel.Success);
+                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                ToastService.ShowToast(apiResp?.Message ?? Portuguese.Set_SuccessSave, ToastLevel.Success);
+                // Force state update for dynamic branding
+                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
             }
             else
             {
-                ToastService.ShowToast(Portuguese.Set_ErrSave, ToastLevel.Error);
+                var error = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                ToastService.ShowToast(error?.Message ?? Portuguese.Set_ErrSave, ToastLevel.Error);
             }
         }
         catch (Exception ex)

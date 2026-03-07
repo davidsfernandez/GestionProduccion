@@ -251,6 +251,35 @@ public class ProductionOrdersController : ControllerBase
         }
     }
 
+    [HttpPost("{orderId}/partial-output")]
+    [Authorize(Roles = "Administrator,Leader,Operational")]
+    public async Task<ActionResult<ApiResponse<bool>>> RegisterPartialOutput(int orderId, [FromBody] PartialOutputRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId))
+            {
+                return Unauthorized(ApiResponse<bool>.FailureResult("Unauthorized access"));
+            }
+
+            var result = await _lifecycleService.RegisterPartialOutputAsync(orderId, request.SizeOutputs, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(ApiResponse<bool>.SuccessResult(result, "Produção registrada com sucesso!"));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<bool>.FailureResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Erro ao registrar produção parcial", new List<string> { ex.Message }));
+        }
+    }
+
     [HttpGet("dashboard")]
     public async Task<ActionResult<ApiResponse<DashboardDto>>> GetDashboard()
     {

@@ -43,14 +43,14 @@ public class BonusCalculationController : ControllerBase
             }
             else
             {
-                return BadRequest(new ApiResponse<BonusReportDto> { Success = false, Message = "Either teamId or userId must be provided." });
+                return BadRequest(ApiResponse<BonusReportDto>.FailureResult("Either teamId or userId must be provided."));
             }
 
-            return Ok(new ApiResponse<BonusReportDto> { Success = true, Data = report });
+            return Ok(ApiResponse<BonusReportDto>.SuccessResult(report));
         }
         catch (Exception ex)
         {
-            return BadRequest(new ApiResponse<BonusReportDto> { Success = false, Message = ex.Message });
+            return BadRequest(ApiResponse<BonusReportDto>.FailureResult(ex.Message));
         }
     }
 }

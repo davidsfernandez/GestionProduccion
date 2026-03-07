@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -32,43 +32,44 @@ public class DashboardBIService : IDashboardBIService
         var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
-        // 1. Month Production (Sum of all outputs/events this month)
+        // 1. Production metrics based on Outputs (Registros de producción parcial)
         var monthProduction = await _context.ProductionOrderOutputs
             .AsNoTracking()
             .Where(o => o.CreatedAt >= firstDayOfMonth)
             .SumAsync(o => o.Quantity, ct);
 
-        // 2. Average Cost & Margin (Still based on completed orders as final cost is calculated then)
-        var monthOrders = await _context.ProductionOrders
+        // 2. Financial Metrics (Finalized orders only)
+        var completedOrders = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth)
             .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
             .ToListAsync(ct);
 
-        decimal avgCost = monthOrders.Any() ? monthOrders.Average(o => o.AverageCostPerPiece) : 0;
-        decimal avgMargin = monthOrders.Any() ? monthOrders.Average(o => o.ProfitMargin) : 0;
+        decimal avgCost = completedOrders.Any() ? completedOrders.Average(o => o.AverageCostPerPiece) : 0;
+        decimal avgMargin = completedOrders.Any() ? completedOrders.Average(o => o.ProfitMargin) : 0;
 
-        // 3. Delayed Orders
+        // 3. Operational status
         var delayedCount = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction)
                         && o.EstimatedCompletionAt < now)
             .CountAsync(ct);
 
-        // 4. Production by Workshop (Based on Outputs)
+        // 4. Production by Workshop/Operator (Based on Actual Work registered)
         var prodByWorkshop = await _context.ProductionOrderOutputs
             .AsNoTracking()
             .Include(o => o.ResponsibleUser)
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .GroupBy(o => o.ResponsibleUser!.FullName)
+            .GroupBy(o => o.ResponsibleUser != null ? o.ResponsibleUser.FullName : "Externo")
             .Select(g => new WorkshopProductionDto
             {
                 WorkshopName = g.Key,
                 Quantity = g.Sum(x => x.Quantity)
             })
+            .OrderByDescending(x => x.Quantity)
             .ToListAsync(ct);
 
-        // 5. Weekly Production (Based on Outputs)
+        // 5. Weekly Volume Time-Series
         var sevenDaysAgo = today.AddDays(-6);
         var weeklyRaw = await _context.ProductionOrderOutputs
             .AsNoTracking()
@@ -83,82 +84,40 @@ public class DashboardBIService : IDashboardBIService
         {
             var date = today.AddDays(-i);
             var totalForDay = weeklyRaw.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
-            
             weeklyData.Add(totalForDay);
-            weeklyLabels.Add(date.ToString("ddd", ptBr).Replace(".", ""));
+            weeklyLabels.Add(date.ToString("ddd", ptBr).ToUpper().Replace(".", ""));
         }
 
-        // 6. Team Ranking (Based on Outputs joined with Orders)
-        var teamRanking = await _context.ProductionOrderOutputs
+        // 6. Real Performance Ranking
+        // Score logic: 10 points per 100 pieces + bonus for variety? Simple sum for now.
+        var ranking = await _context.ProductionOrderOutputs
             .AsNoTracking()
-            .Join(_context.ProductionOrders,
-                output => output.ProductionOrderId,
-                order => order.Id,
-                (output, order) => new { output, order })
-            .Where(x => x.order.SewingTeamId != null && x.output.CreatedAt >= firstDayOfMonth)
-            .Join(_context.SewingTeams,
-                x => x.order.SewingTeamId,
-                team => team.Id,
-                (x, team) => new { x.output, team })
-            .GroupBy(x => x.team.Name)
+            .Include(o => o.ResponsibleUser)
+            .Where(o => o.CreatedAt >= firstDayOfMonth)
+            .GroupBy(o => new { o.UserId, o.ResponsibleUser!.FullName })
             .Select(g => new TeamRankingDto
             {
-                TeamName = g.Key,
-                TotalProduced = g.Sum(x => x.output.Quantity),
-                Efficiency = 100 // Efficiency logic can be expanded
+                TeamName = g.Key.FullName,
+                TotalProduced = g.Sum(x => x.Quantity),
+                Efficiency = Math.Min(100, (int)(g.Sum(x => x.Quantity) / 10.0)) // Placeholder real logic
             })
             .OrderByDescending(r => r.TotalProduced)
+            .Take(10)
             .ToListAsync(ct);
 
-        // 7. Profitable Models
-        var productStats = await _context.ProductionOrders
+        // 7. Product Insights
+        var topModels = await _context.ProductionOrders
             .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed)
-            .GroupBy(o => o.ProductId)
-            .Select(g => new
+            .GroupBy(o => new { o.ProductId, o.Product!.Name, o.Product!.MainSku })
+            .Select(g => new ProductProfitabilityDto
             {
-                ProductId = g.Key,
-                AvgMargin = g.Average(x => x.ProfitMargin)
+                Sku = g.Key.MainSku,
+                Name = g.Key.Name,
+                AverageMargin = g.Average(x => x.ProfitMargin)
             })
-            .ToListAsync(ct);
-
-        var productIds = productStats.Select(x => x.ProductId).ToList();
-        var products = await _context.Products
-            .AsNoTracking()
-            .Where(p => productIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, p => new { p.Name, p.MainSku }, ct);
-
-        var profitabilityList = productStats
-            .Where(p => products.ContainsKey(p.ProductId))
-            .Select(p => new ProductProfitabilityDto
-            {
-                Sku = products[p.ProductId].MainSku,
-                Name = products[p.ProductId].Name,
-                AverageMargin = p.AvgMargin
-            })
-            .OrderByDescending(p => p.AverageMargin)
-            .ToList();
-
-        // 7. Stalled Stock
-        var sixtyDaysAgo = now.AddDays(-60);
-        var activeProductIds = await _context.ProductionOrders
-            .AsNoTracking()
-            .Where(o => o.CreatedAt >= sixtyDaysAgo)
-            .Select(o => o.ProductId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var stalledProducts = await _context.Products
-            .AsNoTracking()
-            .Where(p => !activeProductIds.Contains(p.Id))
-            .Select(p => new StalledProductDto
-            {
-                Sku = p.MainSku,
-                Name = p.Name,
-                DaysSinceLastProduction = 60
-            })
-            .OrderBy(p => p.Sku)
-            .Take(10)
+            .OrderByDescending(x => x.AverageMargin)
+            .Take(5)
             .ToListAsync(ct);
 
         return new DashboardCompleteResponse
@@ -168,14 +127,11 @@ public class DashboardBIService : IDashboardBIService
             MonthAverageMargin = Math.Round(avgMargin, 2),
             DelayedOrdersCount = delayedCount,
             ProductionByWorkshop = prodByWorkshop,
-            TeamRanking = teamRanking,
-            TopProfitableModels = profitabilityList.Take(5).ToList(),
-            BottomProfitableModels = profitabilityList.OrderBy(p => p.AverageMargin).Take(5).ToList(),
-            StalledStock = stalledProducts,
+            TeamRanking = ranking,
+            TopProfitableModels = topModels,
             WeeklyVolumeData = weeklyData,
-            WeeklyLabels = weeklyLabels
+            WeeklyLabels = weeklyLabels,
+            StalledStock = new List<StalledProductDto>() // To be implemented in inventory refactor
         };
     }
 }
-
-

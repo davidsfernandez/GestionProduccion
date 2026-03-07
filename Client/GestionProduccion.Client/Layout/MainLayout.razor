@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -20,6 +20,7 @@
 @using GestionProduccion.Client.Components
 @using GestionProduccion.Client.Resources
 @using GestionProduccion.Client.Services
+@using GestionProduccion.Models.DTOs
 @implements IDisposable
 
 @if (!_isSystemReady)
@@ -72,7 +73,21 @@ else
             <main class="content">
                 <div class="container-fluid p-0">
                     <ToastContainer />
-                    @Body
+                    <ErrorBoundary @ref="_errorBoundary">
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                        <ErrorContent>
+                            <div class="alert alert-danger m-4" role="alert">
+                                <h4 class="alert-heading">@Portuguese.Error_Title</h4>
+                                <p>@Portuguese.Error_GenericMessage</p>
+                                <hr>
+                                <button class="btn btn-outline-danger" @onclick="Recover">
+                                    @Portuguese.Error_Retry
+                                </button>
+                            </div>
+                        </ErrorContent>
+                    </ErrorBoundary>
                 </div>
             </main>
         </div>
@@ -82,45 +97,41 @@ else
 }
 
 @code {
+    private ErrorBoundary? _errorBoundary;
     private bool _isSidebarCollapsed = true;
     private bool _isSystemReady = false;
 
+    private void Recover()
+    {
+        _errorBoundary?.Recover();
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        UserState.OnChange += StateHasChanged;
-        UserState.OnChange += UpdateBodyClass;
-
-        // Global Guard: Wait for backend to be ready and checked
+        UserState.OnChange += HandleStateChanged;
+        
         try
         {
-            var setupReq = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            
-            // Try to load theme from config
-            var config = await Http.GetFromJsonAsync<SystemConfigurationDto>("api/Configuration/public");
-            if (config != null)
+            // Global Guard: Check for setup and public config
+            var response = await Http.GetFromJsonAsync<ApiResponse<PublicConfigurationDto>>("api/Configuration/public");
+            if (response != null && response.Success && response.Data != null)
             {
+                var config = response.Data;
                 if (!string.IsNullOrEmpty(config.ThemeName))
                 {
                     UserState.UpdateTheme(config.ThemeName);
-                    UpdateBodyClass();
                 }
-                
                 if (!string.IsNullOrEmpty(config.CompanyName))
                 {
                     UserState.UpdateCompanyName(config.CompanyName);
                 }
             }
-
-            _isSystemReady = true;
         }
-        catch
-        {
-            _isSystemReady = true; 
-        }
+        catch { /* Fallback to defaults */ }
 
+        _isSystemReady = true;
         NavigationManager.LocationChanged += OnLocationChanged;
         
-        // Start SignalR for global notifications
         try
         {
             var hubUrl = NavigationManager.ToAbsoluteUri("/productionHub").ToString();
@@ -128,6 +139,12 @@ else
             SignalR.OnMessageReceived += HandleGlobalMessage;
         }
         catch { }
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+        UpdateBodyClass();
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -167,7 +184,8 @@ else
     {
         try 
         {
-            return await JS.InvokeAsync<int>("eval", "window.innerWidth") < 992;
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            return width < 992;
         }
         catch { return false; }
     }
@@ -195,12 +213,8 @@ else
 
     public void Dispose()
     {
-        UserState.OnChange -= StateHasChanged;
-        UserState.OnChange -= UpdateBodyClass;
+        UserState.OnChange -= HandleStateChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
         SignalR.OnMessageReceived -= HandleGlobalMessage;
     }
 }
-
-
-

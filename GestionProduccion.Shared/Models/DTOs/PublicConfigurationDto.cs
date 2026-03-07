@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -14,6 +14,5 @@ public class PublicConfigurationDto
 {
     public string? CompanyName { get; set; }
     public string? LogoBase64 { get; set; }
+    public string? ThemeName { get; set; }
 }
-
-

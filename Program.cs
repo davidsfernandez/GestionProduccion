@@ -231,6 +231,8 @@ forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
+app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
+
 // Enable Swagger in Dev or if explicitly enabled via Env Var (e.g. in Docker)
 if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
 {
@@ -242,8 +244,6 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABL
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
 
 // Security Headers
 app.Use(async (context, next) =>

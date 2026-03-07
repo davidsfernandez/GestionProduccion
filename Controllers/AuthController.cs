@@ -55,33 +55,33 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("change-password")]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
         {
-            return Unauthorized();
+            return Unauthorized(ApiResponse<object>.FailureResult("Unauthorized"));
         }
 
         var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
         if (!success)
         {
-            return BadRequest(new { message = "Invalid current password or user not found." });
+            return BadRequest(ApiResponse<object>.FailureResult("Invalid current password or user not found."));
         }
 
-        return Ok(new { message = "Password updated successfully." });
+        return Ok(ApiResponse<object>.SuccessResult(null, "Password updated successfully."));
     }
 
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("LoginPolicy")]
-    public async Task<IActionResult> Login([FromBody] LoginDto login)
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] LoginDto login)
     {
         try
         {
             if (login == null || string.IsNullOrEmpty(login.Email) || string.IsNullOrEmpty(login.Password))
             {
-                return BadRequest(new { message = "Email and password are required." });
+                return BadRequest(ApiResponse<LoginResponse>.FailureResult("Email and password are required."));
             }
 
             var user = await _userService.GetUserByEmailAsync(login.Email.Trim());
@@ -89,19 +89,19 @@ public class AuthController : ControllerBase
             if (user == null)
             {
                 _logger.LogWarning("LOGIN FAILED: User not found with email {Email}", login.Email);
-                return Unauthorized(new { message = "Invalid credentials." });
+                return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid credentials."));
             }
 
             if (!BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
             {
                 _logger.LogWarning("LOGIN FAILED: Password mismatch for user {Email}", login.Email);
-                return Unauthorized(new { message = "Invalid credentials." });
+                return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid credentials."));
             }
 
             if (!user.IsActive)
             {
                 _logger.LogWarning("LOGIN FAILED: User {Email} is inactive", login.Email);
-                return Unauthorized(new { message = "Inactive user." });
+                return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Inactive user."));
             }
 
             var tokenDuration = login.RememberMe ? TimeSpan.FromDays(30) : TimeSpan.FromHours(8);
@@ -118,39 +118,35 @@ public class AuthController : ControllerBase
             });
 
             _logger.LogInformation("LOGIN SUCCESS: User {Email} logged in successfully", login.Email);
-            return Ok(new LoginResponse
+            return Ok(ApiResponse<LoginResponse>.SuccessResult(new LoginResponse
             {
                 Token = token,
                 RefreshToken = refreshToken,
                 AvatarUrl = user.AvatarUrl,
                 FullName = user.FullName
-            });
+            }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "LOGIN CRITICAL ERROR: {Message}", ex.Message);
-            return StatusCode(500, new
-            {
-                message = "An error occurred during login.",
-                error = ex.Message
-            });
+            return StatusCode(500, ApiResponse<LoginResponse>.FailureResult("An error occurred during login.", new List<string> { ex.Message }));
         }
     }
 
     [HttpPost("refresh-token")]
     [AllowAnonymous]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<ActionResult<ApiResponse<LoginResponse>>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         if (request == null || string.IsNullOrEmpty(request.RefreshToken))
         {
-            return BadRequest("Invalid client request");
+            return BadRequest(ApiResponse<LoginResponse>.FailureResult("Invalid client request"));
         }
 
         var storedToken = await _refreshTokenRepo.GetByTokenAsync(request.RefreshToken);
 
         if (storedToken == null || storedToken.IsRevoked || storedToken.ExpiryDate <= DateTime.UtcNow)
         {
-            return Unauthorized(new { message = "Invalid or expired refresh token" });
+            return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid or expired refresh token"));
         }
 
         var user = storedToken.User;
@@ -169,88 +165,89 @@ public class AuthController : ControllerBase
             CreatedAt = DateTime.UtcNow
         });
 
-        return Ok(new LoginResponse
+        return Ok(ApiResponse<LoginResponse>.SuccessResult(new LoginResponse
         {
             Token = newToken,
             RefreshToken = newRefreshToken,
             AvatarUrl = user.AvatarUrl,
             FullName = user.FullName
-        });
+        }));
     }
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     [EnableRateLimiting("LoginPolicy")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.FailureResult("Validation failed"));
 
         var token = await _userService.RequestPasswordResetAsync(request.Email);
 
-        if (token == null) return Ok(new { message = "Se o e-mail existir, um link de redefiniÃ§Ã£o foi enviado." });
+        if (token == null) return Ok(ApiResponse<object>.SuccessResult(null, "Se o e-mail existir, um link de redefinição foi enviado."));
 
         var baseUrl = _configuration["App:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
         var resetLink = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(request.Email)}";
         
         var emailBody = $@"
             <div style='font-family: sans-serif; max-width: 600px; margin: auto;'>
-                <h2 style='color: #3B7DDD;'>RedefiniÃ§Ã£o de Senha - GestÃ£o de ProduÃ§Ã£o</h2>
-                <p>OlÃ¡,</p>
-                <p>Recebemos uma solicitaÃ§Ã£o para redefinir a senha da sua conta.</p>
-                <p>Clique no botÃ£o abaixo para escolher uma nova senha:</p>
+                <h2 style='color: #3B7DDD;'>Redefinição de Senha - Gestão de Produção</h2>
+                <p>Olá,</p>
+                <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+                <p>Clique no botão abaixo para escolher uma nova senha:</p>
                 <div style='text-align: center; margin: 30px 0;'>
                     <a href='{resetLink}' style='background-color: #3B7DDD; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Redefinir Senha</a>
                 </div>
                 <p style='color: #666; font-size: 0.9em;'>Este link expira em 60 minutos.</p>
-                <p style='color: #666; font-size: 0.9em;'>Se vocÃª nÃ£o solicitou esta alteraÃ§Ã£o, ignore este e-mail.</p>
+                <p style='color: #666; font-size: 0.9em;'>Se você não solicitou esta alteração, ignore este e-mail.</p>
                 <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
-                <p style='font-size: 0.8em; color: #999;'>Este Ã© um e-mail automÃ¡tico, por favor nÃ£o responda.</p>
+                <p style='font-size: 0.8em; color: #999;'>Este é um e-mail automático, por favor não responda.</p>
             </div>";
 
-        await _emailService.SendEmailAsync(request.Email, "RedefiniÃ§Ã£o de Senha - GestÃ£o de ProduÃ§Ã£o", emailBody);
+        await _emailService.SendEmailAsync(request.Email, "Redefinição de Senha - Gestão de Produção", emailBody);
 
-        return Ok(new { message = "Se o e-mail existir, um link de redefiniÃ§Ã£o foi enviado." });
+        return Ok(ApiResponse<object>.SuccessResult(null, "Se o e-mail existir, um link de redefinição foi enviado."));
     }
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [EnableRateLimiting("LoginPolicy")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordRequest request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.FailureResult("Validation failed"));
 
         var success = await _userService.CompletePasswordResetAsync(request.Email, request.Token, request.NewPassword);
 
         if (!success)
         {
-            return BadRequest(new { message = "Invalid or expired token, or user mismatch." });
+            return BadRequest(ApiResponse<object>.FailureResult("Invalid or expired token, or user mismatch."));
         }
 
-        return Ok(new { message = "Password reset successfully." });
+        return Ok(ApiResponse<object>.SuccessResult(null, "Password reset successfully."));
     }
 
     [AllowAnonymous]
     [HttpGet("setup-required")]
-    public async Task<ActionResult<bool>> IsSetupRequired()
+    public async Task<ActionResult<ApiResponse<bool>>> IsSetupRequired()
     {
-        return await _userService.IsSetupRequiredAsync();
+        var result = await _userService.IsSetupRequiredAsync();
+        return Ok(ApiResponse<bool>.SuccessResult(result));
     }
 
     [AllowAnonymous]
     [HttpGet("dev-users")]
-    public async Task<IActionResult> GetDevUsers([FromServices] GestionProduccion.Data.AppDbContext context)
+    public async Task<ActionResult<ApiResponse<object>>> GetDevUsers([FromServices] GestionProduccion.Data.AppDbContext context)
     {
         var users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(context.Users.Select(u => new { u.Email, u.Role, u.FullName }));
-        return Ok(users);
+        return Ok(ApiResponse<object>.SuccessResult(users));
     }
 
     [AllowAnonymous]
     [HttpPost("setup")]
-    public async Task<IActionResult> FirstTimeSetup([FromBody] RegisterUserDto request)
+    public async Task<ActionResult<ApiResponse<object>>> FirstTimeSetup([FromBody] RegisterUserDto request)
     {
         if (await _userService.IsSetupRequiredAsync() == false)
         {
-            return BadRequest(new { message = "Setup is not required. Users already exist." });
+            return BadRequest(ApiResponse<object>.FailureResult("Setup is not required. Users already exist."));
         }
 
         try
@@ -277,11 +274,11 @@ public class AuthController : ControllerBase
             };
 
             await _userService.CreateUserAsync(user);
-            return Ok(new { message = "Administrator created and system configured successfully. You can now login." });
+            return Ok(ApiResponse<object>.SuccessResult(null, "Administrator created and system configured successfully. You can now login."));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error during setup", error = ex.Message });
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error during setup", new List<string> { ex.Message }));
         }
     }
 

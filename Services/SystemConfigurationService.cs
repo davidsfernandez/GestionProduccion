@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -34,10 +34,11 @@ public class SystemConfigurationService : ISystemConfigurationService
         {
             return new SystemConfigurationDto
             {
-                CompanyName = "My Factory",
+                CompanyName = "Gestão de Produção",
                 DailyFixedCost = 0,
                 OperationalHourlyCost = 0,
-                TvAnnouncement = tvAnnouncement
+                TvAnnouncement = tvAnnouncement,
+                ThemeName = "default"
             };
         }
 
@@ -58,8 +59,9 @@ public class SystemConfigurationService : ISystemConfigurationService
         var config = await _repo.GetAsync();
         return new PublicConfigurationDto
         {
-            CompanyName = config?.CompanyName ?? "GestÃ£o de ProduÃ§Ã£o",
-            LogoBase64 = config?.LogoBase64
+            CompanyName = config?.CompanyName ?? "Gestão de Produção",
+            LogoBase64 = config?.LogoBase64,
+            ThemeName = config?.ThemeName ?? "default"
         };
     }
 
@@ -71,7 +73,6 @@ public class SystemConfigurationService : ISystemConfigurationService
             config = new SystemConfiguration();
         }
 
-        // Validation for Logo Base64 (Basic safety check)
         if (!string.IsNullOrEmpty(dto.LogoBase64) && !IsValidImage(dto.LogoBase64))
         {
             throw new ArgumentException("Invalid image format. Only PNG and JPG are allowed.");
@@ -85,7 +86,6 @@ public class SystemConfigurationService : ISystemConfigurationService
         config.ThemeName = dto.ThemeName;
 
         await _repo.UpdateAsync(config);
-        
         await _repo.SetValueAsync("TvAnnouncement", dto.TvAnnouncement);
     }
 
@@ -111,9 +111,6 @@ public class SystemConfigurationService : ISystemConfigurationService
 
     private bool IsValidImage(string base64)
     {
-        // Check for common data URI schemes for images
         return Regex.IsMatch(base64, @"^data:image/(png|jpeg|jpg);base64,");
     }
 }
-
-

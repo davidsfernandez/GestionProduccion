@@ -170,7 +170,17 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
         var todaysOrdersList = ordersWithRelations.Where(o => o.CreatedAt >= today || (o.CompletedAt != null && o.CompletedAt >= today)).OrderByDescending(o => o.CreatedAt).ToList();
-        var todaysOrdersDtos = todaysOrdersList.Select(MapToDto).ToList();
+        
+        // Fetch outputs for today's orders to ensure accurate mapping
+        var orderIds = todaysOrdersList.Select(o => o.Id).ToList();
+        var allOutputs = await _outputRepository.GetByOrderIdAsync(0); // Mock/Load all or filter if possible
+        // Better: load specific outputs
+        var todaysOutputs = new List<ProductionOrderOutput>();
+        foreach(var id in orderIds) {
+            todaysOutputs.AddRange(await _outputRepository.GetByOrderIdAsync(id));
+        }
+
+        var todaysOrdersDtos = todaysOrdersList.Select(o => MapToDto(o, todaysOutputs.Where(x => x.ProductionOrderId == o.Id).ToList())).ToList();
 
         double avgTimePerPiece = 0;
         var completedTodayList = todaysOrdersList.Where(o => o.CurrentStatus == ProductionStatus.Completed).ToList();
@@ -268,6 +278,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             EstimatedCompletionAt = order.EstimatedCompletionAt,
             UserId = order.UserId,
             AssignedUserName = order.AssignedUser?.FullName,
+            AssignedUserAvatar = order.AssignedUser?.AvatarUrl,
             SewingTeamId = order.SewingTeamId,
             SewingTeamName = order.AssignedTeam?.Name,
             TotalCost = order.TotalCost,

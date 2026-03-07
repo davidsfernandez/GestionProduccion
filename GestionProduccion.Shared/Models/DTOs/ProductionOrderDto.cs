@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -28,6 +28,7 @@ public class ProductionOrderDto
     public DateTime EstimatedCompletionAt { get; set; }
     public int? UserId { get; set; }
     public string? AssignedUserName { get; set; }
+    public string? AssignedUserAvatar { get; set; }
     public int? SewingTeamId { get; set; }
     public string? SewingTeamName { get; set; }
     public bool IsTeamTask { get; set; }
@@ -41,5 +42,3 @@ public class ProductionOrderDto
     public List<ProductionHistoryDto> History { get; set; } = new();
     public List<ProductionOrderSizeDto> Sizes { get; set; } = new();
 }
-
-

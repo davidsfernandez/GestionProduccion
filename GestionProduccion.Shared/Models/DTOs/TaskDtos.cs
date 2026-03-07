@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -9,7 +9,6 @@
  */
 
 using System.ComponentModel.DataAnnotations;
-using GestionProduccion.Domain.Entities;
 
 namespace GestionProduccion.Models.DTOs;
 
@@ -35,10 +34,8 @@ public class TaskDto
     public string Description { get; set; } = string.Empty;
     public string AssignedUserName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
-    public DateTime CreationDate { get; set; }
+    public DateTime CreatedAt { get; set; }
     public DateTime? Deadline { get; set; }
     public double ProgressPercentage { get; set; }
     public bool IsOverdue => ProgressPercentage > 100 && Status != "Completed";
 }
-
-

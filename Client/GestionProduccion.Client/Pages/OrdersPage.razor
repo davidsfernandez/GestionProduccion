@@ -332,15 +332,15 @@
         {
             try
             {
-                var success = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
-                if (success)
+                var response = await ProductionOrderMutationClient.DeleteProductionOrderAsync(order.Id);
+                if (response?.Success == true)
                 {
-                    ToastService.ShowToast("Ordem de produção removida.", ToastLevel.Success);
+                    ToastService.ShowToast(response.Message ?? "Ordem de produção removida.", ToastLevel.Success);
                     await LoadOrders(paginatedData?.PageNumber ?? 1);
                 }
                 else
                 {
-                    ToastService.ShowToast($"Erro ao excluir ordem.", ToastLevel.Error);
+                    ToastService.ShowToast(response?.Message ?? "Erro ao excluir ordem.", ToastLevel.Error);
                 }
             }
             catch (Exception ex)

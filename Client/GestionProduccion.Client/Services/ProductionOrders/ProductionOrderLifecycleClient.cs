@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -9,12 +9,8 @@
  */
 
 using GestionProduccion.Domain.Enums;
-using GestionProduccion.Models.DTOs; // From Shared
-using System.Collections.Generic;
-using System.Net.Http;
+using GestionProduccion.Models.DTOs;
 using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace GestionProduccion.Client.Services.ProductionOrders;
 
@@ -27,42 +23,46 @@ public class ProductionOrderLifecycleClient : IProductionOrderLifecycleClient
         _httpClient = httpClient;
     }
 
-    public async Task<bool> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
+    public async Task<ApiResponse<ProductionOrderDto>> AssignTaskAsync(int orderId, int userId, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/assign", new { UserId = userId }, ct);
-        return response.IsSuccessStatusCode;
+        return await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct) 
+            ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao atribuir tarefa.");
     }
 
-    public async Task<bool> AdvanceStageAsync(int orderId, CancellationToken ct = default)
+    public async Task<ApiResponse<ProductionOrderDto>> AdvanceStageAsync(int orderId, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsync($"api/ProductionOrders/{orderId}/advance-stage", null, ct);
-        return response.IsSuccessStatusCode;
+        return await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct)
+            ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao avançar estágio.");
     }
 
-    public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, CancellationToken ct = default)
+    public async Task<ApiResponse<bool>> ChangeStageAsync(int orderId, ProductionStage newStage, string note, CancellationToken ct = default)
     {
-        var request = new ChangeStageRequest { NewStage = newStage, Note = note };
-        var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/change-stage", request, ct);
-        return response.IsSuccessStatusCode;
+        var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/change-stage", new { NewStage = newStage, Note = note }, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(cancellationToken: ct)
+            ?? ApiResponse<bool>.FailureResult("Erro ao alterar estágio.");
     }
 
-    public async Task<bool> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, CancellationToken ct = default)
+    public async Task<ApiResponse<ProductionOrderDto>> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, CancellationToken ct = default)
     {
-        var request = new UpdateStatusRequest { NewStatus = newStatus, Note = note };
-        var response = await _httpClient.PatchAsJsonAsync($"api/ProductionOrders/{orderId}/status", request, ct);
-        return response.IsSuccessStatusCode;
+        var response = await _httpClient.PatchAsJsonAsync($"api/ProductionOrders/{orderId}/status", new { NewStatus = newStatus, Note = note }, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct)
+            ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao atualizar status.");
     }
 
-    public async Task<BulkUpdateResult?> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, CancellationToken ct = default)
+    public async Task<ApiResponse<BulkUpdateResult>> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, CancellationToken ct = default)
     {
-        var request = new BulkUpdateStatusRequest { OrderIds = orderIds, NewStatus = newStatus, Note = note };
-        var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-status", request, ct);
-        if (response.IsSuccessStatusCode)
-        {
-            return await response.Content.ReadFromJsonAsync<BulkUpdateResult>(cancellationToken: ct);
-        }
-        return null;
+        var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-status", new { OrderIds = orderIds, NewStatus = newStatus, Note = note }, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<BulkUpdateResult>>(cancellationToken: ct)
+            ?? ApiResponse<BulkUpdateResult>.FailureResult("Erro ao processar atualização em massa.");
+    }
+
+    public async Task<ApiResponse<bool>> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, CancellationToken ct = default)
+    {
+        var request = new PartialOutputRequest { SizeOutputs = sizeOutputs, Note = "Partial output via UI" };
+        var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/partial-output", request, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(cancellationToken: ct)
+            ?? ApiResponse<bool>.FailureResult("Erro ao registrar produção parcial.");
     }
 }
-
-

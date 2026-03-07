@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -40,7 +40,7 @@
                 else
                 {
                     <p class="small text-muted mb-4 text-center">
-                        Detectamos que este é o primeiro acesso. Crie uma conta de <strong>Administrador</strong> para começar.
+                        Detectamos que este é o primeiro acesso. Crie uma cuenta de <strong>Administrador</strong> para começar.
                     </p>
 
                     <EditForm Model="@model" OnValidSubmit="HandleSetup">
@@ -118,8 +118,8 @@
     {
         try
         {
-            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            if (!setupRequired)
+            var response = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/Auth/setup-required");
+            if (response != null && response.Success && !response.Data)
             {
                 NavigationManager.NavigateTo("/login");
             }
@@ -135,43 +135,44 @@
         var file = e.File;
         if (file != null)
         {
-            if (file.Size > 1024 * 1024) // 1MB limit
+            if (file.Size > 1048576) // 1MB limit
             {
                 errorMessage = "O logotipo deve ser menor que 1MB.";
                 return;
             }
 
-            var buffer = new byte[file.Size];
-            await file.OpenReadStream().ReadAsync(buffer);
-            var base64 = Convert.ToBase64String(buffer);
-            model.LogoBase64 = $"data:{file.ContentType};base64,{base64}";
+            try 
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream().ReadAsync(buffer);
+                var base64 = Convert.ToBase64String(buffer);
+                model.LogoBase64 = $"data:{file.ContentType};base64,{base64}";
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Erro ao processar imagem: {ex.Message}";
+            }
         }
     }
 
     private async Task HandleSetup()
     {
+        if (loading) return;
         loading = true;
         errorMessage = "";
 
         try
         {
             var response = await Http.PostAsJsonAsync("api/Auth/setup", model);
-            if (response.IsSuccessStatusCode)
+            var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+
+            if (response.IsSuccessStatusCode && apiResp != null && apiResp.Success)
             {
                 success = true;
             }
             else
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                try 
-                {
-                    var error = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(errorBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    errorMessage = error?.Message ?? "Erro ao configurar sistema.";
-                }
-                catch 
-                {
-                    errorMessage = "Erro inesperado do servidor.";
-                }
+                errorMessage = apiResp?.Message ?? "Erro ao configurar sistema.";
             }
         }
         catch (Exception ex)
@@ -188,12 +189,4 @@
     {
         NavigationManager.NavigateTo("/login");
     }
-
-    class ErrorResponse
-    {
-        public string Message { get; set; } = "";
-    }
 }
-
-
-

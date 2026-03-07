@@ -26,21 +26,19 @@ public class ProductionOrderMutationClient : IProductionOrderMutationClient
         _httpClient = httpClient;
     }
 
-    public async Task<ProductionOrderDto?> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default)
+    public async Task<ApiResponse<ProductionOrderDto>> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default)
     {
         var url = assignedUserId.HasValue ? $"api/ProductionOrders?userId={assignedUserId.Value}" : "api/ProductionOrders";
         var response = await _httpClient.PostAsJsonAsync(url, request, ct);
-        if (response.IsSuccessStatusCode)
-        {
-            return await response.Content.ReadFromJsonAsync<ProductionOrderDto>(cancellationToken: ct);
-        }
-        return null;
+        return await response.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(cancellationToken: ct)
+            ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao criar ordem de produção.");
     }
 
-    public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
+    public async Task<ApiResponse<bool>> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
     {
         var response = await _httpClient.DeleteAsync($"api/ProductionOrders/{id}", ct);
-        return response.IsSuccessStatusCode;
+        return await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(cancellationToken: ct)
+            ?? ApiResponse<bool>.FailureResult("Erro ao excluir ordem de produção.");
     }
 }
 

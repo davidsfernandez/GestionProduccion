@@ -313,8 +313,9 @@
 
             if (response.IsSuccessStatusCode)
             {
+                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<ProductDto>>();
                 await Audio.PlaySuccess();
-                ToastService.ShowToast(editingId == 0 ? Portuguese.Cat_SuccessCreated : Portuguese.Cat_SuccessUpdated, ToastLevel.Success);
+                ToastService.ShowToast(apiResp?.Message ?? (editingId == 0 ? Portuguese.Cat_SuccessCreated : Portuguese.Cat_SuccessUpdated), ToastLevel.Success);
                 showModal = false;
                 editingProduct = new CreateProductDto();
                 await LoadProducts();
@@ -322,14 +323,8 @@
             else
             {
                 await Audio.PlayError();
-                var errorBody = await response.Content.ReadAsStringAsync();
-                string specificError = errorBody;
-                
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && errorBody.Contains("Duplicate", StringComparison.OrdinalIgnoreCase))
-                {
-                    specificError = Portuguese.Cat_ErrDuplicateCode;
-                }
-                
+                var errorResp = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                string specificError = errorResp?.Message ?? "Erro desconhecido";
                 ToastService.ShowToast(specificError, ToastLevel.Error, Portuguese.Cat_ErrValidation);
             }
         }

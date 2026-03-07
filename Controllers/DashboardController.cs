@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -31,10 +31,17 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("completo")]
-    public async Task<ActionResult<DashboardCompleteResponse>> GetComplete()
+    public async Task<ActionResult<ApiResponse<DashboardCompleteResponse>>> GetComplete()
     {
-        var dashboard = await _dashboardService.GetCompleteDashboardAsync(HttpContext.RequestAborted);
-        return Ok(dashboard);
+        try
+        {
+            var dashboard = await _dashboardService.GetCompleteDashboardAsync(HttpContext.RequestAborted);
+            return Ok(ApiResponse<DashboardCompleteResponse>.SuccessResult(dashboard));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<DashboardCompleteResponse>.FailureResult("Error retrieving BI dashboard", new List<string> { ex.Message }));
+        }
     }
 
     [HttpPost("refresh")]
@@ -42,8 +49,6 @@ public class DashboardController : ControllerBase
     public IActionResult RefreshCache()
     {
         _cache.Remove("DashboardComplete");
-        return Ok();
+        return Ok(ApiResponse<object>.SuccessResult(null, "Cache cleared"));
     }
 }
-
-

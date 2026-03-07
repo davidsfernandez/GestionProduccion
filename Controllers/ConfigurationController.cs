@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -29,49 +29,65 @@ public class ConfigurationController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<SystemConfigurationDto>> Get()
+    public async Task<ActionResult<ApiResponse<SystemConfigurationDto>>> Get()
     {
-        var config = await _configService.GetConfigurationAsync();
-        return Ok(config);
+        try
+        {
+            var config = await _configService.GetConfigurationAsync();
+            return Ok(ApiResponse<SystemConfigurationDto>.SuccessResult(config));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<SystemConfigurationDto>.FailureResult("Error retrieving configuration", new List<string> { ex.Message }));
+        }
     }
 
     [HttpGet("public")]
     [AllowAnonymous]
-    public async Task<ActionResult<PublicConfigurationDto>> GetPublic()
+    public async Task<ActionResult<ApiResponse<PublicConfigurationDto>>> GetPublic()
     {
-        var config = await _configService.GetPublicConfigurationAsync();
-        return Ok(config);
+        try
+        {
+            var config = await _configService.GetPublicConfigurationAsync();
+            return Ok(ApiResponse<PublicConfigurationDto>.SuccessResult(config));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<PublicConfigurationDto>.FailureResult("Error retrieving public configuration", new List<string> { ex.Message }));
+        }
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Save([FromBody] SystemConfigurationDto request)
+    public async Task<ActionResult<ApiResponse<object>>> Save([FromBody] SystemConfigurationDto request)
     {
         try
         {
             await _configService.SaveConfigurationAsync(request);
-            return Ok();
+            return Ok(ApiResponse<object>.SuccessResult(null, "Configuration saved successfully"));
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ApiResponse<object>.FailureResult(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<object>.FailureResult("Error saving configuration", new List<string> { ex.Message }));
         }
     }
 
     [HttpGet("logo")]
     [AllowAnonymous]
-    public async Task<ActionResult<LogoDto>> GetLogo()
+    public async Task<ActionResult<ApiResponse<LogoDto>>> GetLogo()
     {
-        var logo = await _configService.GetLogoAsync();
-        return Ok(new LogoDto { Base64Image = logo });
-    }
-
-    [HttpGet("test-exception")]
-    [AllowAnonymous]
-    public IActionResult TestException()
-    {
-        throw new System.Exception("Integration Test Exception");
+        try
+        {
+            var logo = await _configService.GetLogoAsync();
+            return Ok(ApiResponse<LogoDto>.SuccessResult(new LogoDto { Base64Image = logo }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<LogoDto>.FailureResult("Error retrieving logo", new List<string> { ex.Message }));
+        }
     }
 }
-
-

@@ -17,8 +17,8 @@ namespace GestionProduccion.Client.Services.ProductionOrders;
 
 public interface IProductionOrderMutationClient
 {
-    Task<ProductionOrderDto?> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default);
-    Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default);
+    Task<ApiResponse<ProductionOrderDto>> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default);
+    Task<ApiResponse<bool>> DeleteProductionOrderAsync(int id, CancellationToken ct = default);
 }
 
 

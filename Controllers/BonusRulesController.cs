@@ -54,11 +54,11 @@ public class BonusRulesController : ControllerBase
             LastUpdate = rule.UpdatedAt
         };
 
-        return Ok(new ApiResponse<BonusRuleDto> { Success = true, Data = dto });
+        return Ok(ApiResponse<BonusRuleDto>.SuccessResult(dto));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Update(BonusRuleDto dto)
+    public async Task<ActionResult<ApiResponse<bool>>> Update(BonusRuleDto dto)
     {
         var existing = await _ruleRepo.GetActiveRuleAsync();
         if (existing == null)
@@ -77,7 +77,7 @@ public class BonusRulesController : ControllerBase
         await _ruleRepo.UpdateAsync(existing);
         await _ruleRepo.SaveChangesAsync();
 
-        return Ok(new ApiResponse<bool> { Success = true });
+        return Ok(ApiResponse<bool>.SuccessResult(true));
     }
 }
 

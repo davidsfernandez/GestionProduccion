@@ -45,44 +45,33 @@ public class ExceptionMiddleware
         context.Response.ContentType = "application/json";
 
         var statusCode = HttpStatusCode.InternalServerError;
-        var title = "Internal Server Error";
         var detail = exception.Message;
 
         switch (exception)
         {
             case KeyNotFoundException:
                 statusCode = HttpStatusCode.NotFound;
-                title = "Resource Not Found";
                 break;
             case InvalidOperationException:
                 statusCode = HttpStatusCode.BadRequest;
-                title = "Invalid Operation";
                 break;
             case UnauthorizedAccessException:
                 statusCode = HttpStatusCode.Forbidden;
-                title = "Forbidden Access";
                 detail = "You do not have permission to perform this action.";
                 break;
             case GestionProduccion.Domain.Exceptions.DomainConstraintException:
                 statusCode = HttpStatusCode.Conflict;
-                title = "Domain Constraint Violation";
                 break;
         }
 
         context.Response.StatusCode = (int)statusCode;
 
-        var problem = new ProblemDetails
+        var response = new GestionProduccion.Models.DTOs.ApiResponse<object>
         {
-            Status = (int)statusCode,
-            Title = title,
-            Detail = _env.IsDevelopment() ? detail : "An error occurred while processing your request.",
-            Instance = context.Request.Path
+            Success = false,
+            Message = _env.IsDevelopment() ? detail : "An error occurred while processing your request.",
+            Errors = _env.IsDevelopment() ? new List<string> { exception.StackTrace ?? "" } : new List<string>()
         };
-
-        if (_env.IsDevelopment())
-        {
-            problem.Extensions["stackTrace"] = exception.StackTrace;
-        }
 
         var options = new JsonSerializerOptions
         {
@@ -90,7 +79,7 @@ public class ExceptionMiddleware
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(problem, options));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
     }
 }
 

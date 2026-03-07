@@ -293,13 +293,13 @@
 
         try
         {
-            var success = await LifecycleClient.UpdateStatusAsync(orderId, status, "Atualizado via Minhas Tarefas");
-            if (success)
+            var response = await LifecycleClient.UpdateStatusAsync(orderId, status, "Atualizado via Minhas Tarefas");
+            if (response?.Success == true)
             {
-                ToastService.ShowToast("Ordem atualizada!", ToastLevel.Success);
+                ToastService.ShowToast(response.Message ?? "Ordem atualizada!", ToastLevel.Success);
                 await LoadAllTasks();
             }
-            else ToastService.ShowToast("Erro al actualizar.", ToastLevel.Error);
+            else ToastService.ShowToast(response?.Message ?? "Erro ao atualizar.", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -339,13 +339,13 @@
 
         try
         {
-            var success = await LifecycleClient.AdvanceStageAsync(orderId);
-            if (success)
+            var response = await LifecycleClient.AdvanceStageAsync(orderId);
+            if (response?.Success == true)
             {
-                ToastService.ShowToast("Etapa avançada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(response.Message ?? "Etapa avançada com sucesso!", ToastLevel.Success);
                 await LoadAllTasks();
             }
-            else ToastService.ShowToast("Erro ao avançar etapa.", ToastLevel.Error);
+            else ToastService.ShowToast(response?.Message ?? "Erro ao avançar etapa.", ToastLevel.Error);
         }
         catch (Exception ex)
         {
