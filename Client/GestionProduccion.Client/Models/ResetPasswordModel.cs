@@ -24,7 +24,7 @@ public class ResetPasswordModel
     public string NewPassword { get; set; } = string.Empty;
 
     [Required]
-    [Compare("NewPassword", ErrorMessage = "As senhas nÃ£o coincidem.")]
+    [Compare("NewPassword", ErrorMessage = "As senhas não coincidem.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 

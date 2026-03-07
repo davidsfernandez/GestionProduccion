@@ -29,7 +29,7 @@
             }
             else
             {
-                <span class="align-middle text-white fw-bold">GESTÃO DE PRODUÇÃO</span>
+                <span class="align-middle text-white fw-bold text-uppercase">@Portuguese.AppName</span>
             }
         </div>
 
@@ -179,10 +179,10 @@
     {
         try
         {
-            var logoDto = await Http.GetFromJsonAsync<LogoDto>("api/Configuration/logo");
-            if (logoDto != null && !string.IsNullOrEmpty(logoDto.Base64Image))
+            var response = await Http.GetFromJsonAsync<ApiResponse<LogoDto>>("api/Configuration/logo");
+            if (response != null && response.Success && response.Data != null && !string.IsNullOrEmpty(response.Data.Base64Image))
             {
-                CompanyLogo = logoDto.Base64Image;
+                CompanyLogo = response.Data.Base64Image;
             }
         }
         catch

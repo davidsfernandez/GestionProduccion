@@ -1,4 +1,4 @@
-@*
+﻿@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -204,22 +204,22 @@
                     <div class="card-body p-4 pt-2">
                         <div class="progress-steps">
                             <div class="step @GetStepClass("Cutting")">
-                                <div class="step-icon">@((order.CurrentStage == "Cutting") ? "" : "")</div>
+                                <div class="step-icon">@((order.CurrentStage == "Cutting") ? "ï…„" : "ï„‘")</div>
                                 <div class="step-label">@Portuguese.Stage_Cutting</div>
                                 <div class="step-status">@GetStepStatus("Cutting")</div>
                             </div>
                             <div class="step @GetStepClass("Sewing")">
-                                <div class="step-icon">@((order.CurrentStage == "Sewing") ? "" : "")</div>
+                                <div class="step-icon">@((order.CurrentStage == "Sewing") ? "ï…„" : "ï„‘")</div>
                                 <div class="step-label">@Portuguese.Stage_Sewing</div>
                                 <div class="step-status">@GetStepStatus("Sewing")</div>
                             </div>
                             <div class="step @GetStepClass("Review")">
-                                <div class="step-icon">@((order.CurrentStage == "Review") ? "" : "")</div>
+                                <div class="step-icon">@((order.CurrentStage == "Review") ? "ï…„" : "ï„‘")</div>
                                 <div class="step-label">@Portuguese.Stage_Review</div>
                                 <div class="step-status">@GetStepStatus("Review")</div>
                             </div>
                             <div class="step @GetStepClass("Packaging")">
-                                <div class="step-icon">@((order.CurrentStage == "Packaging") ? "" : "")</div>
+                                <div class="step-icon">@((order.CurrentStage == "Packaging") ? "ï…„" : "ï„‘")</div>
                                 <div class="step-label">@Portuguese.Stage_Packaging</div>
                                 <div class="step-status">@GetStepStatus("Packaging")</div>
                             </div>

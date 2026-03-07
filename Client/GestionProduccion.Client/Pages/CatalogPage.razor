@@ -47,11 +47,21 @@
 
             @if (loading)
             {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">@Portuguese.Loading</span>
-                    </div>
-                </div>
+                <SeronaLoader />
+            }
+            else if (filteredProducts == null || !filteredProducts.Any())
+            {
+                <SeronaEmptyState 
+                    Icon="fa-solid fa-shirt" 
+                    Title="@Portuguese.Cat_NoProducts" 
+                    Description="@(string.IsNullOrEmpty(searchTerm) ? "Seu catálogo de produtos está vazio." : "Nenhum produto corresponde à sua busca.")">
+                    @if (string.IsNullOrEmpty(searchTerm))
+                    {
+                        <button class="btn btn-primary" @onclick="() => OpenModal()">
+                            <i class="fa-solid fa-plus me-2"></i>@Portuguese.Cat_NewProduct
+                        </button>
+                    }
+                </SeronaEmptyState>
             }
             else
             {
@@ -69,31 +79,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if (filteredProducts == null || !filteredProducts.Any())
+                            @foreach (var product in filteredProducts)
                             {
-                                <tr><td colspan="7" class="text-center">@Portuguese.Cat_NoProducts</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var product in filteredProducts)
-                                {
-                                    <tr @key="product.Id">
-                                        <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
-                                        <td><strong>@product.InternalCode</strong></td>
-                                        <td>@product.Name</td>
-                                        <td>@product.FabricType</td>
-                                        <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
-                                        <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
-                                                <i class="fa-solid fa-pen"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product)" title="@Portuguese.Delete">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
+                                <tr @key="product.Id">
+                                    <td><span class="badge bg-primary-soft">@product.MainSku</span></td>
+                                    <td><strong>@product.InternalCode</strong></td>
+                                    <td>@product.Name</td>
+                                    <td>@product.FabricType</td>
+                                    <td>@product.AverageProductionTimeMinutes.ToString("F1")</td>
+                                    <td>@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenModal(product)" title="@Portuguese.Edit">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product)" title="@Portuguese.Delete">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                             }
                         </tbody>
                     </table>

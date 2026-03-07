@@ -19,7 +19,7 @@ public class UserStateService
     private string? _avatarUrl;
     private string? _userName;
     private string _themeName = "default";
-    private string _companyName = "GestÃ£o de ProduÃ§Ã£o";
+    private string _companyName = "Gestão de Produção";
 
     public string ThemeName
     {

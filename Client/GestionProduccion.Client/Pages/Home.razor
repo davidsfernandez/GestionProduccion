@@ -69,7 +69,7 @@
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1">
                                 <h3 class="mb-1 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
-                                <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_CompletedToday</p>
+                                <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.Dash_CompletedToday</p>
                             </div>
                             <div class="bg-primary-soft p-3 rounded-3 text-primary"><i class="fa-solid fa-industry fs-4"></i></div>
                         </div>
@@ -84,7 +84,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
                                     <h3 class="mb-1 fw-bold text-dark">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.OP_CostPerPiece</p>
+                                    <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.OP_CostPerPiece</p>
                                 </div>
                                 <div class="bg-success-soft p-3 rounded-3 text-success"><i class="fa-solid fa-coins fs-4"></i></div>
                             </div>
@@ -99,7 +99,7 @@
                                     <h3 class="mb-1 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-primary")">
                                         @dashboard.MonthAverageMargin.ToString("N1")%
                                     </h3>
-                                    <p class="mb-0 text-muted small fw-bold uppercase">MARGEM MÉDIA</p>
+                                    <p class="mb-0 text-muted small fw-bold text-uppercase">Margem Média</p>
                                 </div>
                                 <div class="bg-info-soft p-3 rounded-3 text-info"><i class="fa-solid fa-chart-pie fs-4"></i></div>
                             </div>
@@ -114,7 +114,7 @@
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1">
                                 <h3 class="mb-1 fw-bold @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-dark")">@dashboard.DelayedOrdersCount</h3>
-                                <p class="mb-0 text-muted small fw-bold uppercase">@Portuguese.Dash_ProductionStatus</p>
+                                <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.Dash_ProductionStatus</p>
                             </div>
                             <div class="bg-warning-soft p-3 rounded-3 text-warning"><i class="fa-solid fa-triangle-exclamation fs-4"></i></div>
                         </div>
@@ -180,7 +180,7 @@
                             }
                             else
                             {
-                                <div class="p-4 text-center text-muted small">Nenhum dado de equipe disponível.</div>
+                                <div class="p-4 text-center text-muted small">Nenhum dado de equipe disponible.</div>
                             }
                         </div>
                     </div>
@@ -217,7 +217,7 @@
 
                 <div class="card shadow-sm border-0 rounded-4 flex-fill">
                     <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0 fw-bold">Últimas Atividades</h5>
+                        <h5 class="card-title mb-0 fw-bold">Próximas Atividades</h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush">
@@ -253,7 +253,6 @@
     private DashboardCompleteResponse? dashboard;
     private List<TaskDto>? activeTasks;
     private bool loading = false;
-    private bool isTvMode = false;
     private System.Threading.Timer? _refreshTimer;
 
     protected override async Task OnInitializedAsync()
@@ -263,7 +262,6 @@
 
         SignalR.OnUpdateReceived += HandleUpdate;
         
-        // Polished real-time refresh (every 2 mins)
         _refreshTimer = new System.Threading.Timer(async _ => 
         {
             await InvokeAsync(LoadDashboard);
@@ -309,7 +307,6 @@
     {
         if (dashboard != null)
         {
-            // Always attempt to re-render charts when data is available
             try 
             {
                 await JSRuntime.InvokeVoidAsync("seronaCharts.renderRevenueChart", "weeklyProductionChart", dashboard.WeeklyVolumeData, dashboard.WeeklyLabels);
