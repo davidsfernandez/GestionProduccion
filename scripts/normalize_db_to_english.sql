@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -9,35 +9,35 @@
  */
 
 -- ============================================
--- NORMALIZACIÓN DE BD A INGLÉS
--- GestionProduccionDB
+-- DATABASE NORMALIZATION TO ENGLISH (ALIGNED WITH C# ENTITIES)
+-- Project: GestionProduccion
 -- ============================================
 -- 
--- Este script renombra tablas y columnas de portugués a inglés
--- BACKUP RECOMENDADO ANTES DE EJECUTAR
+-- This script renames tables and columns from Portuguese/Spanish to English
+-- RECOMMENDED BACKUP BEFORE RUNNING
 
 USE GestionProduccionDB;
 
 -- ============================================
--- STEP 1: DESHABILITAR FOREIGN KEYS
+-- STEP 1: DISABLE FOREIGN KEYS
 -- ============================================
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================
--- STEP 2: RENOMBRAR TABLAS
+-- STEP 2: RENAME TABLES
 -- ============================================
 
--- Renombrar tabla Usuarios -> Users
+-- Rename Usuarios -> Users
 RENAME TABLE Usuarios TO Users;
 
--- Renombrar tabla OrdensProducao -> ProductionOrders
+-- Rename OrdensProducao -> ProductionOrders
 RENAME TABLE OrdensProducao TO ProductionOrders;
 
--- Renombrar tabla HistoricoProducoes -> ProductionHistories
+-- Rename HistoricoProducoes -> ProductionHistories
 RENAME TABLE HistoricoProducoes TO ProductionHistories;
 
 -- ============================================
--- STEP 3: RENOMBRAR COLUMNAS EN Users
+-- STEP 3: RENAME COLUMNS IN Users
 -- ============================================
 
 ALTER TABLE Users
@@ -47,25 +47,26 @@ ALTER TABLE Users
     CHANGE COLUMN Ativo IsActive TINYINT(1);
 
 -- ============================================
--- STEP 4: RENOMBRAR COLUMNAS EN ProductionOrders
+-- STEP 4: RENAME COLUMNS IN ProductionOrders
 -- ============================================
 
 ALTER TABLE ProductionOrders
-    CHANGE COLUMN CodigoUnico UniqueCode VARCHAR(50),
+    CHANGE COLUMN CodigoUnico LotCode VARCHAR(50),
     CHANGE COLUMN DescricaoProduto ProductDescription VARCHAR(500),
     CHANGE COLUMN Cantidad Quantity INT,
     CHANGE COLUMN EtapaAtual CurrentStage VARCHAR(50),
     CHANGE COLUMN StatusAtual CurrentStatus VARCHAR(50),
-    CHANGE COLUMN DataCriacao CreationDate DATETIME(6),
-    CHANGE COLUMN DataEstimadaEntrega EstimatedDeliveryDate DATETIME(6),
-    CHANGE COLUMN DataConclusao CompletionDate DATETIME(6),
-    CHANGE COLUMN UsuarioId UserId INT;
+    CHANGE COLUMN DataCriacao CreatedAt DATETIME(6),
+    CHANGE COLUMN DataEstimadaEntrega EstimatedCompletionAt DATETIME(6),
+    CHANGE COLUMN DataConclusao CompletedAt DATETIME(6),
+    CHANGE COLUMN UsuarioId UserId INT,
+    CHANGE COLUMN DataAtualizacao UpdatedAt DATETIME(6);
 
--- Agregar columna QuantityCompleted si no existe
-ALTER TABLE ProductionOrders ADD COLUMN IF NOT EXISTS QuantityCompleted INT DEFAULT 0;
+-- Ensure standard audit columns exist
+ALTER TABLE ProductionOrders ADD COLUMN IF NOT EXISTS UpdatedAt DATETIME(6);
 
 -- ============================================
--- STEP 5: RENOMBRAR COLUMNAS EN ProductionHistories
+-- STEP 5: RENAME COLUMNS IN ProductionHistories
 -- ============================================
 
 ALTER TABLE ProductionHistories
@@ -75,51 +76,37 @@ ALTER TABLE ProductionHistories
     CHANGE COLUMN StatusAnterior PreviousStatus VARCHAR(50),
     CHANGE COLUMN StatusNovo NewStatus VARCHAR(50),
     CHANGE COLUMN UsuarioId UserId INT,
-    CHANGE COLUMN DataModificacao ModificationDate DATETIME(6),
+    CHANGE COLUMN DataModificacao CreatedAt DATETIME(6),
     CHANGE COLUMN Observacao Note VARCHAR(500);
 
 -- ============================================
--- STEP 6: RECREAR ÍNDICES
+-- STEP 6: RECREATE INDEXES
 -- ============================================
 
--- Eliminar índices antiguos si existen
+-- Drop old indexes if they exist
 DROP INDEX IF EXISTS IX_OrdensProducao_CodigoUnico ON ProductionOrders;
 DROP INDEX IF EXISTS IX_OrdensProducao_UsuarioId ON ProductionOrders;
 DROP INDEX IF EXISTS IX_HistoricoProducoes_OrdemProducaoId ON ProductionHistories;
 DROP INDEX IF EXISTS IX_HistoricoProducoes_UsuarioId ON ProductionHistories;
 DROP INDEX IF EXISTS IX_Usuarios_Email ON Users;
 
--- Crear nuevos índices con nombres en inglés
-CREATE UNIQUE INDEX IX_ProductionOrders_UniqueCode ON ProductionOrders(UniqueCode);
+-- Create new indexes with English names
+CREATE UNIQUE INDEX IX_ProductionOrders_LotCode ON ProductionOrders(LotCode);
 CREATE INDEX IX_ProductionOrders_UserId ON ProductionOrders(UserId);
 CREATE INDEX IX_ProductionHistories_ProductionOrderId ON ProductionHistories(ProductionOrderId);
 CREATE INDEX IX_ProductionHistories_UserId ON ProductionHistories(UserId);
 CREATE UNIQUE INDEX IX_Users_Email ON Users(Email);
 
 -- ============================================
--- STEP 7: REHABILITAR FOREIGN KEYS
+-- STEP 7: RE-ENABLE FOREIGN KEYS
 -- ============================================
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
--- VERIFICACIÓN
+-- VERIFICATION
 -- ============================================
 
--- Mostrar estructura de tablas
 SHOW TABLES;
 DESC Users;
 DESC ProductionOrders;
 DESC ProductionHistories;
-
--- Contar registros
-SELECT COUNT(*) as UsersCount FROM Users;
-SELECT COUNT(*) as ProductionOrdersCount FROM ProductionOrders;
-SELECT COUNT(*) as HistoriesCount FROM ProductionHistories;
-
--- Resultado esperado:
--- ? Tablas renombradas a inglés
--- ? Columnas renombradas a inglés
--- ? Datos preservados
--- ? Índices recreados
-
-

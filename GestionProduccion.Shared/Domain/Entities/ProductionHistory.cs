@@ -43,7 +43,7 @@ public class ProductionHistory
     public virtual User ResponsibleUser { get; set; } = null!;
 
     [Required]
-    public DateTime ChangedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     [StringLength(500)]
     public string Note { get; set; } = string.Empty;

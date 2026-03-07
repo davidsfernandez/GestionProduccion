@@ -12,12 +12,14 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using GestionProduccion.Domain.Enums;
 
+using GestionProduccion.Domain.Interfaces;
+
 namespace GestionProduccion.Domain.Entities;
 
 /// <summary>
 /// Represents a Production Order (PO).
 /// </summary>
-public class ProductionOrder
+public class ProductionOrder : IAuditable
 {
     [Key]
     public int Id { get; set; }
@@ -44,8 +46,7 @@ public class ProductionOrder
     [Required]
     public DateTime CreatedAt { get; set; }
 
-    [Required]
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 
     public DateTime EstimatedCompletionAt { get; set; }
 

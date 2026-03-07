@@ -11,6 +11,8 @@
 using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Domain.Entities;
 
+using GestionProduccion.Domain.Interfaces;
+
 namespace GestionProduccion.Data;
 
 /// <summary>
@@ -20,6 +22,25 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.Entity is IAuditable && (e.State == EntityState.Added || e.State == EntityState.Modified));
+
+        foreach (var entityEntry in entries)
+        {
+            var auditable = (IAuditable)entityEntry.Entity;
+            auditable.UpdatedAt = DateTime.UtcNow;
+
+            if (entityEntry.State == EntityState.Added)
+            {
+                auditable.CreatedAt = DateTime.UtcNow;
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
     // --- DBSETS ---

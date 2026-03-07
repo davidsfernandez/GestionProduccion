@@ -12,6 +12,8 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
+using GestionProduccion.Client.Resources;
+
 namespace GestionProduccion.Helpers;
 
 public class ExceptionMiddleware
@@ -46,18 +48,20 @@ public class ExceptionMiddleware
 
         var statusCode = HttpStatusCode.InternalServerError;
         var detail = exception.Message;
+        var localizedMessage = Portuguese.Err_Generic;
 
         switch (exception)
         {
             case KeyNotFoundException:
                 statusCode = HttpStatusCode.NotFound;
+                localizedMessage = Portuguese.Err_NotFound;
                 break;
             case InvalidOperationException:
                 statusCode = HttpStatusCode.BadRequest;
                 break;
             case UnauthorizedAccessException:
                 statusCode = HttpStatusCode.Forbidden;
-                detail = "You do not have permission to perform this action.";
+                localizedMessage = Portuguese.Err_Unauthorized;
                 break;
             case GestionProduccion.Domain.Exceptions.DomainConstraintException:
                 statusCode = HttpStatusCode.Conflict;
@@ -69,7 +73,7 @@ public class ExceptionMiddleware
         var response = new GestionProduccion.Models.DTOs.ApiResponse<object>
         {
             Success = false,
-            Message = _env.IsDevelopment() ? detail : "An error occurred while processing your request.",
+            Message = _env.IsDevelopment() ? detail : localizedMessage,
             Errors = _env.IsDevelopment() ? new List<string> { exception.StackTrace ?? "" } : new List<string>()
         };
 
