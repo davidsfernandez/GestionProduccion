@@ -30,14 +30,26 @@ public class ProductionHub : Hub
     }
 
     /// <summary>
-    /// Method that the frontend can use to notify changes (optional).
+    /// Notifies all clients about a global announcement (Igor's request).
     /// </summary>
-    public async Task SendUpdate(string message)
+    public async Task NotifyAnnouncement(string message, string type = "info")
     {
-        await Clients.All.SendAsync("ReceiveMessage", new
-        {
-            message = message,
-            timestamp = DateTime.UtcNow
+        await Clients.All.SendAsync("ReceiveMessage", new { 
+            message = message, 
+            type = type,
+            timestamp = DateTime.UtcNow 
+        });
+    }
+
+    /// <summary>
+    /// Notifies when a production goal is reached to trigger TV animations.
+    /// </summary>
+    public async Task NotifyGoalReached(int currentCount, int goal)
+    {
+        await Clients.All.SendAsync("ReceiveGoalUpdate", new { 
+            current = currentCount, 
+            goal = goal,
+            timestamp = DateTime.UtcNow 
         });
     }
 

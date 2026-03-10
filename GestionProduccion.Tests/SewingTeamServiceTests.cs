@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -16,7 +16,10 @@ using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Exceptions;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services;
+using GestionProduccion.Hubs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Moq;
 using Xunit;
 
 namespace GestionProduccion.Tests;
@@ -28,6 +31,7 @@ public class SewingTeamServiceTests : IDisposable
     private readonly SewingTeamRepository _teamRepo;
     private readonly UserRepository _userRepo;
     private readonly ProductionOrderRepository _orderRepo;
+    private readonly Mock<IHubContext<ProductionHub>> _hubContextMock;
 
     public SewingTeamServiceTests()
     {
@@ -39,8 +43,15 @@ public class SewingTeamServiceTests : IDisposable
         _teamRepo = new SewingTeamRepository(_context);
         _userRepo = new UserRepository(_context);
         _orderRepo = new ProductionOrderRepository(_context);
+        _hubContextMock = new Mock<IHubContext<ProductionHub>>();
 
-        _service = new SewingTeamService(_teamRepo, _userRepo, _orderRepo);
+        // Setup SignalR Mocks
+        var mockClients = new Mock<IHubClients>();
+        var mockClientProxy = new Mock<IClientProxy>();
+        _hubContextMock.Setup(h => h.Clients).Returns(mockClients.Object);
+        mockClients.Setup(c => c.All).Returns(mockClientProxy.Object);
+
+        _service = new SewingTeamService(_teamRepo, _userRepo, _orderRepo, _hubContextMock.Object);
     }
 
     public void Dispose()
@@ -151,5 +162,3 @@ public class SewingTeamServiceTests : IDisposable
         dbUserA!.SewingTeamId.Should().Be(2); // Should be reassigned to Team B
     }
 }
-
-

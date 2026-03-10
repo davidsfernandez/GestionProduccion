@@ -76,9 +76,9 @@ public class OrderDetailsTests : TestContext
         };
 
         _mockQueryClient.Setup(c => c.GetProductionOrderByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
+            .ReturnsAsync(ApiResponse<ProductionOrderDto>.SuccessResult(order));
         _mockQueryClient.Setup(c => c.GetHistoryByProductionOrderIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductionHistoryDto>());
+            .ReturnsAsync(ApiResponse<List<ProductionHistoryDto>>.SuccessResult(new List<ProductionHistoryDto>()));
 
         // Act
         var cut = RenderComponent<OrderDetails>(parameters => parameters.Add(p => p.Id, 1));
@@ -105,9 +105,9 @@ public class OrderDetailsTests : TestContext
         };
 
         _mockQueryClient.Setup(c => c.GetProductionOrderByIdAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
+            .ReturnsAsync(ApiResponse<ProductionOrderDto>.SuccessResult(order));
         _mockQueryClient.Setup(c => c.GetHistoryByProductionOrderIdAsync(2, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductionHistoryDto>());
+            .ReturnsAsync(ApiResponse<List<ProductionHistoryDto>>.SuccessResult(new List<ProductionHistoryDto>()));
 
         // Act
         var cut = RenderComponent<OrderDetails>(parameters => parameters.Add(p => p.Id, 2));

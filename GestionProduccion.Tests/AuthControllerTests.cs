@@ -49,17 +49,16 @@ namespace GestionProduccion.Tests
             var mockEmailService = new Mock<IEmailService>();
             var mockConfigService = new Mock<ISystemConfigurationService>();
 
-            var user = new User
+            var userDto = new UserDto
             {
                 Id = 1,
                 FullName = "Admin",
                 Email = "admin@test.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
                 Role = Domain.Enums.UserRole.Administrator,
                 IsActive = true
             };
 
-            mockUserService.Setup(s => s.GetUserByEmailAsync("admin@test.com")).ReturnsAsync(user);
+            mockUserService.Setup(s => s.ValidateCredentialsAsync("admin@test.com", "password123")).ReturnsAsync(userDto);
 
             var controller = new AuthController(
                 config,
@@ -75,7 +74,8 @@ namespace GestionProduccion.Tests
 
             var result = await controller.Login(loginDto);
 
-            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actionResult = Assert.IsType<ActionResult<ApiResponse<LoginResponse>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
             Assert.NotNull(okResult.Value);
         }
 
@@ -90,17 +90,7 @@ namespace GestionProduccion.Tests
             var mockEmailService = new Mock<IEmailService>();
             var mockConfigService = new Mock<ISystemConfigurationService>();
 
-            var user = new User
-            {
-                Id = 1,
-                FullName = "User",
-                Email = "user@test.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
-                Role = Domain.Enums.UserRole.Operational,
-                IsActive = true
-            };
-
-            mockUserService.Setup(s => s.GetUserByEmailAsync("user@test.com")).ReturnsAsync(user);
+            mockUserService.Setup(s => s.ValidateCredentialsAsync("user@test.com", "wrongpassword")).ReturnsAsync((UserDto)null!);
 
             var controller = new AuthController(
                 config,
@@ -116,7 +106,8 @@ namespace GestionProduccion.Tests
 
             var result = await controller.Login(loginDto);
 
-            Assert.IsType<UnauthorizedObjectResult>(result);
+            var actionResult = Assert.IsType<ActionResult<ApiResponse<LoginResponse>>>(result);
+            Assert.IsType<UnauthorizedObjectResult>(actionResult.Result);
         }
 
         [Fact]
@@ -130,7 +121,7 @@ namespace GestionProduccion.Tests
             var mockEmailService = new Mock<IEmailService>();
             var mockConfigService = new Mock<ISystemConfigurationService>();
 
-            mockUserService.Setup(s => s.GetUserByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
+            mockUserService.Setup(s => s.ValidateCredentialsAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((UserDto)null!);
 
             var controller = new AuthController(
                 config,
@@ -146,7 +137,8 @@ namespace GestionProduccion.Tests
 
             var result = await controller.Login(loginDto);
 
-            Assert.IsType<UnauthorizedObjectResult>(result);
+            var actionResult = Assert.IsType<ActionResult<ApiResponse<LoginResponse>>>(result);
+            Assert.IsType<UnauthorizedObjectResult>(actionResult.Result);
         }
     }
 }

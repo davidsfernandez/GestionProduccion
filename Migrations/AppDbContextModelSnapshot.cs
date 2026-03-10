@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -89,20 +89,66 @@ namespace GestionProduccion.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
-                    b.Property<int>("Status")
-                        .HasMaxLength(50)
+                    b.Property<int?>("LastModifiedByUserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedUserId");
 
+                    b.HasIndex("LastModifiedByUserId");
+
                     b.ToTable("OperationalTasks");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTaskHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("OperationalTaskId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationalTaskId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("OperationalTaskHistories");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.PasswordResetToken", b =>
@@ -256,6 +302,9 @@ namespace GestionProduccion.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<double>("EffectiveMinutes")
+                        .HasColumnType("double");
 
                     b.Property<DateTime>("EstimatedCompletionAt")
                         .HasColumnType("datetime(6)");
@@ -567,7 +616,33 @@ namespace GestionProduccion.Migrations
                         .HasForeignKey("AssignedUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "LastModifiedBy")
+                        .WithMany()
+                        .HasForeignKey("LastModifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AssignedUser");
+
+                    b.Navigation("LastModifiedBy");
+                });
+
+            modelBuilder.Entity("GestionProduccion.Domain.Entities.OperationalTaskHistory", b =>
+                {
+                    b.HasOne("GestionProduccion.Domain.Entities.OperationalTask", "OperationalTask")
+                        .WithMany()
+                        .HasForeignKey("OperationalTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionProduccion.Domain.Entities.User", "ResponsibleUser")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OperationalTask");
+
+                    b.Navigation("ResponsibleUser");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.PasswordResetToken", b =>
@@ -727,5 +802,3 @@ namespace GestionProduccion.Migrations
         }
     }
 }
-
-

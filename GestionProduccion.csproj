@@ -20,6 +20,8 @@
     <!-- Exclude source from the main project to avoid duplicate types & errors -->
     <Compile Remove="Client/**" />
     <Compile Remove="GestionProduccion.Shared/**" />
+    <Compile Remove="GestionProduccion.Domain/**" />
+    <Compile Remove="GestionProduccion.Application/**" />
     <Compile Remove="GestionProduccion.Tests/**" />
     <Compile Remove="docker_publish_test/**" />
     <Compile Remove="test_publish/**" />
@@ -27,11 +29,15 @@
     <!-- Also remove non-compiled items to be safe -->
     <None Remove="Client/**" />
     <None Remove="GestionProduccion.Shared/**" />
+    <None Remove="GestionProduccion.Domain/**" />
+    <None Remove="GestionProduccion.Application/**" />
     <None Remove="GestionProduccion.Tests/**" />
     
     <!-- CRITICAL: Exclude Razor files from Content to stop Server from compiling them -->
     <Content Remove="Client/**" />
     <Content Remove="GestionProduccion.Shared/**" />
+    <Content Remove="GestionProduccion.Domain/**" />
+    <Content Remove="GestionProduccion.Application/**" />
     <Content Remove="GestionProduccion.Tests/**" />
     <Content Remove="docker_publish_test/**" />
     <Content Remove="test_publish/**" />
@@ -64,6 +70,8 @@
   <ItemGroup>
     <ProjectReference Include="Client\GestionProduccion.Client\GestionProduccion.Client.csproj" />
     <ProjectReference Include="GestionProduccion.Shared\GestionProduccion.Shared.csproj" />
+    <ProjectReference Include="GestionProduccion.Domain\GestionProduccion.Domain.csproj" />
+    <ProjectReference Include="GestionProduccion.Application\GestionProduccion.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

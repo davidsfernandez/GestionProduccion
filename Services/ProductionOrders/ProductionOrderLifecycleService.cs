@@ -15,6 +15,8 @@ using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Hubs;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -28,56 +30,35 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
     private readonly IUserRepository _userRepository;
     private readonly IProductRepository _productRepository;
     private readonly IProductionOrderOutputRepository _outputRepository;
-    private readonly IHubContext<ProductionHub> _hubContext;
+    private readonly INotificationService _notificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductService _productService;
     private readonly ITaskService _taskService;
     private readonly IFinancialCalculatorService _financialCalculator;
+    private readonly MainMapper _mapper;
 
     public ProductionOrderLifecycleService(
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
         IProductRepository productRepository,
         IProductionOrderOutputRepository outputRepository,
-        IHubContext<ProductionHub> hubContext,
+        INotificationService notificationService,
         IHttpContextAccessor httpContextAccessor,
         IFinancialCalculatorService financialCalculator,
         IProductService productService,
-        ITaskService taskService)
+        ITaskService taskService,
+        MainMapper mapper)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _productRepository = productRepository;
         _outputRepository = outputRepository;
-        _hubContext = hubContext;
+        _notificationService = notificationService;
         _httpContextAccessor = httpContextAccessor;
         _financialCalculator = financialCalculator;
         _productService = productService;
         _taskService = taskService;
-    }
-
-    private ProductionOrderDto MapToDto(ProductionOrder order)
-    {
-        return new ProductionOrderDto
-        {
-            Id = order.Id,
-            LotCode = order.LotCode,
-            ProductName = order.Product?.Name,
-            ProductCode = order.Product?.InternalCode,
-            Quantity = order.Quantity,
-            CurrentStage = order.CurrentStage.ToString(),
-            CurrentStatus = order.CurrentStatus.ToString(),
-            UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.FullName,
-            SewingTeamId = order.SewingTeamId,
-            SewingTeamName = order.AssignedTeam?.Name,
-            TotalCost = order.TotalCost,
-            AverageCostPerPiece = order.AverageCostPerPiece,
-            ProfitMargin = order.ProfitMargin,
-            CreatedAt = order.CreatedAt,
-            StartedAt = order.StartedAt,
-            CompletedAt = order.CompletedAt
-        };
+        _mapper = mapper;
     }
 
     public async Task<bool> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, int modifiedByUserId, CancellationToken ct = default)
@@ -122,6 +103,11 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (anyRegistered)
         {
             await _outputRepository.SaveChangesAsync();
+            
+            // --- PRODUCTION INTELLIGENCE: Update WIP Costs ---
+            await _financialCalculator.UpdateIntermediateCostAsync(order);
+            await _orderRepository.UpdateAsync(order);
+
             int totalInStage = await _outputRepository.GetTotalQuantityByOrderAndStageAsync(orderId, order.CurrentStage);
             if (totalInStage >= order.Quantity)
             {
@@ -132,7 +118,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             {
                 await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, "Partial output");
                 await _orderRepository.SaveChangesAsync();
-                await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+                await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
             }
         }
         return anyRegistered;
@@ -151,9 +137,9 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, userId, $"Assigned to {user.FullName}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
-        return MapToDto(order);
+        return _mapper.ToDto(order);
     }
 
     public async Task<ProductionOrderDto?> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -162,11 +148,29 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return null;
 
         var previousStatus = order.CurrentStatus;
-        order.CurrentStatus = newStatus;
-        order.UpdatedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
 
-        if (newStatus == ProductionStatus.InProduction && order.StartedAt == null) order.StartedAt = DateTime.UtcNow;
-        else if (newStatus == ProductionStatus.Completed) order.CompletedAt = DateTime.UtcNow;
+        // --- INTEGRITY SHIELD: Persist Effective Minutes ---
+        if (previousStatus == ProductionStatus.InProduction && newStatus != ProductionStatus.InProduction)
+        {
+            // Calculate time since last 'InProduction' entry in history
+            var lastStart = order.History
+                .Where(h => h.NewStatus == ProductionStatus.InProduction)
+                .OrderByDescending(h => h.ChangedAt)
+                .FirstOrDefault();
+
+            if (lastStart != null)
+            {
+                var duration = now - lastStart.ChangedAt;
+                order.EffectiveMinutes += duration.TotalMinutes;
+            }
+        }
+
+        order.CurrentStatus = newStatus;
+        order.UpdatedAt = now;
+
+        if (newStatus == ProductionStatus.InProduction && order.StartedAt == null) order.StartedAt = now;
+        else if (newStatus == ProductionStatus.Completed) order.CompletedAt = now;
 
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, note);
@@ -178,9 +182,9 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         }
 
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
-        return MapToDto(order);
+        return _mapper.ToDto(order);
     }
 
     public async Task<BulkUpdateResult> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -200,7 +204,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null) return null;
         await InternalAdvanceStageAsync(order, modifiedByUserId, ct);
-        return MapToDto(order);
+        return _mapper.ToDto(order);
     }
 
     private async Task InternalAdvanceStageAsync(ProductionOrder order, int modifiedByUserId, CancellationToken ct = default)
@@ -214,6 +218,13 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             _ => previousStage
         };
 
+        // If the calculated new stage is the same as current, do nothing (prevent infinite loop)
+        if (newStage == previousStage) return;
+
+        // Double check against DB to ensure another thread hasn't already advanced it
+        var latestOrder = await _orderRepository.GetByIdAsync(order.Id);
+        if (latestOrder != null && latestOrder.CurrentStage != previousStage) return;
+
         order.CurrentStage = newStage;
         order.CurrentStatus = ProductionStatus.InProduction;
         order.UpdatedAt = DateTime.UtcNow;
@@ -221,7 +232,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
     }
 
     public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -236,7 +247,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, note);
         await _orderRepository.SaveChangesAsync();
-        await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
         return true;
     }

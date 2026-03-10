@@ -16,7 +16,7 @@ namespace GestionProduccion.Services.Interfaces;
 
 public interface ITaskService
 {
-    Task<OperationalTask> CreateTaskAsync(CreateTaskDto dto);
+    Task<TaskDto> CreateTaskAsync(CreateTaskDto dto);
     Task<List<TaskDto>> GetUserTasksAsync(int userId);
     Task<List<TaskDto>> GetAllTasksAsync();
     Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status);

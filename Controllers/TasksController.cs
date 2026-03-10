@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -14,7 +14,6 @@ using GestionProduccion.Models.DTOs;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Services.Interfaces;
 using System.Security.Claims;
-using GestionProduccion.Domain.Entities;
 using GestionProduccion.Services.ProductionOrders;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -43,7 +42,7 @@ public class TasksController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         var orders = await _orderQueryService.GetTeamProductionOrdersAsync(userId);
-        return Ok(ApiResponse<List<ProductionOrderDto>>.SuccessResult(orders));
+        return Ok(ApiResponse<List<ProductionOrderDto>>.SuccessResult(orders!));
     }
 
     [HttpGet("my-admin")]
@@ -51,7 +50,7 @@ public class TasksController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         var tasks = await _taskService.GetUserTasksAsync(userId);
-        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks));
+        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks!));
     }
 
     [HttpGet]
@@ -59,29 +58,36 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetAll()
     {
         var tasks = await _taskService.GetAllTasksAsync();
-        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks));
+        return Ok(ApiResponse<List<TaskDto>>.SuccessResult(tasks!));
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> Create(CreateTaskDto dto)
     {
-        var task = await _taskService.CreateTaskAsync(dto);
-        return Ok(ApiResponse<TaskDto>.SuccessResult(null, "Task created"));
+        try
+        {
+            var result = await _taskService.CreateTaskAsync(dto);
+            return Ok(ApiResponse<TaskDto>.SuccessResult(result!, "Task created"));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<TaskDto>.FailureResult("Error creating task", new List<string> { ex.Message }));
+        }
     }
 
     [HttpPatch("{id}/status")]
     public async Task<ActionResult<ApiResponse<string>>> UpdateStatus(int id, [FromBody] OpTaskStatus status)
     {
         await _taskService.UpdateTaskStatusAsync(id, status);
-        return Ok(ApiResponse<string>.SuccessResult(null, "Status updated"));
+        return Ok(ApiResponse<string>.SuccessResult(null!, "Status updated"));
     }
 
     [HttpPatch("{id}/complete")]
     public async Task<ActionResult<ApiResponse<string>>> Complete(int id)
     {
         await _taskService.CompleteTaskAsync(id);
-        return Ok(ApiResponse<string>.SuccessResult(null, "Task completed"));
+        return Ok(ApiResponse<string>.SuccessResult(null!, "Task completed"));
     }
 
     [HttpGet("ranking")]
@@ -104,5 +110,3 @@ public class TasksController : ControllerBase
         }
     }
 }
-
-

@@ -33,19 +33,8 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            var products = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
-            var dtos = products.Select(p => new ProductDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                InternalCode = p.InternalCode,
-                FabricType = p.FabricType,
-                MainSku = p.MainSku,
-                AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
-                EstimatedSalePrice = p.EstimatedSalePrice
-            }).ToList();
-
-            return Ok(ApiResponse<List<ProductDto>>.SuccessResult(dtos));
+            var dtos = await _productService.GetAllProductsAsync(HttpContext.RequestAborted);
+            return Ok(ApiResponse<List<ProductDto>>.SuccessResult(dtos!));
         }
         catch (Exception ex)
         {
@@ -58,21 +47,10 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            var p = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
-            if (p == null) return NotFound(ApiResponse<ProductDto>.FailureResult("Product not found"));
+            var dto = await _productService.GetProductByIdAsync(id, HttpContext.RequestAborted);
+            if (dto == null) return NotFound(ApiResponse<ProductDto>.FailureResult("Product not found"));
 
-            var dto = new ProductDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                InternalCode = p.InternalCode,
-                FabricType = p.FabricType,
-                MainSku = p.MainSku,
-                AverageProductionTimeMinutes = p.AverageProductionTimeMinutes,
-                EstimatedSalePrice = p.EstimatedSalePrice
-            };
-
-            return Ok(ApiResponse<ProductDto>.SuccessResult(dto));
+            return Ok(ApiResponse<ProductDto>.SuccessResult(dto!));
         }
         catch (Exception ex)
         {
@@ -86,7 +64,7 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            var product = new Product
+            var productDto = new ProductDto
             {
                 Name = dto.Name,
                 InternalCode = dto.InternalCode,
@@ -96,16 +74,8 @@ public class ProductsController : ControllerBase
                 EstimatedSalePrice = dto.EstimatedSalePrice
             };
 
-            var created = await _productService.CreateProductAsync(product, HttpContext.RequestAborted);
-            var result = new ProductDto
-            {
-                Id = created.Id,
-                Name = created.Name,
-                MainSku = created.MainSku,
-                EstimatedSalePrice = created.EstimatedSalePrice
-            };
-
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponse<ProductDto>.SuccessResult(result, "Product created successfully"));
+            var created = await _productService.CreateProductAsync(productDto, HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponse<ProductDto>.SuccessResult(created!, "Product created successfully"));
         }
         catch (InvalidOperationException ex)
         {
@@ -125,7 +95,7 @@ public class ProductsController : ControllerBase
 
         try
         {
-            var product = new Product
+            var productDto = new ProductDto
             {
                 Id = id,
                 Name = dto.Name,
@@ -136,8 +106,8 @@ public class ProductsController : ControllerBase
                 EstimatedSalePrice = dto.EstimatedSalePrice
             };
 
-            await _productService.UpdateProductAsync(product, HttpContext.RequestAborted);
-            return Ok(ApiResponse<object>.SuccessResult(null, "Product updated successfully"));
+            await _productService.UpdateProductAsync(productDto, HttpContext.RequestAborted);
+            return Ok(ApiResponse<object>.SuccessResult(null!, "Product updated successfully"));
         }
         catch (KeyNotFoundException)
         {
@@ -160,7 +130,7 @@ public class ProductsController : ControllerBase
         try
         {
             await _productService.DeleteProductAsync(id, HttpContext.RequestAborted);
-            return Ok(ApiResponse<object>.SuccessResult(null, "Product deleted successfully"));
+            return Ok(ApiResponse<object>.SuccessResult(null!, "Product deleted successfully"));
         }
         catch (KeyNotFoundException)
         {

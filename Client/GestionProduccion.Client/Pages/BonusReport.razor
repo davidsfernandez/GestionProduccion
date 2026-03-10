@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -14,65 +14,68 @@
 @using Microsoft.AspNetCore.Authorization
 @using System.Globalization
 @using System.Text.Json
+@using GestionProduccion.Resources
+@using GestionProduccion.Domain.Enums
+@using GestionProduccion.Client.Services
 @attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 @inject JsonSerializerOptions JsonOptions
 @inject ToastService ToastService
+@inject IJSRuntime JS
+
+<PageTitle>@Portuguese.Nav_Reports</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
-    <h3 class="h3 mb-4 text-dark">Relatório Financeiro e Bonificações</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="h3 text-dark mb-0 fw-bold">@Portuguese.Nav_Reports</h3>
+        <span class="badge bg-primary-soft text-primary px-3 py-2 rounded-pill"><i class="fa-solid fa-chart-line me-2"></i>BI Inteligência de Bônus</span>
+    </div>
 
+    @* FILTERS CARD *@
     <div class="card shadow-sm border-0 mb-4 rounded-4">
         <div class="card-body p-4">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Modo de Análise</label>
-                    <select class="form-select" @onchange="OnModeChanged">
-                        <option value="team">Análise por Equipe</option>
-                        <option value="user">Análise por Funcionário</option>
+                    <label class="form-label small fw-bold text-muted uppercase">@Portuguese.Analysis_Mode</label>
+                    <select class="form-select border-2 shadow-none" @onchange="OnModeChanged">
+                        <option value="team">@Portuguese.Analysis_ByTeam</option>
+                        <option value="user">@Portuguese.Analysis_ByEmployee</option>
                     </select>
                 </div>
 
                 <div class="col-md-4">
-                    @if (reportMode == "team")
-                    {
-                        <label class="form-label small fw-bold">Selecione a Equipe</label>
-                        <select class="form-select" @bind="selectedId">
-                            <option value="0">Selecione uma equipe...</option>
+                    <label class="form-label small fw-bold text-muted uppercase">
+                        @(reportMode == "team" ? Portuguese.Team_Title : Portuguese.Employee)
+                    </label>
+                    <select class="form-select border-2 shadow-none" @bind="selectedId">
+                        <option value="0">-- @Portuguese.Select --</option>
+                        @if (reportMode == "team")
+                        {
                             @if (teams != null)
                             {
-                                @foreach (var team in teams)
-                                {
-                                    <option value="@team.Id">@team.Name</option>
-                                }
+                                @foreach (var team in teams) { <option value="@team.Id">@team.Name</option> }
                             }
-                        </select>
-                    }
-                    else
-                    {
-                        <label class="form-label small fw-bold">Selecione o Funcionário</label>
-                        <select class="form-select" @bind="selectedId">
-                            <option value="0">Selecione um funcionário...</option>
+                        }
+                        else
+                        {
                             @if (users != null)
                             {
-                                @foreach (var user in users)
-                                {
-                                    <option value="@user.Id">@user.FullName (@user.Role)</option>
-                                }
+                                @foreach (var user in users) { <option value="@user.Id">@user.FullName (@TranslateRole(user.Role))</option> }
                             }
-                        </select>
-                    }
+                        }
+                    </select>
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">Mês de Referência</label>
-                    <input type="month" class="form-control" @bind="selectedMonth" />
+                    <label class="form-label small fw-bold text-muted uppercase">@Portuguese.Reference_Month</label>
+                    <input type="month" class="form-control border-2 shadow-none" @bind="selectedMonth" />
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100 shadow-sm" @onclick="Calculate" disabled="@(selectedId == 0 || isLoading)">
+                    <button class="btn btn-primary w-100 shadow-sm py-2 fw-bold" @onclick="Calculate" disabled="@(selectedId == 0 || isLoading)">
                         @if (isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                        Calcular
+                        else { <i class="fa-solid fa-calculator me-2"></i> }
+                        @Portuguese.Calculate
                     </button>
                 </div>
             </div>
@@ -81,64 +84,112 @@
 
     @if (report != null)
     {
-        <div class="row animate-fade-in-up">
+        @* SUMMARY KPI CARDS *@
+        <div class="row g-4 animate-fade-in-up">
             <div class="col-md-4">
-                <div class="card shadow-sm border-0 text-center p-4 rounded-4 @(report.FinalBonusPercentage == 0 ? "bg-danger bg-opacity-10" : "bg-success bg-opacity-10")">
-                    <h1 class="display-4 fw-bold @(report.FinalBonusPercentage == 0 ? "text-danger" : "text-success")">
-                        @report.FinalBonusPercentage.ToString("F1")%
-                    </h1>
-                    <p class="mb-0 fw-bold uppercase small text-muted">Bonificação Final</p>
-                    <small class="text-muted">@(reportMode == "team" ? "Desempenho Coletivo" : "Individual + Proporcional Equipe")</small>
+                <div class="card shadow-sm border-0 h-100 rounded-4 overflow-hidden">
+                    <div class="card-body p-0">
+                        <div class="p-4 text-center @(report.FinalBonusPercentage >= 80 ? "bg-success-soft" : "bg-warning-soft")">
+                            <h1 class="display-3 fw-900 mb-0 @(report.FinalBonusPercentage >= 80 ? "text-success" : "text-warning")">
+                                @report.FinalBonusPercentage.ToString("F1")%
+                            </h1>
+                            <p class="mb-0 fw-bold uppercase small text-muted">@Portuguese.Final_Bonus</p>
+                        </div>
+                        <div class="p-3 bg-white border-top text-center">
+                            <span class="text-muted xsmall">@(reportMode == "team" ? "Desempenho Coletivo" : "Individual + Proporcional Equipe")</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <div class="col-md-8">
-                <div class="row h-100">
+                <div class="row g-3 h-100">
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
-                            <small class="text-muted d-block mb-1 uppercase">Produtividade</small>
-                            <h4 class="mb-0 fw-bold">@report.ProductivityPercentage.ToString("F1")%</h4>
+                        <div class="card shadow-sm border-0 p-4 rounded-4 h-100 text-center">
+                            <div class="bg-primary-soft p-2 rounded-circle d-inline-block mx-auto mb-2" style="width: 40px; height: 40px;">
+                                <i class="fa-solid fa-gears text-primary"></i>
+                            </div>
+                            <small class="text-muted d-block mb-1 uppercase fw-bold" style="font-size: 10px;">@Portuguese.Productivity</small>
+                            <h3 class="mb-0 fw-bold text-dark">@report.ProductivityPercentage.ToString("F1")%</h3>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
-                            <small class="text-muted d-block mb-1 uppercase">Qualidade</small>
-                            <h4 class="mb-0 fw-bold @(report.DefectPercentage > 5 ? "text-danger" : "text-success")">
-                                @report.DefectPercentage.ToString("F1")% <small class="fs-xs">def.</small>
-                            </h4>
+                        <div class="card shadow-sm border-0 p-4 rounded-4 h-100 text-center">
+                            <div class="@(report.DefectPercentage > 5 ? "bg-danger-soft" : "bg-success-soft") p-2 rounded-circle d-inline-block mx-auto mb-2" style="width: 40px; height: 40px;">
+                                <i class="fa-solid fa-shield-virus @(report.DefectPercentage > 5 ? "text-danger" : "text-success")"></i>
+                            </div>
+                            <small class="text-muted d-block mb-1 uppercase fw-bold" style="font-size: 10px;">@Portuguese.Quality</small>
+                            <h3 class="mb-0 fw-bold @(report.DefectPercentage > 5 ? "text-danger" : "text-success")">
+                                @report.DefectPercentage.ToString("F1")%
+                            </h3>
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <div class="card shadow-sm border-0 p-3 mb-3 rounded-4 h-100 d-flex flex-column justify-content-center">
-                            <small class="text-muted d-block mb-1 uppercase">Prazo (Efi.)</small>
-                            <h4 class="mb-0 fw-bold">@report.DeadlinePerformance.ToString("F1")%</h4>
+                        <div class="card shadow-sm border-0 p-4 rounded-4 h-100 text-center">
+                            <div class="bg-info-soft p-2 rounded-circle d-inline-block mx-auto mb-2" style="width: 40px; height: 40px;">
+                                <i class="fa-solid fa-clock text-info"></i>
+                            </div>
+                            <small class="text-muted d-block mb-1 uppercase fw-bold" style="font-size: 10px;">@Portuguese.Deadline</small>
+                            <h3 class="mb-0 fw-bold text-dark">@report.DeadlinePerformance.ToString("F1")%</h3>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        @* DETAILED STATS *@
         <div class="card shadow-sm border-0 mt-4 rounded-4 overflow-hidden animate-fade-in-up delay-1">
-            <div class="card-header bg-white py-3 border-0 pt-4 px-4">
-                <h5 class="mb-0 fw-bold">Detalhamento da Produção - @report.TeamName</h5>
+            <div class="card-header bg-white py-3 border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark">@Portuguese.Production_Details - @report.TeamName</h5>
+                <button class="btn btn-sm btn-outline-danger" @onclick="DownloadReport" disabled="@isExporting">
+                    @if (isExporting) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                    else { <i class="fa-solid fa-file-pdf me-2"></i> }
+                    @Portuguese.Export_PDF
+                </button>
             </div>
             <div class="card-body p-4">
                 <div class="row text-center g-4">
                     <div class="col-md-3 border-end">
-                        <p class="text-muted mb-1 small uppercase fw-bold">Lotes Concluídos</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">@Portuguese.Completed_Batches</p>
                         <h3 class="text-dark fw-bold">@report.CompletedOrders</h3>
                     </div>
                     <div class="col-md-3 border-end">
-                        <p class="text-muted mb-1 small uppercase fw-bold">Total Produzido</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">@Portuguese.Total_Produced</p>
                         <h3 class="text-primary fw-bold">@report.TotalProduced <small class="fs-xs text-muted">un.</small></h3>
                     </div>
                     <div class="col-md-3 border-end">
-                        <p class="text-muted mb-1 small uppercase fw-bold">Total Defeitos</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">@Portuguese.Total_Defects</p>
                         <h3 class="@(report.TotalDefects > 0 ? "text-danger" : "text-success") fw-bold">@report.TotalDefects</h3>
                     </div>
                     <div class="col-md-3">
-                        <p class="text-muted mb-1 small uppercase fw-bold">BÃ´nus Estimado</p>
+                        <p class="text-muted mb-1 small uppercase fw-bold">@Portuguese.Estimated_Bonus</p>
                         <h3 class="text-success fw-bold">@report.TotalAmount.ToString("C", new CultureInfo("pt-BR"))</h3>
+                    </div>
+                </div>
+
+                @* CHART INTEGRATION *@
+                <div class="row mt-5">
+                    <div class="col-lg-6 mb-4">
+                        <div class="p-4 bg-white rounded-4 border h-100 shadow-none">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-success-soft p-2 rounded-3 me-3"><i class="fa-solid fa-chart-pie text-success"></i></div>
+                                <h6 class="mb-0 text-dark fw-bold uppercase">@Portuguese.Performance_Chart</h6>
+                            </div>
+                            <div style="height: 350px;">
+                                <canvas id="bonusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="p-4 bg-light rounded-4 border h-100 shadow-none border-dashed d-flex flex-column justify-content-center text-center">
+                            <i class="fa-solid fa-lightbulb text-warning fa-3x mb-3 opacity-50"></i>
+                            <h5 class="fw-bold text-dark mb-2">Insight Estratégico</h5>
+                            <div class="text-muted small px-4">
+                                @if (report.FinalBonusPercentage >= 90) { <span>Equipe de alto desempenho! Mantenha o ritmo atual para maximizar os resultados.</span> }
+                                else if (report.DefectPercentage > 5) { <span>A qualidade está impactando o bônus. Revise os pontos de controle na costura.</span> }
+                                else { <span>Foco em reduzir o tempo efetivo para subir a produtividade acima da meta.</span> }
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -150,8 +201,8 @@
             <div class="d-flex align-items-center">
                 <i class="fa-solid fa-circle-info fa-2x me-3 opacity-50"></i>
                 <div>
-                    <h6 class="fw-bold mb-1">Nenhum dado encontrado</h6>
-                    <p class="mb-0 small">Nenhuma produção registrada para o período e alvo selecionados.</p>
+                    <h6 class="fw-bold mb-1">@Portuguese.Msg_NoDataFound</h6>
+                    <p class="mb-0 small">@Portuguese.Msg_NoProductionInPeriod</p>
                 </div>
             </div>
         </div>
@@ -166,7 +217,9 @@
     private DateTime selectedMonth = DateTime.Now;
     private BonusReportDto? report;
     private bool isLoading = false;
+    private bool isExporting = false;
     private bool hasSearched = false;
+    private bool _shouldRenderChart = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -178,24 +231,24 @@
         try
         {
             var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
-            var usersTask = Http.GetFromJsonAsync<List<UserDto>>("api/Users", JsonOptions);
+            var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
 
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResp = await teamsTask;
             if (teamsResp?.Success == true) teams = teamsResp.Data;
 
-            users = await usersTask;
-            // Filter only operational/leaders for individual report
-            if (users != null)
+            var usersResp = await usersTask;
+            if (usersResp?.Success == true)
             {
-                users = users.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                var allUsers = usersResp.Data;
+                if (allUsers != null)
+                {
+                    users = allUsers.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                }
             }
         }
-        catch (Exception)
-        {
-            ToastService.ShowToast("Erro ao carregar dados auxiliares.", ToastLevel.Error);
-        }
+        catch (Exception) { ToastService.ShowToast(Portuguese.Err_LoadData, ToastLevel.Error); }
     }
 
     private void OnModeChanged(ChangeEventArgs e)
@@ -228,23 +281,76 @@
             if (response != null && response.Success)
             {
                 report = response.Data;
+                if (report != null)
+                {
+                    _shouldRenderChart = true; // Signal OnAfterRenderAsync to draw the chart
+                }
             }
-            else
+            else ToastService.ShowToast(response?.Message ?? Portuguese.Err_Calculation, ToastLevel.Warning);
+        }
+        catch (Exception ex) { ToastService.ShowToast($"{Portuguese.Err_Connection}: {ex.Message}", ToastLevel.Error); }
+        finally { isLoading = false; StateHasChanged(); }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldRenderChart && report != null)
+        {
+            _shouldRenderChart = false;
+            try
             {
-                ToastService.ShowToast(response?.Message ?? "Erro ao calcular bÃ´nus.", ToastLevel.Warning);
+                await JS.InvokeVoidAsync("renderBonusChart", report);
             }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"Erro de conexão: {ex.Message}", ToastLevel.Error);
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chart Interop Error: {ex.Message}");
+            }
         }
     }
+
+    private async Task DownloadReport()
+    {
+        if (isExporting || report == null) return;
+        isExporting = true;
+        try
+        {
+            var start = new DateTime(selectedMonth.Year, selectedMonth.Month, 1);
+            var end = start.AddMonths(1).AddDays(-1);
+            var fileName = $"Relatorio_Bonus_{report.TeamName}_{selectedMonth:yyyyMM}.pdf";
+            
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var url = reportMode == "team" 
+                ? $"api/BonusCalculation/pdf?teamId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}"
+                : $"api/BonusCalculation/pdf?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
+
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+            else ToastService.ShowToast("Erro ao gerar PDF", ToastLevel.Error);
+        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        finally { isExporting = false; }
+    }
+
+    private string TranslateRole(UserRole role) => role switch
+    {
+        UserRole.Leader => "Líder",
+        UserRole.Operational => "Operário",
+        _ => role.ToString()
+    };
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Pending" => "bg-warning",
+        "InProgress" => "bg-primary",
+        "Completed" => "bg-success",
+        _ => "bg-secondary"
+    };
 }
-
-
-

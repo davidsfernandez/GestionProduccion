@@ -75,6 +75,7 @@ else
 
 // --- 2. DEPENDENCY INJECTION (Armored) ---
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<GestionProduccion.Application.Mappers.MainMapper>();
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderQueryService, GestionProduccion.Services.ProductionOrders.ProductionOrderQueryService>();
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderMutationService, GestionProduccion.Services.ProductionOrders.ProductionOrderMutationService>();
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderLifecycleService, GestionProduccion.Services.ProductionOrders.ProductionOrderLifecycleService>();
@@ -86,6 +87,8 @@ builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPro
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISystemConfigurationRepository, GestionProduccion.Data.Repositories.SystemConfigurationRepository>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<ISewingTeamService, SewingTeamService>();
+builder.Services.AddScoped<IDistributedLockService, MySqlDistributedLockService>();
+builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRefreshTokenRepository, GestionProduccion.Data.Repositories.UserRefreshTokenRepository>();
 builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data.Repositories.PasswordResetTokenRepository>();
 builder.Services.AddMemoryCache(); // TV Dashboard optimization

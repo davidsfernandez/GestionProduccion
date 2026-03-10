@@ -14,9 +14,11 @@ using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Hubs;
 using GestionProduccion.Models.DTOs;
-using GestionProduccion.Services.Interfaces; // For IFinancialCalculatorService
+using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore; // Added missing using
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading;
 
@@ -25,11 +27,12 @@ namespace GestionProduccion.Services.ProductionOrders;
 public class ProductionOrderMutationService : IProductionOrderMutationService
 {
     private readonly IProductionOrderRepository _orderRepository;
-    private readonly IUserRepository _userRepository; // For validation/history
-    private readonly IProductRepository _productRepository; // For validation
-    private readonly IHubContext<ProductionHub> _hubContext; // For notifications
-    private readonly IHttpContextAccessor _httpContextAccessor; // For GetCurrentUserId (e.g. for history)
-    private static readonly SemaphoreSlim _lotCodeSemaphore = new SemaphoreSlim(1, 1);
+    private readonly IUserRepository _userRepository;
+    private readonly IProductRepository _productRepository;
+    private readonly INotificationService _notificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDistributedLockService _lockService;
+    private readonly MainMapper _mapper;
 
     // Secondary services not directly related to Order mutation but called by monolith
     private readonly IFinancialCalculatorService _financialCalculator;
@@ -38,16 +41,20 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
         IProductRepository productRepository,
-        IHubContext<ProductionHub> hubContext,
+        INotificationService notificationService,
         IHttpContextAccessor httpContextAccessor,
-        IFinancialCalculatorService financialCalculator)
+        IDistributedLockService lockService,
+        IFinancialCalculatorService financialCalculator,
+        MainMapper mapper)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _productRepository = productRepository;
-        _hubContext = hubContext;
+        _notificationService = notificationService;
         _httpContextAccessor = httpContextAccessor;
+        _lockService = lockService;
         _financialCalculator = financialCalculator;
+        _mapper = mapper;
     }
 
     private int GetCurrentUserId()
@@ -58,7 +65,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         {
             return userId;
         }
-        return 1; // Default or anonymous user ID
+        throw new UnauthorizedAccessException("User is not authenticated or user ID claim is missing.");
     }
 
     public async Task<ProductionOrderDto> CreateProductionOrderAsync(CreateProductionOrderRequest request, int createdByUserId, CancellationToken ct = default)
@@ -77,7 +84,10 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (product == null)
             throw new InvalidOperationException($"Product with ID {request.ProductId} not found.");
 
-        await _lotCodeSemaphore.WaitAsync(ct);
+        var lockKey = "LOCK_LOTCODE_GENERATION";
+        var locked = await _lockService.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(10), ct);
+        if (!locked) throw new InvalidOperationException("Could not acquire lock for lot code generation. Please try again.");
+
         try
         {
             var today = DateTime.UtcNow;
@@ -148,17 +158,63 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             await AddHistory(order.Id, null, order.CurrentStage, null, order.CurrentStatus, createdByUserId, historyNote);
             await _orderRepository.SaveChangesAsync(); // Save history
 
-            await _hubContext.Clients.All.SendAsync("ReceiveUpdate", order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), cancellationToken: ct);
+            await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
             // Re-fetch to ensure all relations are loaded for DTO mapping
             var createdOrder = await _orderRepository.GetByIdAsync(order.Id);
 
-            return MapToDto(createdOrder!);
+            return createdOrder!.ToDto();
         }
         finally
         {
-            _lotCodeSemaphore.Release();
+            await _lockService.ReleaseLockAsync(lockKey);
         }
+    }
+
+    public async Task<ProductionOrderDto> UpdateProductionOrderAsync(UpdateProductionOrderRequest request, int modifiedByUserId, CancellationToken ct = default)
+    {
+        var order = await _orderRepository.GetByIdAsync(request.Id);
+        if (order == null) throw new KeyNotFoundException($"Order with ID {request.Id} not found.");
+
+        var oldInfo = $"Client: {order.ClientName}, Delivery: {order.EstimatedCompletionAt:d}";
+        
+        // 1. Update basic metadata
+        order.ClientName = request.ClientName;
+        order.EstimatedCompletionAt = request.EstimatedCompletionAt;
+        order.UserId = request.UserId;
+        order.SewingTeamId = request.SewingTeamId;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        // 2. Handle size/quantity updates (Only if in initial stage)
+        if (request.Sizes != null && request.Sizes.Any())
+        {
+            if (order.CurrentStage != ProductionStage.Cutting)
+            {
+                throw new InvalidOperationException("Quantities cannot be changed once the order has passed the Cutting stage.");
+            }
+
+            // Sync sizes: remove old, add new
+            order.Sizes.Clear();
+            foreach (var s in request.Sizes)
+            {
+                order.Sizes.Add(new ProductionOrderSize
+                {
+                    Size = s.Size,
+                    Quantity = s.Quantity
+                });
+            }
+            order.Quantity = request.Sizes.Sum(s => s.Quantity);
+            // Update legacy field
+            order.Size = request.Sizes.First().Size;
+        }
+
+        await _orderRepository.UpdateAsync(order);
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Order metadata updated. Previous: {oldInfo}");
+        await _orderRepository.SaveChangesAsync();
+
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+
+        return order.ToDto();
     }
 
     public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
@@ -193,45 +249,6 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             Note = note
         };
         await _orderRepository.AddHistoryAsync(history);
-    }
-
-    private ProductionOrderDto MapToDto(ProductionOrder order)
-    {
-        return new ProductionOrderDto
-        {
-            Id = order.Id,
-            LotCode = order.LotCode,
-            ProductName = order.Product?.Name,
-            ProductCode = order.Product?.InternalCode,
-            Quantity = order.Quantity,
-            ClientName = order.ClientName,
-            Size = order.Size,
-            CurrentStage = order.CurrentStage.ToString(),
-            CurrentStatus = order.CurrentStatus.ToString(),
-            CreatedAt = order.CreatedAt,
-            EstimatedCompletionAt = order.EstimatedCompletionAt,
-            UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.FullName,
-            SewingTeamId = order.SewingTeamId,
-            SewingTeamName = order.AssignedTeam?.Name,
-            TotalCost = order.TotalCost,
-            Sizes = order.Sizes?.Select(s => new ProductionOrderSizeDto
-            {
-                Id = s.Id,
-                ProductionOrderId = s.ProductionOrderId,
-                Size = s.Size,
-                Quantity = s.Quantity
-            }).ToList() ?? new List<ProductionOrderSizeDto>(),
-            Product = order.Product != null ? new ProductDto
-            {
-                Id = order.Product.Id,
-                Name = order.Product.Name,
-                InternalCode = order.Product.InternalCode,
-                FabricType = order.Product.FabricType,
-                MainSku = order.Product.MainSku,
-                AverageProductionTimeMinutes = order.Product.AverageProductionTimeMinutes
-            } : null
-        };
     }
 }
 

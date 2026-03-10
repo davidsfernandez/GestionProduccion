@@ -34,44 +34,49 @@ public class FinancialCalculatorService : IFinancialCalculatorService
     /// <param name="order">The production order to calculate cost for.</param>
     public async Task CalculateFinalOrderCostAsync(ProductionOrder order)
     {
-        // 1. Ensure end time is set
-        if (order.CompletedAt == null)
+        await UpdateIntermediateCostAsync(order);
+    }
+
+    public async Task UpdateIntermediateCostAsync(ProductionOrder order)
+    {
+        // 1. Calculate current effective hours
+        double currentEffectiveHours = order.EffectiveMinutes / 60.0;
+
+        // If currently in production, add time elapsed since the last recorded start
+        if (order.CurrentStatus == ProductionStatus.InProduction && order.StartedAt.HasValue)
         {
-            order.CompletedAt = DateTime.UtcNow;
+            // Note: We use the most recent history entry to find when this specific "run" started
+            var lastStart = order.History?
+                .Where(h => h.NewStatus == ProductionStatus.InProduction)
+                .OrderByDescending(h => h.ChangedAt)
+                .FirstOrDefault();
+
+            var startTime = lastStart?.ChangedAt ?? order.StartedAt.Value;
+            var elapsed = DateTime.UtcNow - startTime;
+            if (elapsed.TotalHours > 0)
+            {
+                currentEffectiveHours += elapsed.TotalHours;
+            }
         }
 
-        // 2. Calculate Effective Working Hours from History
-        double effectiveHours = CalculateEffectiveWorkingHours(order);
-
-        // Safety rule: Minimum 0.1 hours (6 mins) to avoid near-zero costs if history is missing or corrupted
-        if (effectiveHours <= 0) 
-        {
-            var totalDuration = (order.CompletedAt.Value - (order.StartedAt ?? order.CreatedAt)).TotalHours;
-            effectiveHours = totalDuration > 0 ? totalDuration : 0.1;
-        }
-
-        // 3. Extract costs from configuration
-        var config = await _configRepo.GetAsync();
+        // 2. Extract costs from configuration
+        var config = await _configRepo.GetByKeyAsync("MainConfig");
         decimal hourlyCost = config?.OperationalHourlyCost ?? 45.0m;
 
-        // 4. Labor Cost calculation
-        decimal totalLaborCost = Math.Round((decimal)effectiveHours * hourlyCost, 2);
+        // 3. Labor Cost calculation
+        decimal totalLaborCost = Math.Round((decimal)currentEffectiveHours * hourlyCost, 2);
         order.TotalCost = totalLaborCost;
 
-        // 5. Unit / Real Cost
+        // 4. Unit / Real Cost (WIP)
         int quantity = order.Quantity > 0 ? order.Quantity : 1;
         decimal realCost = Math.Round(totalLaborCost / quantity, 2);
         order.AverageCostPerPiece = realCost;
 
-        // 6. Profit Margin Calculation
+        // 5. Profit Margin Calculation
         var product = await _productRepo.GetByIdAsync(order.ProductId);
         if (product != null && product.EstimatedSalePrice > 0)
         {
             order.ProfitMargin = ((product.EstimatedSalePrice - order.AverageCostPerPiece) / product.EstimatedSalePrice) * 100;
-        }
-        else
-        {
-            order.ProfitMargin = 0;
         }
     }
 

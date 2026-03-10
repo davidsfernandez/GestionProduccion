@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -13,114 +13,116 @@
 @using GestionProduccion.Client.Models
 @using GestionProduccion.Client.Auth
 @using GestionProduccion.Models.DTOs
-@using GestionProduccion.Client.Resources
+@using System.Text.Json
+@using GestionProduccion.Resources
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UserStateService UserState
-@using System.Text.Json
+@inject JsonSerializerOptions JsonOptions
 
-<main class="d-flex w-100" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+<PageTitle>Login | @Portuguese.AppName</PageTitle>
+
+<main class="d-flex w-100" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh;">
     @if (isChecking)
     {
-        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white" style="z-index: 1000; opacity: 0.9;">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white" style="z-index: 2000; opacity: 0.9;">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
             <h5 class="text-muted fw-bold">@Portuguese.Msg_SystemChecking</h5>
         </div>
     }
+
     <div class="container d-flex flex-column">
         <div class="row vh-100">
             <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 mx-auto d-table h-100">
                 <div class="d-table-cell align-middle">
 
-                    <div class="text-center mt-4 mb-4">
-                        @if (!string.IsNullOrEmpty(companyLogo))
-                        {
-                            <div class="bg-white p-3 rounded-4 d-inline-flex shadow-sm mb-3 animate-fade-in" style="min-width: 120px; min-height: 80px; align-items: center; justify-content: center;">
-                                <img src="@companyLogo" alt="Logo" style="max-width: 180px; max-height: 60px; object-fit: contain;" />
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="bg-white p-3 rounded-circle d-inline-flex shadow-sm mb-3 animate-fade-in">
+                    <div class="text-center mb-4">
+                        <div class="bg-white p-4 rounded-4 d-inline-flex shadow-sm mb-4 animate-fade-in" style="min-width: 140px; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
+                            @if (!string.IsNullOrEmpty(companyLogo))
+                            {
+                                <img src="@companyLogo" alt="Logo" style="max-width: 200px; max-height: 70px; object-fit: contain;" />
+                            }
+                            else
+                            {
                                 <i class="fa-solid fa-industry text-primary fs-1"></i>
-                            </div>
-                        }
-                        <h1 class="h2 fw-bold text-dark animate-fade-in">@Portuguese.Welcome!</h1>
-                        <p class="lead text-muted animate-fade-in delay-1">
-                            @(string.IsNullOrEmpty(companyName) ? "Sistema de Gestão de Produção" : $"Sistema de Gestão - {companyName}")
+                            }
+                        </div>
+                        <h1 class="h2 fw-900 text-dark mb-1 animate-fade-in" style="font-weight: 900; letter-spacing: -1px;">@Portuguese.Welcome!</h1>
+                        <p class="text-muted animate-fade-in delay-1">
+                            @(string.IsNullOrEmpty(companyName) ? Portuguese.AppName : companyName)
                         </p>
                     </div>
 
-                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-                        <div class="card-header bg-primary py-3 border-0">
-                            <h5 class="card-title mb-0 text-center text-white fw-bold">Acesso ao Sistema</h5>
-                        </div>
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up" style="border-top: 5px solid var(--bs-primary) !important;">
                         <div class="card-body p-5">
-                            <div class="m-sm-3">
-                                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
-                                    <DataAnnotationsValidator />
-                                    
-                                    <div class="mb-4">
-                                        <label class="form-label text-muted small fw-bold">@Portuguese.User_Email</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-envelope text-muted"></i></span>
-                                            <InputText class="form-control form-control-lg bg-light" @bind-Value="loginModel.Email" placeholder="Digite seu e-mail" autocomplete="username" />
-                                        </div>
-                                        <ValidationMessage For="@(() => loginModel.Email)" class="text-danger small mt-1" />
-                                    </div>
+                            <div class="mb-4 text-center">
+                                <h4 class="fw-bold">Acesso restrito</h4>
+                                <p class="small text-muted">Entre com suas credenciais para continuar</p>
+                            </div>
 
-                                    <div class="mb-4">
-                                        <label class="form-label text-muted small fw-bold">@Portuguese.User_Password</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-light border-0"><i class="fa-solid fa-lock text-muted"></i></span>
-                                            <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg bg-light" @bind-Value="loginModel.Password" placeholder="Sua senha" autocomplete="current-password" />
-                                            <button class="btn btn-light border-0" type="button" @onclick="() => showPassword = !showPassword">
-                                                <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye") text-muted"></i>
-                                            </button>
-                                        </div>
-                                        <ValidationMessage For="@(() => loginModel.Password)" class="text-danger small mt-1" />
+                            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                                <DataAnnotationsValidator />
+                                
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-bold uppercase">@Portuguese.User_Email</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-2 border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                                        <InputText class="form-control form-control-lg border-2 border-start-0 shadow-none" @bind-Value="loginModel.Email" placeholder="seu@email.com" />
                                     </div>
+                                    <ValidationMessage For="@(() => loginModel.Email)" class="text-danger xsmall mt-1" />
+                                </div>
 
-                                    <div class="mb-4 d-flex justify-content-between align-items-center">
-                                        <div class="form-check">
-                                            <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberCheck" />
-                                            <label class="form-check-label small text-muted" for="rememberCheck">Manter sessão</label>
-                                        </div>
-                                        <a href="forgot-password" class="small text-primary fw-bold text-decoration-none">Esqueci a senha?</a>
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label text-muted small fw-bold uppercase">@Portuguese.User_Password</label>
+                                        <a href="forgot-password" class="xsmall text-primary fw-bold text-decoration-none mb-2">Esqueceu a senha?</a>
                                     </div>
-
-                                    <div class="d-grid gap-2 mt-3">
-                                        <button type="submit" class="btn btn-lg btn-primary shadow-sm py-3 fw-bold" disabled="@isLoading">
-                                            @if (isLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                                <span>@Portuguese.Loading</span>
-                                            }
-                                            else
-                                            {
-                                                <span>@Portuguese.Login <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i></span>
-                                            }
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-2 border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                                        <InputText type="@(showPassword ? "text" : "password")" class="form-control form-control-lg border-2 border-start-0 shadow-none" @bind-Value="loginModel.Password" placeholder="••••••" />
+                                        <button class="btn btn-outline-light border-2 border-start-0 text-muted" type="button" @onclick="() => showPassword = !showPassword">
+                                            <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
                                         </button>
                                     </div>
+                                    <ValidationMessage For="@(() => loginModel.Password)" class="text-danger xsmall mt-1" />
+                                </div>
 
-                                    @if (!string.IsNullOrEmpty(errorMessage))
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" id="rememberCheck" />
+                                        <label class="form-check-label small text-muted fw-bold" for="rememberCheck">Manter sessão ativa</label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-lg btn-primary w-100 shadow-sm py-3 fw-bold" disabled="@isLoading">
+                                    @if (isLoading)
                                     {
-                                        <div class="alert alert-danger mt-4 mb-0 py-3 border-0 rounded-3 shadow-sm d-flex align-items-center animate-fade-in">
-                                            <i class="fa-solid fa-circle-exclamation me-3 fs-4"></i>
-                                            <small class="fw-bold">@errorMessage</small>
-                                        </div>
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>@Portuguese.Loading</span>
                                     }
-                                </EditForm>
-                            </div>
+                                    else
+                                    {
+                                        <span>@Portuguese.Login <i class="fa-solid fa-arrow-right-to-bracket ms-2"></i></span>
+                                    }
+                                </button>
+
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-danger mt-4 mb-0 py-3 border-0 rounded-3 shadow-sm d-flex align-items-center animate-fade-in">
+                                        <i class="fa-solid fa-circle-exclamation me-3 fs-4"></i>
+                                        <small class="fw-bold">@errorMessage</small>
+                                    </div>
+                                }
+                            </EditForm>
                         </div>
                     </div>
                     
-                    <div class="text-center mt-4 text-muted small">
-                        <div class="mb-1">&copy; @DateTime.Now.Year - David Fernandez. Todos los derechos reservados.</div>
+                    <div class="text-center mt-5 text-muted xsmall">
+                        <div>&copy; @DateTime.Now.Year - David Fernandez. Todos os direitos reservados.</div>
                         @if (!string.IsNullOrEmpty(companyName))
                         {
-                            <div class="fw-bold">Licenciado para: @companyName</div>
+                            <div class="fw-bold mt-1">Licenciado para: @companyName</div>
                         }
                     </div>
 
@@ -146,7 +148,7 @@
             isChecking = true;
             
             // 1. Silent check for setup (First Priority)
-            var setupResp = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/Auth/setup-required");
+            var setupResp = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/Auth/setup-required", JsonOptions);
             if (setupResp != null && setupResp.Success && setupResp.Data)
             {
                 NavigationManager.NavigateTo("/setup");
@@ -154,14 +156,11 @@
             }
 
             // 2. Fetch public branding info
-            var configResp = await Http.GetFromJsonAsync<ApiResponse<PublicConfigurationDto>>("api/Configuration/public");
-            if (configResp != null && configResp.Success && configResp.Data != null)
+            var configResp = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public", JsonOptions);
+            if (configResp != null)
             {
-                companyName = configResp.Data.CompanyName ?? "";
-                if (!string.IsNullOrEmpty(configResp.Data.LogoBase64))
-                {
-                    companyLogo = configResp.Data.LogoBase64;
-                }
+                companyName = configResp.CompanyName ?? "";
+                companyLogo = configResp.LogoBase64;
             }
         }
         catch (Exception ex)
@@ -183,16 +182,15 @@
         {
             isLoading = true;
             errorMessage = string.Empty;
-            var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel);
-
-            var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>();
+            var response = await Http.PostAsJsonAsync("api/Auth/login", loginModel, JsonOptions);
+            var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResponse>>(JsonOptions);
 
             if (response.IsSuccessStatusCode && apiResp != null && apiResp.Success && apiResp.Data != null)
             {
                 var loginData = apiResp.Data;
                 
                 // Update global state immediately
-                UserState.SetUser(loginData.FullName ?? "Usuário", loginData.AvatarUrl);
+                UserState.SetUser(loginData.FullName ?? Portuguese.AppName, loginData.AvatarUrl);
                 
                 await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(loginData.Token, loginData.RefreshToken);
                 NavigationManager.NavigateTo("/");

@@ -73,6 +73,11 @@ public class UserStateService
         AvatarUrl = newUrl;
     }
 
+    public void UpdateName(string name)
+    {
+        UserName = name;
+    }
+
     public void UpdateTheme(string theme)
     {
         ThemeName = theme;

@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -12,62 +12,85 @@
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using System.Text.Json
+@using GestionProduccion.Resources
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Domain.Enums
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
-@using GestionProduccion.Client.Resources
+@inject AudioService Audio
+@inject IJSRuntime JS
+
+<PageTitle>@Portuguese.Task_DelegateAdmin</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark mb-0">@Portuguese.Task_DelegateAdmin</h3>
+        <h3 class="h3 text-dark mb-0 fw-bold">@Portuguese.Task_DelegateAdmin</h3>
+        <span class="badge bg-primary-soft text-primary px-3 py-2 rounded-pill"><i class="fa-solid fa-shield-halved me-2"></i>Módulo de Comando</span>
     </div>
 
     <div class="row">
         <div class="col-12 col-lg-5 mb-4">
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="card-title fw-bold mb-0">@Portuguese.Task_NewTask</h5>
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-primary py-3">
+                    <h5 class="card-title text-white fw-bold mb-0"><i class="fa-solid fa-paper-plane me-2"></i>@Portuguese.Task_NewTask</h5>
                 </div>
                 <div class="card-body p-4">
                     <EditForm Model="createModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">@Portuguese.Task_TitleLabel</label>
-                            <InputText class="form-control" @bind-Value="createModel.Title" placeholder="Ex: Comprar linhas" />
-                            <ValidationMessage For="@(() => createModel.Title)" class="text-danger small" />
+                            <label class="form-label small fw-bold text-muted">@Portuguese.Task_TitleLabel</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2 border-end-0"><i class="fa-solid fa-heading"></i></span>
+                                <InputText class="form-control form-control-lg border-2 shadow-none border-start-0" @bind-Value="createModel.Title" placeholder="Ex: Comprar linhas de seda" />
+                            </div>
+                            <ValidationMessage For="@(() => createModel.Title)" class="text-danger xsmall mt-1" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">@Portuguese.Task_Description</label>
-                            <InputTextArea class="form-control" @bind-Value="createModel.Description" rows="3" placeholder="@Portuguese.Task_DescriptionPlaceholder" />
-                            <ValidationMessage For="@(() => createModel.Description)" class="text-danger small" />
+                            <label class="form-label small fw-bold text-muted">@Portuguese.Task_Description</label>
+                            <InputTextArea class="form-control border-2 shadow-none" @bind-Value="createModel.Description" rows="3" placeholder="@Portuguese.Task_DescriptionPlaceholder" />
+                            <ValidationMessage For="@(() => createModel.Description)" class="text-danger xsmall mt-1" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">@Portuguese.Task_Responsible</label>
-                            <InputSelect class="form-select" @bind-Value="createModel.AssignedUserId">
-                                <option value="0">@Portuguese.Task_SelectUser</option>
-                                @if (users != null)
-                                {
-                                    @foreach (var user in users)
+                            <label class="form-label small fw-bold text-muted">@Portuguese.Task_Responsible</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2 border-end-0"><i class="fa-solid fa-user-tie"></i></span>
+                                <InputSelect class="form-select border-2 shadow-none border-start-0" @bind-Value="createModel.AssignedUserId">
+                                    <option value="0">-- @Portuguese.Task_SelectUser --</option>
+                                    @if (users != null)
                                     {
-                                        <option value="@user.Id">@user.FullName (@user.Role)</option>
+                                        @foreach (var user in users.Where(u => u.IsActive && (u.Role == UserRole.Leader || u.Role == UserRole.Operational || u.Role == UserRole.Administrator)))
+                                        {
+                                            <option value="@user.Id">@user.FullName (@TranslateRole(user.Role))</option>
+                                        }
                                     }
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="@(() => createModel.AssignedUserId)" class="text-danger small" />
+                                </InputSelect>
+                            </div>
+                            <ValidationMessage For="@(() => createModel.AssignedUserId)" class="text-danger xsmall mt-1" />
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label small fw-bold">@Portuguese.Task_Deadline</label>
-                            <InputDate class="form-control" @bind-Value="createModel.Deadline" />
+                            <label class="form-label small fw-bold text-muted">@Portuguese.Task_Deadline</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2 border-end-0"><i class="fa-solid fa-calendar-day"></i></span>
+                                <InputDate class="form-control border-2 shadow-none border-start-0" @bind-Value="createModel.Deadline" />
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 shadow-sm" disabled="@isSubmitting">
-                            @if (isSubmitting) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                            @Portuguese.OP_AssignTask
+                        <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm py-3 mt-2" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Delegando...</span>
+                            }
+                            else
+                            {
+                                <span><i class="fa-solid fa-plus-circle me-2"></i>@Portuguese.OP_AssignTask</span>
+                            }
                         </button>
                     </EditForm>
                 </div>
@@ -75,45 +98,60 @@
         </div>
 
         <div class="col-12 col-lg-7">
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="card-title fw-bold mb-0">@Portuguese.Task_RecentDelegated</h5>
+            <div class="card shadow-sm border-0 rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title fw-bold mb-0 text-muted uppercase small"><i class="fa-solid fa-clock-rotate-left me-2"></i>@Portuguese.Task_RecentDelegated</h5>
+                        <button class="btn btn-light btn-sm" @onclick="LoadData"><i class="fa-solid fa-sync"></i></button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4">@Portuguese.Task_Task</th>
-                                    <th>@Portuguese.Task_Responsible</th>
-                                    <th>@Portuguese.Task_DeadlineShort</th>
-                                    <th>@Portuguese.OP_Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (tasks != null)
-                                {
-                                    @foreach (var task in tasks)
+                    @if (tasks == null)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    }
+                    else if (!tasks.Any())
+                    {
+                        <SeronaEmptyState Icon="fa-solid fa-tasks" Title="Nenhuma tarefa delegada" Description="Crie sua primeira tarefa administrativa ao lado." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr class="text-muted small uppercase fw-bold">
+                                        <th class="ps-4">@Portuguese.Task_Task</th>
+                                        <th>@Portuguese.Task_Responsible</th>
+                                        <th>@Portuguese.Task_DeadlineShort</th>
+                                        <th class="text-center">@Portuguese.OP_Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in tasks.Take(10))
                                     {
                                         <tr>
-                                            <td class="ps-4 fw-bold">@task.Title</td>
-                                            <td>@task.AssignedUserName</td>
-                                            <td>@(task.Deadline?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                            <td class="ps-4">
+                                                <div class="fw-bold text-dark">@task.Title</div>
+                                                <div class="xsmall text-muted text-truncate" style="max-width: 200px;">@task.Description</div>
+                                            </td>
                                             <td>
-                                                <span class="badge @GetStatusClass(task.Status)">@TranslateStatus(task.Status)</span>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="/img/avatars/avatar.jpg" class="rounded-circle me-2" width="24" height="24" />
+                                                    <span class="small">@task.AssignedUserName</span>
+                                                </div>
+                                            </td>
+                                            <td class="small">@(task.Deadline?.ToString("dd/MM") ?? "-")</td>
+                                            <td class="text-center">
+                                                <span class="badge @GetStatusClass(task.Status) px-3 py-2 rounded-pill xsmall">@TranslateStatus(task.Status)</span>
                                             </td>
                                         </tr>
                                     }
-                                }
-                                else
-                                {
-                                    <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">@Portuguese.Loading</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -141,21 +179,12 @@
             await Task.WhenAll(usersTask, tasksTask);
 
             var usersResp = await usersTask;
-            if (usersResp != null && usersResp.Success)
-            {
-                users = usersResp.Data;
-            }
+            if (usersResp != null && usersResp.Success) users = usersResp.Data;
 
             var tasksResp = await tasksTask;
-            if (tasksResp?.Success == true)
-            {
-                tasks = tasksResp.Data;
-            }
+            if (tasksResp?.Success == true) tasks = tasksResp.Data;
         }
-        catch (Exception)
-        {
-            ToastService.ShowToast(Portuguese.Task_ErrLoadData, ToastLevel.Error);
-        }
+        catch (Exception) { ToastService.ShowToast(Portuguese.Task_ErrLoadData, ToastLevel.Error); }
     }
 
     private async Task HandleSubmit()
@@ -172,23 +201,15 @@
             var response = await Http.PostAsJsonAsync("api/Tasks", createModel, JsonOptions);
             if (response.IsSuccessStatusCode)
             {
+                await Audio.PlaySuccess();
                 ToastService.ShowToast(Portuguese.Msg_TaskAssigned, ToastLevel.Success);
                 createModel = new CreateTaskDto { Deadline = DateTime.Now.AddDays(1) };
                 await LoadData(); // Refresh list
             }
-            else
-            {
-                ToastService.ShowToast(Portuguese.Task_ErrCreate, ToastLevel.Error);
-            }
+            else ToastService.ShowToast(Portuguese.Task_ErrCreate, ToastLevel.Error);
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
-        }
-        finally
-        {
-            isSubmitting = false;
-        }
+        catch (Exception ex) { ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error); }
+        finally { isSubmitting = false; }
     }
 
     private string GetStatusClass(string status) => status switch
@@ -205,5 +226,13 @@
         "InProgress" => Portuguese.Task_InProgress,
         "Completed" => Portuguese.Task_Completed,
         _ => status
+    };
+
+    private string TranslateRole(UserRole role) => role switch
+    {
+        UserRole.Leader => "Líder",
+        UserRole.Operational => "Operário",
+        UserRole.Administrator => "Administrador",
+        _ => role.ToString()
     };
 }

@@ -32,14 +32,18 @@ public class BonusCalculationController : ControllerBase
     {
         try
         {
+            // Force UTC translation to avoid timezone mismatch
+            var startUtc = startDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(startDate, DateTimeKind.Utc) : startDate.ToUniversalTime();
+            var endUtc = endDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(endDate, DateTimeKind.Utc) : endDate.ToUniversalTime();
+
             BonusReportDto report;
             if (userId.HasValue)
             {
-                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startDate, endDate);
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc);
             }
             else if (teamId.HasValue)
             {
-                report = await _bonusService.CalculateTeamBonusAsync(teamId.Value, startDate, endDate);
+                report = await _bonusService.CalculateTeamBonusAsync(teamId.Value, startUtc, endUtc);
             }
             else
             {

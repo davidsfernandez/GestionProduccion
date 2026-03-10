@@ -10,10 +10,10 @@
 
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
-using GestionProduccion.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using GestionProduccion.Domain.Enums;
 
 namespace GestionProduccion.Controllers;
 
@@ -23,34 +23,29 @@ namespace GestionProduccion.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorageService _fileStorage;
 
-    public UsersController(IUserService userService, IWebHostEnvironment environment)
+    public UsersController(IUserService userService, IFileStorageService fileStorage)
     {
         _userService = userService;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     [HttpGet]
     [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetUsers()
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetUsers([FromQuery] string? role = null)
     {
         try
         {
-            var users = await _userService.GetActiveUsersAsync();
-            var dtos = users.Select(u => new UserDto
+            List<UserDto> dtos;
+            if (!string.IsNullOrEmpty(role))
             {
-                Id = u.Id,
-                ExternalId = u.ExternalId,
-                FullName = u.FullName,
-                Email = u.Email,
-                Role = u.Role,
-                AvatarUrl = u.AvatarUrl,
-                IsActive = u.IsActive,
-                SewingTeamId = u.SewingTeamId,
-                SewingTeamName = u.SewingTeam?.Name
-            }).ToList();
-
+                dtos = await _userService.GetUsersByRoleAsync(role);
+            }
+            else
+            {
+                dtos = await _userService.GetActiveUsersAsync();
+            }
             return Ok(ApiResponse<List<UserDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
@@ -71,27 +66,36 @@ public class UsersController : ControllerBase
             if (currentUserId != id && !User.IsInRole("Administrator") && !User.IsInRole("Leader"))
                 return Forbid();
 
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null) return NotFound(ApiResponse<UserDto>.FailureResult("User not found"));
-
-            var dto = new UserDto
-            {
-                Id = user.Id,
-                ExternalId = user.ExternalId,
-                FullName = user.FullName,
-                Email = user.Email,
-                Role = user.Role,
-                AvatarUrl = user.AvatarUrl,
-                IsActive = user.IsActive,
-                SewingTeamId = user.SewingTeamId,
-                SewingTeamName = user.SewingTeam?.Name
-            };
+            var dto = await _userService.GetUserByIdAsync(id);
+            if (dto == null) return NotFound(ApiResponse<UserDto>.FailureResult("User not found"));
 
             return Ok(ApiResponse<UserDto>.SuccessResult(dto));
         }
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponse<UserDto>.FailureResult("Error retrieving user", new List<string> { ex.Message }));
+        }
+    }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserDto>>> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.FullName))
+            return BadRequest(ApiResponse<UserDto>.FailureResult("Name is required."));
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized(ApiResponse<UserDto>.FailureResult("Unauthorized"));
+
+        try
+        {
+            var updated = await _userService.UpdateProfileAsync(userId, request.FullName);
+            return Ok(ApiResponse<UserDto>.SuccessResult(updated, "Profile updated successfully"));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<UserDto>.FailureResult("Error updating profile", new List<string> { ex.Message }));
         }
     }
 
@@ -111,26 +115,13 @@ public class UsersController : ControllerBase
 
         try
         {
-            var webRootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-            var uploadsFolder = Path.Combine(webRootPath, "img", "avatars");
+            // Standardized File Storage usage
+            string avatarUrl = await _fileStorage.UploadAsync(file, "avatars");
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
+            var success = await _userService.UpdateUserAvatarAsync(userId, avatarUrl);
+            if (!success) return StatusCode(500, ApiResponse<string>.FailureResult("Failed to update database record."));
 
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var newAvatarUrl = $"/img/avatars/{fileName}";
-            var success = await _userService.UpdateUserAvatarAsync(userId, newAvatarUrl);
-
-            if (!success) return StatusCode(500, ApiResponse<string>.FailureResult("Failed to update user record in database."));
-
-            return Ok(ApiResponse<string>.SuccessResult(newAvatarUrl, "Avatar uploaded successfully"));
+            return Ok(ApiResponse<string>.SuccessResult(avatarUrl, "Avatar uploaded successfully"));
         }
         catch (Exception ex)
         {
@@ -152,29 +143,17 @@ public class UsersController : ControllerBase
                 return Conflict(ApiResponse<UserDto>.FailureResult($"User with email '{request.Email}' already exists."));
             }
 
-            var user = new User
+            var userDto = new UserDto
             {
                 FullName = request.FullName,
                 Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = request.Role,
                 IsActive = true,
                 SewingTeamId = request.SewingTeamId
             };
 
-            var createdUser = await _userService.CreateUserAsync(user);
-            var userDto = new UserDto
-            {
-                Id = createdUser.Id,
-                ExternalId = createdUser.ExternalId,
-                FullName = createdUser.FullName,
-                Email = createdUser.Email,
-                Role = createdUser.Role,
-                IsActive = createdUser.IsActive,
-                SewingTeamId = createdUser.SewingTeamId
-            };
-
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, ApiResponse<UserDto>.SuccessResult(userDto, "User created successfully"));
+            var createdUser = await _userService.CreateUserAsync(userDto, request.Password);
+            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, ApiResponse<UserDto>.SuccessResult(createdUser, "User created successfully"));
         }
         catch (Exception ex)
         {
@@ -188,21 +167,21 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null) return NotFound(ApiResponse<object>.FailureResult("User not found"));
+            var userDto = await _userService.GetUserByIdAsync(id);
+            if (userDto == null) return NotFound(ApiResponse<object>.FailureResult("User not found"));
 
-            user.FullName = request.FullName;
-            user.Email = request.Email;
-            user.Role = request.Role;
-            user.SewingTeamId = request.SewingTeamId;
+            userDto.FullName = request.FullName;
+            userDto.Email = request.Email;
+            userDto.Role = request.Role;
+            userDto.SewingTeamId = request.SewingTeamId;
 
             if (!string.IsNullOrEmpty(request.Password))
             {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                await _userService.ResetPasswordAsync(id, request.Password);
             }
 
-            await _userService.UpdateUserAsync(user);
-            return Ok(ApiResponse<object>.SuccessResult(null, "User updated successfully"));
+            await _userService.UpdateUserAsync(userDto);
+            return Ok(ApiResponse<object>.SuccessResult(null!, "User updated successfully"));
         }
         catch (Exception ex)
         {
@@ -219,16 +198,21 @@ public class UsersController : ControllerBase
             var hasActiveOrders = await _userService.HasActiveOrdersAsync(id);
             if (hasActiveOrders)
             {
-                return Conflict(ApiResponse<object>.FailureResult("Não é possível desativar este usuário pois ele possui Ordens de Produção ativas atribuídas."));
+                return Conflict(ApiResponse<object>.FailureResult("Não é posible desativar este usuário pois ele possui Ordens de Produção ativas atribuídas."));
             }
 
             var success = await _userService.DeactivateUserAsync(id);
             if (!success) return NotFound(ApiResponse<object>.FailureResult("User not found"));
-            return Ok(ApiResponse<object>.SuccessResult(null, "User deactivated successfully"));
+            return Ok(ApiResponse<object>.SuccessResult(null!, "User deactivated successfully"));
         }
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponse<object>.FailureResult("Error deactivating user", new List<string> { ex.Message }));
         }
     }
+}
+
+public class UpdateProfileRequest
+{
+    public string FullName { get; set; } = string.Empty;
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -40,7 +40,6 @@ builder.Services.AddScoped(sp =>
 
     var client = new HttpClient(handler)
     {
-        // Architect Rule 24: Dynamic assignment
         BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
     };
     return client;
@@ -56,11 +55,10 @@ builder.Services.AddScoped<IProductionOrderMutationClient, ProductionOrderMutati
 builder.Services.AddScoped<IProductionOrderLifecycleClient, ProductionOrderLifecycleClient>();
 builder.Services.AddScoped<IProductClient, ProductClient>();
 builder.Services.AddScoped<ISewingTeamClient, SewingTeamClient>();
+
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<AudioService>();
 builder.Services.AddScoped<UserStateService>();
 
 await builder.Build().RunAsync();
-
-

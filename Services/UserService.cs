@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -12,6 +12,9 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Models.DTOs;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -24,28 +27,31 @@ public class UserService : IUserService
     private readonly IPasswordResetTokenRepository _passwordResetRepo;
     private readonly IUserRefreshTokenRepository _refreshTokenRepo;
     private readonly ISewingTeamRepository _teamRepository;
+    private readonly MainMapper _mapper;
 
     public UserService(
         IUserRepository userRepository,
         IProductionOrderRepository orderRepository,
         IPasswordResetTokenRepository passwordResetRepo,
         IUserRefreshTokenRepository refreshTokenRepo,
-        ISewingTeamRepository teamRepository)
+        ISewingTeamRepository teamRepository,
+        MainMapper mapper)
     {
         _userRepository = userRepository;
         _orderRepository = orderRepository;
         _passwordResetRepo = passwordResetRepo;
         _refreshTokenRepo = refreshTokenRepo;
         _teamRepository = teamRepository;
+        _mapper = mapper;
     }
 
-    public async Task<User?> GetUserByIdAsync(int userId)
+    public async Task<UserDto?> GetUserByIdAsync(int userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
-        return user != null && user.IsActive ? user : null;
+        return (user != null && user.IsActive) ? _mapper.ToDto(user) : null;
     }
 
-    public async Task<User?> GetUserByEmailAsync(string email)
+    public async Task<UserDto?> GetUserByEmailAsync(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -53,22 +59,24 @@ public class UserService : IUserService
         }
 
         var user = await _userRepository.GetByEmailAsync(email);
-        return user != null && user.IsActive ? user : null;
+        return (user != null && user.IsActive) ? _mapper.ToDto(user) : null;
     }
 
-    public async Task<List<User>> GetActiveUsersAsync()
+    public async Task<List<UserDto>> GetActiveUsersAsync()
     {
-        return await _userRepository.GetAllActiveAsync();
+        var entities = await _userRepository.GetAllActiveAsync();
+        return _mapper.ToDtoList(entities);
     }
 
-    public async Task<List<User>> GetUsersByRoleAsync(string role)
+    public async Task<List<UserDto>> GetUsersByRoleAsync(string role)
     {
         if (string.IsNullOrWhiteSpace(role))
         {
             throw new ArgumentException("Role cannot be empty.", nameof(role));
         }
 
-        return await _userRepository.GetByRoleAsync(role);
+        var entities = await _userRepository.GetByRoleAsync(role);
+        return _mapper.ToDtoList(entities);
     }
 
     public async Task<bool> IsUserAssignedToOrderAsync(int userId, int orderId)
@@ -81,74 +89,59 @@ public class UserService : IUserService
         return true;
     }
 
-    public async Task<List<ProductionOrder>> GetUserAssignedOrdersAsync(int userId)
+    public async Task<List<ProductionOrderDto>> GetUserAssignedOrdersAsync(int userId)
     {
-        var user = await GetUserByIdAsync(userId);
-        if (user == null)
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null || !user.IsActive)
         {
             throw new KeyNotFoundException("User not found.");
         }
 
-        return await _orderRepository.GetAssignedToUserAsync(userId);
+        var orders = await _orderRepository.GetAssignedToUserAsync(userId);
+        return _mapper.ToDtoList(orders);
     }
 
-    public async Task<User> CreateUserAsync(User user)
+    public async Task<UserDto> CreateUserAsync(UserDto userDto, string password)
     {
-        if (user == null)
+        if (userDto == null) throw new ArgumentNullException(nameof(userDto));
+        if (string.IsNullOrWhiteSpace(userDto.FullName)) throw new InvalidOperationException("User name cannot be empty.");
+        if (string.IsNullOrWhiteSpace(userDto.Email)) throw new InvalidOperationException("User email cannot be empty.");
+        if (string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("Password cannot be empty.");
+
+        if (userDto.SewingTeamId.HasValue)
         {
-            throw new ArgumentNullException(nameof(user));
+            var team = await _teamRepository.GetByIdAsync(userDto.SewingTeamId.Value);
+            if (team == null) throw new InvalidOperationException($"Sewing Team with ID {userDto.SewingTeamId} not found.");
         }
 
-        if (string.IsNullOrWhiteSpace(user.FullName))
-        {
-            throw new InvalidOperationException("User name cannot be empty.");
-        }
-
-        if (string.IsNullOrWhiteSpace(user.Email))
-        {
-            throw new InvalidOperationException("User email cannot be empty.");
-        }
-
-        if (string.IsNullOrWhiteSpace(user.PasswordHash))
-        {
-            throw new InvalidOperationException("User password hash cannot be empty.");
-        }
-
-        if (user.SewingTeamId.HasValue)
-        {
-            var team = await _teamRepository.GetByIdAsync(user.SewingTeamId.Value);
-            if (team == null)
-            {
-                throw new InvalidOperationException($"Sewing Team with ID {user.SewingTeamId} not found.");
-            }
-        }
-
-        var existingUser = await _userRepository.GetByEmailAsync(user.Email);
+        var existingUser = await _userRepository.GetByEmailAsync(userDto.Email);
         if (existingUser != null)
         {
             if (existingUser.IsActive)
             {
-                throw new InvalidOperationException($"O usuÃ¡rio com o e-mail '{user.Email}' jÃ¡ existe e estÃ¡ ativo.");
+                throw new InvalidOperationException($"O usuário com o e-mail '{userDto.Email}' já existe e está activo.");
             }
             else
             {
-                // Reactivate and update the previously deleted user
-                existingUser.FullName = user.FullName;
-                existingUser.PasswordHash = user.PasswordHash;
-                existingUser.Role = user.Role;
-                existingUser.SewingTeamId = user.SewingTeamId;
+                existingUser.FullName = userDto.FullName;
+                existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                existingUser.Role = userDto.Role;
+                existingUser.SewingTeamId = userDto.SewingTeamId;
                 existingUser.IsActive = true;
                 
                 await _userRepository.UpdateAsync(existingUser);
                 await _userRepository.SaveChangesAsync();
-                return existingUser;
+                return _mapper.ToDto(existingUser);
             }
         }
 
+        var user = userDto.ToEntity();
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
         user.IsActive = true;
+        
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
-        return user;
+        return _mapper.ToDto(user);
     }
 
     public async Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl)
@@ -162,47 +155,49 @@ public class UserService : IUserService
         return true;
     }
 
-    public async Task<User> UpdateUserAsync(User user)
+    public async Task<UserDto> UpdateUserAsync(UserDto userDto)
     {
-        if (user == null)
+        if (userDto == null) throw new ArgumentNullException(nameof(userDto));
+
+        var existingUser = await _userRepository.GetByIdAsync(userDto.Id);
+        if (existingUser == null) throw new KeyNotFoundException("User not found.");
+
+        if (userDto.SewingTeamId.HasValue)
         {
-            throw new ArgumentNullException(nameof(user));
+            var team = await _teamRepository.GetByIdAsync(userDto.SewingTeamId.Value);
+            if (team == null) throw new InvalidOperationException($"Sewing Team with ID {userDto.SewingTeamId} not found.");
         }
 
-        var existingUser = await _userRepository.GetByIdAsync(user.Id);
-        if (existingUser == null)
-        {
-            throw new KeyNotFoundException("User not found.");
-        }
-
-        if (user.SewingTeamId.HasValue)
-        {
-            var team = await _teamRepository.GetByIdAsync(user.SewingTeamId.Value);
-            if (team == null)
-            {
-                throw new InvalidOperationException($"Sewing Team with ID {user.SewingTeamId} not found.");
-            }
-        }
-
-        existingUser.FullName = user.FullName;
-        existingUser.Email = user.Email;
-        existingUser.Role = user.Role;
-        existingUser.AvatarUrl = user.AvatarUrl;
-        existingUser.IsActive = user.IsActive;
-        existingUser.SewingTeamId = user.SewingTeamId;
+        existingUser.FullName = userDto.FullName;
+        existingUser.Email = userDto.Email;
+        existingUser.Role = userDto.Role;
+        existingUser.AvatarUrl = userDto.AvatarUrl;
+        existingUser.IsActive = userDto.IsActive;
+        existingUser.SewingTeamId = userDto.SewingTeamId;
 
         await _userRepository.UpdateAsync(existingUser);
         await _userRepository.SaveChangesAsync();
-        return existingUser;
+        return _mapper.ToDto(existingUser);
+    }
+
+    public async Task<UserDto> UpdateProfileAsync(int userId, string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) throw new InvalidOperationException("Name cannot be empty.");
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) throw new KeyNotFoundException("User not found.");
+
+        user.FullName = fullName;
+        
+        await _userRepository.UpdateAsync(user);
+        await _userRepository.SaveChangesAsync();
+        return _mapper.ToDto(user);
     }
 
     public async Task<bool> DeactivateUserAsync(int userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-        {
-            throw new KeyNotFoundException("User not found.");
-        }
+        if (user == null) throw new KeyNotFoundException("User not found.");
 
         user.IsActive = false;
         await _userRepository.UpdateAsync(user);
@@ -215,10 +210,7 @@ public class UserService : IUserService
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return false;
 
-        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
-        {
-            return false;
-        }
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash)) return false;
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _userRepository.UpdateAsync(user);
@@ -228,8 +220,8 @@ public class UserService : IUserService
 
     public async Task<string?> RequestPasswordResetAsync(string email)
     {
-        var user = await GetUserByEmailAsync(email);
-        if (user == null) return null;
+        var user = await _userRepository.GetByEmailAsync(email);
+        if (user == null || !user.IsActive) return null;
 
         var token = GenerateSecureToken();
         var tokenHash = ComputeHash(token);
@@ -238,7 +230,7 @@ public class UserService : IUserService
         {
             UserId = user.Id,
             TokenHash = tokenHash,
-            ExpiryDate = DateTime.UtcNow.AddHours(1), // Increased to 60 minutes
+            ExpiryDate = DateTime.UtcNow.AddHours(1),
             IsUsed = false,
             CreatedAt = DateTime.UtcNow
         });
@@ -251,15 +243,8 @@ public class UserService : IUserService
         var tokenHash = ComputeHash(token);
         var resetToken = await _passwordResetRepo.GetByHashAsync(tokenHash);
 
-        if (resetToken == null || resetToken.IsUsed || resetToken.ExpiryDate <= DateTime.UtcNow)
-        {
-            return false;
-        }
-
-        if (resetToken.User.Email.ToLower() != email.ToLower())
-        {
-            return false;
-        }
+        if (resetToken == null || resetToken.IsUsed || resetToken.ExpiryDate <= DateTime.UtcNow) return false;
+        if (resetToken.User.Email.ToLower() != email.ToLower()) return false;
 
         var user = resetToken.User;
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
@@ -267,9 +252,7 @@ public class UserService : IUserService
 
         resetToken.IsUsed = true;
         await _passwordResetRepo.UpdateAsync(resetToken);
-
         await _refreshTokenRepo.RevokeAllUserTokensAsync(user.Id);
-
         await _userRepository.SaveChangesAsync();
         return true;
     }
@@ -283,6 +266,16 @@ public class UserService : IUserService
         await _userRepository.UpdateAsync(user);
         await _userRepository.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<UserDto?> ValidateCredentialsAsync(string email, string password)
+    {
+        var user = await _userRepository.GetByEmailAsync(email);
+        if (user == null || !user.IsActive) return null;
+
+        if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash)) return null;
+
+        return user.ToDto();
     }
 
     private string GenerateSecureToken()
@@ -308,7 +301,7 @@ public class UserService : IUserService
     public async Task<int> GetUserWorkloadAsync(int userId)
     {
         var orders = await _orderRepository.GetAssignedToUserAsync(userId);
-        return orders.Count(po => po.CurrentStatus != Domain.Enums.ProductionStatus.Completed);
+        return orders.Count(po => po.CurrentStatus != ProductionStatus.Completed);
     }
 
     public async Task<bool> IsSetupRequiredAsync()
@@ -320,9 +313,6 @@ public class UserService : IUserService
     public async Task<bool> HasActiveOrdersAsync(int userId)
     {
         var orders = await _orderRepository.GetAssignedToUserAsync(userId);
-        // An order is active if it's not Completed or Finished
         return orders.Any(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Finished);
     }
 }
-
-

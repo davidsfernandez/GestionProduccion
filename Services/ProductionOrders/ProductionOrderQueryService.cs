@@ -12,6 +12,8 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading;
@@ -24,17 +26,20 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     private readonly IUserRepository _userRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductionOrderOutputRepository _outputRepository;
+    private readonly MainMapper _mapper;
 
     public ProductionOrderQueryService(
         IProductionOrderRepository orderRepository,
         IUserRepository userRepository,
         IHttpContextAccessor httpContextAccessor,
-        IProductionOrderOutputRepository outputRepository)
+        IProductionOrderOutputRepository outputRepository,
+        MainMapper mapper)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _httpContextAccessor = httpContextAccessor;
         _outputRepository = outputRepository;
+        _mapper = mapper;
     }
 
     private int GetCurrentUserId()
@@ -45,7 +50,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         {
             return userId;
         }
-        return 1; // Default or anonymous user ID
+        throw new UnauthorizedAccessException("User context is required for this operation.");
     }
 
     public async Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default)
@@ -53,8 +58,9 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var order = await _orderRepository.GetByIdAsync(id);
         if (order == null) return null;
 
-        var outputs = await _outputRepository.GetByOrderIdAsync(id);
-        return MapToDto(order, outputs.ToList());
+        // Note: The ManualMapper handles outputs/sizes if they are loaded in the entity
+        // Or we could create a specialized ToDto method if needed.
+        return order.ToDto();
     }
 
     public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int pageNumber = 1, int pageSize = 10, CancellationToken ct = default)
@@ -74,8 +80,23 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             {
                 var term = filter.SearchTerm.ToLower();
                 query = query.Where(po => po.LotCode.ToLower().Contains(term) || 
-                                         (po.Product != null && po.Product.Name.ToLower().Contains(term)) ||
+                                         (po.Product != null && (po.Product.Name.ToLower().Contains(term) || 
+                                                                 po.Product.MainSku.ToLower().Contains(term) || 
+                                                                 po.Product.InternalCode.ToLower().Contains(term))) ||
                                          (po.ClientName != null && po.ClientName.ToLower().Contains(term)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.ClientName))
+            {
+                var client = filter.ClientName.ToLower();
+                query = query.Where(po => po.ClientName != null && po.ClientName.ToLower().Contains(client));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Size))
+            {
+                var size = filter.Size.ToLower();
+                query = query.Where(po => (po.Size != null && po.Size.ToLower().Contains(size)) || 
+                                         po.Sizes.Any(s => s.Size.ToLower().Contains(size)));
             }
 
             if (!string.IsNullOrWhiteSpace(filter.CurrentStage) && Enum.TryParse<ProductionStage>(filter.CurrentStage, true, out var stage))
@@ -109,10 +130,69 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         return new PaginatedResponseDto<ProductionOrderDto>
         {
-            Items = ordersList.Select(MapToDto).ToList(),
+            Items = ordersList.ToDtoList(),
             TotalItems = totalItems,
             PageNumber = pageNumber,
             PageSize = pageSize
+        };
+    }
+
+    public async Task<TvDashboardDto> GetTvDashboardAsync(CancellationToken ct = default)
+    {
+        var today = DateTime.UtcNow.Date;
+        var query = await _orderRepository.GetQueryableAsync();
+
+        var ordersWithRelations = query
+            .Include(o => o.Product)
+            .AsNoTracking();
+
+        var completedToday = ordersWithRelations
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
+            .Sum(o => o.Quantity);
+
+        // Daily Goal logic (for now fixed, but could come from SystemConfiguration)
+        int dailyGoal = 500; 
+        double completionRate = dailyGoal > 0 ? (double)completedToday / dailyGoal * 100 : 0;
+
+        var activeOrders = await ordersWithRelations
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled)
+            .OrderByDescending(o => o.UpdatedAt)
+            .Take(15)
+            .ToListAsync(ct);
+
+        double avgTimePerPiece = 0;
+        var completedList = await ordersWithRelations
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
+            .Select(o => new { o.EffectiveMinutes, o.Quantity })
+            .ToListAsync(ct);
+
+        if (completedList.Any())
+        {
+            int totalPieces = completedList.Sum(o => o.Quantity);
+            if (totalPieces > 0)
+                avgTimePerPiece = completedList.Sum(o => o.EffectiveMinutes) / totalPieces;
+        }
+
+        // Get TV Announcement from config (Igor's request)
+        var announcement = "Foco na meta de hoje! Vamos com tudo! 🚀"; 
+
+        return new TvDashboardDto
+        {
+            CompletedToday = completedToday,
+            DailyGoal = dailyGoal,
+            CompletionRate = completionRate,
+            AverageTimePerPieceMinutes = avgTimePerPiece,
+            ActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled),
+            TvAnnouncement = announcement,
+            ProductionItems = activeOrders.Select(o => new TvProductionItemDto
+            {
+                LotCode = o.LotCode,
+                ProductCode = o.Product?.InternalCode ?? "N/A",
+                ProductName = o.Product?.Name ?? "N/A",
+                Quantity = o.Quantity,
+                Stage = o.CurrentStage.ToString(),
+                Status = o.CurrentStatus.ToString()
+            }).ToList()
         };
     }
 
@@ -125,6 +205,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var ordersWithRelations = query
             .Include(o => o.AssignedUser)
             .Include(o => o.AssignedTeam)
+            .Include(o => o.Product)
             .AsNoTracking();
 
         var totalActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
@@ -169,24 +250,20 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var totalComp = ordersWithRelations.Count(o => o.CurrentStatus == ProductionStatus.Completed);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
-        var todaysOrdersList = ordersWithRelations.Where(o => o.CreatedAt >= today || (o.CompletedAt != null && o.CompletedAt >= today)).OrderByDescending(o => o.CreatedAt).ToList();
+        var todaysOrdersList = ordersWithRelations
+            .Include(o => o.Sizes)
+            .Include(o => o.History)
+            .Where(o => o.CreatedAt >= today || (o.CompletedAt != null && o.CompletedAt >= today))
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(ct).Result;
         
-        // Fetch outputs for today's orders to ensure accurate mapping
-        var orderIds = todaysOrdersList.Select(o => o.Id).ToList();
-        var allOutputs = await _outputRepository.GetByOrderIdAsync(0); // Mock/Load all or filter if possible
-        // Better: load specific outputs
-        var todaysOutputs = new List<ProductionOrderOutput>();
-        foreach(var id in orderIds) {
-            todaysOutputs.AddRange(await _outputRepository.GetByOrderIdAsync(id));
-        }
-
-        var todaysOrdersDtos = todaysOrdersList.Select(o => MapToDto(o, todaysOutputs.Where(x => x.ProductionOrderId == o.Id).ToList())).ToList();
+        var todaysOrdersDtos = todaysOrdersList.ToDtoList();
 
         double avgTimePerPiece = 0;
-        var completedTodayList = todaysOrdersList.Where(o => o.CurrentStatus == ProductionStatus.Completed).ToList();
-        if (completedTodayList.Any())
+        if (todaysOrdersDtos.Any(o => o.CurrentStatus == "Completed"))
         {
-            double totalMinutes = completedTodayList.Sum(o => CalculateEffectiveMinutes(o));
+            var completedTodayList = todaysOrdersDtos.Where(o => o.CurrentStatus == "Completed").ToList();
+            double totalMinutes = completedTodayList.Sum(o => o.EffectiveMinutes);
             int totalPieces = completedTodayList.Sum(o => o.Quantity);
             if (totalPieces > 0)
                 avgTimePerPiece = totalMinutes / totalPieces;
@@ -206,6 +283,22 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             CompletionRate = rate,
             LastUpdated = DateTime.Now
         };
+    }
+
+    public async Task<List<ProductionOrderOutputDto>> GetOutputsByOrderIdAsync(int orderId, CancellationToken ct = default)
+    {
+        var outputs = await _outputRepository.GetByOrderIdAsync(orderId);
+        return outputs.Select(o => new ProductionOrderOutputDto
+        {
+            Id = o.Id,
+            ProductionOrderId = o.ProductionOrderId,
+            ProductionOrderSizeId = o.ProductionOrderSizeId,
+            Size = o.ProductionOrderSize?.Size ?? "N/A",
+            Quantity = o.Quantity,
+            Stage = o.Stage.ToString(),
+            CreatedAt = o.CreatedAt,
+            UserName = o.ResponsibleUser?.FullName ?? "System"
+        }).ToList();
     }
 
     public async Task<List<ProductionHistoryDto>> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default)
@@ -240,6 +333,8 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var orders = await query
             .AsNoTracking()
             .Include(o => o.Product)
+            .Include(o => o.AssignedUser)
+            .Include(o => o.AssignedTeam)
             .Where(o => (o.SewingTeamId == user.SewingTeamId || o.UserId == userId) &&
                        (o.CurrentStatus == ProductionStatus.Pending || o.CurrentStatus == ProductionStatus.InProduction))
             .OrderBy(o => o.EstimatedCompletionAt)
@@ -247,96 +342,12 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         return orders.Select(o =>
         {
-            var dto = MapToDto(o);
+            var dto = o.ToDto();
             // If the order has a team ID and it matches the user's team, it's a team task.
             // If it's only assigned to the user (no team or different team), it's individual.
             dto.IsTeamTask = o.SewingTeamId.HasValue && o.SewingTeamId == user.SewingTeamId;
             return dto;
         }).ToList();
-    }
-
-    // --- Private mapping and utility methods ---
-    private ProductionOrderDto MapToDto(ProductionOrder order)
-    {
-        return MapToDto(order, new List<ProductionOrderOutput>());
-    }
-
-    private ProductionOrderDto MapToDto(ProductionOrder order, List<ProductionOrderOutput> outputs)
-    {
-        return new ProductionOrderDto
-        {
-            Id = order.Id,
-            LotCode = order.LotCode,
-            ProductName = order.Product?.Name,
-            ProductCode = order.Product?.InternalCode,
-            Quantity = order.Quantity,
-            ClientName = order.ClientName,
-            Size = order.Size,
-            CurrentStage = order.CurrentStage.ToString(),
-            CurrentStatus = order.CurrentStatus.ToString(),
-            CreatedAt = order.CreatedAt,
-            EstimatedCompletionAt = order.EstimatedCompletionAt,
-            UserId = order.UserId,
-            AssignedUserName = order.AssignedUser?.FullName,
-            AssignedUserAvatar = order.AssignedUser?.AvatarUrl,
-            SewingTeamId = order.SewingTeamId,
-            SewingTeamName = order.AssignedTeam?.Name,
-            TotalCost = order.TotalCost,
-            Sizes = order.Sizes?.Select(s => new ProductionOrderSizeDto
-            {
-                Id = s.Id,
-                ProductionOrderId = s.ProductionOrderId,
-                Size = s.Size,
-                Quantity = s.Quantity,
-                CompletedInCurrentStage = outputs
-                    .Where(o => o.ProductionOrderSizeId == s.Id && o.Stage == order.CurrentStage)
-                    .Sum(o => o.Quantity)
-            }).ToList() ?? new List<ProductionOrderSizeDto>(),
-            AverageCostPerPiece = order.AverageCostPerPiece,
-            ProfitMargin = order.ProfitMargin,
-            StartedAt = order.StartedAt,
-            CompletedAt = order.CompletedAt,
-            EffectiveMinutes = CalculateEffectiveMinutes(order),
-            Product = order.Product != null ? new ProductDto
-            {
-                Id = order.Product.Id,
-                Name = order.Product.Name,
-                InternalCode = order.Product.InternalCode,
-                FabricType = order.Product.FabricType,
-                MainSku = order.Product.MainSku,
-                AverageProductionTimeMinutes = order.Product.AverageProductionTimeMinutes
-            } : null
-        };
-    }
-
-    private double CalculateEffectiveMinutes(ProductionOrder order)
-    {
-        if (order.History == null || !order.History.Any()) return 0;
-
-        var sortedHistory = order.History.OrderBy(h => h.ChangedAt).ToList();
-        double totalSeconds = 0;
-        DateTime? lastStartTime = null;
-
-        foreach (var entry in sortedHistory)
-        {
-            if (entry.NewStatus == ProductionStatus.InProduction)
-            {
-                lastStartTime = entry.ChangedAt;
-            }
-            else if (entry.PreviousStatus == ProductionStatus.InProduction && lastStartTime != null)
-            {
-                totalSeconds += (entry.ChangedAt - lastStartTime.Value).TotalSeconds;
-                lastStartTime = null;
-            }
-        }
-
-        if (lastStartTime != null)
-        {
-            var endPoint = order.CompletedAt ?? DateTime.UtcNow;
-            totalSeconds += (endPoint - lastStartTime.Value).TotalSeconds;
-        }
-
-        return totalSeconds / 60.0;
     }
 
     private string GetColorByIndex(int index)

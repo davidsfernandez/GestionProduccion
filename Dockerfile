@@ -14,6 +14,8 @@ WORKDIR /src
 COPY ["GestionProduccion.sln", "./"]
 COPY ["GestionProduccion.csproj", "./"]
 COPY ["GestionProduccion.Shared/GestionProduccion.Shared.csproj", "GestionProduccion.Shared/"]
+COPY ["GestionProduccion.Domain/GestionProduccion.Domain.csproj", "GestionProduccion.Domain/"]
+COPY ["GestionProduccion.Application/GestionProduccion.Application.csproj", "GestionProduccion.Application/"]
 COPY ["Client/GestionProduccion.Client/GestionProduccion.Client.csproj", "Client/GestionProduccion.Client/"]
 COPY ["GestionProduccion.Tests/GestionProduccion.Tests.csproj", "GestionProduccion.Tests/"]
 

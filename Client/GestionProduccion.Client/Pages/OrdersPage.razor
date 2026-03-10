@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -22,11 +22,12 @@
 @inject IJSRuntime JSRuntime
 @inject ISignalRService SignalR
 @inject ToastService ToastService
+@inject JsonSerializerOptions JsonOptions
 @implements IAsyncDisposable
 
-@using GestionProduccion.Client.Resources
 @using GestionProduccion.Domain.Enums
 @using System.Timers
+@using System.Text.Json
 
 <PageTitle>@Portuguese.OP_Title</PageTitle>
 
@@ -42,8 +43,8 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header border-0 pb-0">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 pb-0 pt-4 px-4">
                     <div class="row align-items-center">
                         <div class="col-md-12 mb-3">
                             <div class="row g-2">
@@ -61,7 +62,8 @@
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_SizePlaceholder" @bind="filterTamanho" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
-                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="() => LoadOrders(1)" style="border-radius: 10px;">
+                                    <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="() => LoadOrders(1)" style="border-radius: 10px;" disabled="@loading">
+                                        @if(loading) { <span class="spinner-border spinner-border-sm me-2"></span> }
                                         <i class="fa-solid fa-filter me-2"></i>@Portuguese.Filter
                                     </button>
                                 </div>
@@ -69,14 +71,14 @@
                         </div>
                         <div class="col-md-12 text-md-end mb-3">
                             <div class="d-flex flex-wrap justify-content-md-end gap-2">
-                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToCsv">
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToCsv" disabled="@loading">
                                     <i class="fa-solid fa-file-csv me-2"></i> @Portuguese.OP_ExportCSV
                                 </button>
-                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToExcel">
+                                <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="ExportToExcel" disabled="@loading">
                                     <i class="fa-solid fa-file-excel text-success me-2"></i> @Portuguese.OP_ExportExcel
                                 </button>
                                 <AuthorizeView Roles="Administrator,Leader" Context="reportContext">
-                                    <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="DownloadDailyReport">
+                                    <button class="btn btn-light shadow-none border flex-grow-1 flex-md-grow-0" @onclick="DownloadDailyReport" disabled="@loading">
                                         <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_DailyPDF
                                     </button>
                                 </AuthorizeView>
@@ -85,7 +87,7 @@
                     </div>
                 </div>
 
-                @if (loading)
+                @if (loading && paginatedData == null)
                 {
                     <SeronaLoader />
                 }
@@ -176,7 +178,7 @@
                                                 <span class="badge bg-secondary">@order.Size</span>
                                             }
                                         </td>
-                                        <td class="d-none d-lg-table-cell">
+                                        <td>
                                             <div class="fw-bold text-dark small">@(order.SewingTeamName ?? "-")</div>
                                             <div class="text-muted xsmall">
                                                 <i class="fa-solid fa-user me-1"></i>@(order.AssignedUserName ?? Portuguese.OP_Unassigned)
@@ -187,16 +189,16 @@
                                                 @TranslateStatus(order.CurrentStatus)
                                             </span>
                                         </td>
-                                        <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToString("dd/MM")</td>
+                                        <td class="d-none d-lg-table-cell">@order.EstimatedCompletionAt.ToLocalTime().ToString("dd/MM")</td>
                                         <td class="text-end text-nowrap">
-                                            <button class="btn btn-sm btn-light me-1" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
-                                                <i class="fa-solid fa-eye"></i>
+                                            <button class="btn btn-sm btn-light me-1 shadow-none" @onclick="() => ViewDetails(order.Id)" title="@Portuguese.Details">
+                                                <i class="fa-solid fa-eye text-primary"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light text-danger me-1" @onclick="() => DownloadOrderReport(order.Id)" title="@Portuguese.OP_Report">
+                                            <button class="btn btn-sm btn-light text-danger me-1 shadow-none" @onclick="() => DownloadOrderReport(order)" title="@Portuguese.OP_Report">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
                                             <AuthorizeView Roles="Administrator">
-                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteOrder(order)" title="@Portuguese.Delete">
+                                                <button class="btn btn-sm btn-light text-danger shadow-none" @onclick="() => DeleteOrder(order)" title="@Portuguese.Delete">
                                                     <i class="fa-solid fa-trash"></i>
                                                 </button>
                                             </AuthorizeView>
@@ -347,7 +349,7 @@
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "pending" => Portuguese.Pending,
-        "inproduction" => Portuguese.Status_InProduction,
+        "inproduction" => Portuguese.Status_InProgress,
         "stopped" => Portuguese.Status_Stopped,
         "completed" => Portuguese.Status_Finished,
         "paused" => Portuguese.Status_Paused,
@@ -399,7 +401,11 @@
         try 
         {
             ToastService.ShowToast("Gerando CSV...", ToastLevel.Info);
-            var response = await Http.GetAsync("api/ProductionOrders/export-csv");
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/ProductionOrders/export-csv");
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            
+            var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 var fileStream = await response.Content.ReadAsStreamAsync();
@@ -419,7 +425,14 @@
             var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, 1, 1000);
             if (response != null && response.Success)
             {
-                var exportResponse = await Http.PostAsJsonAsync("api/ProductionOrders/export-excel", response.Data?.Items);
+                var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+                var request = new HttpRequestMessage(HttpMethod.Post, "api/ProductionOrders/export-excel")
+                {
+                    Content = JsonContent.Create(response.Data?.Items, options: JsonOptions)
+                };
+                if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var exportResponse = await Http.SendAsync(request);
                 if (exportResponse.IsSuccessStatusCode)
                 {
                     var fileStream = await exportResponse.Content.ReadAsStreamAsync();
@@ -431,30 +444,44 @@
         catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
-    private async Task DownloadOrderReport(int id)
+    private async Task DownloadOrderReport(ProductionOrderDto order)
     {
+        if (loading) return;
         try
         {
-            var response = await Http.GetAsync($"api/ProductionOrders/{id}/report");
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"api/ProductionOrders/{order.Id}/pdf");
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsByteArrayAsync();
-                await JSRuntime.InvokeVoidAsync("downloadFile", $"Order_{id}.pdf", "application/pdf", content);
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Order_{order.LotCode}.pdf", streamRef);
             }
+            else ToastService.ShowToast("Erro ao gerar PDF", ToastLevel.Error);
         }
         catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }
 
     private async Task DownloadDailyReport()
     {
+        if (loading) return;
         try
         {
-            var response = await Http.GetAsync("api/ProductionOrders/daily-report");
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/ProductionOrders/daily-report");
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsByteArrayAsync();
-                await JSRuntime.InvokeVoidAsync("downloadFile", $"DailyReport_{DateTime.Today:yyyyMMdd}.pdf", "application/pdf", content);
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"RelatorioDiario_{DateTime.Now:yyyyMMdd}.pdf", streamRef);
             }
+            else ToastService.ShowToast("Erro ao gerar relatório diário", ToastLevel.Error);
         }
         catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
     }

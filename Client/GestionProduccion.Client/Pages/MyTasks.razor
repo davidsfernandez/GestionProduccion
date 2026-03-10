@@ -1,4 +1,4 @@
-Ôªø@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -21,15 +21,14 @@
 @inject JsonSerializerOptions JsonOptions
 @inject IProductionOrderLifecycleClient LifecycleClient
 
-@using GestionProduccion.Client.Resources
 
-<PageTitle>Minhas Tarefas</PageTitle>
+<PageTitle>@Portuguese.Nav_MyTasks</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark mb-0">Minhas Tarefas</h3>
+        <h3 class="h3 text-dark mb-0">@Portuguese.Nav_MyTasks</h3>
         <button class="btn btn-light shadow-sm" @onclick="LoadAllTasks">
-            <i class="fa-solid fa-arrows-rotate me-2"></i> Atualizar
+            <i class="fa-solid fa-sync me-2"></i> @Portuguese.Refresh
         </button>
     </div>
 
@@ -49,14 +48,14 @@
                     <li class="nav-item">
                         <button class="nav-link py-3 @(activeTab == "production" ? "active fw-bold" : "")" 
                                 @onclick='() => activeTab = "production"'>
-                            <i class="fa-solid fa-shirt me-2"></i> Lotes de Costura
+                            <i class="fa-solid fa-shirt me-2"></i> @Portuguese.OP_Title
                             <span class="badge bg-primary ms-2">@orders.Count</span>
                         </button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link py-3 @(activeTab == "admin" ? "active fw-bold" : "")" 
                                 @onclick='() => activeTab = "admin"'>
-                            <i class="fa-solid fa-clipboard-list me-2"></i> Tarefas Administrativas
+                            <i class="fa-solid fa-clipboard-list me-2"></i> @Portuguese.Nav_Reports
                             <span class="badge bg-warning ms-2 text-dark">@adminTasks.Count</span>
                         </button>
                     </li>
@@ -70,7 +69,7 @@
                     {
                         <div class="text-center py-5">
                             <i class="fa-solid fa-check-circle text-success opacity-25 fa-4x mb-3"></i>
-                            <h5 class="text-muted">Sem lotes pendentes!</h5>
+                            <h5 class="text-muted">@Portuguese.OP_NoOrdersFound</h5>
                         </div>
                     }
                     else
@@ -83,10 +82,10 @@
                                         <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div>
-                                                    <span class="badge bg-secondary-soft text-muted mb-2">Lote: @order.LotCode</span>
+                                                    <span class="badge bg-secondary-soft text-muted mb-2">@Portuguese.OP_Code: @order.LotCode</span>
                                                     @if (order.IsTeamTask)
                                                     {
-                                                        <span class="badge bg-info-soft text-info mb-2 ms-1">Equipe</span>
+                                                        <span class="badge bg-info-soft text-info mb-2 ms-1">@Portuguese.Team_Title</span>
                                                     }
                                                     else
                                                     {
@@ -97,7 +96,7 @@
                                                 </div>
                                                 @if (order.EstimatedCompletionAt < DateTime.Now && order.CurrentStatus != "Completed")
                                                 {
-                                                    <span class="badge bg-danger pulse-red">Atrasado</span>
+                                                    <span class="badge bg-danger pulse-red">@Portuguese.Dash_RecentActivities</span>
                                                 }
                                             </div>
                                         </div>
@@ -105,7 +104,7 @@
                                             <div class="row g-2 mb-3">
                                                 <div class="col-6">
                                                     <div class="bg-light p-2 rounded-3 text-center">
-                                                        <small class="text-muted d-block uppercase fs-xs">TAMANHO</small>
+                                                        <small class="text-muted d-block uppercase fs-xs">@Portuguese.OP_Size</small>
                                                         @if (order.Sizes != null && order.Sizes.Any())
                                                         {
                                                             <span class="fw-bold">Multi (@order.Sizes.Count)</span>
@@ -118,7 +117,7 @@
                                                 </div>
                                                 <div class="col-6">
                                                     <div class="bg-light p-2 rounded-3 text-center">
-                                                        <small class="text-muted d-block uppercase fs-xs">QUANTIDADE</small>
+                                                        <small class="text-muted d-block uppercase fs-xs">@Portuguese.OP_Quantity</small>
                                                         <span class="fw-bold h5 mb-0">@order.Quantity</span>
                                                     </div>
                                                 </div>
@@ -126,15 +125,15 @@
 
                                             <div class="mb-3">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <span class="small text-muted">Est√°gio Atual:</span>
+                                                    <span class="small text-muted">@Portuguese.OP_Stage:</span>
                                                     <span class="badge bg-info-subtle text-info px-3 py-2">@TranslateStage(order.CurrentStage)</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <span class="small text-muted">Status:</span>
+                                                    <span class="small text-muted">@Portuguese.OP_Status:</span>
                                                     <span class="badge @GetStatusSoftClass(order.CurrentStatus) px-3 py-2">@TranslateStatus(order.CurrentStatus)</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center mt-2">
-                                                    <span class="small text-muted">Entrega:</span>
+                                                    <span class="small text-muted">@Portuguese.OP_Delivery:</span>
                                                     <span class="small fw-bold @(order.EstimatedCompletionAt < DateTime.Now ? "text-danger" : "text-dark")">
                                                         @order.EstimatedCompletionAt.ToString("dd/MM HH:mm")
                                                     </span>
@@ -149,7 +148,7 @@
                                                             @onclick='() => UpdateStatus(order.Id, ProductionStatus.InProduction)'
                                                             disabled="@isProcessing">
                                                         @if(processingId == order.Id) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                                                        <i class="fa-solid fa-play me-2"></i> Iniciar
+                                                        <i class="fa-solid fa-play me-2"></i> @Portuguese.Dash_RecentActivities
                                                     </button>
                                                 }
                                                 else if (order.CurrentStatus == "InProduction")
@@ -157,12 +156,12 @@
                                                     <button class="btn btn-warning btn-lg flex-grow-1 shadow-sm py-3 text-white" 
                                                             @onclick='() => UpdateStatus(order.Id, ProductionStatus.Stopped)'
                                                             disabled="@isProcessing">
-                                                        <i class="fa-solid fa-pause me-2"></i> Pausar
+                                                        <i class="fa-solid fa-pause me-2"></i> @Portuguese.Pause
                                                     </button>
                                                     <button class="btn btn-primary btn-lg flex-grow-1 shadow-sm py-3" 
                                                             @onclick='() => AdvanceStage(order.Id)'
                                                             disabled="@isProcessing">
-                                                        <i class="fa-solid fa-forward-step me-2"></i> Pronto
+                                                        <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
                                                     </button>
                                                 }
                                             </div>
@@ -171,7 +170,7 @@
                                                 <button class="btn btn-success w-100 mt-2 shadow-sm py-3" 
                                                         @onclick='() => UpdateStatus(order.Id, ProductionStatus.Completed)'
                                                         disabled="@isProcessing">
-                                                    <i class="fa-solid fa-check-double me-2"></i> Finalizar Lote
+                                                    <i class="fa-solid fa-check-double me-2"></i> @Portuguese.OP_MarkCompleted
                                                 </button>
                                             }
                                         </div>
@@ -221,12 +220,12 @@
                                                          style="width: @(Math.Min(100, task.ProgressPercentage))%"></div>
                                                 </div>
                                                 <div class="mt-2 text-end">
-                                                    <small class="text-muted xsmall">Prazo: @(task.Deadline?.ToString("dd/MM HH:mm") ?? "-")</small>
+                                                    <small class="text-muted xsmall">@Portuguese.Task_DeadlineShort: @(task.Deadline?.ToString("dd/MM HH:mm") ?? "-")</small>
                                                 </div>
                                             </div>
 
                                             <button class="btn btn-outline-success w-100 btn-sm" @onclick="() => CompleteAdminTask(task.Id)">
-                                                <i class="fa-solid fa-check me-2"></i> Marcar Conclu√≠da
+                                                <i class="fa-solid fa-check me-2"></i> @Portuguese.OP_MarkCompleted
                                             </button>
                                         </div>
                                     </div>
@@ -242,6 +241,7 @@
 </div>
 
 @code {
+    [Parameter] public int Id { get; set; }
     private List<ProductionOrderDto> orders = new();
     private List<TaskDto> adminTasks = new();
     private bool isProcessing = false;
@@ -249,8 +249,24 @@
     private int processingId = 0;
     private string activeTab = "production";
 
+    @inject ISignalRService SignalR
+    @inject AudioService AudioService
+
     protected override async Task OnInitializedAsync()
     {
+        SignalR.OnUpdateReceived += async (opId, stage, status) => {
+            // If any order I have changes, reload
+            if (orders.Any(o => o.Id == opId)) await LoadAllTasks();
+        };
+
+        // Custom listener for task-specific messages (new assignment)
+        SignalR.OnNotificationReceived += async (userId, title, message) => {
+            // If it's for me, play sound and reload
+            await LoadAllTasks();
+            await AudioService.PlayNotify();
+            ToastService.ShowToast(message, ToastLevel.Info, title);
+        };
+
         await LoadAllTasks();
     }
 
@@ -320,7 +336,8 @@
             var response = await Http.PatchAsync($"api/Tasks/{taskId}/complete", null);
             if (response.IsSuccessStatusCode)
             {
-                ToastService.ShowToast("Tarefa conclu√≠da!", ToastLevel.Success);
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>(JsonOptions);
+                ToastService.ShowToast(result?.Message ?? "Tarefa concluÌda!", ToastLevel.Success);
                 await LoadAllTasks();
             }
         }
@@ -342,10 +359,10 @@
             var response = await LifecycleClient.AdvanceStageAsync(orderId);
             if (response?.Success == true)
             {
-                ToastService.ShowToast(response.Message ?? "Etapa avan√ßada com sucesso!", ToastLevel.Success);
+                ToastService.ShowToast(response.Message ?? "Etapa avanÁada com sucesso!", ToastLevel.Success);
                 await LoadAllTasks();
             }
-            else ToastService.ShowToast(response?.Message ?? "Erro ao avan√ßar etapa.", ToastLevel.Error);
+            else ToastService.ShowToast(response?.Message ?? "Erro ao avanÁar etapa.", ToastLevel.Error);
         }
         catch (Exception ex)
         {
@@ -362,11 +379,11 @@
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {
         "pending" => "Pendente",
-        "inproduction" => "Em Produ√ß√£o",
+        "inproduction" => "Em ProduÁ„o",
         "stopped" => "Parado",
         "completed" => "Finalizado",
         "paused" => "Pausado",
-        "finished" => "Conclu√≠do",
+        "finished" => "ConcluÌdo",
         "cancelled" => "Cancelado",
         _ => status ?? ""
     };
@@ -384,7 +401,7 @@
     {
         "Cutting" => "Corte",
         "Sewing" => "Costura",
-        "Review" => "Revis√£o",
+        "Review" => "Revis„o",
         "Packaging" => "Embalagem",
         _ => stage
     };

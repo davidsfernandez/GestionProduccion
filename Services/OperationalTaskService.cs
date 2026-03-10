@@ -3,7 +3,7 @@
  * 
  * This software and its associated documentation files are the exclusive property 
  * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
+ * or use of this software, via any medium, is strictly prohibited. 
  * 
  * Proprietary and Confidential.
  */
@@ -16,7 +16,11 @@ using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Http;
 using GestionProduccion.Hubs;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
+using System.Security.Claims;
 
 namespace GestionProduccion.Services;
 
@@ -25,13 +29,36 @@ public class OperationalTaskService : ITaskService
     private readonly AppDbContext _context;
     private readonly IMemoryCache _cache;
     private readonly IHubContext<ProductionHub> _hubContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly MainMapper _mapper;
     private const string RankingCacheKey = "PerformanceRanking";
 
-    public OperationalTaskService(AppDbContext context, IMemoryCache cache, IHubContext<ProductionHub> hubContext)
+    public OperationalTaskService(
+        AppDbContext context, 
+        IMemoryCache cache, 
+        IHubContext<ProductionHub> hubContext, 
+        IHttpContextAccessor httpContextAccessor,
+        MainMapper mapper)
     {
         _context = context;
         _cache = cache;
         _hubContext = hubContext;
+        _httpContextAccessor = httpContextAccessor;
+        _mapper = mapper;
+    }
+
+    private int GetCurrentUserId()
+    {
+        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId)) return userId;
+        
+        // Fallback for initial setup: find the first active administrator
+        var firstAdmin = _context.Users.AsNoTracking()
+            .FirstOrDefault(u => u.IsActive && u.Role == UserRole.Administrator);
+            
+        if (firstAdmin != null) return firstAdmin.Id;
+
+        throw new UnauthorizedAccessException("User context is required for task audit.");
     }
 
     public void ClearRankingCache()
@@ -56,21 +83,48 @@ public class OperationalTaskService : ITaskService
         }
     }
 
-    public async Task<OperationalTask> CreateTaskAsync(CreateTaskDto dto)
+    public async Task<TaskDto> CreateTaskAsync(CreateTaskDto dto)
     {
+        var creatorId = GetCurrentUserId();
+        
         var task = new OperationalTask
         {
             Title = dto.Title,
             Description = dto.Description,
             AssignedUserId = dto.AssignedUserId,
             Deadline = dto.Deadline,
-            Status = OpTaskStatus.Pending
+            Status = OpTaskStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            LastModifiedByUserId = creatorId
         };
 
         _context.OperationalTasks.Add(task);
         await _context.SaveChangesAsync();
+
+        // 1. Log Initial Audit History
+        _context.OperationalTaskHistories.Add(new OperationalTaskHistory
+        {
+            OperationalTaskId = task.Id,
+            PreviousStatus = null,
+            NewStatus = OpTaskStatus.Pending,
+            UserId = creatorId,
+            ChangedAt = DateTime.UtcNow,
+            Note = "Tarefa criada e delegada originalmente."
+        });
+        await _context.SaveChangesAsync();
+
+        // 2. Real-Time Notification to Assigned User
+        if (task.AssignedUserId.HasValue)
+        {
+            await _hubContext.Clients.All.SendAsync("ReceiveNotification", 
+                task.AssignedUserId.Value, 
+                "Nova Tarefa Delegada", 
+                $"Você recebeu a tarefa: {task.Title}");
+        }
+
         ClearRankingCache();
-        return task;
+        return _mapper.ToDto(task);
     }
 
     public async Task<List<TaskDto>> GetUserTasksAsync(int userId)
@@ -81,7 +135,7 @@ public class OperationalTaskService : ITaskService
             .OrderBy(t => t.Deadline)
             .ToListAsync();
             
-        return tasks.Select(MapToDto).ToList();
+        return _mapper.ToDtoList(tasks);
     }
 
     public async Task<List<TaskDto>> GetAllTasksAsync()
@@ -92,7 +146,7 @@ public class OperationalTaskService : ITaskService
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
             
-        return tasks.Select(MapToDto).ToList();
+        return _mapper.ToDtoList(tasks);
     }
 
     public async Task UpdateTaskStatusAsync(int taskId, OpTaskStatus status)
@@ -101,15 +155,34 @@ public class OperationalTaskService : ITaskService
         if (task != null)
         {
             var oldStatus = task.Status;
+            if (oldStatus == status) return;
+
+            var userId = GetCurrentUserId();
             string previousLeader = "";
+            
             if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
             {
                 var currentRanking = await GetPerformanceRankingAsync();
                 previousLeader = currentRanking.FirstOrDefault()?.UserName ?? "";
             }
 
+            // Update Task Audit Fields
             task.Status = status;
+            task.UpdatedAt = DateTime.UtcNow;
+            task.LastModifiedByUserId = userId;
             if (status == OpTaskStatus.Completed) task.CompletionDate = DateTime.UtcNow;
+
+            // Log History
+            _context.OperationalTaskHistories.Add(new OperationalTaskHistory
+            {
+                OperationalTaskId = taskId,
+                PreviousStatus = oldStatus,
+                NewStatus = status,
+                UserId = userId,
+                ChangedAt = DateTime.UtcNow,
+                Note = $"Status manual change to {status}"
+            });
+
             await _context.SaveChangesAsync();
 
             if (status == OpTaskStatus.Completed && oldStatus != OpTaskStatus.Completed)
@@ -156,28 +229,5 @@ public class OperationalTaskService : ITaskService
             .OrderByDescending(r => r.Score)
             .Take(10)
             .ToList();
-    }
-
-    private static TaskDto MapToDto(OperationalTask t) => new TaskDto
-    {
-        Id = t.Id,
-        Title = t.Title,
-        Description = t.Description,
-        AssignedUserName = t.AssignedUser?.FullName ?? "N/A",
-        Status = t.Status.ToString(),
-        CreatedAt = t.CreatedAt,
-        Deadline = t.Deadline,
-        ProgressPercentage = CalculateProgress(t)
-    };
-
-    private static double CalculateProgress(OperationalTask t)
-    {
-        if (t.Status == OpTaskStatus.Completed) return 100;
-        if (t.Deadline == null || t.Deadline <= t.CreatedAt) return 0;
-
-        var total = (t.Deadline.Value - t.CreatedAt).TotalSeconds;
-        var elapsed = (DateTime.UtcNow - t.CreatedAt).TotalSeconds;
-        var progress = (elapsed / total) * 100;
-        return Math.Max(0, Math.Round(progress, 1));
     }
 }

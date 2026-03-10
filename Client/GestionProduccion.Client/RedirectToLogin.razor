@@ -1,21 +1,18 @@
-﻿@*
- * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
- * 
- * This software and its associated documentation files are the exclusive property 
- * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited. 
- * 
- * Proprietary and Confidential.
- *@
-
-@inject NavigationManager NavigationManager
+@using GestionProduccion.Models.DTOs
+@using System.Text.Json
 @inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject JsonSerializerOptions JsonOptions
 
-<div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-light">
-    <div class="spinner-border text-primary mb-3" role="status">
+<div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-light animate-fade-in">
+    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
         <span class="visually-hidden">Loading...</span>
     </div>
     <h5 class="text-muted">@statusMessage</h5>
+    @if (retryCount > 0)
+    {
+        <div class="badge bg-warning text-dark mt-2">Tentativa @retryCount/@MaxRetries</div>
+    }
 </div>
 
 @code {
@@ -25,79 +22,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // First check is immediate
-        try 
-        {
-            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            if (setupRequired)
-            {
-                NavigationManager.NavigateTo("/setup", true);
-                return;
-            }
-            else
-            {
-                NavigationManager.NavigateTo("/login", true);
-                return;
-            }
-        }
-        catch { /* Fallback to retry loop */ }
-
         await CheckSetup();
     }
 
     private async Task CheckSetup()
     {
-        try 
+        try
         {
-            var setupRequired = await Http.GetFromJsonAsync<bool>("api/auth/setup-required");
-            if (setupRequired)
+            var response = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/auth/setup-required", JsonOptions);
+            
+            if (response != null && response.Success)
             {
-                NavigationManager.NavigateTo("/setup", true);
+                if (response.Data)
+                {
+                    NavigationManager.NavigateTo("/setup", true);
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("/login", true);
+                }
             }
             else
             {
-                NavigationManager.NavigateTo("/login", true);
-            }
-        }
-        catch (HttpRequestException httpEx)
-        {
-            var code = httpEx.StatusCode?.ToString() ?? "Desconhecido";
-            if (retryCount < MaxRetries)
-            {
-                retryCount++;
-                statusMessage = $"Erro HTTP {code}. Tentando reconectar ({retryCount}/{MaxRetries})...";
-                StateHasChanged();
-                await Task.Delay(3000);
-                await CheckSetup();
-            }
-            else
-            {
-                statusMessage = $"Falha no servidor (HTTP {code}). Verifique se a API está online.";
-                StateHasChanged();
-                await Task.Delay(3000);
-                NavigationManager.NavigateTo("/login", true);
+                throw new Exception("Falha na resposta do servidor");
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Auth Check Error: {ex.Message}");
             if (retryCount < MaxRetries)
             {
                 retryCount++;
-                statusMessage = $"Erro: {ex.Message}. Tentando reconectar ({retryCount}/{MaxRetries})...";
-                StateHasChanged();
-                await Task.Delay(3000);
+                statusMessage = "Conectando ao servidor...";
+                await Task.Delay(2000 * retryCount);
                 await CheckSetup();
             }
             else
             {
-                statusMessage = $"Falha crítica: {ex.Message}. Redirecionando...";
-                StateHasChanged();
-                await Task.Delay(3000);
-                NavigationManager.NavigateTo("/login", true);
+                statusMessage = "Erro de conexão. Por favor, verifique se o servidor está online.";
             }
         }
     }
 }
-
-
-

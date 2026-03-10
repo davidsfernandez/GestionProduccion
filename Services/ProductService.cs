@@ -12,6 +12,9 @@ using GestionProduccion.Domain.Constants;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Models.DTOs;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestionProduccion.Services;
@@ -20,67 +23,72 @@ public class ProductService : IProductService
 {
     private readonly IProductRepository _productRepository;
     private readonly IProductionOrderRepository _orderRepository;
+    private readonly MainMapper _mapper;
 
-    public ProductService(IProductRepository productRepository, IProductionOrderRepository orderRepository)
+    public ProductService(IProductRepository productRepository, IProductionOrderRepository orderRepository, MainMapper mapper)
     {
         _productRepository = productRepository;
         _orderRepository = orderRepository;
+        _mapper = mapper;
     }
 
-    public async Task<List<Product>> GetAllProductsAsync(CancellationToken ct = default)
+    public async Task<List<ProductDto>> GetAllProductsAsync(CancellationToken ct = default)
     {
-        return await _productRepository.GetAllAsync();
+        var products = await _productRepository.GetAllAsync();
+        return _mapper.ToDtoList(products);
     }
 
-    public async Task<Product?> GetProductByIdAsync(int id, CancellationToken ct = default)
+    public async Task<ProductDto?> GetProductByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _productRepository.GetByIdAsync(id);
+        var product = await _productRepository.GetByIdAsync(id);
+        return product != null ? _mapper.ToDto(product) : null;
     }
 
-    public async Task<Product> CreateProductAsync(Product product, CancellationToken ct = default)
+    public async Task<ProductDto> CreateProductAsync(ProductDto productDto, CancellationToken ct = default)
     {
-        if (await _productRepository.ExistsAsync(product.MainSku))
+        if (await _productRepository.ExistsAsync(productDto.MainSku))
         {
-            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: SKU '{product.MainSku}'");
+            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: SKU '{productDto.MainSku}'");
         }
 
-        if (await _productRepository.ExistsByInternalCodeAsync(product.InternalCode))
+        if (await _productRepository.ExistsByInternalCodeAsync(productDto.InternalCode))
         {
-            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: InternalCode '{product.InternalCode}'");
+            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: InternalCode '{productDto.InternalCode}'");
         }
 
+        var product = productDto.ToEntity();
         await _productRepository.AddAsync(product);
-        return product;
+        return _mapper.ToDto(product);
     }
 
-    public async Task<Product> UpdateProductAsync(Product product, CancellationToken ct = default)
+    public async Task<ProductDto> UpdateProductAsync(ProductDto productDto, CancellationToken ct = default)
     {
-        var existing = await _productRepository.GetByIdAsync(product.Id);
+        var existing = await _productRepository.GetByIdAsync(productDto.Id);
         if (existing == null)
         {
             throw new KeyNotFoundException(ErrorMessages.ElementNotFound);
         }
 
-        if (existing.MainSku != product.MainSku && await _productRepository.ExistsAsync(product.MainSku))
+        if (existing.MainSku != productDto.MainSku && await _productRepository.ExistsAsync(productDto.MainSku))
         {
-            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: SKU '{product.MainSku}'");
+            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: SKU '{productDto.MainSku}'");
         }
 
-        if (existing.InternalCode != product.InternalCode && await _productRepository.ExistsByInternalCodeAsync(product.InternalCode))
+        if (existing.InternalCode != productDto.InternalCode && await _productRepository.ExistsByInternalCodeAsync(productDto.InternalCode))
         {
-            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: InternalCode '{product.InternalCode}'");
+            throw new InvalidOperationException($"{ErrorMessages.DuplicateCode}: InternalCode '{productDto.InternalCode}'");
         }
 
         // Update properties
-        existing.Name = product.Name;
-        existing.InternalCode = product.InternalCode;
-        existing.FabricType = product.FabricType;
-        existing.MainSku = product.MainSku;
-        existing.AverageProductionTimeMinutes = product.AverageProductionTimeMinutes;
-        existing.EstimatedSalePrice = product.EstimatedSalePrice;
+        existing.Name = productDto.Name;
+        existing.InternalCode = productDto.InternalCode;
+        existing.FabricType = productDto.FabricType;
+        existing.MainSku = productDto.MainSku;
+        existing.AverageProductionTimeMinutes = productDto.AverageProductionTimeMinutes;
+        existing.EstimatedSalePrice = productDto.EstimatedSalePrice;
 
         await _productRepository.UpdateAsync(existing);
-        return existing;
+        return _mapper.ToDto(existing);
     }
 
     public async Task DeleteProductAsync(int id, CancellationToken ct = default)
@@ -106,8 +114,8 @@ public class ProductService : IProductService
         var query = await _orderRepository.GetQueryableAsync();
         var completedOrders = await query
             .AsNoTracking()
-            .Where(o => o.ProductId == productId && o.CurrentStatus == Domain.Enums.ProductionStatus.Completed && o.CompletedAt.HasValue)
-            .Select(o => new { o.StartedAt, o.CreatedAt, o.CompletedAt })
+            .Where(o => o.ProductId == productId && o.CurrentStatus == Domain.Enums.ProductionStatus.Completed)
+            .Select(o => new { o.EffectiveMinutes, o.Quantity })
             .ToListAsync(ct);
 
         if (!completedOrders.Any())
@@ -116,14 +124,13 @@ public class ProductService : IProductService
         }
         else
         {
-            double totalMinutes = 0;
-            foreach (var order in completedOrders)
-            {
-                var start = order.StartedAt ?? order.CreatedAt;
-                var duration = order.CompletedAt!.Value - start;
-                if (duration.TotalMinutes > 0) totalMinutes += duration.TotalMinutes;
-            }
-            product.AverageProductionTimeMinutes = totalMinutes / completedOrders.Count;
+            double totalMinutes = completedOrders.Sum(o => o.EffectiveMinutes);
+            int totalProduced = completedOrders.Sum(o => o.Quantity);
+            
+            // Average time PER UNIT produced
+            product.AverageProductionTimeMinutes = totalProduced > 0 
+                ? Math.Round(totalMinutes / totalProduced, 2) 
+                : 0;
         }
 
         await _productRepository.UpdateAsync(product);

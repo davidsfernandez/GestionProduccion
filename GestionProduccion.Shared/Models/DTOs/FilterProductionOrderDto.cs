@@ -8,6 +8,8 @@
  * Proprietary and Confidential.
  */
 
+using System;
+
 namespace GestionProduccion.Models.DTOs
 {
     public class FilterProductionOrderDto

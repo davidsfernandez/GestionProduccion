@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -24,5 +24,3 @@ public interface IUserRepository
     Task<int> CountActiveAsync();
     Task<int> CountAsync();
 }
-
-

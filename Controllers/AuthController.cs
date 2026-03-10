@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -20,6 +20,7 @@ using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Domain.Entities;
 using System.Security.Cryptography;
+using GestionProduccion.Application.Mapping;
 
 namespace GestionProduccion.Controllers;
 
@@ -53,25 +54,6 @@ public class AuthController : ControllerBase
         _configService = configService;
     }
 
-    [Authorize]
-    [HttpPost("change-password")]
-    public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordRequest request)
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-        {
-            return Unauthorized(ApiResponse<object>.FailureResult("Unauthorized"));
-        }
-
-        var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
-        if (!success)
-        {
-            return BadRequest(ApiResponse<object>.FailureResult("Invalid current password or user not found."));
-        }
-
-        return Ok(ApiResponse<object>.SuccessResult(null, "Password updated successfully."));
-    }
-
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("LoginPolicy")]
@@ -84,17 +66,11 @@ public class AuthController : ControllerBase
                 return BadRequest(ApiResponse<LoginResponse>.FailureResult("Email and password are required."));
             }
 
-            var user = await _userService.GetUserByEmailAsync(login.Email.Trim());
+            var user = await _userService.ValidateCredentialsAsync(login.Email.Trim(), login.Password);
 
             if (user == null)
             {
-                _logger.LogWarning("LOGIN FAILED: User not found with email {Email}", login.Email);
-                return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid credentials."));
-            }
-
-            if (!BCrypt.Net.BCrypt.Verify(login.Password, user.PasswordHash))
-            {
-                _logger.LogWarning("LOGIN FAILED: Password mismatch for user {Email}", login.Email);
+                _logger.LogWarning("LOGIN FAILED: Invalid credentials for email {Email}", login.Email);
                 return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid credentials."));
             }
 
@@ -104,8 +80,10 @@ public class AuthController : ControllerBase
                 return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Inactive user."));
             }
 
-            var tokenDuration = login.RememberMe ? TimeSpan.FromDays(30) : TimeSpan.FromHours(8);
-            var token = GenerateJwtToken(user, tokenDuration);
+            // 1. Standardized Short-lived Access Token (60 minutes max)
+            var token = GenerateJwtToken(user, TimeSpan.FromMinutes(60));
+            
+            // 2. Refresh Token handles persistence (30 days)
             var refreshToken = GenerateRefreshToken();
 
             await _refreshTokenRepo.AddAsync(new UserRefreshToken
@@ -149,8 +127,9 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse<LoginResponse>.FailureResult("Invalid or expired refresh token"));
         }
 
-        var user = storedToken.User;
-        var newToken = GenerateJwtToken(user, TimeSpan.FromDays(7));
+        var userDto = storedToken.User.ToDto();
+        
+        var newToken = GenerateJwtToken(userDto, TimeSpan.FromMinutes(60));
         var newRefreshToken = GenerateRefreshToken();
 
         storedToken.IsRevoked = true;
@@ -158,7 +137,7 @@ public class AuthController : ControllerBase
 
         await _refreshTokenRepo.AddAsync(new UserRefreshToken
         {
-            UserId = user.Id,
+            UserId = storedToken.User.Id,
             Token = newRefreshToken,
             ExpiryDate = DateTime.UtcNow.AddDays(30),
             IsRevoked = false,
@@ -169,9 +148,50 @@ public class AuthController : ControllerBase
         {
             Token = newToken,
             RefreshToken = newRefreshToken,
-            AvatarUrl = user.AvatarUrl,
-            FullName = user.FullName
+            AvatarUrl = userDto.AvatarUrl,
+            FullName = userDto.FullName
         }));
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> Logout()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+            {
+                // Physical Revocation in DB
+                await _refreshTokenRepo.RevokeAllUserTokensAsync(userId);
+                _logger.LogInformation("LOGOUT: User ID {UserId} session revoked.", userId);
+                return Ok(ApiResponse<bool>.SuccessResult(true, "Session revoked successfully."));
+            }
+            return BadRequest(ApiResponse<bool>.FailureResult("Invalid user context."));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Error during logout", new List<string> { ex.Message }));
+        }
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Unauthorized(ApiResponse<object>.FailureResult("Unauthorized"));
+        }
+
+        var success = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object>.FailureResult("Invalid current password or user not found."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResult(null!, "Password updated successfully."));
     }
 
     [HttpPost("forgot-password")]
@@ -182,8 +202,7 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.FailureResult("Validation failed"));
 
         var token = await _userService.RequestPasswordResetAsync(request.Email);
-
-        if (token == null) return Ok(ApiResponse<object>.SuccessResult(null, "Se o e-mail existir, um link de redefinição foi enviado."));
+        if (token == null) return Ok(ApiResponse<object>.SuccessResult(null!, "Se o e-mail existir, um link de redefinição foi enviado."));
 
         var baseUrl = _configuration["App:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
         var resetLink = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(request.Email)}";
@@ -204,8 +223,7 @@ public class AuthController : ControllerBase
             </div>";
 
         await _emailService.SendEmailAsync(request.Email, "Redefinição de Senha - Gestão de Produção", emailBody);
-
-        return Ok(ApiResponse<object>.SuccessResult(null, "Se o e-mail existir, um link de redefinição foi enviado."));
+        return Ok(ApiResponse<object>.SuccessResult(null!, "Se o e-mail existir, um link de redefinição foi enviado."));
     }
 
     [HttpPost("reset-password")]
@@ -216,13 +234,9 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.FailureResult("Validation failed"));
 
         var success = await _userService.CompletePasswordResetAsync(request.Email, request.Token, request.NewPassword);
+        if (!success) return BadRequest(ApiResponse<object>.FailureResult("Invalid or expired token, or user mismatch."));
 
-        if (!success)
-        {
-            return BadRequest(ApiResponse<object>.FailureResult("Invalid or expired token, or user mismatch."));
-        }
-
-        return Ok(ApiResponse<object>.SuccessResult(null, "Password reset successfully."));
+        return Ok(ApiResponse<object>.SuccessResult(null!, "Password reset successfully."));
     }
 
     [AllowAnonymous]
@@ -231,14 +245,6 @@ public class AuthController : ControllerBase
     {
         var result = await _userService.IsSetupRequiredAsync();
         return Ok(ApiResponse<bool>.SuccessResult(result));
-    }
-
-    [AllowAnonymous]
-    [HttpGet("dev-users")]
-    public async Task<ActionResult<ApiResponse<object>>> GetDevUsers([FromServices] GestionProduccion.Data.AppDbContext context)
-    {
-        var users = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(context.Users.Select(u => new { u.Email, u.Role, u.FullName }));
-        return Ok(ApiResponse<object>.SuccessResult(users));
     }
 
     [AllowAnonymous]
@@ -252,29 +258,26 @@ public class AuthController : ControllerBase
 
         try
         {
-            // 1. Save Company Configuration
             await _configService.SaveConfigurationAsync(new SystemConfigurationDto
             {
                 CompanyName = request.CompanyName,
                 CompanyTaxId = request.CompanyTaxId,
                 LogoBase64 = request.LogoBase64,
                 DailyFixedCost = 0,
-                OperationalHourlyCost = 45.0m // Default fallback
+                OperationalHourlyCost = 45.0m
             });
 
-            // 2. Create Admin User
-            var user = new Domain.Entities.User
+            var adminDto = new UserDto
             {
                 FullName = request.FullName,
                 Email = request.Email,
                 Role = Domain.Enums.UserRole.Administrator,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 IsActive = true,
                 AvatarUrl = "/img/avatars/avatar.jpg"
             };
 
-            await _userService.CreateUserAsync(user);
-            return Ok(ApiResponse<object>.SuccessResult(null, "Administrator created and system configured successfully. You can now login."));
+            await _userService.CreateUserAsync(adminDto, request.Password);
+            return Ok(ApiResponse<object>.SuccessResult(null!, "Administrator created and system configured successfully. You can now login."));
         }
         catch (Exception ex)
         {
@@ -282,7 +285,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    private string GenerateJwtToken(Domain.Entities.User user, TimeSpan duration)
+    private string GenerateJwtToken(UserDto user, TimeSpan duration)
     {
         var jwtKey = _configuration["Jwt:Key"];
         if (string.IsNullOrEmpty(jwtKey) || jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
@@ -293,13 +296,13 @@ public class AuthController : ControllerBase
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // HIENE DE CLAIMS: Removed AvatarUrl from JWT to ensure freshness from UserStateService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
-            new Claim("AvatarUrl", user.AvatarUrl ?? ""),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -321,13 +324,4 @@ public class AuthController : ControllerBase
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
     }
-
-    private string ComputeHash(string input)
-    {
-        using var sha256 = SHA256.Create();
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
-    }
 }
-
-

@@ -19,6 +19,7 @@ public class QADefectDto
     public int Quantity { get; set; }
     public string? PhotoUrl { get; set; }
     public DateTime ReportedAt { get; set; }
+    public int ReportedByUserId { get; set; }
 }
 
 public class CreateQADefectDto

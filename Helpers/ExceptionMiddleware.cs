@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -10,9 +10,8 @@
 
 using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
-
-using GestionProduccion.Client.Resources;
+using GestionProduccion.Models.DTOs;
+using GestionProduccion.Resources;
 
 namespace GestionProduccion.Helpers;
 
@@ -56,9 +55,6 @@ public class ExceptionMiddleware
                 statusCode = HttpStatusCode.NotFound;
                 localizedMessage = Portuguese.Err_NotFound;
                 break;
-            case InvalidOperationException:
-                statusCode = HttpStatusCode.BadRequest;
-                break;
             case UnauthorizedAccessException:
                 statusCode = HttpStatusCode.Forbidden;
                 localizedMessage = Portuguese.Err_Unauthorized;
@@ -70,12 +66,7 @@ public class ExceptionMiddleware
 
         context.Response.StatusCode = (int)statusCode;
 
-        var response = new GestionProduccion.Models.DTOs.ApiResponse<object>
-        {
-            Success = false,
-            Message = _env.IsDevelopment() ? detail : localizedMessage,
-            Errors = _env.IsDevelopment() ? new List<string> { exception.StackTrace ?? "" } : new List<string>()
-        };
+        var response = ApiResponse<object>.FailureResult(localizedMessage, _env.IsDevelopment() ? new List<string> { detail, exception.StackTrace ?? "" } : new List<string>());
 
         var options = new JsonSerializerOptions
         {
@@ -86,5 +77,3 @@ public class ExceptionMiddleware
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
     }
 }
-
-

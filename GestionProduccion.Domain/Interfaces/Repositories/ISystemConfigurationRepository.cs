@@ -12,9 +12,14 @@ using GestionProduccion.Domain.Entities;
 
 namespace GestionProduccion.Domain.Interfaces.Repositories;
 
-public interface IBonusRuleRepository : IRepository<BonusRule>
+public interface ISystemConfigurationRepository
 {
-    Task<BonusRule?> GetActiveRuleAsync();
+    Task<SystemConfiguration?> GetByKeyAsync(string key);
+    Task<string?> GetValueByKeyAsync(string key);
+    Task AddAsync(SystemConfiguration config);
+    Task UpdateAsync(SystemConfiguration config);
+    Task SaveOrUpdateValueAsync(string key, string? value);
+    Task SaveChangesAsync();
 }
 
 

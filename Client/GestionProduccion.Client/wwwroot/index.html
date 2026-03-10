@@ -126,6 +126,116 @@
             anchorElement.remove();
             URL.revokeObjectURL(url);
         }
+
+        // --- BI Charting Engine ---
+        window.renderBonusChart = (report) => {
+            const ctx = document.getElementById('bonusChart');
+            if (!ctx) return;
+            const existingChart = Chart.getChart(ctx);
+            if (existingChart) existingChart.destroy();
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Produtividade', 'Qualidade', 'Prazo (Efic.)'],
+                    datasets: [{
+                        label: 'Desempenho Real %',
+                        data: [report.productivityPercentage, 100 - report.defectPercentage, report.deadlinePerformance],
+                        backgroundColor: 'rgba(0, 200, 153, 0.2)',
+                        borderColor: 'rgba(0, 200, 153, 1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: 'rgba(0, 200, 153, 1)',
+                        fill: true
+                    }, {
+                        label: 'Meta Ideal',
+                        data: [100, 100, 100],
+                        backgroundColor: 'rgba(59, 125, 221, 0.05)',
+                        borderColor: 'rgba(59, 125, 221, 0.3)',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        };
+
+        // --- Dashboard Main Charts Engine ---
+        window.seronaCharts = {
+            renderRevenueChart: function(elementId, data, labels) {
+                const ctx = document.getElementById(elementId);
+                if (!ctx) return;
+                const existingChart = Chart.getChart(ctx);
+                if (existingChart) existingChart.destroy();
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Volume de Produção',
+                            fill: true,
+                            backgroundColor: 'rgba(59, 125, 221, 0.1)',
+                            borderColor: 'rgba(59, 125, 221, 1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            data: data
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, grid: { borderDash: [5, 5] } }
+                        }
+                    }
+                });
+            },
+            renderBarChart: function(elementId, data, labels) {
+                const ctx = document.getElementById(elementId);
+                if (!ctx) return;
+                const existingChart = Chart.getChart(ctx);
+                if (existingChart) existingChart.destroy();
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Peças Produzidas',
+                            backgroundColor: 'rgba(59, 125, 221, 0.7)',
+                            hoverBackgroundColor: 'rgba(59, 125, 221, 1)',
+                            borderRadius: 10,
+                            data: data,
+                            barPercentage: 0.4, // Bars are now thinner and elegant
+                            categoryPercentage: 0.5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { 
+                                grid: { display: false },
+                                ticks: { font: { size: 10, family: "'Inter', sans-serif" } }
+                            },
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { borderDash: [5, 5], color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+        };
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/dashboard.js"></script>

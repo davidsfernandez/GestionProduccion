@@ -17,6 +17,10 @@ using GestionProduccion.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
+using GestionProduccion.Models.DTOs;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
+
 namespace GestionProduccion.Tests
 {
     public class UserServiceTests
@@ -43,7 +47,8 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var teamRepo = new SewingTeamRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
+            var mapper = new MainMapper();
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo, mapper);
 
             var result = await service.GetActiveUsersAsync();
 
@@ -63,12 +68,13 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var teamRepo = new SewingTeamRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
+            var mapper = new MainMapper();
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo, mapper);
 
             var result = await service.GetUserByIdAsync(user.Id);
 
             Assert.NotNull(result);
-            Assert.Equal("Test User", result.FullName);
+            Assert.Equal("Test User", result!.FullName);
         }
 
         [Fact]
@@ -80,11 +86,12 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var teamRepo = new SewingTeamRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
+            var mapper = new MainMapper();
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo, mapper);
 
-            var newUser = new User { FullName = "New User", Email = "new@test.com", PasswordHash = "hash", Role = UserRole.Operational };
+            var newUser = new User { FullName = "New User", Email = "new@test.com", Role = UserRole.Operational };
 
-            var result = await service.CreateUserAsync(newUser);
+            var result = await service.CreateUserAsync(newUser.ToDto(), "password123");
 
             Assert.NotNull(result);
             Assert.Equal("New User", result.FullName);
@@ -104,15 +111,18 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var teamRepo = new SewingTeamRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
+            var mapper = new MainMapper();
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo, mapper);
 
-            user.FullName = "Updated Name";
+            var userDto = user.ToDto();
+            userDto.FullName = "Updated Name";
 
-            await service.UpdateUserAsync(user);
+            await service.UpdateUserAsync(userDto);
             var updatedUser = await context.Users.FindAsync(user.Id);
 
-            Assert.Equal("Updated Name", updatedUser.FullName);
-        }
+            Assert.Equal("Updated Name", updatedUser!.FullName);
+            }
+
 
         [Fact]
         public async Task DeactivateUserAsync_ShouldSetIsActiveFalse_WhenExists()
@@ -127,12 +137,13 @@ namespace GestionProduccion.Tests
             var resetRepo = new PasswordResetTokenRepository(context);
             var refreshRepo = new UserRefreshTokenRepository(context);
             var teamRepo = new SewingTeamRepository(context);
-            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo);
+            var mapper = new MainMapper();
+            var service = new UserService(userRepo, orderRepo, resetRepo, refreshRepo, teamRepo, mapper);
 
             await service.DeactivateUserAsync(user.Id);
             var deletedUser = await context.Users.FindAsync(user.Id);
 
-            Assert.False(deletedUser.IsActive);
+            Assert.False(deletedUser!.IsActive);
         }
     }
 }

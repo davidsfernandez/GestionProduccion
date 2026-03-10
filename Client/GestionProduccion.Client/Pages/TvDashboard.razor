@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -14,152 +14,155 @@
 @attribute [AllowAnonymous]
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.SignalR.Client
+@using GestionProduccion.Resources
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
 
 <style>
     body {
-        background-color: #f4f7f6;
-        color: #333333;
-        overflow: hidden; /* Hide scrollbars */
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f1f5f9; /* Clean industrial light gray */
+        color: #1e293b;
+        overflow: hidden;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
     }
     .tv-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 30px 0 30px;
-        height: 10vh;
+        padding: 30px 50px;
+        height: 12vh;
+        background: #ffffff;
+        border-bottom: 2px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
     .tv-logo {
-        max-height: 60px;
+        max-height: 75px;
         object-fit: contain;
     }
     .tv-clock {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1a1a1a;
+        font-size: 3.8rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #0f172a;
     }
     .tv-content-area {
-        height: 90vh;
+        height: 88vh;
+        padding: 40px;
     }
     .tv-container {
-        height: 100%;
-        width: 100vw;
         display: grid;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
-        gap: 30px;
-        padding: 10px 30px 30px 30px;
-    }
-    .tv-announcement-container {
+        gap: 40px;
         height: 100%;
-        width: 100vw;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px;
-        animation: fade-in 1s;
     }
-    .tv-announcement-card {
-        background-color: #ffffff;
-        border-radius: 30px;
-        padding: 60px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 80%;
+    .tv-announcement-overlay {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #0284c7; /* Vibrant blue for visibility */
+        color: white;
+        padding: 22px 0;
+        font-size: 2.8rem;
+        font-weight: 800;
+        overflow: hidden;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
     }
-    .tv-announcement-icon {
-        font-size: 6rem;
-        color: #3B7DDD;
-        margin-bottom: 30px;
+    .marquee {
+        display: inline-block;
+        padding-left: 100%;
+        animation: marquee 25s linear infinite;
     }
-    .tv-announcement-text {
-        font-size: 4rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        line-height: 1.4;
+    @@keyframes marquee {
+        0%   { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
     }
     .tv-panel {
-        background-color: #ffffff;
-        border-radius: 20px;
-        padding: 30px;
+        background: #ffffff;
+        border-radius: 35px;
+        padding: 45px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 15px 45px rgba(0,0,0,0.07);
         display: flex;
         flex-direction: column;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        border: 1px solid rgba(0,0,0,0.05);
-        animation: fade-in 1s;
+        transition: all 0.3s ease;
     }
     .tv-panel-header {
-        font-size: 2rem;
+        font-size: 2.4rem;
         font-weight: 800;
-        color: #1a1a1a;
-        margin-bottom: 25px;
-        border-bottom: 3px solid #00C899;
-        padding-bottom: 15px;
+        color: #64748b;
+        margin-bottom: 35px;
         display: flex;
         align-items: center;
-        gap: 15px;
-    }
-    .highlight-flash {
-        animation: flash-green 1s;
-    }
-    @@keyframes flash-green {
-        0% { background-color: #ffffff; }
-        50% { background-color: #d1fae5; }
-        100% { background-color: #ffffff; }
-    }
-    @@keyframes fade-in {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
+        gap: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     .stat-value {
-        font-size: 9rem;
-        line-height: 1;
+        font-size: 12rem;
+        line-height: 0.9;
         font-weight: 900;
-        color: #00C899;
         text-align: center;
         margin: auto;
     }
+    .color-success { color: #059669; }
+    .color-warning { color: #d97706; }
+    .color-info { color: #0284c7; }
+
     .list-item {
-        font-size: 2.2rem;
-        padding: 15px 10px;
-        border-bottom: 1px solid #eeeeee;
+        font-size: 2.8rem;
+        padding: 22px 0;
+        border-bottom: 1px solid #f1f5f9;
         display: flex;
         justify-content: space-between;
-        font-weight: 600;
+        font-weight: 700;
+        color: #334155;
     }
-    .list-item:last-child {
-        border-bottom: none;
-    }
-    .text-stage {
-        color: #3b7ddd;
-    }
+    .list-item:last-child { border-bottom: none; }
+
     .offline-indicator {
-        position: absolute;
-        bottom: 30px;
-        right: 30px;
-        color: #dc3545;
-        font-size: 2.5rem;
-        opacity: 0.8;
+        position: fixed;
+        top: 25px;
+        right: 25px;
+        background: #dc2626;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 12px;
+        font-weight: 900;
+        font-size: 1.5rem;
+        z-index: 2000;
+        box-shadow: 0 10px 20px rgba(220,38,38,0.3);
+        animation: pulse 2s infinite;
+    }
+    @@keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
 </style>
 
 @if (dashboard == null)
 {
-    <div class="d-flex justify-content-center align-items-center vh-100">
-        <h1 class="text-dark">Carregando TV...</h1>
+    <div class="d-flex justify-content-center align-items-center vh-100 bg-white">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-4" style="width: 6rem; height: 6rem; border-width: 0.5rem;" role="status"></div>
+            <h2 class="text-muted fw-bold">SINCRONIZANDO MONITOR...</h2>
+        </div>
     </div>
 }
 else
 {
     <div class="tv-header">
-        <div>
+        <div class="d-flex align-items-center">
             @if (!string.IsNullOrEmpty(publicConfig?.LogoBase64))
             {
-                <img src="@publicConfig.LogoBase64" class="tv-logo" alt="Logo" />
+                <img src="@publicConfig.LogoBase64" class="tv-logo me-4" alt="Logo" />
             }
+            <h1 class="mb-0 fw-900" style="letter-spacing: -2px; font-weight: 900; font-size: 3rem;">MONITOR DE PRODUÇÃO</h1>
         </div>
         <div class="tv-clock">
             @currentTime.ToString("HH:mm:ss")
@@ -167,119 +170,82 @@ else
     </div>
 
     <div class="tv-content-area">
-        @if (showAnnouncement && !string.IsNullOrWhiteSpace(dashboard.TvAnnouncement))
-        {
-            <div class="tv-announcement-container">
-                <div class="tv-announcement-card">
-                    <i class="fa-solid fa-bullhorn tv-announcement-icon"></i>
-                    <div class="tv-announcement-text">
-                        @dashboard.TvAnnouncement
-                    </div>
-                </div>
+        <div class="tv-container">
+            <!-- P1: PRODUÇÃO DO DIA -->
+            <div class="tv-panel">
+                <div class="tv-panel-header"><i class="fa-solid fa-calendar-check color-success"></i> Produzido Hoje</div>
+                <div class="stat-value color-success">@dashboard.CompletedToday</div>
+                <div class="text-center text-muted h2 mt-3 fw-bold">Meta: @dashboard.DailyGoal Peças</div>
             </div>
-        }
-        else
-        {
-            <div class="tv-container">
-                <!-- Panel 1: Items Produced Today -->
-                <div class="tv-panel @(highlightStats ? "highlight-flash" : "")">
-                    <div class="tv-panel-header"><i class="fa-solid fa-check-circle"></i> Produzido Hoje</div>
-                    <div class="stat-value">@dashboard.CompletedToday</div>
-                    <div class="text-center text-muted h4">Peças</div>
-                </div>
 
-                <!-- Panel 2: Items In Production -->
-                <div class="tv-panel">
-                    <div class="tv-panel-header"><i class="fa-solid fa-gears"></i> Em Produção</div>
-                    <div style="overflow-y: hidden; flex: 1;">
-                        @foreach (var order in dashboard.TodaysOrders.Where(o => o.CurrentStatus != "Completed" && o.CurrentStage == "Sewing").Take(5)) 
-                        {
-                            var displaySku = !string.IsNullOrEmpty(order.Product?.MainSku) ? order.Product.MainSku : order.LotCode;
-                            <div class="list-item" @key="order.Id">
-                                <span>@displaySku</span>
-                                <span class="text-info">@TranslateStage(order.CurrentStage)</span>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <!-- Panel 3: Efficiency -->
-                <div class="tv-panel">
-                    <div class="tv-panel-header"><i class="fa-solid fa-chart-line"></i> Eficiência Diária</div>
-                    <div class="stat-value" style="color: @(dashboard.CompletionRate >= 80 ? "#00C899" : "#fcb92c")">
-                        @dashboard.CompletionRate.ToString("0.##")%
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-3 px-3">
-                        <div class="text-muted h4 mb-0">Meta: 100%</div>
-                        <div class="text-muted h4 mb-0 fw-bold">
-                            <i class="fa-regular fa-clock me-2"></i> @dashboard.AverageTimePerPieceMinutes.ToString("F1") min/peça
+            <!-- P2: EM CURSO -->
+            <div class="tv-panel">
+                <div class="tv-panel-header"><i class="fa-solid fa-spinner fa-spin color-info"></i> Lotes Ativos</div>
+                <div style="overflow: hidden; flex: 1;">
+                    @if (!dashboard.ProductionItems.Any())
+                    {
+                        <div class="h-100 d-flex align-items-center justify-content-center text-muted italic">
+                            <h3>Aguardando início...</h3>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Panel 4: Next Batches / Recent Activity -->
-                <div class="tv-panel">
-                    <div class="tv-panel-header"><i class="fa-solid fa-clock-rotate-left"></i> Atividade Recente</div>
-                    <div style="overflow-y: hidden; flex: 1;">
-                        @foreach (var activity in dashboard.RecentActivities.Take(5))
-                        {
-                            var actDisplaySku = !string.IsNullOrEmpty(activity.ProductSku) && activity.ProductSku != "N/A" ? activity.ProductSku : activity.LotCode;
-                            <div class="list-item" style="font-size: 1.2rem;" @key="activity.Date.Ticks">
-                                <span>@actDisplaySku</span>
-                                <span class="text-muted">@TranslateAction(activity.Action)</span>
-                            </div>
-                        }
-                    </div>
+                    }
+                    @foreach (var item in dashboard.ProductionItems.Take(4))
+                    {
+                        <div class="list-item animate-fade-in">
+                            <span class="text-truncate" style="max-width: 75%;">@item.ProductName</span>
+                            <span class="color-info">@item.Quantity</span>
+                        </div>
+                    }
                 </div>
             </div>
-        }
+
+            <!-- P3: EFICIÊNCIA DIÁRIA -->
+            <div class="tv-panel">
+                <div class="tv-panel-header"><i class="fa-solid fa-bolt color-warning"></i> Eficiência do Turno</div>
+                <div class="stat-value @(dashboard.CompletionRate >= 80 ? "color-success" : "color-warning")">
+                    @dashboard.CompletionRate.ToString("0")%
+                </div>
+                <div class="progress mt-4" style="height: 20px; background: #f1f5f9; border-radius: 15px;">
+                    <div class="progress-bar @(dashboard.CompletionRate >= 80 ? "bg-success" : "bg-warning")" 
+                         style="width: @(Math.Min(100, dashboard.CompletionRate))%"></div>
+                </div>
+            </div>
+
+            <!-- P4: MÉTRICAS DE TEMPO -->
+            <div class="tv-panel">
+                <div class="tv-panel-header"><i class="fa-solid fa-clock color-info"></i> Ritmo Médio</div>
+                <div class="stat-value color-info">@dashboard.AverageTimePerPieceMinutes.ToString("F1")</div>
+                <div class="text-center text-muted h2 mt-3 fw-bold">Minutos por Peça</div>
+            </div>
+        </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(dashboard.TvAnnouncement))
+    {
+        <div class="tv-announcement-overlay">
+            <div class="marquee">
+                <i class="fa-solid fa-bullhorn me-4"></i> @dashboard.TvAnnouncement 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <i class="fa-solid fa-star me-4"></i> FOCO TOTAL NA META!
+            </div>
+        </div>
+    }
 
     @if (!isConnected)
     {
         <div class="offline-indicator">
-            <i class="fa-solid fa-wifi-slash"></i> Offline
+            <i class="fa-solid fa-wifi-slash me-2"></i> MONITOR OFFLINE
         </div>
     }
 }
 
 @code {
-    private DashboardDto? dashboard;
+    private TvDashboardDto? dashboard;
     private PublicConfigurationDto? publicConfig;
     private HubConnection? hubConnection;
     private bool isConnected = false;
-    private bool highlightStats = false;
-    private bool showAnnouncement = false;
     private System.Threading.Timer? pollingTimer;
     private System.Threading.Timer? clockTimer;
-    private System.Threading.Timer? rotationTimer;
-    private System.Threading.Timer? debounceTimer;
     private DateTime currentTime = DateTime.Now;
-
-    private string TranslateStage(string? stage) => stage?.ToLower() switch
-    {
-        "cutting" => "Corte",
-        "preparation" => "Preparação",
-        "prep" => "Preparação",
-        "sewing" => "Costura",
-        "review" => "Revisão",
-        "qa" => "Revisão",
-        "packaging" => "Embalagem",
-        _ => stage ?? ""
-    };
-
-    private string TranslateAction(string? action)
-    {
-        if (string.IsNullOrEmpty(action)) return "";
-        
-        var lower = action.ToLower();
-        if (lower.Contains("created")) return "Ordem Criada";
-        if (lower.Contains("advanced to")) return $"Avançado para {TranslateStage(lower.Replace("advanced to ", "").Trim())}";
-        if (lower.Contains("finalized")) return "Finalizado";
-        if (lower.Contains("stopped")) return "Parado";
-        
-        return action;
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -287,117 +253,48 @@ else
         await LoadData();
         await StartSignalR();
         
-        // Polling fallback every 30 seconds
         pollingTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadData), null, 30000, 30000);
-        
-        // Clock tick every 1 second
-        clockTimer = new System.Threading.Timer(_ => 
-        {
-            currentTime = DateTime.Now;
-            InvokeAsync(StateHasChanged);
-        }, null, 1000, 1000);
-
-        // Rotation timer every 20 seconds
-        rotationTimer = new System.Threading.Timer(_ => 
-        {
-            if (dashboard != null && !string.IsNullOrWhiteSpace(dashboard.TvAnnouncement))
-            {
-                showAnnouncement = !showAnnouncement;
-                InvokeAsync(StateHasChanged);
-            }
-            else
-            {
-                if (showAnnouncement)
-                {
-                    showAnnouncement = false;
-                    InvokeAsync(StateHasChanged);
-                }
-            }
-        }, null, 20000, 20000);
+        clockTimer = new System.Threading.Timer(_ => { currentTime = DateTime.Now; InvokeAsync(StateHasChanged); }, null, 1000, 1000);
     }
 
     private async Task LoadPublicConfig()
     {
-        try
-        {
-            publicConfig = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public");
-        }
-        catch { /* Ignore */ }
+        try { publicConfig = await Http.GetFromJsonAsync<PublicConfigurationDto>("api/Configuration/public"); } catch { }
     }
 
     private async Task LoadData()
     {
         try
         {
-            var oldVal = dashboard?.CompletedToday ?? 0;
-            dashboard = await Http.GetFromJsonAsync<DashboardDto>("api/ProductionOrders/tv-stats");
-            
-            if (dashboard != null && dashboard.CompletedToday > oldVal && !showAnnouncement)
+            var response = await Http.GetFromJsonAsync<ApiResponse<TvDashboardDto>>("api/ProductionOrders/tv-stats");
+            if (response != null && response.Success)
             {
-                highlightStats = true;
-                StateHasChanged();
-                await Task.Delay(1000);
-                highlightStats = false;
+                dashboard = response.Data;
+                isConnected = true;
             }
-            StateHasChanged();
         }
-        catch
-        {
-            isConnected = false;
-        }
+        catch { isConnected = false; }
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task StartSignalR()
     {
-        var hubUrl = NavigationManager.BaseUri + "productionHub";
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(hubUrl)
+            .WithUrl(NavigationManager.BaseUri + "productionHub")
             .WithAutomaticReconnect()
             .Build();
 
-        hubConnection.On<int, string, string>("ReceiveUpdate", (id, stage, status) =>
-        {
-            debounceTimer?.Dispose();
-            debounceTimer = new System.Threading.Timer(async _ =>
-            {
-                await InvokeAsync(LoadData);
-            }, null, 2000, System.Threading.Timeout.Infinite);
-        });
+        hubConnection.On<int, string, string>("ReceiveUpdate", async (id, stage, status) => await InvokeAsync(LoadData));
+        hubConnection.On<object>("ReceiveMessage", async (data) => await InvokeAsync(LoadData));
 
-        hubConnection.Reconnecting += (ex) =>
-        {
-            isConnected = false;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        hubConnection.Reconnected += (id) =>
-        {
-            isConnected = true;
-            InvokeAsync(StateHasChanged);
-            return Task.CompletedTask;
-        };
-
-        try
-        {
-            await hubConnection.StartAsync();
-            isConnected = true;
-        }
-        catch
-        {
-            isConnected = false;
-        }
+        try { await hubConnection.StartAsync(); isConnected = true; }
+        catch { isConnected = false; }
     }
 
     public async ValueTask DisposeAsync()
     {
         if (pollingTimer != null) await pollingTimer.DisposeAsync();
         if (clockTimer != null) await clockTimer.DisposeAsync();
-        if (rotationTimer != null) await rotationTimer.DisposeAsync();
-        if (debounceTimer != null) await debounceTimer.DisposeAsync();
         if (hubConnection != null) await hubConnection.DisposeAsync();
     }
 }
-
-
-

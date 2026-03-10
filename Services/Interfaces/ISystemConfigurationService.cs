@@ -16,11 +16,11 @@ public interface ISystemConfigurationService
 {
     Task<SystemConfigurationDto> GetConfigurationAsync();
     Task<PublicConfigurationDto> GetPublicConfigurationAsync();
-    Task SaveConfigurationAsync(SystemConfigurationDto dto);
+    Task<bool> SaveConfigurationAsync(SystemConfigurationDto dto);
 
-    // Legacy support
+    // Image/Logo Support
     Task<string> GetLogoAsync();
-    Task UpdateLogoAsync(string base64Logo);
+    Task<bool> UpdateLogoAsync(string base64Logo);
 }
 
 

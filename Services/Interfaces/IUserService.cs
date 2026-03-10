@@ -8,7 +8,7 @@
  * Proprietary and Confidential.
  */
 
-using GestionProduccion.Domain.Entities;
+using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Services.Interfaces;
 
@@ -17,22 +17,22 @@ public interface IUserService
     /// <summary>
     /// Gets an active user by their ID.
     /// </summary>
-    Task<User?> GetUserByIdAsync(int userId);
+    Task<UserDto?> GetUserByIdAsync(int userId);
 
     /// <summary>
     /// Gets an active user by their email address.
     /// </summary>
-    Task<User?> GetUserByEmailAsync(string email);
+    Task<UserDto?> GetUserByEmailAsync(string email);
 
     /// <summary>
     /// Gets all active users in the system.
     /// </summary>
-    Task<List<User>> GetActiveUsersAsync();
+    Task<List<UserDto>> GetActiveUsersAsync();
 
     /// <summary>
     /// Gets all users with a specific role.
     /// </summary>
-    Task<List<User>> GetUsersByRoleAsync(string role);
+    Task<List<UserDto>> GetUsersByRoleAsync(string role);
 
     /// <summary>
     /// Verifies if a user is assigned to a specific production order.
@@ -42,12 +42,12 @@ public interface IUserService
     /// <summary>
     /// Gets all production orders assigned to a user.
     /// </summary>
-    Task<List<ProductionOrder>> GetUserAssignedOrdersAsync(int userId);
+    Task<List<ProductionOrderDto>> GetUserAssignedOrdersAsync(int userId);
 
     /// <summary>
     /// Creates a new user (admin only).
     /// </summary>
-    Task<User> CreateUserAsync(User user);
+    Task<UserDto> CreateUserAsync(UserDto userDto, string password);
 
     /// <summary>
     /// Updates the avatar URL for a specific user.
@@ -55,9 +55,14 @@ public interface IUserService
     Task<bool> UpdateUserAvatarAsync(int userId, string avatarUrl);
 
     /// <summary>
-    /// Updates an existing user.
+    /// Updates an existing user (administrative).
     /// </summary>
-    Task<User> UpdateUserAsync(User user);
+    Task<UserDto> UpdateUserAsync(UserDto userDto);
+
+    /// <summary>
+    /// Updates basic profile info for the current user (Self-service).
+    /// </summary>
+    Task<UserDto> UpdateProfileAsync(int userId, string fullName);
 
     /// <summary>
     /// Deactivates a user (soft delete).
@@ -104,6 +109,11 @@ public interface IUserService
     /// Checks if the system needs initial setup (no users exist).
     /// </summary>
     Task<bool> IsSetupRequiredAsync();
+
+    /// <summary>
+    /// Validates user credentials and returns the UserDto if successful.
+    /// </summary>
+    Task<UserDto?> ValidateCredentialsAsync(string email, string password);
 }
 
 

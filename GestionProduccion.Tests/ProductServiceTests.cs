@@ -17,6 +17,10 @@ using GestionProduccion.Services;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
+using GestionProduccion.Models.DTOs;
+
 namespace GestionProduccion.Tests;
 
 public class ProductServiceTests : IDisposable
@@ -25,6 +29,7 @@ public class ProductServiceTests : IDisposable
     private readonly ProductService _service;
     private readonly ProductRepository _productRepo;
     private readonly ProductionOrderRepository _orderRepo;
+    private readonly MainMapper _mapper;
 
     public ProductServiceTests()
     {
@@ -35,8 +40,9 @@ public class ProductServiceTests : IDisposable
 
         _productRepo = new ProductRepository(_context);
         _orderRepo = new ProductionOrderRepository(_context);
+        _mapper = new MainMapper();
 
-        _service = new ProductService(_productRepo, _orderRepo);
+        _service = new ProductService(_productRepo, _orderRepo, _mapper);
     }
 
     public void Dispose()
@@ -100,7 +106,7 @@ public class ProductServiceTests : IDisposable
         var newProduct = new Product { Name = "P2", InternalCode = "DUP-01", MainSku = "SKU-2", FabricType = "F2" };
 
         // Act
-        Func<Task> act = async () => await _service.CreateProductAsync(newProduct);
+        Func<Task> act = async () => await _service.CreateProductAsync(newProduct.ToDto());
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()

@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -12,118 +12,155 @@
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using System.Text.Json
-@using System.Text.Json.Serialization
-@attribute [Authorize(Roles = "Administrator")]
+@using System.Timers
 @using GestionProduccion.Client.Services
+@using GestionProduccion.Resources
+@using GestionProduccion.Domain.Enums
+@attribute [Authorize(Roles = "Administrator")]
 @inject HttpClient Http
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
 @inject JsonSerializerOptions JsonOptions
+@inject IJSRuntime JS
+@implements IDisposable
 
-@using GestionProduccion.Client.Resources
-
-<PageTitle>@Portuguese.User_Title</PageTitle>
+<PageTitle>@Portuguese.Nav_Users</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <h3 class="text-dark mb-0">@Portuguese.User_Title</h3>
-        <button class="btn btn-primary shadow-sm w-100 w-md-auto" @onclick="ShowCreateModal">
+        <div>
+            <h3 class="h3 text-dark mb-0 fw-bold">@Portuguese.Nav_Users</h3>
+            <p class="text-muted small mb-0">Gerencie o acesso e a carga de trabalho de sua equipe.</p>
+        </div>
+        <button class="btn btn-primary shadow-sm px-4" @onclick="ShowCreateModal">
             <i class="fa-solid fa-user-plus me-2"></i> @Portuguese.User_NewUser
         </button>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="card-title mb-0 fw-bold">Lista de Usuários</h5>
+    @* SEARCH & FILTERS *@
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group shadow-none border rounded-3 overflow-hidden">
+                        <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" class="form-control border-0 px-2" placeholder="@Portuguese.SearchHint" 
+                               @bind="searchTerm" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+                    </div>
                 </div>
-                
-                @if (loading)
-                {
-                    <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">@Portuguese.Loading</span>
-                        </div>
-                    </div>
-                }
-                else if (users == null || !users.Any())
-                {
-                    <div class="card-body p-4">
-                        <div class="alert alert-info mb-0">Nenhum usuário encontrado.</div>
-                    </div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover my-0 align-middle">
-                            <thead>
-                                <tr class="bg-light">
-                                    <th class="ps-4">@Portuguese.User_Name</th>
-                                    <th>@Portuguese.User_Email</th>
-                                    <th class="d-none d-lg-table-cell">ID PÃšBLICO</th>
-                                    <th>EQUIPE</th>
-                                    <th>@Portuguese.User_Role</th>
-                                    <th>@Portuguese.User_Status</th>
-                                    <th class="text-end pe-4">@Portuguese.Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var user in users)
-                                {
-                                    <tr @key="user.Id">
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center">
-                                                <img src="@(string.IsNullOrEmpty(user.AvatarUrl) ? "/img/avatars/avatar.jpg" : user.AvatarUrl)" 
-                                                     class="rounded-circle me-3 border" width="32" height="32" alt="Avatar" />
-                                                <div class="fw-bold text-dark">@user.FullName</div>
-                                            </div>
-                                        </td>
-                                        <td>@user.Email</td>
-                                        <td class="d-none d-lg-table-cell"><code class="small text-muted">@user.ExternalId.ToString().Substring(0, 8)...</code></td>
-                                        <td><span class="badge bg-info-soft text-info">@(user.SewingTeamName ?? "-")</span></td>
-                                        <td>
-                                            <span class="badge bg-primary-soft text-primary">@TranslateRole(user.Role.ToString())</span>
-                                        </td>
-                                        <td>
-                                            @if (user.IsActive)
-                                            {
-                                                <span class="badge bg-success-soft text-success">@Portuguese.User_Active</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger-soft text-danger">@Portuguese.User_Inactive</span>
-                                            }
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <button class="btn btn-sm btn-light me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                            </button>
-                                            @if (user.Email != "administrador@serona.com")
-                                            {
-                                                <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
-                                                    <i class="fa-solid fa-trash-can"></i>
-                                                </button>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+                <div class="col-md-3">
+                    <select class="form-select border-0 bg-light shadow-none" @bind="filterRole">
+                        <option value="">@Portuguese.Filter_ByRole</option>
+                        @foreach (var role in Enum.GetValues<UserRole>())
+                        {
+                            <option value="@role">@TranslateRole(role.ToString())</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select border-0 bg-light shadow-none" @bind="filterTeamId">
+                        <option value="0">@Portuguese.Filter_ByTeam</option>
+                        @if (teams != null)
+                        {
+                            @foreach (var team in teams) { <option value="@team.Id">@team.Name</option> }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-center justify-content-end">
+                    <button class="btn btn-link text-muted small text-decoration-none" @onclick="ClearFilters">
+                        <i class="fa-solid fa-eraser me-1"></i>Limpar
+                    </button>
+                </div>
             </div>
         </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        @if (loading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted fw-bold">Sincronizando pessoal...</p>
+            </div>
+        }
+        else if (filteredUsers == null || !filteredUsers.Any())
+        {
+            <SeronaEmptyState Icon="fa-solid fa-user-slash" Title="@Portuguese.Msg_NoDataFound" Description="Nenhum usuário corresponde aos critérios de busca." />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover my-0 align-middle">
+                    <thead>
+                        <tr class="bg-light text-muted small uppercase fw-bold">
+                            <th class="ps-4">@Portuguese.User_Name</th>
+                            <th>@Portuguese.Team_Title</th>
+                            <th>@Portuguese.User_Role</th>
+                            <th class="text-center">@Portuguese.Workload</th>
+                            <th>@Portuguese.User_Status</th>
+                            <th class="text-end pe-4">@Portuguese.Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in filteredUsers)
+                        {
+                            <tr @key="user.Id">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="position-relative me-3">
+                                            <img src="@(string.IsNullOrEmpty(user.AvatarUrl) ? "/img/avatars/avatar.jpg" : user.AvatarUrl)" 
+                                                 class="rounded-circle border" width="38" height="38" alt="Avatar" />
+                                            @if (user.IsActive) { <span class="position-absolute bottom-0 end-0 bg-success rounded-circle border border-2 border-white" style="width: 12px; height: 12px;"></span> }
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@user.FullName</div>
+                                            <div class="xsmall text-muted">@user.Email</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(user.SewingTeamName)) { <span class="badge bg-info-soft text-info px-2 py-1">@user.SewingTeamName</span> }
+                                    else { <span class="text-muted small italic">Sem equipe</span> }
+                                </td>
+                                <td>
+                                    <div class="small fw-bold">@TranslateRole(user.Role.ToString())</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge @(user.AssignedOrdersCount > 3 ? "bg-danger-soft text-danger" : "bg-primary-soft text-primary") rounded-pill px-3">
+                                        @user.AssignedOrdersCount OPs
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (user.IsActive) { <span class="badge bg-success-soft text-success">@Portuguese.User_Active</span> }
+                                    else { <span class="badge bg-danger-soft text-danger">@Portuguese.User_Inactive</span> }
+                                </td>
+                                <td class="text-end pe-4 text-nowrap">
+                                    <button class="btn btn-sm btn-light shadow-none me-1" @onclick="() => EditUser(user)" title="@Portuguese.Edit">
+                                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                                    </button>
+                                    @if (user.Email != "administrador@serona.com")
+                                    {
+                                        <button class="btn btn-sm btn-light shadow-none text-danger" @onclick="() => DeleteUser(user.Id)" title="@Portuguese.Deactivate">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
 @if (showModal)
 {
-    <div class="modal fade show d-block animate-fade-in" tabindex="-1" style="background-color: rgba(21, 22, 40, 0.6); backdrop-filter: blur(4px);">
+    <div class="modal fade show d-block animate-fade-in" tabindex="-1" style="background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0 overflow-hidden" style="border-radius: 20px;">
-                <div class="modal-header bg-primary py-3 border-0">
-                    <h5 class="modal-title fw-bold text-white">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary py-3">
+                    <h5 class="modal-title text-white fw-bold">
                         <i class="fa-solid @(isEditing ? "fa-user-pen" : "fa-user-plus") me-2"></i>
                         @(isEditing ? Portuguese.Edit : Portuguese.Create) @Portuguese.User_User
                     </h5>
@@ -132,7 +169,7 @@
                 <div class="modal-body p-4">
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
-                        <div class="alert alert-danger d-flex align-items-center mb-4 rounded-3 border-0 shadow-sm">
+                        <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4">
                             <i class="fa-solid fa-circle-exclamation me-2"></i>
                             <div class="small">@errorMessage</div>
                         </div>
@@ -140,70 +177,55 @@
                     <EditForm Model="userModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
                         
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
+                        <div class="row g-3">
+                            <div class="col-12">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Name</label>
-                                <InputText class="form-control" @bind-Value="userModel.FullName" placeholder="@Portuguese.User_FullNamePlaceholder" />
+                                <InputText class="form-control border-2 shadow-none" @bind-Value="userModel.FullName" placeholder="@Portuguese.User_FullNamePlaceholder" />
                                 <ValidationMessage For="@(() => userModel.FullName)" class="text-danger xsmall mt-1" />
                             </div>
 
-                            <div class="col-md-12 mb-3">
+                            <div class="col-12">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Email</label>
-                                <InputText class="form-control" @bind-Value="userModel.Email" placeholder="@Portuguese.User_EmailPlaceholder" />
+                                <InputText class="form-control border-2 shadow-none" @bind-Value="userModel.Email" placeholder="@Portuguese.User_EmailPlaceholder" />
                                 <ValidationMessage For="@(() => userModel.Email)" class="text-danger xsmall mt-1" />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Password @(isEditing ? "*" : "")</label>
                                 <div class="input-group">
-                                    <InputText type="@(showPassword ? "text" : "password")" class="form-control" @bind-Value="userModel.Password" placeholder="Min. 6 caracteres" />
-                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showPassword = !showPassword">
+                                    <InputText type="@(showPassword ? "text" : "password")" class="form-control border-2 shadow-none border-end-0" @bind-Value="userModel.Password" placeholder="Min. 6" />
+                                    <button class="btn btn-outline-light border-2 border-start-0 text-muted" type="button" @onclick="() => showPassword = !showPassword">
                                         <i class="fa-solid @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
                                     </button>
                                 </div>
-                                @if(isEditing) { <small class="text-muted xsmall d-block mt-1">@Portuguese.User_PassHint</small> }
                                 <ValidationMessage For="@(() => userModel.Password)" class="text-danger xsmall mt-1" />
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold text-muted">Confirmar Senha</label>
-                                <div class="input-group">
-                                    <InputText type="@(showConfirmPassword ? "text" : "password")" class="form-control" @bind-Value="userModel.ConfirmPassword" placeholder="Repita a senha" />
-                                    <button class="btn btn-outline-light border text-muted" type="button" @onclick="() => showConfirmPassword = !showConfirmPassword">
-                                        <i class="fa-solid @(showConfirmPassword ? "fa-eye-slash" : "fa-eye")"></i>
-                                    </button>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.Prof_ConfirmPass</label>
+                                <InputText type="password" class="form-control border-2 shadow-none" @bind-Value="userModel.ConfirmPassword" />
                                 <ValidationMessage For="@(() => userModel.ConfirmPassword)" class="text-danger xsmall mt-1" />
                             </div>
 
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">@Portuguese.User_Role</label>
-                                <InputSelect class="form-select" @bind-Value="userModel.Role">
-                                    @foreach (var role in Enum.GetValues<UserRole>())
-                                    {
-                                        <option @key="role" value="@role">@TranslateRole(role.ToString())</option>
-                                    }
+                                <InputSelect class="form-select border-2 shadow-none" @bind-Value="userModel.Role">
+                                    @foreach (var role in Enum.GetValues<UserRole>()) { <option value="@role">@TranslateRole(role.ToString())</option> }
                                 </InputSelect>
                             </div>
 
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label small fw-bold text-muted">Equipe de Costura (Opcional)</label>
-                                <InputSelect class="form-select" @bind-Value="userModel.SewingTeamId">
-                                    <option value="">Nenhuma equipe</option>
-                                    @if (teams != null)
-                                    {
-                                        @foreach (var team in teams)
-                                        {
-                                            <option value="@team.Id">@team.Name</option>
-                                        }
-                                    }
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.Team_Title</label>
+                                <InputSelect class="form-select border-2 shadow-none" @bind-Value="userModel.SewingTeamId">
+                                    <option value="">-- @Portuguese.Select --</option>
+                                    @if (teams != null) { @foreach (var team in teams) { <option value="@team.Id">@team.Name</option> } }
                                 </InputSelect>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                             <button type="button" class="btn btn-light px-4" @onclick="CloseModal">@Portuguese.Cancel</button>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm" disabled="@isSaving">
+                            <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="@isSaving">
                                 @if (isSaving) { <span class="spinner-border spinner-border-sm me-2"></span> }
                                 <i class="fa-solid fa-save me-2"></i> @(isEditing ? Portuguese.Save : Portuguese.Create)
                             </button>
@@ -216,54 +238,75 @@
 }
 
 @code {
-    private List<UserDto>? users;
+    private List<UserDto>? allUsers;
+    private List<UserDto>? filteredUsers;
     private List<SewingTeamDto>? teams;
+    private string searchTerm = "";
+    private string filterRole = "";
+    private int filterTeamId = 0;
+    
     private bool loading = true;
     private bool showModal = false;
     private bool isEditing = false;
+    private bool isSaving = false;
     private UserFormModel userModel = new();
     private int editingUserId;
     private bool showPassword = false;
-    private bool showConfirmPassword = false;
     private string? errorMessage;
-    private bool isSaving = false;
+    private Timer? debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(LoadUsers(), LoadTeams());
+        debounceTimer = new Timer(300);
+        debounceTimer.Elapsed += OnDebounceElapsed;
+        debounceTimer.AutoReset = false;
     }
 
     private async Task LoadTeams()
     {
-        try
-        {
+        try {
             var response = await Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
             if (response != null && response.Success) teams = response.Data;
-        }
-        catch { }
+        } catch { }
     }
 
     private async Task LoadUsers()
     {
-        try
-        {
+        try {
             loading = true;
             var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
-            if (response != null && response.Success) users = response.Data;
+            if (response != null && response.Success) {
+                allUsers = response.Data;
+                FilterUsers();
+            }
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            NavigationManager.NavigateTo("/login");
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Error}: {ex.Message}", ToastLevel.Error);
-        }
-        finally
-        {
-            loading = false;
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        finally { loading = false; StateHasChanged(); }
     }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e) { debounceTimer?.Stop(); debounceTimer?.Start(); }
+    private void OnDebounceElapsed(object? sender, ElapsedEventArgs e) { InvokeAsync(() => { FilterUsers(); StateHasChanged(); }); }
+
+    private void FilterUsers()
+    {
+        var query = allUsers?.AsQueryable();
+        if (query == null) return;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query = query.Where(u => u.FullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                                     u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(filterRole))
+            query = query.Where(u => u.Role.ToString() == filterRole);
+
+        if (filterTeamId != 0)
+            query = query.Where(u => u.SewingTeamId == filterTeamId);
+
+        filteredUsers = query.ToList();
+    }
+
+    private void ClearFilters() { searchTerm = ""; filterRole = ""; filterTeamId = 0; FilterUsers(); }
 
     private void ShowCreateModal()
     {
@@ -278,18 +321,58 @@
         isEditing = true;
         errorMessage = null;
         editingUserId = user.Id;
-        userModel = new UserFormModel
-        {
-            FullName = user.FullName,
-            Email = user.Email,
-            Role = user.Role,
-            SewingTeamId = user.SewingTeamId
-        };
+        userModel = new UserFormModel { FullName = user.FullName, Email = user.Email, Role = user.Role, SewingTeamId = user.SewingTeamId };
         showModal = true;
     }
 
-    private string TranslateRole(string role) => role switch
+    private async Task HandleSubmit()
     {
+        if (isSaving) return;
+        if (!string.IsNullOrEmpty(userModel.Password) && userModel.Password != userModel.ConfirmPassword) {
+            ToastService.ShowToast("As senhas não coincidem.", ToastLevel.Warning);
+            return;
+        }
+
+        isSaving = true;
+        try {
+            ApiResponse<UserDto>? apiResp;
+            if (isEditing) {
+                var req = new UpdateUserRequest { FullName = userModel.FullName, Email = userModel.Email, Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password, Role = userModel.Role, SewingTeamId = userModel.SewingTeamId };
+                var response = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", req);
+                apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
+            } else {
+                var req = new CreateUserRequest { FullName = userModel.FullName, Email = userModel.Email, Password = userModel.Password, Role = userModel.Role, SewingTeamId = userModel.SewingTeamId };
+                var response = await Http.PostAsJsonAsync("api/Users", req);
+                apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
+            }
+
+            if (apiResp?.Success == true) {
+                await LoadUsers();
+                showModal = false;
+                ToastService.ShowToast(apiResp.Message ?? Portuguese.Success, ToastLevel.Success);
+            } else errorMessage = apiResp?.Message ?? "Erro ao salvar usuário.";
+        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+        finally { isSaving = false; }
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", Portuguese.ConfirmDeactivate)) {
+            try {
+                var response = await Http.DeleteAsync($"api/Users/{id}");
+                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+                if (apiResp?.Success == true) {
+                    await LoadUsers();
+                    ToastService.ShowToast(apiResp.Message ?? "Usuário desativado.", ToastLevel.Success);
+                } else ToastService.ShowToast(apiResp?.Message ?? "Erro ao desativar.", ToastLevel.Error);
+            } catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        }
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private string TranslateRole(string role) => role switch {
         "Administrator" => Portuguese.Role_Admin,
         "Leader" => Portuguese.Role_Leader,
         "Operational" => Portuguese.Role_Operator,
@@ -297,119 +380,14 @@
         _ => role
     };
 
-    private async Task HandleSubmit()
-    {
-        if (isSaving) return;
-        isSaving = true;
-        errorMessage = null;
+    public void Dispose() => debounceTimer?.Dispose();
 
-        try
-        {
-            ApiResponse<UserDto>? apiResp;
-            if (isEditing)
-            {
-                var req = new UpdateUserRequest
-                {
-                    FullName = userModel.FullName,
-                    Email = userModel.Email,
-                    Password = string.IsNullOrWhiteSpace(userModel.Password) ? null : userModel.Password,
-                    Role = userModel.Role,
-                    SewingTeamId = userModel.SewingTeamId
-                };
-                var response = await Http.PutAsJsonAsync($"api/Users/{editingUserId}", req);
-                apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
-            }
-            else
-            {
-                var req = new CreateUserRequest
-                {
-                    FullName = userModel.FullName,
-                    Email = userModel.Email,
-                    Password = userModel.Password,
-                    Role = userModel.Role,
-                    SewingTeamId = userModel.SewingTeamId
-                };
-                var response = await Http.PostAsJsonAsync("api/Users", req);
-                apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
-            }
-
-            if (apiResp != null && apiResp.Success && apiResp.Data != null)
-            {
-                if (isEditing)
-                {
-                    var idx = users?.FindIndex(u => u.Id == apiResp.Data.Id) ?? -1;
-                    if (idx != -1) users![idx] = apiResp.Data;
-                }
-                else
-                {
-                    users?.Add(apiResp.Data);
-                }
-
-                ToastService.ShowToast(apiResp.Message ?? (isEditing ? Portuguese.Msg_UserUpdated : Portuguese.Msg_UserCreated), ToastLevel.Success);
-                showModal = false;
-            }
-            else
-            {
-                errorMessage = apiResp?.Message ?? "Erro ao salvar usuário.";
-                ToastService.ShowToast(errorMessage, ToastLevel.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-            ToastService.ShowToast(errorMessage, ToastLevel.Error);
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task DeleteUser(int id)
-    {
-        if (await JS.InvokeAsync<bool>("confirm", new object[] { Portuguese.ConfirmDeactivate }))
-        {
-            try 
-            {
-                var response = await Http.DeleteAsync($"api/Users/{id}");
-                var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
-                
-                if (apiResp?.Success == true)
-                {
-                    var u = users?.FirstOrDefault(x => x.Id == id);
-                    if (u != null) users?.Remove(u);
-                    ToastService.ShowToast(apiResp.Message ?? "Usuário desativado.", ToastLevel.Success);
-                }
-                else 
-                {
-                    ToastService.ShowToast(apiResp?.Message ?? "Erro ao desativar.", ToastLevel.Error);
-                }
-            }
-            catch (Exception ex) 
-            { 
-                ToastService.ShowToast(ex.Message, ToastLevel.Error); 
-            }
-            finally
-            {
-                StateHasChanged();
-            }
-        }
-    }
-
-    private void CloseModal() => showModal = false;
-
-    [Inject] IJSRuntime JS { get; set; } = default!;
-
-    public class UserFormModel
-    {
+    public class UserFormModel {
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Nome é obrigatório")]
         public string FullName { get; set; } = "";
-        
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email es obligatorio")]
-        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Email inválido")]
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "E-mail é obrigatório")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "E-mail inválido")]
         public string Email { get; set; } = "";
-        
         public string Password { get; set; } = "";
         public string ConfirmPassword { get; set; } = "";
         public UserRole Role { get; set; } = UserRole.Operational;

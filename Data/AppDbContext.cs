@@ -55,6 +55,7 @@ public class AppDbContext : DbContext
     public DbSet<BonusRule> BonusRules { get; set; }
     public DbSet<QADefect> QADefects { get; set; }
     public DbSet<OperationalTask> OperationalTasks { get; set; }
+    public DbSet<OperationalTaskHistory> OperationalTaskHistories { get; set; }
     public DbSet<ProductionOrderSize> ProductionOrderSizes { get; set; }
     public DbSet<ProductionOrderOutput> ProductionOrderOutputs { get; set; }
 
@@ -109,7 +110,36 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<OperationalTask>()
+            .HasOne(t => t.LastModifiedBy)
+            .WithMany()
+            .HasForeignKey(t => t.LastModifiedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OperationalTask>()
             .Property(t => t.Status)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<OperationalTaskHistory>()
+            .HasOne(h => h.OperationalTask)
+            .WithMany()
+            .HasForeignKey(h => h.OperationalTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OperationalTaskHistory>()
+            .HasOne(h => h.ResponsibleUser)
+            .WithMany()
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OperationalTaskHistory>()
+            .Property(h => h.PreviousStatus)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<OperationalTaskHistory>()
+            .Property(h => h.NewStatus)
+            .HasConversion<string>()
             .HasMaxLength(50);
 
         // --- PRODUCT CONFIGURATION ---

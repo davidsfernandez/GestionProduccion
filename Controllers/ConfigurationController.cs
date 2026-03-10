@@ -3,7 +3,7 @@
  * 
  * This software and its associated documentation files are the exclusive property 
  * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
+ * or use of this software, via any medium, is strictly prohibited. 
  * 
  * Proprietary and Confidential.
  */
@@ -15,9 +15,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GestionProduccion.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Route("api/[controller]")]
 public class ConfigurationController : ControllerBase
 {
     private readonly ISystemConfigurationService _configService;
@@ -34,7 +33,7 @@ public class ConfigurationController : ControllerBase
         try
         {
             var config = await _configService.GetConfigurationAsync();
-            return Ok(ApiResponse<SystemConfigurationDto>.SuccessResult(config));
+            return Ok(ApiResponse<SystemConfigurationDto>.SuccessResult(config!));
         }
         catch (Exception ex)
         {
@@ -42,52 +41,62 @@ public class ConfigurationController : ControllerBase
         }
     }
 
-    [HttpGet("public")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PublicConfigurationDto>>> GetPublic()
-    {
-        try
-        {
-            var config = await _configService.GetPublicConfigurationAsync();
-            return Ok(ApiResponse<PublicConfigurationDto>.SuccessResult(config));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ApiResponse<PublicConfigurationDto>.FailureResult("Error retrieving public configuration", new List<string> { ex.Message }));
-        }
-    }
-
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<ActionResult<ApiResponse<object>>> Save([FromBody] SystemConfigurationDto request)
+    public async Task<ActionResult<ApiResponse<bool>>> Save([FromBody] SystemConfigurationDto dto)
     {
+        if (!ModelState.IsValid) return BadRequest(ApiResponse<bool>.FailureResult("Validation failed"));
+
         try
         {
-            await _configService.SaveConfigurationAsync(request);
-            return Ok(ApiResponse<object>.SuccessResult(null, "Configuration saved successfully"));
+            var success = await _configService.SaveConfigurationAsync(dto);
+            return Ok(ApiResponse<bool>.SuccessResult(success, "Configuration saved successfully"));
         }
-        catch (ArgumentException ex)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse<object>.FailureResult(ex.Message));
+            return BadRequest(ApiResponse<bool>.FailureResult(ex.Message));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ApiResponse<object>.FailureResult("Error saving configuration", new List<string> { ex.Message }));
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Error saving configuration", new List<string> { ex.Message }));
         }
     }
 
-    [HttpGet("logo")]
+    [HttpGet("public")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<LogoDto>>> GetLogo()
+    public async Task<ActionResult<PublicConfigurationDto>> GetPublicBranding()
     {
         try
         {
-            var logo = await _configService.GetLogoAsync();
-            return Ok(ApiResponse<LogoDto>.SuccessResult(new LogoDto { Base64Image = logo }));
+            var config = await _configService.GetConfigurationAsync();
+            return Ok(new PublicConfigurationDto
+            {
+                CompanyName = config.CompanyName,
+                LogoBase64 = config.LogoBase64,
+                ThemeName = config.ThemeName
+            });
+        }
+        catch
+        {
+            return Ok(new PublicConfigurationDto { CompanyName = "Serona ERP" });
+        }
+    }
+
+    [HttpPost("logo")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<ApiResponse<bool>>> UploadLogo([FromBody] LogoDto logoDto)
+    {
+        if (string.IsNullOrEmpty(logoDto.Base64Image))
+            return BadRequest(ApiResponse<bool>.FailureResult("No image data provided"));
+
+        try
+        {
+            var success = await _configService.UpdateLogoAsync(logoDto.Base64Image);
+            return Ok(ApiResponse<bool>.SuccessResult(success, "Logo updated successfully"));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ApiResponse<LogoDto>.FailureResult("Error retrieving logo", new List<string> { ex.Message }));
+            return StatusCode(500, ApiResponse<bool>.FailureResult("Error updating logo", new List<string> { ex.Message }));
         }
     }
 }

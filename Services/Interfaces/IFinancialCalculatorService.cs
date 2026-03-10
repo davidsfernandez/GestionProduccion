@@ -15,6 +15,11 @@ namespace GestionProduccion.Services.Interfaces;
 public interface IFinancialCalculatorService
 {
     Task CalculateFinalOrderCostAsync(ProductionOrder order);
+    
+    /// <summary>
+    /// Updates the order's costs and margins while production is still in progress (WIP).
+    /// </summary>
+    Task UpdateIntermediateCostAsync(ProductionOrder order);
 }
 
 

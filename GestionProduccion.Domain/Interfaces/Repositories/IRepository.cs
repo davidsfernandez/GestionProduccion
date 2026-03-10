@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -8,18 +8,14 @@
  * Proprietary and Confidential.
  */
 
-using GestionProduccion.Domain.Entities;
-
 namespace GestionProduccion.Domain.Interfaces.Repositories;
 
-public interface ISystemConfigurationRepository
+public interface IRepository<T> where T : class
 {
-    Task<SystemConfiguration?> GetAsync();
-    Task UpdateAsync(SystemConfiguration config);
-
-    // Legacy support
-    Task<string?> GetValueAsync(string key);
-    Task SetValueAsync(string key, string? value);
+    Task<T?> GetByIdAsync(int id);
+    Task<List<T>> GetAllAsync();
+    Task AddAsync(T entity);
+    Task UpdateAsync(T entity);
+    Task DeleteAsync(T entity);
+    Task SaveChangesAsync();
 }
-
-

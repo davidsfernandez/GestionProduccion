@@ -35,6 +35,7 @@ public class DashboardCompleteResponse
     public int DelayedOrdersCount { get; set; }
 
     public List<WorkshopProductionDto> ProductionByWorkshop { get; set; } = new();
+    public List<RankingEntryDto> OperatorRanking { get; set; } = new();
     public List<TeamRankingDto> TeamRanking { get; set; } = new();
     public List<int> WeeklyVolumeData { get; set; } = new();
     public List<string> WeeklyLabels { get; set; } = new();

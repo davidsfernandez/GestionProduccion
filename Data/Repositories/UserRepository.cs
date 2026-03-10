@@ -29,6 +29,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.SewingTeam)
+            .Include(u => u.AssignedOrders)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
@@ -36,6 +37,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.SewingTeam)
+            .Include(u => u.AssignedOrders)
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
@@ -43,6 +45,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.SewingTeam)
+            .Include(u => u.AssignedOrders)
             .AsNoTracking()
             .Where(u => u.IsActive)
             .ToListAsync();

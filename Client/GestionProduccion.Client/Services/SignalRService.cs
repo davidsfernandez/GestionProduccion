@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -20,6 +20,7 @@ namespace GestionProduccion.Client.Services
         Task StopConnection();
         event Action<int, string, string>? OnUpdateReceived;
         event Action<string, string>? OnMessageReceived; // message, type
+        event Action<int, string, string>? OnNotificationReceived; // userId, title, message
     }
 
     public class SignalRService : ISignalRService
@@ -28,6 +29,7 @@ namespace GestionProduccion.Client.Services
 
         public event Action<int, string, string>? OnUpdateReceived;
         public event Action<string, string>? OnMessageReceived;
+        public event Action<int, string, string>? OnNotificationReceived;
 
         private Task? _startTask;
 
@@ -57,26 +59,18 @@ namespace GestionProduccion.Client.Services
                     await Task.CompletedTask;
                 };
 
-                _hubConnection.Reconnecting += async (error) =>
-                {
-                    Console.WriteLine($"SignalR Reconnecting...: {error?.Message}");
-                    await Task.CompletedTask;
-                };
-
-                _hubConnection.Reconnected += async (connectionId) =>
-                {
-                    Console.WriteLine($"SignalR Reconnected. New ID: {connectionId}");
-                    await Task.CompletedTask;
-                };
-
                 _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>
                 {
                     OnUpdateReceived?.Invoke(opId, novaEtapa, novoStatus);
                 });
 
+                _hubConnection.On<int, string, string>("ReceiveNotification", (userId, title, message) =>
+                {
+                    OnNotificationReceived?.Invoke(userId, title, message);
+                });
+
                 _hubConnection.On<object>("ReceiveMessage", (data) =>
                 {
-                    // Basic parsing for message notifications
                     try
                     {
                         var json = System.Text.Json.JsonSerializer.Serialize(data);
@@ -92,10 +86,6 @@ namespace GestionProduccion.Client.Services
                 _startTask = _hubConnection.StartAsync();
                 await _startTask;
                 Console.WriteLine("SignalR Connected successfully.");
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("SignalR Connection attempt cancelled.");
             }
             catch (Exception ex)
             {
@@ -114,14 +104,7 @@ namespace GestionProduccion.Client.Services
                         await _hubConnection.StopAsync();
                     }
                 }
-                catch (OperationCanceledException)
-                {
-                    // Safe to ignore
-                }
-                catch (Exception)
-                {
-                    // Silent stop error
-                }
+                catch (Exception) { }
                 finally
                 {
                     await _hubConnection.DisposeAsync();
@@ -132,5 +115,3 @@ namespace GestionProduccion.Client.Services
         }
     }
 }
-
-

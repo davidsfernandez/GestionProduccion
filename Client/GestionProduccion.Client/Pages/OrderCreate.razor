@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -26,7 +26,6 @@
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
 
-@using GestionProduccion.Client.Resources
 
 <PageTitle>@Portuguese.OP_Create_Title</PageTitle>
 
@@ -281,7 +280,7 @@
             
             // Parallel loading using standardized clients where possible
             var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions); 
-            var productsTask = ProductClient.GetAllProductsAsync();
+            var productsTask = ProductClient.GetAllAsync();
             var teamsTask = SewingTeamClient.GetAllTeamsAsync();
 
             await Task.WhenAll(usersTask, productsTask, teamsTask);

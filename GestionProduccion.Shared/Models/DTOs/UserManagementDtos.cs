@@ -24,6 +24,7 @@ public class UserDto
     public bool IsActive { get; set; }
     public int? SewingTeamId { get; set; }
     public string? SewingTeamName { get; set; }
+    public int AssignedOrdersCount { get; set; }
 }
 
 public class CreateUserRequest

@@ -12,6 +12,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Application.Mappers;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestionProduccion.Services;
@@ -20,22 +21,28 @@ public class BonusCalculationService : IBonusCalculationService
 {
     private readonly ISewingTeamRepository _teamRepo;
     private readonly IProductionOrderRepository _orderRepo;
+    private readonly IProductRepository _productRepo;
     private readonly IBonusRuleRepository _ruleRepo;
     private readonly IQAService _qaService;
     private readonly IProductionOrderOutputRepository _outputRepo;
+    private readonly MainMapper _mapper;
 
     public BonusCalculationService(
         ISewingTeamRepository teamRepo,
         IProductionOrderRepository orderRepo,
+        IProductRepository productRepo,
         IBonusRuleRepository ruleRepo,
         IQAService qaService,
-        IProductionOrderOutputRepository outputRepo)
+        IProductionOrderOutputRepository outputRepo,
+        MainMapper mapper)
     {
         _teamRepo = teamRepo;
         _orderRepo = orderRepo;
+        _productRepo = productRepo;
         _ruleRepo = ruleRepo;
         _qaService = qaService;
         _outputRepo = outputRepo;
+        _mapper = mapper;
     }
 
     public async Task<BonusReportDto> CalculateTeamBonusAsync(int teamId, DateTime startDate, DateTime endDate)
@@ -99,10 +106,30 @@ public class BonusCalculationService : IBonusCalculationService
                 .Sum(d => d.Quantity);
         }
 
-        // --- CALCULATIONS ---
+        // 1. Productivity Calculation: (Standard Time / Effective Time) * Rule Percentage
+        double totalStandardMinutes = 0;
+        double totalEffectiveMinutes = 0;
 
-        // 1. Productivity (Based on meta if available, else standard bonus if they produced anything)
-        decimal productivityBonus = (decimal)rule.ProductivityPercentage;
+        foreach (var order in teamOrders)
+        {
+            var product = await _productRepo.GetByIdAsync(order.ProductId);
+            if (product != null)
+            {
+                totalStandardMinutes += product.AverageProductionTimeMinutes * order.Quantity;
+                totalEffectiveMinutes += order.EffectiveMinutes;
+            }
+        }
+
+        decimal efficiencyFactor = 1;
+        if (totalEffectiveMinutes > 0 && totalStandardMinutes > 0)
+        {
+            efficiencyFactor = (decimal)(totalStandardMinutes / totalEffectiveMinutes);
+            // Cap efficiency factor between 0.5 and 1.5 to avoid extreme bonus fluctuations
+            if (efficiencyFactor > 1.5m) efficiencyFactor = 1.5m;
+            if (efficiencyFactor < 0.5m) efficiencyFactor = 0.5m;
+        }
+
+        decimal productivityBonus = (decimal)rule.ProductivityPercentage * efficiencyFactor;
 
         // 2. Deadline Performance
         decimal onTimeRatio = teamOrders.Any() ? (decimal)onTimeOrders / teamOrders.Count : 1;
@@ -151,21 +178,10 @@ public class BonusCalculationService : IBonusCalculationService
 
         // 1. Get all partial/total outputs for this user in the date range
         var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
-
-        if (!outputs.Any())
-        {
-            return new BonusReportDto
-            {
-                TeamName = user.FullName,
-                FinalBonusPercentage = 0,
-                TotalProduced = 0,
-                CompletedOrders = 0
-            };
-        }
-
         int totalProduced = outputs.Sum(o => o.Quantity);
-        var involvedOrderIds = outputs.Select(o => o.ProductionOrderId).Distinct();
-        
+        var involvedOrderIds = outputs.Select(o => o.ProductionOrderId).Distinct().ToList();
+
+        // Calculate individual metrics
         int totalDefects = 0;
         foreach (var orderId in involvedOrderIds)
         {
@@ -175,20 +191,30 @@ public class BonusCalculationService : IBonusCalculationService
                 .Sum(d => d.Quantity);
         }
 
+        // Individual base metrics
         decimal productivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
+        decimal individualBonus = defectRatio > 5 ? 0 : productivityBonus;
+        decimal deadlinePerformance = totalProduced > 0 ? 100 : 0; // Simple fallback for individual
 
-        decimal individualBonus = productivityBonus;
-        if (defectRatio > 5) individualBonus = 0;
-
-        // 2. Get Team Bonus Share (if part of a team)
+        // 2. Get Team Bonus Share (Crucial: Do this even if individual production is 0)
         decimal teamShare = 0;
         if (user.SewingTeamId.HasValue)
         {
             var teamReport = await CalculateTeamBonusAsync(user.SewingTeamId.Value, startDate, endDate);
             var team = await _teamRepo.GetTeamWithMembersAsync(user.SewingTeamId.Value);
             int teamMembersCount = team?.Members.Count ?? 1;
+            
             teamShare = teamReport.FinalBonusPercentage / Math.Max(1, teamMembersCount);
+            
+            // If individual has no data, inherit team's performance metrics for the radar chart
+            if (totalProduced == 0)
+            {
+                productivityBonus = teamReport.ProductivityPercentage;
+                defectRatio = teamReport.DefectPercentage;
+                deadlinePerformance = teamReport.DeadlinePerformance;
+                totalProduced = teamReport.TotalProduced / Math.Max(1, teamMembersCount); // Proportional
+            }
         }
 
         decimal finalBonus = individualBonus + teamShare;
@@ -196,7 +222,8 @@ public class BonusCalculationService : IBonusCalculationService
         return new BonusReportDto
         {
             TeamName = user.FullName,
-            ProductivityPercentage = individualBonus,
+            ProductivityPercentage = Math.Round(productivityBonus, 2),
+            DeadlinePerformance = Math.Round(deadlinePerformance, 2),
             DefectPercentage = Math.Round(defectRatio, 2),
             FinalBonusPercentage = Math.Round(finalBonus, 2),
             CompletedOrders = involvedOrderIds.Count(),

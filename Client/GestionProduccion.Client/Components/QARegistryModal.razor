@@ -1,4 +1,4 @@
-Ôªø@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -46,7 +46,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">@Portuguese.QA_Photo (Opcional)</label>
                         <InputFile class="form-control" OnChange="OnInputFileChange" accept=".jpg,.png,.jpeg" />
-                        <div class="form-text xsmall">M√°ximo 5MB (JPG/PNG).</div>
+                        <div class="form-text xsmall">M·ximo 5MB (JPG/PNG).</div>
                     </div>
 
                     @if (isUploading)
@@ -120,10 +120,10 @@
 
     public class DefectFormModel
     {
-        [Required(ErrorMessage = "O motivo √© obrigat√≥rio")]
+        [Required(ErrorMessage = "O motivo È obrigatÛrio")]
         public string Reason { get; set; } = string.Empty;
 
-        [Range(1, 1000, ErrorMessage = "Quantidade inv√°lida")]
+        [Range(1, 1000, ErrorMessage = "Quantidade inv·lida")]
         public int Quantity { get; set; } = 1;
     }
 }

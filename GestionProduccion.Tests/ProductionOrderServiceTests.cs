@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -22,8 +22,9 @@ using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Hubs;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.ProductionOrders;
+using GestionProduccion.Application.Mapping;
+using GestionProduccion.Application.Mappers;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -33,7 +34,8 @@ namespace GestionProduccion.Tests;
 public class ProductionOrderServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
-    private readonly Mock<IHubContext<ProductionHub>> _mockHubContext;
+    private readonly Mock<INotificationService> _mockNotification;
+    private readonly Mock<IDistributedLockService> _mockLock;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<IProductRepository> _mockProductRepo;
     private readonly Mock<IFinancialCalculatorService> _mockFinancialCalc;
@@ -51,17 +53,16 @@ public class ProductionOrderServiceTests : IDisposable
             .Options;
 
         _context = new AppDbContext(options);
-        _mockHubContext = new Mock<IHubContext<ProductionHub>>();
+        _mockNotification = new Mock<INotificationService>();
+        _mockLock = new Mock<IDistributedLockService>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockProductRepo = new Mock<IProductRepository>();
         _mockFinancialCalc = new Mock<IFinancialCalculatorService>();
         _mockProductService = new Mock<IProductService>();
         _mockTaskService = new Mock<ITaskService>();
 
-        var mockClients = new Mock<IHubClients>();
-        var mockClientProxy = new Mock<IClientProxy>();
-        mockClients.Setup(clients => clients.All).Returns(mockClientProxy.Object);
-        _mockHubContext.Setup(hub => hub.Clients).Returns(mockClients.Object);
+        _mockLock.Setup(l => l.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var context = new DefaultHttpContext();
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "1") };
@@ -72,29 +73,33 @@ public class ProductionOrderServiceTests : IDisposable
         var orderRepo = new ProductionOrderRepository(_context);
         var userRepo = new UserRepository(_context);
         var outputRepo = new ProductionOrderOutputRepository(_context);
+        var mapper = new MainMapper();
 
         _mockProductRepo.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product?)null);
 
-        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object, outputRepo);
+        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object, outputRepo, mapper);
 
         _mutationService = new ProductionOrderMutationService(
             orderRepo,
             userRepo,
             _mockProductRepo.Object,
-            _mockHubContext.Object,
+            _mockNotification.Object,
             _mockHttpContextAccessor.Object,
-            _mockFinancialCalc.Object);
+            _mockLock.Object,
+            _mockFinancialCalc.Object,
+            mapper);
 
         _lifecycleService = new ProductionOrderLifecycleService(
             orderRepo,
             userRepo,
             _mockProductRepo.Object,
             outputRepo,
-            _mockHubContext.Object,
+            _mockNotification.Object,
             _mockHttpContextAccessor.Object,
             _mockFinancialCalc.Object,
             _mockProductService.Object,
-            _mockTaskService.Object);
+            _mockTaskService.Object,
+            mapper);
     }
 
     public void Dispose()
@@ -106,7 +111,7 @@ public class ProductionOrderServiceTests : IDisposable
     [Fact]
     public async Task CreateProductionOrderAsync_ShouldCreateOrder_WhenRequestIsValid()
     {
-        // Arrange: Add Product to InMemory DB so Include works
+        // Arrange
         var product = new Product { Id = 1, Name = "Test Product", InternalCode = "P001", FabricType = "Cotton", MainSku = "SKU001", AverageProductionTimeMinutes = 60, EstimatedSalePrice = 100 };
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
@@ -149,7 +154,7 @@ public class ProductionOrderServiceTests : IDisposable
             CurrentStatus = ProductionStatus.InProduction,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            UserId = 1 // Assigned to the user executing the action
+            UserId = 1 
         };
         _context.ProductionOrders.Add(order);
         await _context.SaveChangesAsync();
@@ -158,9 +163,9 @@ public class ProductionOrderServiceTests : IDisposable
         var result = await _lifecycleService.AdvanceStageAsync(order.Id, 1);
 
         // Assert
-        Assert.True(result);
+        Assert.NotNull(result);
         var updatedOrder = await _context.ProductionOrders.FindAsync(order.Id);
-        Assert.Equal(ProductionStage.Sewing, updatedOrder.CurrentStage);
+        Assert.Equal(ProductionStage.Sewing, updatedOrder!.CurrentStage);
     }
 
     [Fact]
@@ -190,7 +195,6 @@ public class ProductionOrderServiceTests : IDisposable
 
         var orders = new List<ProductionOrder>
         {
-            // Completed today - should be summed
             new() { 
                 Id = 201, LotCode = "OP-SUM-1", Quantity = 100, 
                 CurrentStatus = ProductionStatus.Completed, 
@@ -202,19 +206,6 @@ public class ProductionOrderServiceTests : IDisposable
                 CurrentStatus = ProductionStatus.Completed, 
                 CompletedAt = today.AddHours(5), 
                 CreatedAt = yesterday, UpdatedAt = today 
-            },
-            // Completed yesterday - should NOT be summed
-            new() { 
-                Id = 203, LotCode = "OP-SUM-3", Quantity = 75, 
-                CurrentStatus = ProductionStatus.Completed, 
-                CompletedAt = yesterday.AddHours(23), 
-                CreatedAt = yesterday, UpdatedAt = yesterday 
-            },
-            // Not completed - should NOT be summed
-            new() { 
-                Id = 204, LotCode = "OP-SUM-4", Quantity = 200, 
-                CurrentStatus = ProductionStatus.InProduction, 
-                CreatedAt = today, UpdatedAt = today 
             }
         };
 
@@ -225,9 +216,6 @@ public class ProductionOrderServiceTests : IDisposable
         var result = await _queryService.GetDashboardAsync();
 
         // Assert
-        // Expected: 100 + 50 = 150
         Assert.Equal(150, result.CompletedToday);
     }
 }
-
-

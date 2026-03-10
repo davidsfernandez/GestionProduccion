@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -10,33 +10,32 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using GestionProduccion.Domain.Enums;
 
 namespace GestionProduccion.Domain.Entities;
 
-public class OperationalTask
+public class Product
 {
     [Key]
     public int Id { get; set; }
 
     [Required]
     [StringLength(100)]
-    public string Title { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
-    [StringLength(500)]
-    public string Description { get; set; } = string.Empty;
+    [Required]
+    [StringLength(50)]
+    public string InternalCode { get; set; } = string.Empty;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Required]
+    [StringLength(50)]
+    public string FabricType { get; set; } = string.Empty;
 
-    public DateTime? Deadline { get; set; }
+    [Required]
+    [StringLength(50)]
+    public string MainSku { get; set; } = string.Empty;
 
-    public DateTime? CompletionDate { get; set; }
+    public double AverageProductionTimeMinutes { get; set; }
 
-    public OpTaskStatus Status { get; set; } = OpTaskStatus.Pending;
-
-    public int? AssignedUserId { get; set; }
-    [ForeignKey("AssignedUserId")]
-    public virtual User? AssignedUser { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal EstimatedSalePrice { get; set; }
 }
-
-

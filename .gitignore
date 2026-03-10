@@ -100,8 +100,11 @@ appsettings.Development.json
 .copilot/
 .github/copilot/
 
-# Gemini CLI temp files
-.gemini/tmp/
+# Gemini CLI and AI artifacts
+.gemini/
+.agents/
+.cursorrules
+.cursor/
 
 # Publish and Test output folders
 test_publish/

@@ -21,7 +21,9 @@ public interface IProductionOrderQueryService
     Task<ProductionOrderDto?> GetProductionOrderByIdAsync(int id, CancellationToken ct = default);
     Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int pageNumber = 1, int pageSize = 10, CancellationToken ct = default);
     Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default);
+    Task<TvDashboardDto> GetTvDashboardAsync(CancellationToken ct = default);
     Task<List<ProductionHistoryDto>> GetHistoryByProductionOrderIdAsync(int orderId, CancellationToken ct = default);
+    Task<List<ProductionOrderOutputDto>> GetOutputsByOrderIdAsync(int orderId, CancellationToken ct = default);
     Task<List<ProductionOrderDto>> GetTeamProductionOrdersAsync(int userId, CancellationToken ct = default);
 }
 

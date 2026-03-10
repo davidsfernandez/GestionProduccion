@@ -45,16 +45,7 @@ public class QAController : ControllerBase
                 ReportedByUserId = userId
             };
 
-            var defect = await _qaService.RegisterDefectAsync(dto, PhotoFile);
-            var result = new QADefectDto
-            {
-                Id = defect.Id,
-                Reason = defect.Reason,
-                Quantity = defect.Quantity,
-                ReportedAt = defect.ReportedAt,
-                PhotoUrl = defect.PhotoUrl
-            };
-
+            var result = await _qaService.RegisterDefectAsync(dto, PhotoFile);
             return Ok(ApiResponse<QADefectDto>.SuccessResult(result, "Defect registered successfully"));
         }
         catch (Exception ex)
@@ -68,15 +59,7 @@ public class QAController : ControllerBase
     {
         try
         {
-            var defects = await _qaService.GetDefectsByOrderAsync(orderId);
-            var dtos = defects.Select(d => new QADefectDto
-            {
-                Id = d.Id,
-                Reason = d.Reason,
-                Quantity = d.Quantity,
-                ReportedAt = d.ReportedAt
-            }).ToList();
-
+            var dtos = await _qaService.GetDefectsByOrderAsync(orderId);
             return Ok(ApiResponse<List<QADefectDto>>.SuccessResult(dtos));
         }
         catch (Exception ex)
@@ -91,7 +74,7 @@ public class QAController : ControllerBase
         try
         {
             await _qaService.DeleteDefectAsync(id);
-            return Ok(ApiResponse<object>.SuccessResult(null, "Defect deleted successfully"));
+            return Ok(ApiResponse<object>.SuccessResult(null!, "Defect deleted successfully"));
         }
         catch (Exception ex)
         {

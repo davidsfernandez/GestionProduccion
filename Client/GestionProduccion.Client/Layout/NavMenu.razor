@@ -8,7 +8,6 @@
  * Proprietary and Confidential.
  *@
 
-@using GestionProduccion.Client.Resources
 @using Microsoft.AspNetCore.Components.Authorization
 @using GestionProduccion.Models.DTOs
 @using System.Net.Http.Json
@@ -42,7 +41,7 @@
                         <div class="bg-primary position-absolute bottom-0 end-0 rounded-circle border border-dark" 
                              style="width: 14px; height: 14px; border-width: 2px !important;"></div>
                     </div>
-                    <span class="profile-name">@(context.User.Identity?.Name ?? Portuguese.User_User)</span>
+                    <span class="profile-name">@(UserState.UserName ?? context.User.Identity?.Name ?? Portuguese.User_User)</span>
                     <span class="profile-role">
                         @TranslateRole(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
                     </span>

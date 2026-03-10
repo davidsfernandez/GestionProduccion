@@ -48,7 +48,7 @@ public class FinancialCalculatorServiceTests
         };
 
         var config = new SystemConfiguration { OperationalHourlyCost = 50m };
-        _mockConfigRepo.Setup(r => r.GetAsync()).ReturnsAsync(config);
+        _mockConfigRepo.Setup(r => r.GetByKeyAsync("MainConfig")).ReturnsAsync(config);
 
         var product = new Product { Id = 1, EstimatedSalePrice = 20m }; // Sale Price $20
         _mockProductRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
@@ -75,7 +75,7 @@ public class FinancialCalculatorServiceTests
         };
 
         var config = new SystemConfiguration { OperationalHourlyCost = 100m };
-        _mockConfigRepo.Setup(r => r.GetAsync()).ReturnsAsync(config);
+        _mockConfigRepo.Setup(r => r.GetByKeyAsync("MainConfig")).ReturnsAsync(config);
         _mockProductRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product)null!);
 
         // Act
@@ -102,7 +102,7 @@ public class FinancialCalculatorServiceTests
         };
 
         var config = new SystemConfiguration { OperationalHourlyCost = 10m };
-        _mockConfigRepo.Setup(r => r.GetAsync()).ReturnsAsync(config);
+        _mockConfigRepo.Setup(r => r.GetByKeyAsync("MainConfig")).ReturnsAsync(config);
 
         // Act
         await _service.CalculateFinalOrderCostAsync(order);

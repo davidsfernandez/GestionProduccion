@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -12,83 +12,114 @@
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
 @using System.Text.Json
+@using GestionProduccion.Client.Services
+@using GestionProduccion.Resources
+@using GestionProduccion.Domain.Enums
 @attribute [Authorize(Roles = "Administrator,Leader")]
+@inject ISewingTeamClient TeamClient
 @inject HttpClient Http
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
 @inject ToastService ToastService
 @inject JsonSerializerOptions JsonOptions
-@using GestionProduccion.Client.Resources
+@inject ISignalRService SignalR
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
 
-<div class="container-fluid p-0">
+<PageTitle>@Portuguese.Team_Title</PageTitle>
+
+<div class="container-fluid p-0 animate-fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="h3 text-dark">@Portuguese.Team_Title</h3>
+        <h3 class="h3 text-dark mb-0 fw-bold">@Portuguese.Team_Title</h3>
         <div>
             @if (!HasEligibleUsers && !loading)
             {
-                <div class="alert alert-warning py-2 px-3 mb-0 d-inline-block me-3 small">
+                <div class="alert alert-warning py-2 px-3 mb-0 d-inline-block me-3 small border-0 shadow-sm">
                     <i class="fa-solid fa-triangle-exclamation me-2"></i>
                     @Portuguese.Team_ErrNoEligibleUsers
                 </div>
             }
-            <button class="btn btn-primary" @onclick="ShowCreateModal" disabled="@(!HasEligibleUsers)">
+            <button class="btn btn-primary shadow-sm" @onclick="ShowCreateModal" disabled="@(!HasEligibleUsers)">
                 <i class="fa-solid fa-plus me-2"></i>@Portuguese.Team_AddTeam
             </button>
         </div>
     </div>
 
-    @if (loading)
+    @if (loading && teams == null)
     {
-        <div class="d-flex justify-content-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">@Portuguese.Loading</span>
-            </div>
-        </div>
+        <SeronaLoader />
     }
     else if (teams == null || teams.Count == 0)
     {
-        <div class="alert alert-info">@Portuguese.Team_NoTeamsFound</div>
+        <SeronaEmptyState 
+            Icon="fa-solid fa-people-group" 
+            Title="@Portuguese.Team_NoTeamsFound" 
+            Description="Organize seus operários em equipes para melhor gestão de produção." />
     }
     else
     {
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>@Portuguese.Team_Name</th>
-                                <th>@Portuguese.Team_Members</th>
-                                <th>@Portuguese.OP_Status</th>
-                                <th class="text-end">@Portuguese.Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var team in teams)
+        <div class="row">
+            @foreach (var team in teams)
+            {
+                <div class="col-12 col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100 border-0 rounded-4 overflow-hidden @(team.IsActive ? "" : "opacity-75")">
+                        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="fw-bold text-dark mb-0">@team.Name</h5>
+                                <span class="badge @(team.IsActive ? "bg-success-soft text-success" : "bg-danger-soft text-danger") px-3">
+                                    @(team.IsActive ? Portuguese.User_Active : Portuguese.User_Inactive)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary-soft p-2 rounded-circle me-3">
+                                    <i class="fa-solid fa-users text-primary"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 10px;">@Portuguese.Team_Members</small>
+                                    <span class="fw-bold h5 mb-0">@team.MemberCount</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-light p-3 rounded-3 mb-3">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Capacidade Operacional:</span>
+                                    <span class="fw-bold text-primary">@(team.MemberCount > 0 ? "Normal" : "Sem Pessoal")</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar @(team.MemberCount > 0 ? "bg-primary" : "bg-warning")" style="width: @(team.MemberCount > 0 ? "100%" : "0%")"></div>
+                                </div>
+                            </div>
+
+                            @if (team.Members != null && team.Members.Any())
                             {
-                                <tr @key="team.Id">
-                                    <td>@team.Name</td>
-                                    <td>
-                                        <span class="badge bg-info-soft text-info">@team.MemberCount</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge @(team.IsActive ? "bg-success" : "bg-danger")">
-                                            @(team.IsActive ? Portuguese.User_Active : Portuguese.User_Inactive)
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light me-1" @onclick="() => EditTeam(team)" title="@Portuguese.Edit">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-light text-danger" @onclick="() => DeleteTeam(team)" title="@Portuguese.Delete">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
+                                <div class="avatar-group mb-3">
+                                    @foreach (var member in team.Members.Take(5))
+                                    {
+                                        <div class="avatar-group-item" title="@member.FullName">
+                                            <img src="/img/avatars/avatar.jpg" class="rounded-circle border border-white shadow-sm" width="32" height="32" />
+                                        </div>
+                                    }
+                                    @if (team.MemberCount > 5)
+                                    {
+                                        <div class="avatar-group-item">
+                                            <span class="avatar-initials bg-light text-muted small">+@(team.MemberCount - 5)</span>
+                                        </div>
+                                    }
+                                </div>
                             }
-                        </tbody>
-                    </table>
+                        </div>
+                        <div class="card-footer bg-light border-0 d-flex gap-2 p-3">
+                            <button class="btn btn-outline-primary btn-sm flex-grow-1" @onclick="() => EditTeam(team)">
+                                <i class="fa-solid fa-edit me-1"></i> @Portuguese.Edit
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteTeam(team)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            }
         </div>
     }
 </div>
@@ -97,65 +128,64 @@
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">@(isEditing ? Portuguese.Team_EditTeam : Portuguese.Team_NewTeam)</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary py-3">
+                    <h5 class="modal-title text-white fw-bold">
+                        <i class="fa-solid @(isEditing ? "fa-edit" : "fa-plus-circle") me-2"></i>
+                        @(isEditing ? Portuguese.Team_EditTeam : Portuguese.Team_NewTeam)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    @if (!isEditing)
-                    {
-                        <p class="small text-muted mb-4">@Portuguese.Team_SelectMemberHint</p>
-                    }
-                    
-                    <EditForm Model="createRequest" OnValidSubmit="HandleSubmit">
+                    <EditForm Model="teamModel" OnValidSubmit="HandleSubmit">
                         <DataAnnotationsValidator />
-                        <ValidationSummary class="text-danger small mb-3" />
-
+                        
                         <div class="mb-4">
-                            <label class="form-label fw-bold small">@Portuguese.Team_Name</label>
-                            <InputText class="form-control form-control-lg" @bind-Value="createRequest.Name" placeholder="Ex: Equipe de Costura A" />
-                            <ValidationMessage For="@(() => createRequest.Name)" class="text-danger small" />
+                            <label class="form-label fw-bold small text-muted">@Portuguese.Team_Name</label>
+                            <InputText class="form-control form-control-lg border-2 shadow-none" @bind-Value="teamModel.Name" placeholder="Ex: Equipe de Costura A" />
+                            <ValidationMessage For="@(() => teamModel.Name)" class="text-danger xsmall" />
                         </div>
 
-                        <label class="form-label fw-bold small">@Portuguese.Team_ManageMembers</label>
-                        <div class="border rounded p-3 bg-light mb-3" style="max-height: 250px; overflow-y: auto;">
+                        <label class="form-label fw-bold small text-muted">@Portuguese.Team_ManageMembers</label>
+                        <div class="border rounded-3 p-3 bg-light mb-3" style="max-height: 200px; overflow-y: auto;">
                             @if (eligibleUsers != null)
                             {
-                                @foreach (var user in eligibleUsers)
+                                @foreach (var user in eligibleUsers.Where(u => u.IsActive))
                                 {
-                                    bool isChecked = isEditing 
-                                        ? teamModel.SelectedUserIds.Contains(user.Id)
-                                        : createRequest.InitialUserIds.Contains(user.Id);
+                                    bool isChecked = teamModel.SelectedUserIds.Contains(user.Id);
 
                                     <div class="form-check mb-2">
                                         <input class="form-check-input" type="checkbox" id="user-@user.Id" 
                                                checked="@isChecked"
                                                @onchange="@(e => OnUserToggled(user.Id, e))" />
                                         <label class="form-check-label small" for="user-@user.Id">
-                                            @user.FullName <span class="text-muted">(@user.Role)</span>
+                                            @user.FullName <span class="badge bg-light text-muted xsmall border ms-1">@user.Role</span>
                                         </label>
                                     </div>
                                 }
                             }
                         </div>
-                        <div class="small text-muted mt-1 mb-3">
-                            @(isEditing ? teamModel.SelectedUserIds.Count : createRequest.InitialUserIds.Count) @Portuguese.Selected
-                        </div>
 
                         @if (isEditing)
                         {
-                            <div class="form-check mb-3">
+                            <div class="form-check form-switch mb-3 mt-4 p-0 ps-5">
                                 <InputCheckbox class="form-check-input" @bind-Value="teamModel.IsActive" id="activeCheck" />
-                                <label class="form-check-label" for="activeCheck">@Portuguese.Team_ActiveTeam</label>
+                                <label class="form-check-label fw-bold" for="activeCheck">@Portuguese.Team_ActiveTeam</label>
                             </div>
                         }
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal">@Portuguese.Cancel</button>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm" 
-                                    disabled="@(isSaving || (isEditing && teamModel.SelectedUserIds.Count == 0) || (!isEditing && createRequest.InitialUserIds.Count == 0))">
-                                @(isSaving ? Portuguese.OP_Saving : Portuguese.Team_SaveTeam)
+                            <button type="button" class="btn btn-light px-4" @onclick="CloseModal" disabled="@isSaving">@Portuguese.Cancel</button>
+                            <button type="submit" class="btn btn-primary px-5 shadow-sm" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>@Portuguese.OP_Saving</span>
+                                }
+                                else
+                                {
+                                    <span><i class="fa-solid fa-save me-2"></i>@Portuguese.Save</span>
+                                }
                             </button>
                         </div>
                     </EditForm>
@@ -169,17 +199,23 @@
     private List<SewingTeamDto>? teams;
     private List<UserDto>? allUsers;
     private List<UserDto>? eligibleUsers;
-    private CreateSewingTeamRequest createRequest = new();
-    private SewingTeamDto teamModel = new();
+    private SewingTeamDto teamModel = new() { SelectedUserIds = new List<int>() };
     private bool showModal = false;
     private bool isEditing = false;
     private bool isSaving = false;
     private bool loading = true;
 
-    private bool HasEligibleUsers => eligibleUsers?.Any() == true;
+    private bool HasEligibleUsers => eligibleUsers?.Any(u => u.IsActive) == true;
 
     protected override async Task OnInitializedAsync()
     {
+        SignalR.OnMessageReceived += async (msg, type) => {
+            if (type.StartsWith("Team")) {
+                await LoadData();
+                await InvokeAsync(StateHasChanged);
+            }
+        };
+
         await LoadData();
     }
 
@@ -188,16 +224,13 @@
         loading = true;
         try 
         {
-            var teamsTask = Http.GetFromJsonAsync<ApiResponse<List<SewingTeamDto>>>("api/SewingTeams", JsonOptions);
+            var teamsTask = TeamClient.GetAllTeamsAsync();
             var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions);
 
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResponse = await teamsTask;
-            if (teamsResponse != null && teamsResponse.Success)
-            {
-                teams = teamsResponse.Data;
-            }
+            if (teamsResponse != null && teamsResponse.Success) teams = teamsResponse.Data;
 
             var usersResponse = await usersTask;
             if (usersResponse != null && usersResponse.Success)
@@ -206,28 +239,19 @@
                 eligibleUsers = allUsers?.Where(u => u.Role == UserRole.Leader || u.Role == UserRole.Operational).ToList();
             }
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Team_ErrLoadData} {ex.Message}", ToastLevel.Error);
-        }
-        finally
-        {
-            loading = false;
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        finally { loading = false; }
     }
 
     private void ShowCreateModal()
     {
-        createRequest = new CreateSewingTeamRequest();
+        teamModel = new SewingTeamDto { Name = "", IsActive = true, SelectedUserIds = new List<int>() };
         isEditing = false;
         showModal = true;
     }
 
     private void EditTeam(SewingTeamDto team)
     {
-        // For editing, we load the team with its full member list to populate SelectedUserIds
-        // However, the 'team' parameter here comes from the table list.
-        // We'll fetch the detail to be safe and get current IDs.
         teamModel = new SewingTeamDto 
         { 
             Id = team.Id, 
@@ -235,7 +259,6 @@
             IsActive = team.IsActive,
             SelectedUserIds = allUsers?.Where(u => u.SewingTeamId == team.Id).Select(u => u.Id).ToList() ?? new List<int>()
         };
-        createRequest = new CreateSewingTeamRequest { Name = team.Name };
         isEditing = true;
         showModal = true;
     }
@@ -245,101 +268,66 @@
     private void OnUserToggled(int userId, ChangeEventArgs e)
     {
         bool isChecked = (bool)(e.Value ?? false);
-        if (isEditing)
-        {
-            if (isChecked)
-            {
-                if (!teamModel.SelectedUserIds.Contains(userId)) teamModel.SelectedUserIds.Add(userId);
-            }
-            else
-            {
-                teamModel.SelectedUserIds.Remove(userId);
-            }
-        }
-        else
-        {
-            if (isChecked)
-            {
-                if (!createRequest.InitialUserIds.Contains(userId)) createRequest.InitialUserIds.Add(userId);
-            }
-            else
-            {
-                createRequest.InitialUserIds.Remove(userId);
-            }
-        }
+        if (isChecked && !teamModel.SelectedUserIds.Contains(userId)) teamModel.SelectedUserIds.Add(userId);
+        else if (!isChecked) teamModel.SelectedUserIds.Remove(userId);
     }
 
     private async Task HandleSubmit()
     {
         if (isSaving) return;
+        if (teamModel.SelectedUserIds.Count == 0)
+        {
+            ToastService.ShowToast("A equipe deve ter pelo menos um membro.", ToastLevel.Warning);
+            return;
+        }
+
         try
         {
             isSaving = true;
-            HttpResponseMessage response;
+            ApiResponse<SewingTeamDto> response;
             
-            if (isEditing)
+            if (isEditing) 
             {
-                response = await Http.PutAsJsonAsync($"api/SewingTeams/{teamModel.Id}", teamModel, JsonOptions);
+                response = await TeamClient.UpdateAsync(teamModel.Id, teamModel);
             }
-            else
+            else 
             {
-                response = await Http.PostAsJsonAsync("api/SewingTeams", createRequest, JsonOptions);
+                var req = new CreateSewingTeamRequest { Name = teamModel.Name, InitialUserIds = teamModel.SelectedUserIds };
+                response = await TeamClient.CreateAsync(req);
             }
 
-            if (response.IsSuccessStatusCode)
+            if (response.Success)
             {
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse<SewingTeamDto>>(JsonOptions);
-                if (result?.Data != null)
-                {
-                    await LoadData(); // Full reload to refresh member counts and eligible users
-                }
+                await LoadData();
                 showModal = false;
-                ToastService.ShowToast(isEditing ? Portuguese.Team_SuccessMembersUpdated : Portuguese.Team_SuccessSaved, ToastLevel.Success);
+                ToastService.ShowToast(response.Message ?? Portuguese.Success, ToastLevel.Success);
             }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                ToastService.ShowToast(error?.Message ?? Portuguese.Team_ErrSave, ToastLevel.Error, Portuguese.Team_ErrBusiness);
-            }
+            else ToastService.ShowToast(response.Message ?? Portuguese.Msg_Error, ToastLevel.Error);
         }
-        catch (Exception ex)
-        {
-            ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
-        }
-        finally
-        {
-            isSaving = false;
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        finally { isSaving = false; }
     }
 
     private async Task DeleteTeam(SewingTeamDto team)
     {
-        var msg = Portuguese.Team_ConfirmDelete;
-        
-        if (await JSRuntime.InvokeAsync<bool>("confirm", msg))
+        if (await JS.InvokeAsync<bool>("confirm", Portuguese.Team_ConfirmDelete))
         {
             try
             {
-                var response = await Http.DeleteAsync($"api/SewingTeams/{team.Id}");
-                if (response.IsSuccessStatusCode)
+                var response = await TeamClient.DeleteAsync(team.Id);
+                if (response.Success)
                 {
                     await LoadData();
                     ToastService.ShowToast(Portuguese.Team_SuccessDeleted, ToastLevel.Success);
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
-                {
-                    var error = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
-                    ToastService.ShowToast(error?.Message ?? Portuguese.Team_ErrNoOtherTeams, ToastLevel.Error, Portuguese.Team_ReassignmentBlock);
-                }
-                else
-                {
-                    ToastService.ShowToast(Portuguese.Team_ErrSave, ToastLevel.Error);
-                }
+                else ToastService.ShowToast(response.Message ?? "Erro ao excluir", ToastLevel.Error);
             }
-            catch (Exception ex)
-            {
-                ToastService.ShowToast($"{Portuguese.Msg_Error}: {ex.Message}", ToastLevel.Error);
-            }
+            catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ValueTask.CompletedTask;
     }
 }

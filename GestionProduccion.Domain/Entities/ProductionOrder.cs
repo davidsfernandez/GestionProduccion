@@ -53,6 +53,11 @@ public class ProductionOrder : IAuditable
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>
+    /// Total production time accumulated in minutes.
+    /// </summary>
+    public double EffectiveMinutes { get; set; }
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal TotalCost { get; set; }
 

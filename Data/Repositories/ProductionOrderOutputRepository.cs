@@ -65,8 +65,13 @@ public class ProductionOrderOutputRepository : IProductionOrderOutputRepository
 
         return await _context.ProductionOrderOutputs
             .AsNoTracking()
-            .Where(o => o.UserId == userId &&
-                        o.CreatedAt >= start && o.CreatedAt <= end)
+            .Join(_context.ProductionOrders, 
+                output => output.ProductionOrderId, 
+                order => order.Id, 
+                (output, order) => new { output, order })
+            .Where(x => x.order.UserId == userId &&
+                        x.output.CreatedAt >= start && x.output.CreatedAt <= end)
+            .Select(x => x.output)
             .ToListAsync();
     }
 

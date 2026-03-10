@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -8,16 +8,11 @@
  * Proprietary and Confidential.
  */
 
+using GestionProduccion.Domain.Entities;
+
 namespace GestionProduccion.Domain.Interfaces.Repositories;
 
-public interface IRepository<T> where T : class
+public interface IBonusRuleRepository : IRepository<BonusRule>
 {
-    Task<T?> GetByIdAsync(int id);
-    Task<List<T>> GetAllAsync();
-    Task AddAsync(T entity);
-    Task UpdateAsync(T entity);
-    Task DeleteAsync(T entity);
-    Task SaveChangesAsync();
+    Task<BonusRule?> GetActiveRuleAsync();
 }
-
-

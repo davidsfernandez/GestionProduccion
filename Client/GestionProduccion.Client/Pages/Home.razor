@@ -16,6 +16,7 @@
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Components
 @using Microsoft.AspNetCore.Authorization
+@using GestionProduccion.Resources
 @attribute [Authorize]
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
@@ -25,22 +26,31 @@
 @inject ToastService ToastService
 @implements IAsyncDisposable
 
-@using GestionProduccion.Client.Resources
+<style>
+    .kpi-card { transition: transform 0.2s ease; border-radius: 1.25rem !important; }
+    .kpi-card:hover { transform: translateY(-5px); }
+    .kpi-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+    .fw-900 { font-weight: 900; }
+    .text-serona { color: #3b7ddd; }
+    .bg-serona-soft { background-color: rgba(59, 125, 221, 0.1); }
+    .hall-of-fame-item { border-bottom: 1px solid #f8f9fa; transition: background 0.2s; }
+    .hall-of-fame-item:hover { background-color: #fcfcfc; }
+    .profit-indicator { width: 4px; height: 100%; position: absolute; left: 0; top: 0; border-radius: 4px 0 0 4px; }
+</style>
 
 <PageTitle>@Portuguese.Dash_Title</PageTitle>
 
 <div class="container-fluid p-0 animate-fade-in">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
         <div>
-            <h3 class="text-dark mb-1 fw-bold">@Portuguese.Dash_Title</h3>
-            <p class="text-muted small mb-0">@Portuguese.Dash_RealTimeMonitoring</p>
+            <h3 class="text-dark mb-1 fw-bold" style="letter-spacing: -0.5px;">@Portuguese.Dash_Title</h3>
+            <p class="text-muted small mb-0 opacity-75">@Portuguese.Dash_RealTimeMonitoring</p>
         </div>
-        <div class="d-flex gap-2 w-100 w-md-auto">
-             <a href="/tv-producao" target="_blank" class="btn btn-primary shadow-sm flex-grow-1 flex-md-grow-0 d-flex align-items-center justify-content-center px-4" 
-                title="@Portuguese.Dash_TvMode">
+        <div class="d-flex gap-3">
+             <a href="/tv-producao" target="_blank" class="btn btn-outline-primary shadow-sm px-4 d-flex align-items-center rounded-pill fw-bold">
                  <i class="fa-solid fa-tv me-2"></i> <span>@Portuguese.Dash_TvMode</span>
              </a>
-             <button class="btn btn-white shadow-sm border" @onclick="LoadDashboard" disabled="@loading">
+             <button class="btn btn-primary shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;" @onclick="LoadDashboard" disabled="@loading">
                  <i class="fa-solid fa-arrows-rotate @(loading ? "fa-spin" : "")"></i>
              </button>
         </div>
@@ -49,197 +59,228 @@
     @if (loading && dashboard == null)
     {
         <div class="row">
-            <div class="col-12 col-sm-6 col-xxl-3 mb-4"><SkeletonCard /></div>
-            <div class="col-12 col-sm-6 col-xxl-3 mb-4"><SkeletonCard /></div>
-            <div class="col-12 col-sm-6 col-xxl-3 mb-4"><SkeletonCard /></div>
-            <div class="col-12 col-sm-6 col-xxl-3 mb-4"><SkeletonCard /></div>
-        </div>
-        <div class="row">
-            <div class="col-xl-8"><div class="card p-5 text-center border-0 shadow-sm rounded-4"><div class="spinner-border text-primary mx-auto"></div></div></div>
-            <div class="col-xl-4"><SkeletonCard /><div class="mt-4"><SkeletonCard /></div></div>
+            @for(int i=0; i<4; i++) { <div class="col-12 col-md-3 mb-4"><SkeletonCard /></div> }
         </div>
     }
     else if (dashboard != null)
     {
-        <!-- KPI CARDS -->
-        <div class="row mb-2">
-            <div class="col-12 col-sm-6 col-xxl-3 d-flex mb-4">
-                <div class="card flex-fill border-0 shadow-sm animate-fade-in-up rounded-4">
-                    <div class="card-body py-4">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h3 class="mb-1 fw-bold text-dark">@dashboard.MonthProductionQuantity</h3>
-                                <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.Dash_CompletedToday</p>
-                            </div>
-                            <div class="bg-primary-soft p-3 rounded-3 text-primary"><i class="fa-solid fa-industry fs-4"></i></div>
+        <!-- ELEGANT KPI SECTION -->
+        <div class="row g-4 mb-5">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card border-0 shadow-sm h-100 bg-white">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="kpi-icon bg-serona-soft text-serona"><i class="fa-solid fa-industry fs-4"></i></div>
+                            <span class="badge bg-success-soft text-success rounded-pill align-self-start">Hoje</span>
                         </div>
+                        <h2 class="fw-900 mb-1">@dashboard.MonthProductionQuantity</h2>
+                        <p class="text-muted small fw-bold uppercase mb-0 opacity-50">@Portuguese.Dash_CompletedToday</p>
                     </div>
                 </div>
             </div>
-            
+
             <AuthorizeView Roles="Administrator">
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex mb-4">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-1 rounded-4">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-1 fw-bold text-dark">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h3>
-                                    <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.OP_CostPerPiece</p>
-                                </div>
-                                <div class="bg-success-soft p-3 rounded-3 text-success"><i class="fa-solid fa-coins fs-4"></i></div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card border-0 shadow-sm h-100 bg-white">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="kpi-icon bg-success-soft text-success"><i class="fa-solid fa-coins fs-4"></i></div>
                             </div>
+                            <h2 class="fw-900 mb-1">@dashboard.MonthAverageCostPerPiece.ToString("C", new CultureInfo("pt-BR"))</h2>
+                            <p class="text-muted small fw-bold uppercase mb-0 opacity-50">@Portuguese.OP_CostPerPiece</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-xxl-3 d-flex mb-4">
-                    <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-2 rounded-4">
-                        <div class="card-body py-4">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h3 class="mb-1 fw-bold @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-primary")">
-                                        @dashboard.MonthAverageMargin.ToString("N1")%
-                                    </h3>
-                                    <p class="mb-0 text-muted small fw-bold text-uppercase">Margem Média</p>
-                                </div>
-                                <div class="bg-info-soft p-3 rounded-3 text-info"><i class="fa-solid fa-chart-pie fs-4"></i></div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card border-0 shadow-sm h-100 bg-white">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="kpi-icon bg-info-soft text-info"><i class="fa-solid fa-chart-pie fs-4"></i></div>
                             </div>
+                            <h2 class="fw-900 mb-1 @(dashboard.MonthAverageMargin < 0 ? "text-danger" : "text-serona")">
+                                @dashboard.MonthAverageMargin.ToString("N1")%
+                            </h2>
+                            <p class="text-muted small fw-bold uppercase mb-0 opacity-50">@Portuguese.Margin</p>
                         </div>
                     </div>
                 </div>
             </AuthorizeView>
 
-            <div class="col-12 col-sm-6 col-xxl-3 d-flex mb-4">
-                <div class="card flex-fill border-0 shadow-sm animate-fade-in-up delay-3 rounded-4">
-                    <div class="card-body py-4">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h3 class="mb-1 fw-bold @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-dark")">@dashboard.DelayedOrdersCount</h3>
-                                <p class="mb-0 text-muted small fw-bold text-uppercase">@Portuguese.Dash_ProductionStatus</p>
-                            </div>
-                            <div class="bg-warning-soft p-3 rounded-3 text-warning"><i class="fa-solid fa-triangle-exclamation fs-4"></i></div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card kpi-card border-0 shadow-sm h-100 bg-white">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="kpi-icon bg-warning-soft text-warning"><i class="fa-solid fa-triangle-exclamation fs-4"></i></div>
                         </div>
+                        <h2 class="fw-900 mb-1 @(dashboard.DelayedOrdersCount > 0 ? "text-danger" : "text-dark")">@dashboard.DelayedOrdersCount</h2>
+                        <p class="text-muted small fw-bold uppercase mb-0 opacity-50">@Portuguese.Dash_ProductionStatus</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="row">
-            <div class="col-xl-8 d-flex flex-column">
-                <div class="card flex-fill w-100 shadow-sm border-0 rounded-4 animate-fade-in-up mb-4 overflow-hidden">
-                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 fw-bold">@Portuguese.Dash_WeeklyVolume</h5>
-                        <span class="badge bg-light text-muted">@DateTime.Today.AddDays(-6).ToString("dd/MM") - @DateTime.Today.ToString("dd/MM")</span>
+            <div class="col-xl-8">
+                @* WEEKLY VOLUME - ELEGANT LARGE CHART *@
+                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between">
+                        <h5 class="fw-bold mb-0 text-dark">@Portuguese.Dash_WeeklyVolume</h5>
+                        <div class="xsmall text-muted fw-bold">@DateTime.Today.AddDays(-6).ToString("dd MMM") - @DateTime.Today.ToString("dd MMM")</div>
                     </div>
-                    <div class="card-body py-3">
-                        <div class="chart chart-sm" style="height: 300px;">
+                    <div class="card-body p-4">
+                        <div style="height: 320px;">
                             <canvas id="weeklyProductionChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <div class="card flex-fill w-100 shadow-sm border-0 rounded-4 animate-fade-in-up mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0 fw-bold">@Portuguese.Dash_PerformanceUsers</h5>
+                @* INDIVIDUAL RANKING - HALL OF FAME *@
+                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-medal text-warning me-2"></i>Rank de Produção Individual</h5>
+                        <span class="badge bg-light text-muted fw-bold rounded-pill">Top 5 Mes</span>
                     </div>
-                    <div class="card-body py-3">
-                        <div class="chart chart-sm" style="height: 250px;">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <tbody>
+                                    @if (dashboard.OperatorRanking != null && dashboard.OperatorRanking.Any())
+                                    {
+                                        int rank = 1;
+                                        @foreach (var entry in dashboard.OperatorRanking)
+                                        {
+                                            <tr class="hall-of-fame-item">
+                                                <td class="ps-4" style="width: 50px;">
+                                                    <span class="fw-900 fs-5 @(rank <= 3 ? "text-serona" : "text-muted")">#@rank</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center py-2">
+                                                        <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                             class="rounded-circle border-2 border-white shadow-sm me-3" width="45" height="45" />
+                                                        <div>
+                                                            <div class="fw-bold text-dark mb-0">@entry.UserName</div>
+                                                            <div class="xsmall text-muted fw-bold">@entry.CompletedOrders Lotes</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="d-inline-block" style="width: 120px;">
+                                                        <div class="d-flex justify-content-between xsmall fw-bold mb-1">
+                                                            <span>@entry.CompletedTasks un.</span>
+                                                            <span class="@(entry.Score >= 80 ? "text-success" : "text-warning")">@entry.Score.ToString("0")%</span>
+                                                        </div>
+                                                        <div class="progress" style="height: 6px; border-radius: 10px;">
+                                                            <div class="progress-bar @(entry.Score >= 80 ? "bg-success" : "bg-warning")" style="width: @(entry.Score)%"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end pe-4">
+                                                    @if(rank == 1) { <i class="fa-solid fa-crown text-warning fs-4"></i> }
+                                                    else if(rank <= 3) { <i class="fa-solid fa-star text-serona opacity-50"></i> }
+                                                </td>
+                                            </tr>
+                                            rank++;
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                @* WORKLOAD BARS (THINNER) *@
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0 text-dark">Carga de Trabalho (Volume por @Portuguese.Role_Operator)</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div style="height: 280px;">
                             <canvas id="workshopChart"></canvas>
                         </div>
-                        @if (dashboard.ProductionByWorkshop == null || !dashboard.ProductionByWorkshop.Any())
-                        {
-                            <div class="text-center py-5 opacity-50">
-                                <i class="fa-solid fa-chart-simple fs-1 mb-2"></i>
-                                <div class="small">Sem dados de produção para exibir.</div>
-                            </div>
-                        }
                     </div>
                 </div>
             </div>
 
-            <div class="col-xl-4 d-flex flex-column">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0 fw-bold">@Portuguese.Dash_Workload</h5>
+            <div class="col-xl-4">
+                @* TEAM PERFORMANCE *@
+                <div class="card border-0 shadow-sm rounded-4 mb-4 bg-serona-soft overflow-hidden" style="border-left: 5px solid var(--bs-primary) !important;">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0 text-serona"><i class="fa-solid fa-people-group me-2"></i>@Portuguese.Nav_Teams</h5>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            @if (dashboard.TeamRanking != null && dashboard.TeamRanking.Any())
+                    <div class="card-body p-4 pt-2">
+                        @if (dashboard.TeamRanking != null && dashboard.TeamRanking.Any())
+                        {
+                            @foreach (var team in dashboard.TeamRanking)
                             {
-                                @foreach (var entry in dashboard.TeamRanking)
-                                {
-                                    <div class="list-group-item border-0 px-4 py-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="fw-bold small">@entry.TeamName</span>
-                                            <span class="text-muted xsmall">@entry.TotalProduced Peças</span>
-                                        </div>
-                                        <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar bg-primary" style="width: @(entry.Efficiency)%"></div>
-                                        </div>
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between xsmall fw-bold mb-1 uppercase">
+                                        <span class="text-dark">@team.TeamName</span>
+                                        <span class="text-serona">@team.TotalProduced un.</span>
                                     </div>
-                                }
+                                    <div class="progress" style="height: 10px; background: white; border-radius: 20px;">
+                                        <div class="progress-bar bg-primary shadow-sm" style="width: @(team.Efficiency)%"></div>
+                                    </div>
+                                </div>
                             }
-                            else
-                            {
-                                <div class="p-4 text-center text-muted small">Nenhum dado de equipe disponible.</div>
-                            }
-                        </div>
+                        }
                     </div>
                 </div>
 
+                @* PROFITABILITY (ADMIN ONLY) *@
                 <AuthorizeView Roles="Administrator">
-                    <div class="card shadow-sm border-0 rounded-4 mb-4 bg-primary text-white overflow-hidden">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4">
-                            <h5 class="card-title mb-0 fw-bold text-white">Modelos Lucrativos</h5>
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="fw-bold mb-0 text-dark">Rentabilidade por Modelo</h5>
                         </div>
-                        <div class="card-body px-4 pb-4">
-                            @if (dashboard.TopProfitableModels != null && dashboard.TopProfitableModels.Any())
+                        <div class="card-body p-4 pt-2">
+                            <h6 class="xsmall text-muted fw-bold uppercase mb-3"><i class="fa-solid fa-arrow-trend-up text-success me-2"></i>Maiores Margens</h6>
+                            @foreach (var item in dashboard.TopProfitableModels)
                             {
-                                @foreach (var item in dashboard.TopProfitableModels)
-                                {
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="bg-white bg-opacity-25 p-2 rounded-3 me-3 text-center" style="min-width: 45px;">
-                                            <div class="fw-bold">@item.AverageMargin.ToString("N0")%</div>
-                                        </div>
-                                        <div class="flex-grow-1 overflow-hidden">
-                                            <div class="fw-bold text-truncate small">@item.Name</div>
-                                            <div class="xsmall opacity-75">SKU: @item.Sku</div>
-                                        </div>
+                                <div class="position-relative p-3 bg-light rounded-3 mb-3 border-start border-4 border-success">
+                                    <div class="fw-bold text-dark small text-truncate">@item.Name</div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <span class="xsmall text-muted">SKU: @item.Sku</span>
+                                        <span class="badge bg-success-soft text-success fw-bold">@item.AverageMargin.ToString("N0")%</span>
                                     </div>
-                                }
+                                </div>
                             }
-                            else
+
+                            <h6 class="xsmall text-muted fw-bold uppercase mt-4 mb-3"><i class="fa-solid fa-arrow-trend-down text-danger me-2"></i>Menores Margens</h6>
+                            @foreach (var item in dashboard.BottomProfitableModels)
                             {
-                                <div class="text-center py-3 small opacity-75 italic">Aguardando dados financeiros...</div>
+                                <div class="position-relative p-3 bg-light rounded-3 mb-2 border-start border-4 border-danger">
+                                    <div class="fw-bold text-dark small text-truncate">@item.Name</div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <span class="xsmall text-muted">SKU: @item.Sku</span>
+                                        <span class="badge bg-danger-soft text-danger fw-bold">@item.AverageMargin.ToString("N0")%</span>
+                                    </div>
+                                </div>
                             }
                         </div>
                     </div>
                 </AuthorizeView>
 
-                <div class="card shadow-sm border-0 rounded-4 flex-fill">
+                @* RECENT ACTIVITIES *@
+                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
                     <div class="card-header bg-white border-0 pt-4 px-4">
-                        <h5 class="card-title mb-0 fw-bold">Próximas Atividades</h5>
+                        <h5 class="fw-bold mb-0">@Portuguese.Dash_RecentActivities</h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush">
                             @if (activeTasks != null && activeTasks.Any())
                             {
-                                @foreach (var task in activeTasks.Take(6))
+                                @foreach (var task in activeTasks.Take(5))
                                 {
-                                    <div class="list-group-item border-0 px-4 py-3 d-flex align-items-start">
-                                        <div class="bg-light p-2 rounded-circle me-3"><i class="fa-solid fa-check text-success"></i></div>
-                                        <div>
-                                            <div class="fw-bold small text-dark">@task.Title</div>
-                                            <div class="xsmall text-muted">@task.AssignedUserName • @task.CreatedAt.ToLocalTime().ToString("t")</div>
+                                    <div class="list-group-item border-0 px-4 py-3 hall-of-fame-item">
+                                        <div class="d-flex align-items-start">
+                                            <div class="bg-success-soft p-2 rounded-circle me-3"><i class="fa-solid fa-check text-success small"></i></div>
+                                            <div>
+                                                <div class="fw-bold small text-dark">@task.Title</div>
+                                                <div class="xsmall text-muted opacity-75">@task.AssignedUserName • @task.CreatedAt.ToLocalTime().ToString("t")</div>
+                                            </div>
                                         </div>
                                     </div>
                                 }
-                            }
-                            else
-                            {
-                                <div class="p-5 text-center opacity-25">
-                                    <i class="fa-solid fa-list-ul fs-1 mb-2"></i>
-                                    <div class="small">Sem atividades recentes.</div>
-                                </div>
                             }
                         </div>
                     </div>
@@ -259,20 +300,14 @@
     {
         await LoadDashboard();
         await LoadActiveTasks();
-
         SignalR.OnUpdateReceived += HandleUpdate;
-        
-        _refreshTimer = new System.Threading.Timer(async _ => 
-        {
-            await InvokeAsync(LoadDashboard);
-        }, null, 120000, 120000);
+        _refreshTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadDashboard), null, 60000, 60000);
     }
 
     private async void HandleUpdate(int opId, string stage, string status)
     {
         await InvokeAsync(async () => {
             await LoadDashboard();
-            await LoadActiveTasks();
             StateHasChanged();
         });
     }
@@ -282,25 +317,11 @@
         try
         {
             if (dashboard == null) loading = true;
-            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardCompleteResponse>>("api/Dashboard/completo", JsonOptions);
-            if (response != null && response.Success)
-            {
-                dashboard = response.Data;
-            }
-            else if (response != null)
-            {
-                ToastService.ShowToast(response.Message ?? "Erro ao carrergar dados", ToastLevel.Error);
-            }
+            var response = await Http.GetFromJsonAsync<ApiResponse<DashboardCompleteResponse>>("api/Dashboard/complete", JsonOptions);
+            if (response != null && response.Success) dashboard = response.Data;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Dashboard Load Error: {ex.Message}");
-        }
-        finally 
-        { 
-            loading = false; 
-            StateHasChanged(); 
-        }
+        catch (Exception ex) { Console.WriteLine($"Dashboard Load Error: {ex.Message}"); }
+        finally { loading = false; StateHasChanged(); }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -315,10 +336,7 @@
                 var workshopData = dashboard.ProductionByWorkshop.Select(x => x.Quantity).ToList();
                 await JSRuntime.InvokeVoidAsync("seronaCharts.renderBarChart", "workshopChart", workshopData, workshopLabels);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Chart Interop Error: {ex.Message}");
-            }
+            catch { }
         }
     }
 

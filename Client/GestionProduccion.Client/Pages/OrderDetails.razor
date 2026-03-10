@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -13,6 +13,7 @@
 @using GestionProduccion.Client.Services
 @using GestionProduccion.Client.Services.ProductionOrders
 @using GestionProduccion.Domain.Enums
+@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject IProductionOrderQueryClient QueryClient
@@ -23,9 +24,8 @@
 @inject ToastService ToastService
 @inject IJSRuntime JSRuntime
 @inject ISignalRService SignalR
+@inject JsonSerializerOptions JsonOptions
 @implements IAsyncDisposable
-
-@using GestionProduccion.Client.Resources
 
 <PageTitle>@Portuguese.OP_Details_Title - @(order?.LotCode ?? "")</PageTitle>
 
@@ -51,6 +51,11 @@
                 <span class="badge @GetStatusClass(order.CurrentStatus) ms-3 px-3 py-2 rounded-pill">@TranslateStatus(order.CurrentStatus)</span>
             </div>
             <div class="d-flex gap-2">
+                <AuthorizeView Roles="Administrator,Leader">
+                    <button class="btn btn-primary shadow-sm" @onclick="ShowEditModal">
+                        <i class="fa-solid fa-edit me-2"></i> @Portuguese.Edit
+                    </button>
+                </AuthorizeView>
                 <button class="btn btn-outline-danger shadow-sm" @onclick="DownloadIndividualReport">
                     <i class="fa-solid fa-file-pdf me-2"></i> @Portuguese.OP_ExportPDF
                 </button>
@@ -105,6 +110,18 @@
                                     </div>
                                 </div>
                             </div>
+                            @if (!string.IsNullOrEmpty(order.ClientName))
+                            {
+                                <div class="col-md-12">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-secondary-soft p-3 rounded-3 me-3 text-secondary"><i class="fa-solid fa-user-tie fs-4"></i></div>
+                                        <div>
+                                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 10px;">@Portuguese.Client</small>
+                                            <span class="text-dark">@order.ClientName</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -141,11 +158,11 @@
                                     <i class="fa-solid fa-rotate-left me-1"></i> @Portuguese.OP_ChangeStage
                                 </button>
                             </AuthorizeView>
+                            <button class="btn btn-light btn-sm" @onclick="() => LoadData()">
+                                <i class="fa-solid fa-sync me-1"></i> @Portuguese.Refresh
+                            </button>
                             <button class="btn btn-light btn-sm" @onclick="ShowHistory">
                                 <i class="fa-solid fa-clock-rotate-left me-1"></i> @Portuguese.OP_History
-                            </button>
-                            <button class="btn btn-light btn-sm" @onclick="LoadDefects">
-                                <i class="fa-solid fa-bug me-1"></i> @Portuguese.Nav_QA (@defects.Count)
                             </button>
                         </div>
                     </div>
@@ -203,26 +220,14 @@
                     </div>
                     <div class="card-body p-4 pt-2">
                         <div class="progress-steps">
-                            <div class="step @GetStepClass("Cutting")">
-                                <div class="step-icon">@((order.CurrentStage == "Cutting") ? "ï…„" : "ï„‘")</div>
-                                <div class="step-label">@Portuguese.Stage_Cutting</div>
-                                <div class="step-status">@GetStepStatus("Cutting")</div>
-                            </div>
-                            <div class="step @GetStepClass("Sewing")">
-                                <div class="step-icon">@((order.CurrentStage == "Sewing") ? "ï…„" : "ï„‘")</div>
-                                <div class="step-label">@Portuguese.Stage_Sewing</div>
-                                <div class="step-status">@GetStepStatus("Sewing")</div>
-                            </div>
-                            <div class="step @GetStepClass("Review")">
-                                <div class="step-icon">@((order.CurrentStage == "Review") ? "ï…„" : "ï„‘")</div>
-                                <div class="step-label">@Portuguese.Stage_Review</div>
-                                <div class="step-status">@GetStepStatus("Review")</div>
-                            </div>
-                            <div class="step @GetStepClass("Packaging")">
-                                <div class="step-icon">@((order.CurrentStage == "Packaging") ? "ï…„" : "ï„‘")</div>
-                                <div class="step-label">@Portuguese.Stage_Packaging</div>
-                                <div class="step-status">@GetStepStatus("Packaging")</div>
-                            </div>
+                            @foreach(var stage in new[] { "Cutting", "Sewing", "Review", "Packaging" })
+                            {
+                                <div class="step @GetStepClass(stage)">
+                                    <div class="step-icon"><i class="@GetStepIcon(stage)"></i></div>
+                                    <div class="step-label">@TranslateStage(stage)</div>
+                                    <div class="step-status">@GetStepStatus(stage)</div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -231,7 +236,7 @@
     }
 </div>
 
-@* MODALES *@
+@* MODAL: SALIDA PARCIAL *@
 @if (showPartialModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -253,13 +258,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var s in order.Sizes)
+                            @foreach (var s in order!.Sizes)
                             {
+                                var remaining = GetRemainingForSize(s.Id);
                                 <tr>
                                     <td class="fw-bold">@s.Size</td>
                                     <td>@s.Quantity</td>
-                                    <td>@(s.Quantity - (defects.Where(d => d.Reason.Contains(s.Size)).Sum(d => d.Quantity)))</td> @* Logic mock *@
-                                    <td><input type="number" class="form-control form-control-sm" @bind="sizeOutputs[s.Id]" min="0" max="@s.Quantity" /></td>
+                                    <td><span class="badge @(remaining > 0 ? "bg-warning-soft text-warning" : "bg-success-soft text-success")">@remaining</span></td>
+                                    <td><input type="number" class="form-control form-control-sm" @bind="sizeOutputs[s.Id]" min="0" max="@remaining" /></td>
                                 </tr>
                             }
                         </tbody>
@@ -277,16 +283,140 @@
     </div>
 }
 
+@* MODAL: EDICIÓN *@
+@if (showEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title fw-bold">@Portuguese.Edit @Portuguese.OP_Title</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showEditModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">@Portuguese.Client</label>
+                        <input type="text" class="form-control" @bind="editRequest.ClientName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">@Portuguese.OP_EstimatedDelivery</label>
+                        <input type="date" class="form-control" @bind="editRequest.EstimatedCompletionAt" />
+                    </div>
+                    <div class="alert alert-info xsmall">
+                        <i class="fa-solid fa-info-circle me-2"></i>
+                        As quantidades só podem ser editadas durante a etapa de Corte.
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light" @onclick="() => showEditModal = false">@Portuguese.Cancel</button>
+                    <button class="btn btn-primary px-4" @onclick="UpdateOrder" disabled="@isActionInProgress">
+                        @if(isActionInProgress) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        @Portuguese.Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* MODAL: ASIGNACIÓN *@
+@if (showAssignModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold">@Portuguese.OP_AssignOperator</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showAssignModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <label class="form-label small fw-bold">Selecione o Operador</label>
+                    <select class="form-select" @bind="selectedUserId">
+                        <option value="">-- Selecione --</option>
+                        @foreach(var user in assignableUsers)
+                        {
+                            <option value="@user.Id">@user.FullName (@user.SewingTeamName)</option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light" @onclick="() => showAssignModal = false">@Portuguese.Cancel</button>
+                    <button class="btn btn-primary px-4" @onclick="AssignUser" disabled="@(isActionInProgress || selectedUserId == 0)">
+                        @Portuguese.OP_AssignOperator
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* MODAL: CAMBIO DE ETAPA MANUAL *@
+@if (showStageModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title fw-bold">@Portuguese.OP_ChangeStage</h5>
+                    <button type="button" class="btn-close" @onclick="() => showStageModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">@Portuguese.OP_NewStageLabel</label>
+                        <select class="form-select" @bind="targetStage">
+                            @foreach (var stage in Enum.GetValues<ProductionStage>())
+                            {
+                                <option value="@stage">@TranslateStage(stage.ToString())</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">@Portuguese.OP_ReasonNote</label>
+                        <textarea class="form-control" @bind="stageChangeNote" placeholder="@Portuguese.OP_ChangeReasonPlaceholder"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light" @onclick="() => showStageModal = false">@Portuguese.Cancel</button>
+                    <button class="btn btn-warning px-4" @onclick="ChangeStage" disabled="@(isActionInProgress || string.IsNullOrEmpty(stageChangeNote))">
+                        @Portuguese.OP_ConfirmChange
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* MODAL: QA (REPORTE DE DEFEITOS) *@
+@if (showQAModal)
+{
+    <GestionProduccion.Client.Components.QARegistryModal 
+        OrderId="Id" 
+        OnSuccess="() => LoadData()" 
+        OnClose="() => showQAModal = false" />
+}
+
 @code {
     [Parameter] public int Id { get; set; }
     private ProductionOrderDto? order;
     private List<ProductionHistoryDto> history = new();
     private List<QADefectDto> defects = new();
+    private List<UserDto> assignableUsers = new();
+    private List<ProductionOrderOutputDto> stageOutputs = new();
+    
     private bool loading = true;
     private bool isActionInProgress = false;
     private bool showPartialModal = false;
+    private bool showEditModal = false;
+    private bool showAssignModal = false;
+    private bool showQAModal = false;
+    private bool showStageModal = false;
     private bool isSavingPartial = false;
+    
     private Dictionary<int, int> sizeOutputs = new();
+    private UpdateProductionOrderRequest editRequest = new();
+    private int selectedUserId;
+    private ProductionStage targetStage;
+    private string stageChangeNote = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,24 +435,90 @@
             if (response != null && response.Success && response.Data != null)
             {
                 order = response.Data;
-                sizeOutputs = order.Sizes.ToDictionary(s => s.Id, _ => 0);
+                editRequest = new UpdateProductionOrderRequest {
+                    Id = order.Id,
+                    ClientName = order.ClientName,
+                    EstimatedCompletionAt = order.EstimatedCompletionAt,
+                    UserId = order.UserId,
+                    SewingTeamId = order.SewingTeamId
+                };
+                
+                sizeOutputs = order.Sizes?.ToDictionary(s => s.Id, _ => 0) ?? new Dictionary<int, int>();
+                
                 var histResp = await QueryClient.GetHistoryByProductionOrderIdAsync(Id);
-                if (histResp != null && histResp.Success) history = histResp.Data;
+                if (histResp != null && histResp.Success && histResp.Data != null) history = histResp.Data;
+                
                 await LoadDefects();
+                await LoadStageOutputs();
             }
         }
-        catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro ao carregar dados", ToastLevel.Error); }
         finally { loading = false; StateHasChanged(); }
+    }
+
+    private async Task LoadStageOutputs()
+    {
+        try {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<ProductionOrderOutputDto>>>($"api/ProductionOrders/{Id}/outputs", JsonOptions);
+            if (resp != null && resp.Success) stageOutputs = resp.Data ?? new();
+        } catch { }
+    }
+
+    private int GetRemainingForSize(int sizeId)
+    {
+        if (order == null) return 0;
+        var total = order.Sizes.FirstOrDefault(s => s.Id == sizeId)?.Quantity ?? 0;
+        var produced = stageOutputs.Where(o => o.ProductionOrderSizeId == sizeId && o.Stage == order.CurrentStage).Sum(o => o.Quantity);
+        return total - produced;
     }
 
     private async Task LoadDefects()
     {
-        try
-        {
-            var resp = await Http.GetFromJsonAsync<ApiResponse<List<QADefectDto>>>($"api/QA/orders/{Id}/defects");
+        try {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<QADefectDto>>>($"api/QA/orders/{Id}/defects", JsonOptions);
             if (resp != null && resp.Success) defects = resp.Data ?? new();
-        }
-        catch { }
+        } catch { }
+    }
+
+    private async Task ShowEditModal() => showEditModal = true;
+
+    private async Task UpdateOrder()
+    {
+        isActionInProgress = true;
+        try {
+            var resp = await MutationClient.UpdateProductionOrderAsync(Id, editRequest);
+            if (resp.Success) {
+                ToastService.ShowToast("Ordem atualizada", ToastLevel.Success);
+                showEditModal = false;
+                await LoadData();
+            } else ToastService.ShowToast(resp.Message ?? "Erro na atualização", ToastLevel.Error);
+        } catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro inesperado", ToastLevel.Error); }
+        finally { isActionInProgress = false; }
+    }
+
+    private async Task ShowAssignment()
+    {
+        try {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/ProductionOrders/assignable", JsonOptions);
+            if (resp != null && resp.Success) {
+                assignableUsers = resp.Data ?? new();
+                selectedUserId = order?.UserId ?? 0;
+                showAssignModal = true;
+            }
+        } catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro ao carregar usuários", ToastLevel.Error); }
+    }
+
+    private async Task AssignUser()
+    {
+        isActionInProgress = true;
+        try {
+            var resp = await LifecycleClient.AssignTaskAsync(Id, selectedUserId);
+            if (resp.Success) {
+                ToastService.ShowToast("Operador atribuído", ToastLevel.Success);
+                showAssignModal = false;
+                await LoadData();
+            }
+        } finally { isActionInProgress = false; }
     }
 
     private async Task SavePartialOutput()
@@ -338,20 +534,10 @@
                 showPartialModal = false;
                 await LoadData();
             }
-            else 
-            {
-                ToastService.ShowToast(response.Message ?? Portuguese.OP_ErrorPartialOutput, ToastLevel.Error);
-            }
+            else ToastService.ShowToast(response.Message ?? Portuguese.OP_ErrorPartialOutput, ToastLevel.Error);
         }
-        catch (Exception ex) 
-        { 
-            ToastService.ShowToast(ex.Message, ToastLevel.Error); 
-        }
-        finally 
-        { 
-            isSavingPartial = false; 
-            StateHasChanged();
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message ?? Portuguese.Err_Generic, ToastLevel.Error); }
+        finally { isSavingPartial = false; StateHasChanged(); }
     }
 
     private void ShowPartialOutput() => showPartialModal = true;
@@ -364,25 +550,14 @@
         try
         {
             var response = await LifecycleClient.AdvanceStageAsync(Id);
-            if (response.Success) 
-            {
-                ToastService.ShowToast(response.Message ?? "Estágio avançado!", ToastLevel.Success);
+            if (response.Success) {
+                ToastService.ShowToast(response.Message ?? "Estágio avanzado!", ToastLevel.Success);
                 await LoadData();
             }
-            else
-            {
-                ToastService.ShowToast(response.Message ?? "Erro ao avançar estágio.", ToastLevel.Error);
-            }
+            else ToastService.ShowToast(response.Message ?? "Erro ao avançar estágio", ToastLevel.Error);
         }
-        catch (Exception ex) 
-        { 
-            ToastService.ShowToast(ex.Message, ToastLevel.Error); 
-        }
-        finally 
-        { 
-            isActionInProgress = false; 
-            StateHasChanged();
-        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro inesperado", ToastLevel.Error); }
+        finally { isActionInProgress = false; StateHasChanged(); }
     }
 
     private async Task FinalizeOrder()
@@ -394,36 +569,77 @@
             try
             {
                 var response = await LifecycleClient.UpdateStatusAsync(Id, ProductionStatus.Completed, "Concluído via UI");
-                if (response.Success) 
-                {
+                if (response.Success) {
                     ToastService.ShowToast(response.Message ?? "Ordem finalizada!", ToastLevel.Success);
                     await LoadData();
                 }
-                else
-                {
-                    ToastService.ShowToast(response.Message ?? "Erro ao finalizar ordem.", ToastLevel.Error);
-                }
+                else ToastService.ShowToast(response.Message ?? "Erro ao finalizar ordem", ToastLevel.Error);
             }
-            catch (Exception ex) 
-            { 
-                ToastService.ShowToast(ex.Message, ToastLevel.Error); 
-            }
-            finally 
-            { 
-                isActionInProgress = false; 
-                StateHasChanged();
-            }
+            catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro inesperado", ToastLevel.Error); }
+            finally { isActionInProgress = false; StateHasChanged(); }
         }
     }
 
     private async Task DownloadIndividualReport()
     {
+        if (isActionInProgress) return;
+        isActionInProgress = true;
+        try 
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"api/ProductionOrders/{Id}/pdf");
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var fileStream = await response.Content.ReadAsStreamAsync();
+                using var streamRef = new DotNetStreamReference(stream: fileStream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", $"Order_{order?.LotCode}.pdf", streamRef);
+            }
+            else 
+            {
+                ToastService.ShowToast("Erro ao gerar PDF no servidor.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex) { ToastService.ShowToast(ex.Message ?? "Erro ao baixar PDF", ToastLevel.Error); }
+        finally { isActionInProgress = false; }
+    }
+
+    private async Task ShowStageChange()
+    {
+        if (order != null)
+        {
+            targetStage = Enum.Parse<ProductionStage>(order.CurrentStage);
+            stageChangeNote = "";
+            showStageModal = true;
+        }
+    }
+
+    private async Task ChangeStage()
+    {
+        isActionInProgress = true;
         try
         {
-            var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
-            await JSRuntime.InvokeVoidAsync("open", $"{baseUrl}/api/ProductionOrders/{Id}/pdf", "_blank");
+            var resp = await Http.PostAsJsonAsync($"api/ProductionOrders/{Id}/change-stage", new { 
+                NewStage = targetStage, 
+                Note = stageChangeNote 
+            }, JsonOptions);
+            
+            if (resp.IsSuccessStatusCode)
+            {
+                ToastService.ShowToast("Etapa alterada com sucesso", ToastLevel.Success);
+                showStageModal = false;
+                await LoadData();
+            }
+            else
+            {
+                var error = await resp.Content.ReadFromJsonAsync<ApiResponse<object>>(JsonOptions);
+                ToastService.ShowToast(error?.Message ?? "Erro ao alterar etapa", ToastLevel.Error);
+            }
         }
         catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
+        finally { isActionInProgress = false; }
     }
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
@@ -472,9 +688,13 @@
         return cls switch { "completed" => "Concluído", "active" => "Em Andamento", _ => "Pendente" };
     }
 
-    private void ShowQA() => ToastService.ShowToast("Funcionalidade em desenvolvimento", ToastLevel.Info);
-    private void ShowAssignment() => ToastService.ShowToast("Use a página de listagem para reatribuir", ToastLevel.Info);
-    private void ShowStageChange() => ToastService.ShowToast("Avanço automático ativado", ToastLevel.Info);
+    private string GetStepIcon(string stage) => GetStepClass(stage) switch {
+        "completed" => "fa-solid fa-check-circle",
+        "active" => "fa-solid fa-spinner fa-spin",
+        _ => "fa-solid fa-circle-dot"
+    };
+
+    private void ShowQA() => showQAModal = true;
     private void ShowHistory() => StateHasChanged();
 
     public async ValueTask DisposeAsync()

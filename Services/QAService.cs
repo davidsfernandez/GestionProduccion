@@ -12,6 +12,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
+using GestionProduccion.Application.Mapping;
 
 namespace GestionProduccion.Services;
 
@@ -26,7 +27,7 @@ public class QAService : IQAService
         _fileStorage = fileStorage;
     }
 
-    public async Task<QADefect> RegisterDefectAsync(CreateQADefectDto dto, IFormFile? photoFile = null)
+    public async Task<QADefectDto> RegisterDefectAsync(CreateQADefectDto dto, IFormFile? photoFile = null)
     {
         string? photoUrl = null;
 
@@ -41,18 +42,19 @@ public class QAService : IQAService
             Reason = dto.Reason,
             Quantity = dto.Quantity,
             PhotoUrl = photoUrl,
-            ReportedByUserId = dto.ReportedByUserId
+            ReportedByUserId = dto.ReportedByUserId,
+            ReportedAt = DateTime.UtcNow
         };
 
         await _defectRepo.AddAsync(defect);
         await _defectRepo.SaveChangesAsync();
-        return defect;
+        return defect.ToDto();
     }
 
-    public async Task<List<QADefect>> GetDefectsByOrderAsync(int orderId)
+    public async Task<List<QADefectDto>> GetDefectsByOrderAsync(int orderId)
     {
         var all = await _defectRepo.GetAllAsync();
-        return all.Where(d => d.ProductionOrderId == orderId).ToList();
+        return all.Where(d => d.ProductionOrderId == orderId).ToDtoList();
     }
 
     public async Task DeleteDefectAsync(int id)
