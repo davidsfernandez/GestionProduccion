@@ -50,7 +50,9 @@ RUN mkdir -p /app/wwwroot/img/avatars_defaults && \
 
 # 2. Add entrypoint script
 COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
+RUN apt-get update && apt-get install -y sed && \
+    sed -i 's/\r$//' /app/docker-entrypoint.sh && \
+    chmod +x /app/docker-entrypoint.sh
 
 # 3. Create directory for avatar uploads and set permissions
 RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 775 /app/wwwroot/img/avatars
