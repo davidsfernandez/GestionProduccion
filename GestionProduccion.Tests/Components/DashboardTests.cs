@@ -40,10 +40,21 @@ public class DashboardTests : TestContext
         _httpClient = new HttpClient(_mockHttpHandler.Object) { BaseAddress = new Uri("http://localhost/") };
         Services.AddSingleton(_httpClient);
 
-        Services.AddSingleton(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        Services.AddSingleton(jsonOptions);
 
         _mockSignalR = new Mock<ISignalRService>();
         Services.AddSingleton(_mockSignalR.Object);
+
+        var audioService = new AudioService(JSInterop.JSRuntime);
+        Services.AddSingleton(audioService);
+        Services.AddSingleton(new ToastService(audioService));
+
+        Services.AddSingleton(new UserStateService());
     }
 
     [Fact]
@@ -62,13 +73,22 @@ public class DashboardTests : TestContext
             StalledStock = new List<StalledProductDto>()
         };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(ApiResponse<DashboardCompleteResponse>.SuccessResult(dashboardDto), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith("api/Dashboard/completo") && r.Method == HttpMethod.Get),
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().Contains("api/Dashboard/complete") && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
+
+        // Mock Tasks endpoint to avoid noise
+        var tasksJson = JsonSerializer.Serialize(ApiResponse<List<TaskDto>>.SuccessResult(new List<TaskDto>()), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        _mockHttpHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().Contains("api/Tasks") && r.Method == HttpMethod.Get),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(tasksJson) });
 
         var cut = RenderComponent<Home>();
 
@@ -88,13 +108,22 @@ public class DashboardTests : TestContext
             StalledStock = new List<StalledProductDto> { new(), new() }
         };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(ApiResponse<DashboardCompleteResponse>.SuccessResult(dashboardDto), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith("api/Dashboard/completo") && r.Method == HttpMethod.Get),
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().Contains("api/Dashboard/complete") && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
+
+        // Mock Tasks endpoint to avoid noise
+        var tasksJson = JsonSerializer.Serialize(ApiResponse<List<TaskDto>>.SuccessResult(new List<TaskDto>()), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        _mockHttpHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().Contains("api/Tasks") && r.Method == HttpMethod.Get),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(tasksJson) });
 
         var cut = RenderComponent<Home>();
 
@@ -107,33 +136,25 @@ public class DashboardTests : TestContext
     public void Dashboard_ShouldInvokeJS_ToRenderChart()
     {
         // Arrange
-        var dashboardDto = new DashboardCompleteResponse
-        {
-            WeeklyLabels = new List<string> { "Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom" },
-            WeeklyVolumeData = new List<int> { 10, 20, 15, 30, 25, 40, 35 },
-            // Populate other fields to avoid null refs if any
-            StalledStock = new List<StalledProductDto>(),
-            ProductionByWorkshop = new List<WorkshopProductionDto>(),
-            TopProfitableModels = new List<ProductProfitabilityDto>(),
-            BottomProfitableModels = new List<ProductProfitabilityDto>()
-        };
+        var dashboardDto = new DashboardDto { TotalActiveOrders = 5 };
 
-        var json = JsonSerializer.Serialize(dashboardDto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(new ApiResponse<DashboardDto> { Success = true, Data = dashboardDto }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, Converters = { new JsonStringEnumConverter() } });
         _mockHttpHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().EndsWith("api/Dashboard/completo") && r.Method == HttpMethod.Get),
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString().Contains("api/Dashboard") && !r.RequestUri!.ToString().Contains("completo") && r.Method == HttpMethod.Get),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(json) });
 
-        // Setup the expected JS call
-        JSInterop.SetupVoid("seronaCharts.renderDashboardChart", _ => true);
+        // Setup the expected JS calls in Home.razor
+        JSInterop.SetupVoid("seronaCharts.renderRevenueChart", _ => true);
+        JSInterop.SetupVoid("seronaCharts.renderBarChart", _ => true);
 
         // Act
         RenderComponent<Home>();
 
         // Assert
-        JSInterop.VerifyInvoke("seronaCharts.renderDashboardChart", 1);
+        JSInterop.VerifyInvoke("seronaCharts.renderRevenueChart", 1);
     }
 }
 

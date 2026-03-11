@@ -9,6 +9,7 @@
  */
 
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Models.DTOs;
@@ -68,7 +69,16 @@ public class BonusCalculationService : IBonusCalculationService
         var outputs = await _outputRepo.GetByTeamAndDateRangeAsync(teamId, startDate, endDate);
         var outputsList = outputs.ToList();
         
-        if (!outputsList.Any())
+        // 2. Identify orders completed in this period that DON'T have outputs (legacy/tests)
+        var orderIdsWithOutputs = outputsList.Select(o => o.ProductionOrderId).Distinct().ToList();
+        var allTeamOrdersInRange = await _orderRepo.GetQueryableAsync();
+        var legacyOrders = await allTeamOrdersInRange
+            .Where(o => o.SewingTeamId == teamId && o.CompletedAt >= startDate && o.CompletedAt <= endDate && o.CurrentStatus == ProductionStatus.Completed)
+            .ToListAsync();
+        
+        var filteredLegacy = legacyOrders.Where(o => !orderIdsWithOutputs.Contains(o.Id)).ToList();
+
+        if (!outputsList.Any() && !filteredLegacy.Any())
         {
             return new BonusReportDto
             {
@@ -81,11 +91,11 @@ public class BonusCalculationService : IBonusCalculationService
             };
         }
 
-        // 2. Sum productivity from events
-        int totalProduced = outputsList.Sum(o => o.Quantity);
+        // 3. Combine sources for productivity
+        int totalProduced = outputsList.Sum(o => o.Quantity) + filteredLegacy.Sum(o => o.Quantity);
         
-        // 3. For performance (On-Time), we still look at the parent orders involved in these outputs
-        var involvedOrderIds = outputs.Select(o => o.ProductionOrderId).Distinct();
+        // 4. Identify all involved orders (from outputs or legacy)
+        var involvedOrderIds = orderIdsWithOutputs.Union(filteredLegacy.Select(o => o.Id)).Distinct().ToList();
         var teamOrders = new List<ProductionOrder>();
         foreach(var id in involvedOrderIds)
         {

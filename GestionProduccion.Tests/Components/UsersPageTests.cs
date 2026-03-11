@@ -14,6 +14,7 @@ using FluentAssertions;
 using GestionProduccion.Client.Pages;
 using GestionProduccion.Client.Services;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Resources;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Moq.Protected;
@@ -60,13 +61,13 @@ public class UsersPageTests : TestContext
 
         // Act
         cut.Find("button.btn-primary").Click(); // Open Modal
-        cut.Find("input[placeholder='email@exemplo.com']").Change("invalid-email");
+        cut.Find($"input[placeholder='{Portuguese.User_EmailPlaceholder}']").Change("invalid-email");
         cut.Find("button[type=submit]").Click(); // Submit
 
         // Assert
         cut.WaitForState(() => cut.FindAll(".text-danger").Count > 0);
         var errorMessages = cut.FindAll(".text-danger").Select(e => e.TextContent);
-        errorMessages.Should().ContainMatch("*Email*", "Should show email validation error");
+        errorMessages.Should().ContainMatch("*E-mail*", "Should show email validation error");
 
         _mockHttpHandler.Protected().Verify(
             "SendAsync",
@@ -107,8 +108,8 @@ public class UsersPageTests : TestContext
 
         // Act
         cut.Find("button.btn-primary").Click(); // Open
-        cut.Find("input[placeholder='Nome completo']").Change("New User");
-        cut.Find("input[placeholder='email@exemplo.com']").Change("new@test.com");
+        cut.Find($"input[placeholder='{Portuguese.User_FullNamePlaceholder}']").Change("New User");
+        cut.Find($"input[placeholder='{Portuguese.User_EmailPlaceholder}']").Change("new@test.com");
         // Select Role (assuming select exists)
         // cut.Find("select").Change("Operational"); 
         cut.Find("button[type=submit]").Click(); // Save

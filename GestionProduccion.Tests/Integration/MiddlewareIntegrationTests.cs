@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using GestionProduccion.Domain.Enums;
+using GestionProduccion.Models.DTOs;
 using FluentAssertions;
 
 namespace GestionProduccion.Tests.Integration;
@@ -47,9 +48,10 @@ public class MiddlewareIntegrationTests : BaseIntegrationTest
         }
 
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        problem.Should().NotBeNull();
-        problem!.Status.Should().Be(500);
+        var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeFalse();
+        apiResponse!.Message.Should().NotBeNullOrEmpty();
     }
 
     [Fact]

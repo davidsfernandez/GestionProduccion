@@ -17,6 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Linq;
+using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace GestionProduccion.Tests.Integration;
 
@@ -25,6 +27,15 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        // Provide a valid JWT key for testing to satisfy the security check in Program.cs
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "THIS_IS_A_SECURE_TEST_KEY_THAT_IS_LONG_ENOUGH_FOR_HMAC_SHA256"
+            });
+        });
 
         builder.ConfigureServices(services =>
         {

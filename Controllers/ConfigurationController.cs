@@ -99,4 +99,11 @@ public class ConfigurationController : ControllerBase
             return StatusCode(500, ApiResponse<bool>.FailureResult("Error updating logo", new List<string> { ex.Message }));
         }
     }
+
+    [HttpGet("test-exception")]
+    [AllowAnonymous]
+    public IActionResult TestException()
+    {
+        throw new Exception("Test Exception for Middleware");
+    }
 }

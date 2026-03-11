@@ -170,7 +170,12 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         order.UpdatedAt = now;
 
         if (newStatus == ProductionStatus.InProduction && order.StartedAt == null) order.StartedAt = now;
-        else if (newStatus == ProductionStatus.Completed) order.CompletedAt = now;
+        else if (newStatus == ProductionStatus.Completed) 
+        {
+            order.CompletedAt = now;
+            // Record remaining outputs for the last stage if not already recorded
+            await RecordRemainingOutputsAsync(order, modifiedByUserId);
+        }
 
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, note);
@@ -225,6 +230,9 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         var latestOrder = await _orderRepository.GetByIdAsync(order.Id);
         if (latestOrder != null && latestOrder.CurrentStage != previousStage) return;
 
+        // Record remaining outputs for the stage we are leaving
+        await RecordRemainingOutputsAsync(order, modifiedByUserId);
+
         order.CurrentStage = newStage;
         order.CurrentStatus = ProductionStatus.InProduction;
         order.UpdatedAt = DateTime.UtcNow;
@@ -250,6 +258,36 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
 
         return true;
+    }
+
+    private async Task RecordRemainingOutputsAsync(ProductionOrder order, int userId)
+    {
+        var existingOutputs = await _outputRepository.GetByOrderIdAsync(order.Id);
+        var alreadyRecorded = existingOutputs.Where(o => o.Stage == order.CurrentStage).Sum(o => o.Quantity);
+        var remaining = order.Quantity - alreadyRecorded;
+
+        if (remaining > 0)
+        {
+            // Distribute remaining quantity across sizes
+            foreach (var size in order.Sizes)
+            {
+                var sizeAlready = existingOutputs.Where(o => o.ProductionOrderSizeId == size.Id && o.Stage == order.CurrentStage).Sum(o => o.Quantity);
+                var sizeRemaining = size.Quantity - sizeAlready;
+                if (sizeRemaining > 0)
+                {
+                    await _outputRepository.AddAsync(new ProductionOrderOutput
+                    {
+                        ProductionOrderId = order.Id,
+                        ProductionOrderSizeId = size.Id,
+                        Stage = order.CurrentStage,
+                        Quantity = sizeRemaining,
+                        UserId = userId,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await _outputRepository.SaveChangesAsync();
+        }
     }
 
     private async Task AddHistory(int productionOrderId, ProductionStage? previousStage, ProductionStage newStage, ProductionStatus? previousStatus, ProductionStatus newStatus, int userId, string note)

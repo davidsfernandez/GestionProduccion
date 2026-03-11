@@ -52,8 +52,8 @@ public class TransactionalFlowTests : BaseIntegrationTest
         // Act 1: Crear Orden
         var createResponse = await Client.PostAsJsonAsync("/api/ProductionOrders", orderRequest);
         createResponse.EnsureSuccessStatusCode();
-        var newOrder = await createResponse.Content.ReadFromJsonAsync<ProductionOrderDto>(JsonOptions);
-        int orderId = newOrder!.Id;
+        var apiResponse = await createResponse.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(JsonOptions);
+        int orderId = apiResponse!.Data!.Id;
 
         // Act 2: Forzar estado completado con costos (Simulando el efecto del LifecycleService + Calculator)
         using (var scope = Factory.Services.CreateScope())
@@ -73,7 +73,8 @@ public class TransactionalFlowTests : BaseIntegrationTest
 
         // Act 3: Verificar que la API devuelve los datos persistidos correctamente
         var getResponse = await Client.GetAsync($"/api/ProductionOrders/{orderId}");
-        var orderDetails = await getResponse.Content.ReadFromJsonAsync<ProductionOrderDto>(JsonOptions);
+        var apiResponseGet = await getResponse.Content.ReadFromJsonAsync<ApiResponse<ProductionOrderDto>>(JsonOptions);
+        var orderDetails = apiResponseGet!.Data;
 
         // Assert
         orderDetails!.TotalCost.Should().BeGreaterThan(0, "TotalCost must be returned by the API");
@@ -118,11 +119,11 @@ public class TransactionalFlowTests : BaseIntegrationTest
 
         // Act: Verificar reasignaciÃ³n del usuario a algÃºn equipo activo (distinto al borrado)
         var getUserResp = await Client.GetAsync($"/api/Users/{opUserId}");
-        var getUserResult = await getUserResp.Content.ReadFromJsonAsync<UserDto>(JsonOptions);
+        var getUserResult = await getUserResp.Content.ReadFromJsonAsync<ApiResponse<UserDto>>(JsonOptions);
 
         // Assert
-        getUserResult!.SewingTeamId.Should().NotBeNull();
-        getUserResult!.SewingTeamId.Should().NotBe(teamAId, "User must be reassigned away from the deleted team");
+        getUserResult!.Data!.SewingTeamId.Should().NotBeNull();
+        getUserResult!.Data!.SewingTeamId.Should().NotBe(teamAId, "User must be reassigned away from the deleted team");
     }
 }
 

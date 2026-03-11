@@ -21,6 +21,7 @@ using Moq.Protected;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Xunit;
 
 namespace GestionProduccion.Tests.Components;
@@ -40,6 +41,13 @@ public class LoginPageTests : TestContext
         var audioService = new AudioService(JSInterop.JSRuntime);
         Services.AddSingleton(audioService);
         Services.AddSingleton(new ToastService(audioService));
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        Services.AddSingleton(jsonOptions);
 
         Services.AddSingleton(new UserStateService());
 

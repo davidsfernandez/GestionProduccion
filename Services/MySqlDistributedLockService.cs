@@ -28,6 +28,12 @@ namespace GestionProduccion.Services
 
         public async Task<bool> AcquireLockAsync(string resourceKey, TimeSpan timeout, CancellationToken ct = default)
         {
+            // Fallback for InMemory provider used in unit/integration tests
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                return true;
+            }
+
             try
             {
                 var conn = _context.Database.GetDbConnection();
@@ -54,6 +60,8 @@ namespace GestionProduccion.Services
 
         public async Task ReleaseLockAsync(string resourceKey)
         {
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory") return;
+
             try
             {
                 var conn = _context.Database.GetDbConnection();

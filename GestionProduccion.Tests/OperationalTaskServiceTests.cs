@@ -43,6 +43,10 @@ public class OperationalTaskServiceTests
         _context = new AppDbContext(options);
         _mockCache = new Mock<IMemoryCache>();
         _mockHubContext = new Mock<IHubContext<ProductionHub>>();
+        var mockClients = new Mock<IHubClients>();
+        var mockClientProxy = new Mock<IClientProxy>();
+        mockClients.Setup(c => c.All).Returns(mockClientProxy.Object);
+        _mockHubContext.Setup(h => h.Clients).Returns(mockClients.Object);
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mapper = new MainMapper();
 

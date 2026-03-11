@@ -13,6 +13,7 @@ using Bunit.TestDoubles;
 using FluentAssertions;
 using GestionProduccion.Client.Layout;
 using GestionProduccion.Client.Services;
+using GestionProduccion.Resources;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Moq.Protected;
@@ -50,13 +51,13 @@ public class NavMenuTests : TestContext
         // 'Ajustes do Sistema', 'UsuÃ¡rios', 'CatÃ¡logo de Produtos'
         
         // Ajustes do Sistema
-        cut.FindAll("a").Where(a => a.TextContent.Contains("Ajustes do Sistema")).Should().BeEmpty("Settings link should be hidden for Operational role");
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Nav_Settings)).Should().BeEmpty("Settings link should be hidden for Operational role");
 
-        // UsuÃ¡rios
-        cut.FindAll("a").Where(a => a.TextContent.Contains("UsuÃ¡rios")).Should().BeEmpty("Users link should be hidden for Operational role");
+        // Usuários
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Nav_Users)).Should().BeEmpty("Users link should be hidden for Operational role");
 
-        // CatÃ¡logo de Produtos
-        cut.FindAll("a").Where(a => a.TextContent.Contains("CatÃ¡logo de Produtos")).Should().BeEmpty("Catalog link should be hidden for Operational role");
+        // Catálogo de Produtos
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Cat_Title)).Should().BeEmpty("Catalog link should be hidden for Operational role");
     }
 
     [Fact]
@@ -71,9 +72,9 @@ public class NavMenuTests : TestContext
         var cut = RenderComponent<NavMenu>();
 
         // Assert
-        cut.FindAll("a").Where(a => a.TextContent.Contains("Ajustes do Sistema")).Should().NotBeEmpty("Settings link should be visible for Admin");
-        cut.FindAll("a").Where(a => a.TextContent.Contains("UsuÃ¡rios")).Should().NotBeEmpty("Users link should be visible for Admin");
-        cut.FindAll("a").Where(a => a.TextContent.Contains("CatÃ¡logo de Produtos")).Should().NotBeEmpty("Catalog link should be visible for Admin");
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Nav_Settings)).Should().NotBeEmpty("Settings link should be visible for Admin");
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Nav_Users)).Should().NotBeEmpty("Users link should be visible for Admin");
+        cut.FindAll("a").Where(a => a.TextContent.Contains(Portuguese.Cat_Title)).Should().NotBeEmpty("Catalog link should be visible for Admin");
     }
 
     [Fact]

@@ -50,11 +50,13 @@ public class MyTasksTests : TestContext
         Services.AddSingleton(jsonOptions);
 
         _mockLifecycleClient = new Mock<IProductionOrderLifecycleClient>();
-        Services.AddSingleton(_mockLifecycleClient.Object);
+        Services.AddScoped(_ => _mockLifecycleClient.Object);
+        Services.AddScoped(_ => new Mock<ISignalRService>().Object);
 
         var audioService = new AudioService(JSInterop.JSRuntime);
         Services.AddSingleton(audioService);
-        Services.AddSingleton(new ToastService(audioService));
+        var toastService = new ToastService(audioService);
+        Services.AddSingleton(toastService);
     }
 
     [Fact]

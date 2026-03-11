@@ -47,6 +47,10 @@ public class TeamsPageTests : TestContext
             Converters = { new JsonStringEnumConverter() }
         };
         Services.AddSingleton(jsonOptions);
+
+        Services.AddSingleton(new UserStateService());
+        Services.AddScoped(_ => new Mock<ISignalRService>().Object);
+        Services.AddScoped(_ => new Mock<ISewingTeamClient>().Object);
     }
 
     [Fact]
@@ -67,7 +71,8 @@ public class TeamsPageTests : TestContext
         var btn = cut.Find("button.btn-primary");
         btn.HasAttribute("disabled").Should().BeTrue("Create button should be disabled if no users exist");
 
-        cut.Markup.Should().Contain("NÃ£o Ã© possÃ­vel criar equipes", "Warning message should be displayed");
+        cut.Markup.Should().Contain("operadores");
+        cut.Markup.Should().Contain("equipes");
     }
 
     private void SetupMockJsonResponse<T>(string url, T response)

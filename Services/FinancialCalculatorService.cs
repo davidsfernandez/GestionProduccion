@@ -40,7 +40,10 @@ public class FinancialCalculatorService : IFinancialCalculatorService
     public async Task UpdateIntermediateCostAsync(ProductionOrder order)
     {
         // 1. Calculate current effective hours
-        double currentEffectiveHours = order.EffectiveMinutes / 60.0;
+        // Priority: Use the managed 'EffectiveMinutes' property, fallback to history calculation
+        double currentEffectiveHours = order.EffectiveMinutes > 0 
+            ? order.EffectiveMinutes / 60.0 
+            : CalculateEffectiveWorkingHours(order);
 
         // If currently in production, add time elapsed since the last recorded start
         if (order.CurrentStatus == ProductionStatus.InProduction && order.StartedAt.HasValue)
@@ -82,35 +85,54 @@ public class FinancialCalculatorService : IFinancialCalculatorService
 
     private double CalculateEffectiveWorkingHours(ProductionOrder order)
     {
-        if (order.History == null || !order.History.Any()) return 0;
-
-        var sortedHistory = order.History.OrderBy(h => h.ChangedAt).ToList();
-        double totalSeconds = 0;
-        DateTime? lastStartTime = null;
-
-        foreach (var entry in sortedHistory)
+        // 1. If history exists, use the precise interval calculation
+        if (order.History != null && order.History.Any())
         {
-            // If we transitioned TO InProduction, start the clock
-            if (entry.NewStatus == ProductionStatus.InProduction)
+            var sortedHistory = order.History.OrderBy(h => h.ChangedAt).ToList();
+            double totalSeconds = 0;
+            DateTime? lastStartTime = null;
+
+            foreach (var entry in sortedHistory)
             {
-                lastStartTime = entry.ChangedAt;
+                // If we transitioned TO InProduction, start the clock
+                if (entry.NewStatus == ProductionStatus.InProduction)
+                {
+                    lastStartTime = entry.ChangedAt;
+                }
+                // If we transitioned FROM InProduction to something else, stop and add interval
+                else if (entry.PreviousStatus == ProductionStatus.InProduction && lastStartTime != null)
+                {
+                    totalSeconds += (entry.ChangedAt - lastStartTime.Value).TotalSeconds;
+                    lastStartTime = null;
+                }
             }
-            // If we transitioned FROM InProduction to something else, stop and add interval
-            else if (entry.PreviousStatus == ProductionStatus.InProduction && lastStartTime != null)
+
+            // If it's currently InProduction, add time until now (or Completion date)
+            if (lastStartTime != null)
             {
-                totalSeconds += (entry.ChangedAt - lastStartTime.Value).TotalSeconds;
-                lastStartTime = null;
+                var endPoint = order.CompletedAt ?? DateTime.UtcNow;
+                totalSeconds += (endPoint - lastStartTime.Value).TotalSeconds;
             }
+
+            return totalSeconds / 3600.0;
         }
 
-        // If it's currently InProduction, add time until now (or Completion date)
-        if (lastStartTime != null)
+        // 2. Fallback: If no history but we have StartedAt, use the total duration
+        if (order.StartedAt.HasValue)
         {
             var endPoint = order.CompletedAt ?? DateTime.UtcNow;
-            totalSeconds += (endPoint - lastStartTime.Value).TotalSeconds;
+            var duration = endPoint - order.StartedAt.Value;
+            return duration.TotalHours > 0 ? duration.TotalHours : 0;
         }
 
-        return totalSeconds / 3600.0;
+        // 3. Last fallback: CreatedAt to Completion (for very old or mocked data)
+        if (order.CompletedAt.HasValue)
+        {
+            var duration = order.CompletedAt.Value - order.CreatedAt;
+            return duration.TotalHours > 0 ? duration.TotalHours : 0;
+        }
+
+        return 0;
     }
 }
 

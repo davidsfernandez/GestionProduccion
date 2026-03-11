@@ -231,6 +231,29 @@
                         </div>
                     </div>
                 </div>
+
+                @if (order.CurrentStatus == "Completed" && order.TotalCost > 0)
+                {
+                    <div class="card shadow-sm border-0 rounded-4 mt-4 animate-fade-in">
+                        <div class="card-header bg-white border-0 pt-4 px-4">
+                            <h5 class="card-title mb-0 fw-bold text-muted uppercase small">@Portuguese.OP_FinancialAnalysis</h5>
+                        </div>
+                        <div class="card-body p-4 pt-2">
+                            <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
+                                <span class="text-muted">@Portuguese.OP_TotalBatchCost</span>
+                                <span class="fw-bold text-dark">@order.TotalCost.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
+                                <span class="text-muted">@Portuguese.OP_RealUnitCost</span>
+                                <span class="fw-bold text-primary">@order.AverageCostPerPiece.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">@Portuguese.OP_ProfitMargin</span>
+                                <span class="fw-bold @(order.ProfitMargin >= 30 ? "text-success" : "text-warning")">@order.ProfitMargin.ToString("N1")%</span>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     }

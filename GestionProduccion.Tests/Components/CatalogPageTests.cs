@@ -48,6 +48,8 @@ public class CatalogPageTests : TestContext
             Converters = { new JsonStringEnumConverter() }
         };
         Services.AddSingleton(jsonOptions);
+
+        Services.AddScoped(_ => new Mock<IProductClient>().Object);
     }
 
     [Fact]

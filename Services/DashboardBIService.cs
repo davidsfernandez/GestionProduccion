@@ -34,12 +34,10 @@ public class DashboardBIService : IDashboardBIService
 
         // 1. General Metrics
         var monthProduction = await _context.ProductionOrderOutputs
-            .AsNoTracking()
             .Where(o => o.CreatedAt >= firstDayOfMonth)
             .SumAsync(o => o.Quantity, ct);
 
         var completedOrdersQuery = _context.ProductionOrders
-            .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth);
 
         var completedOrdersData = await completedOrdersQuery
@@ -55,28 +53,47 @@ public class DashboardBIService : IDashboardBIService
                         && o.EstimatedCompletionAt < now)
             .CountAsync(ct);
 
-        // 2. Weekly Production Graph (FIXED: Ensure grouping by local date context)
+        // 2. Weekly Production Graph (Hybrid: Outputs + Legacy Orders)
         var sevenDaysAgo = today.AddDays(-6);
-        var weeklyRaw = await _context.ProductionOrderOutputs
+        var weeklyOutputs = await _context.ProductionOrderOutputs
             .AsNoTracking()
             .Where(o => o.CreatedAt >= sevenDaysAgo)
             .GroupBy(o => o.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
             .ToListAsync(ct);
 
+        var orderIdsWithOutputs = await _context.ProductionOrderOutputs
+            .AsNoTracking()
+            .Where(o => o.CreatedAt >= sevenDaysAgo)
+            .Select(o => o.ProductionOrderId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var weeklyLegacy = await _context.ProductionOrders
+            .AsNoTracking()
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
+            .ToListAsync(ct);
+        
+        var filteredLegacy = weeklyLegacy
+            .Where(o => !orderIdsWithOutputs.Contains(o.Id))
+            .GroupBy(o => o.CompletedAt!.Value.Date)
+            .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
+            .ToList();
+
         var weeklyData = new List<int>();
         var weeklyLabels = new List<string>();
         for (int i = 6; i >= 0; i--)
         {
             var date = today.AddDays(-i);
-            var totalForDay = weeklyRaw.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
-            weeklyData.Add(totalForDay);
+            var fromOutputs = weeklyOutputs.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
+            var fromLegacy = filteredLegacy.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
+            
+            weeklyData.Add(fromOutputs + fromLegacy);
             weeklyLabels.Add(date.ToString("ddd", ptBr).ToUpper().Replace(".", ""));
         }
 
         // 3. RANKING INDIVIDUAL (Operators) - Optimized for Hall of Fame
         var operatorRanking = await _context.ProductionOrderOutputs
-            .AsNoTracking()
             .Include(o => o.ResponsibleUser)
             .Where(o => o.CreatedAt >= firstDayOfMonth)
             .GroupBy(o => new { o.UserId, o.ResponsibleUser!.FullName, o.ResponsibleUser.AvatarUrl })
@@ -94,7 +111,6 @@ public class DashboardBIService : IDashboardBIService
 
         // 4. RANKING POR EQUIPE (Teams) - Optimized
         var teamRanking = await _context.ProductionOrderOutputs
-            .AsNoTracking()
             .Include(o => o.ResponsibleUser)
             .ThenInclude(u => u.SewingTeam)
             .Where(o => o.CreatedAt >= firstDayOfMonth)
@@ -112,9 +128,8 @@ public class DashboardBIService : IDashboardBIService
             .Take(5)
             .ToListAsync(ct);
 
-        // 5. PRODUCTION BY WORKSHOP (The "Carga por Operadores" chart) - RESTORED
+        // 5. PRODUCTION BY WORKSHOP (The "Carga por Operadores" chart)
         var prodByWorkshop = await _context.ProductionOrderOutputs
-            .AsNoTracking()
             .Include(o => o.ResponsibleUser)
             .Where(o => o.CreatedAt >= firstDayOfMonth)
             .GroupBy(o => o.ResponsibleUser!.FullName)
@@ -127,9 +142,8 @@ public class DashboardBIService : IDashboardBIService
             .Take(10)
             .ToListAsync(ct);
 
-        // 6. Product Insights (Most and Least Profitable) - RESTORED
+        // 6. Product Insights (Most and Least Profitable)
         var profitabilityData = await _context.ProductionOrders
-            .AsNoTracking()
             .Where(o => o.CurrentStatus == ProductionStatus.Completed)
             .Include(o => o.Product)
             .GroupBy(o => new { o.ProductId, o.Product!.Name, o.Product!.MainSku })
@@ -144,6 +158,33 @@ public class DashboardBIService : IDashboardBIService
         var topModels = profitabilityData.OrderByDescending(x => x.AverageMargin).Take(5).ToList();
         var bottomModels = profitabilityData.OrderBy(x => x.AverageMargin).Take(5).ToList();
 
+        // 7. Stalled Stock (Products with no orders in last 60 days)
+        var sixtyDaysAgo = now.AddDays(-60);
+        
+        var stalledStock = await _context.Products
+            .Where(p => !_context.ProductionOrders.Any(o => o.ProductId == p.Id && o.CreatedAt >= sixtyDaysAgo))
+            .Select(p => new StalledProductDto
+            {
+                Sku = p.MainSku,
+                Name = p.Name,
+                DaysSinceLastProduction = 999 // Default for all stalled
+            })
+            .ToListAsync(ct);
+
+        foreach (var item in stalledStock)
+        {
+            var lastOrder = await _context.ProductionOrders
+                .Where(o => o.Product!.MainSku == item.Sku && o.CurrentStatus == ProductionStatus.Completed)
+                .OrderByDescending(o => o.CompletedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (lastOrder?.CompletedAt != null)
+            {
+                item.DaysSinceLastProduction = (int)(now - lastOrder.CompletedAt.Value).TotalDays;
+            }
+        }
+
+
         return new DashboardCompleteResponse
         {
             MonthProductionQuantity = monthProduction,
@@ -157,7 +198,7 @@ public class DashboardBIService : IDashboardBIService
             BottomProfitableModels = bottomModels,
             WeeklyVolumeData = weeklyData,
             WeeklyLabels = weeklyLabels,
-            StalledStock = new List<StalledProductDto>()
+            StalledStock = stalledStock
         };
     }
 }

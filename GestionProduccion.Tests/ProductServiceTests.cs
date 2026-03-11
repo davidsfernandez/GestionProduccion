@@ -61,12 +61,9 @@ public class ProductServiceTests : IDisposable
         var now = DateTime.UtcNow;
         var orders = new List<ProductionOrder>
         {
-            // 60 minutes
-            new() { LotCode = "OP1", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-60), CompletedAt = now },
-            // 120 minutes
-            new() { LotCode = "OP2", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-120), CompletedAt = now },
-            // 180 minutes
-            new() { LotCode = "OP3", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-180), CompletedAt = now }
+            new() { LotCode = "OP1", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-60), CompletedAt = now, EffectiveMinutes = 600 },
+            new() { LotCode = "OP2", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-120), CompletedAt = now, EffectiveMinutes = 1200 },
+            new() { LotCode = "OP3", ProductId = 1, Quantity = 10, CurrentStatus = ProductionStatus.Completed, StartedAt = now.AddMinutes(-180), CompletedAt = now, EffectiveMinutes = 1800 }
         };
         _context.ProductionOrders.AddRange(orders);
         await _context.SaveChangesAsync();
