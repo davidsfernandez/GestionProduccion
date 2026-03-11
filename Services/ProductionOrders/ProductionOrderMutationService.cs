@@ -115,8 +115,6 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
 
             var lotCode = $"{prefix}{nextSequence}";
 
-            var product = await _productRepository.GetByIdAsync(request.ProductId);
-            
             var order = new ProductionOrder
             {
                 LotCode = lotCode,
@@ -131,12 +129,10 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
                 UserId = request.UserId,
                 ProductId = request.ProductId,
                 SewingTeamId = request.SewingTeamId,
-                // Initial estimates from product catalog
-                AverageCostPerPiece = product?.EstimatedProductionCost ?? 0,
-                TotalCost = (product?.EstimatedProductionCost ?? 0) * request.Quantity,
-                ProfitMargin = product != null && product.BaseSalesPrice > 0 
-                    ? ((product.BaseSalesPrice - product.EstimatedProductionCost) / product.BaseSalesPrice) * 100 
-                    : 0
+                // Initialize with base values from product catalog
+                AverageCostPerPiece = 0,
+                TotalCost = 0,
+                ProfitMargin = 100 // Initial margin before real cost calculation
             };
 
             // Handle multi-size if provided
