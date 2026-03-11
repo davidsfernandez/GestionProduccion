@@ -94,7 +94,7 @@ public class ReportService : IReportService
                             row.ConstantItem(80).Column(col =>
                             {
                                 col.Item().Width(2, Unit.Centimetre).Height(2, Unit.Centimetre).Image(qrCodeBytes);
-                                col.Item().AlignCenter().Text("SCAN").FontSize(8).FontColor(Colors.White);
+                                col.Item().AlignCenter().Text(Portuguese.SCAN).FontSize(8).FontColor(Colors.White);
                             });
                         }
                     });
@@ -114,7 +114,7 @@ public class ReportService : IReportService
                             });
 
                             table.Cell().Text(t => { t.Span($"{Portuguese.OP_Code}: ").Bold(); t.Span(order.LotCode ?? "N/A").FontSize(12); });
-                            table.Cell().Text(t => { t.Span("SKU: ").Bold(); t.Span(order.ProductCode ?? "N/A").FontSize(12); });    
+                            table.Cell().Text(t => { t.Span($"{Portuguese.SKU}: ").Bold(); t.Span(order.ProductCode ?? "N/A").FontSize(12); });    
 
                             table.Cell().Text(t => { t.Span($"{Portuguese.Product}: ").Bold(); t.Span($"{order.ProductName ?? "N/A"}"); });
                             table.Cell().Text(t => { t.Span($"{Portuguese.Quantity}: ").Bold(); t.Span(order.Quantity.ToString()); });
@@ -156,12 +156,23 @@ public class ReportService : IReportService
                                 c.Item().Text(t => { t.Span($"{Portuguese.EffectiveMinutes}: ").Bold(); t.Span($"{totalEffectiveMinutes:N1} min"); });
                                 c.Item().Text(t => { t.Span($"{Portuguese.TotalPauses}: ").Bold(); t.Span(pauseCount.ToString()); });
 
-                                if (avgHistoricalMinutes > 0 && totalEffectiveMinutes > 0)
+                                if (avgHistoricalMinutes > 0 && totalEffectiveMinutes >= 5)
                                 {
                                     var perfIndex = (avgHistoricalMinutes / (totalEffectiveMinutes / Math.Max(1, order.Quantity))) * 100;
+                                    // Cap at 200% to avoid extreme outliers if data is still settling
+                                    if (perfIndex > 200) perfIndex = 200;
+
                                     c.Item().Text(t => {
                                         t.Span($"{Portuguese.Performance}: ").Bold();
                                         t.Span($"{perfIndex:N1}% ").FontColor(perfIndex >= 90 ? Colors.Green.Medium : Colors.Red.Medium);
+                                        if (perfIndex > 100) t.Span($"({Portuguese.Dash_AboveAverage})");
+                                    });
+                                }
+                                else if (avgHistoricalMinutes > 0 && totalEffectiveMinutes > 0)
+                                {
+                                    c.Item().Text(t => { 
+                                        t.Span($"{Portuguese.Performance}: ").Bold(); 
+                                        t.Span("Calibrando...").FontColor(Colors.Grey.Medium); 
                                     });
                                 }
                             });
@@ -219,7 +230,7 @@ public class ReportService : IReportService
                                 table.Cell().Element(CellStyle).Text(item.ChangedAt.ToLocalTime().ToString("dd/MM HH:mm"));
                                 table.Cell().Element(CellStyle).Text(TranslateStage(item.NewStage));
                                 table.Cell().Element(CellStyle).Text(item.UserName ?? "Sistema");
-                                table.Cell().Element(CellStyle).Text(item.Note ?? "-");
+                                table.Cell().Element(CellStyle).Text(TranslateNote(item.Note));
                                 static IContainer CellStyle(IContainer container) => container.Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
                             }
                         });
@@ -303,7 +314,7 @@ public class ReportService : IReportService
 
                             table.Header(header =>
                             {
-                                header.Cell().Element(HeaderStyle).Text("SKU");
+                                header.Cell().Element(HeaderStyle).Text(Portuguese.SKU);
                                 header.Cell().Element(HeaderStyle).Text($"{Portuguese.OP_Code}");
                                 header.Cell().Element(HeaderStyle).Text(Portuguese.Product);
                                 header.Cell().Element(HeaderStyle).Text(Portuguese.Team_Title);
@@ -373,6 +384,42 @@ public class ReportService : IReportService
         System.Buffer.BlockCopy(bom, 0, result, 0, bom.Length);
         System.Buffer.BlockCopy(bytes, 0, result, bom.Length, bytes.Length);
         return Task.FromResult(result);
+    }
+
+    private string TranslateNote(string? note)
+    {
+        if (string.IsNullOrEmpty(note)) return "-";
+        
+        var translated = note;
+        
+        // Patterns from ProductionOrderLifecycleService
+        if (note.StartsWith("Advanced to ")) 
+        {
+            var stage = note.Replace("Advanced to ", "").Trim();
+            translated = $"{Portuguese.OP_AdvanceStage}: {TranslateStage(stage)}";
+        }
+        else if (note.StartsWith("Assigned to operator "))
+        {
+             translated = note.Replace("Assigned to operator ", Portuguese.OP_OperatorAssigned + ": ");
+        }
+        else if (note.Contains("Transitioned from "))
+        {
+            translated = "Transição automática de etapa";
+        }
+        else if (note == "Started production")
+        {
+             translated = Portuguese.OP_ResumeProduction;
+        }
+        else if (note == "Stopped production")
+        {
+             translated = Portuguese.OP_StopProduction;
+        }
+        else if (note == "Production completed")
+        {
+             translated = Portuguese.Status_Completed;
+        }
+
+        return translated;
     }
 
     private string TranslateStage(string? stage) => stage?.ToLower() switch

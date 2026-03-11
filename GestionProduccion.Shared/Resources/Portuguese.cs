@@ -89,7 +89,7 @@ namespace GestionProduccion.Resources
         public const string Dash_Efficiency = "Eficiência Diária";
         public const string Dash_WeeklyVolume = "Volume Semanal (Últimos 7 Dias)";
         public const string Dash_ProductionStatus = "Status da Produção";
-        public const string Dash_NormalOperation = "Operación Normal";
+        public const string Dash_NormalOperation = "Operação Normal";
         public const string Dash_FactoryFloor = "No chão de fábrica";
         public const string Dash_OrdersByStage = "Ordens por Etapa";
         public const string Dash_AvgHours = "Média de horas";
@@ -99,6 +99,11 @@ namespace GestionProduccion.Resources
         public const string Dash_Workload = "Carga de Trabalho por Usuário";
         public const string Dash_TvMode = "Modo TV";
         public const string Dash_RecentActivities = "Próximas Atividades";
+        public const string Dash_AboveAverage = "Acima da média";
+        public const string Dash_BelowAverage = "Abaixo da média";
+        public const string SCAN = "ESCANEIE";
+        public const string SKU = "SKU";
+
 
         public const string Stage_Cutting = "Corte";
         public const string Stage_Sewing = "Costura";
@@ -122,12 +127,12 @@ namespace GestionProduccion.Resources
         public const string OP_NewOrder = "Nova Ordem";
         public const string OP_DailyPDF = "PDF Diário";
         public const string OP_Report = "Relatório PDF";
-        public const string OP_NoOrdersFound = "Nenhuma ordem de producción encontrada.";
+        public const string OP_NoOrdersFound = "Nenhuma ordem de produção encontrada.";
         public const string OP_NoOrdersMatch = "Nenhuma ordem corresponde aos critérios de busca.";
         public const string OP_FilterByStage = "Filtrar por Etapa";
         public const string OP_FilterByStatus = "Filtrar por Status";
         public const string OP_SortBy = "Ordenar por";
-        public const string OP_SearchPlaceholder = "Produto ou Código...";
+        public const string OP_SearchPlaceholder = "Produto o Código...";
         public const string OP_ExportCSV = "Exportar CSV";
         public const string OP_ExportExcel = "Exportar Excel";
         public const string OP_BatchCount = "Lotes";
@@ -161,7 +166,7 @@ namespace GestionProduccion.Resources
         public const string OP_AssignOperator = "Atribuir Operador";
         public const string OP_Note = "Observação / Nota";
         public const string OP_ReferencePhoto = "Foto de Referência";
-        public const string OP_WorkflowDesc = "As ordens deben seguir o fluxo: Corte -> Costura -> Revisão -> Embalagem.";
+        public const string OP_WorkflowDesc = "As ordens devem seguir o fluxo: Corte -> Costura -> Revisão -> Embalagem.";
         public const string OP_ConfirmRework = "Confirmar Retrabalho";
         public const string OP_OrderNotFound = "Ordem não encontrada.";
         public const string OP_ChangeAssignment = "Alterar atribuição...";
@@ -184,7 +189,7 @@ namespace GestionProduccion.Resources
         public const string OP_LoadingSelectors = "Carregando seletores dinâmicos...";
         public const string OP_AutoGeneration = "Geração Automática";
         public const string OP_AutoGenerationDesc = "O código do lote (OP) será gerado automaticamente pelo sistema após salvar.";
-        public const string OP_GeneratedOnSave = "Gerado al Salvar";
+        public const string OP_GeneratedOnSave = "Gerado ao Salvar";
         public const string OP_SelectProductFirst = "-- Selecione um Produto Primeiro --";
         public const string OP_SelectProduct = "Selecionar Produto";
         public const string OP_ProductReference = "Referência do Produto";
@@ -198,7 +203,7 @@ namespace GestionProduccion.Resources
         public const string OP_OrderCreatedSuccess = "Ordem de Produção criada com sucesso!";
         public const string OP_OrderUpdatedSuccess = "Ordem de Produção atualizada com sucesso!";
         public const string OP_ProductionTip = "Dica de Produção";
-        public const string OP_ProductionTipDesc = "Certifique-se de que a ficha técnica está anexada al lote físico.";
+        public const string OP_ProductionTipDesc = "Certifique-se de que a ficha técnica está anexada ao lote físico.";
         public const string OP_ErrValidationFieldsRed = "Por favor, corrija os erros destacados no formulário.";
         public const string OP_ErrLoadFormData = "Erro ao carregar dados do formulário.";
         public const string OP_ProfitPerOrder = "Lucro Líquido Esperado";
@@ -207,10 +212,10 @@ namespace GestionProduccion.Resources
         public const string OP_RealUnitCost = "Custo Real Unitário";
         public const string OP_UnitProfit = "Lucro por Peça";
         public const string OP_TimerActive = "CRONÔMETRO ATIVO";
-        public const string OP_NotAssignedYet = "Esta ordem ainda não foi atribuída a un operador.";
+        public const string OP_NotAssignedYet = "Esta ordem ainda não foi atribuída a um operador.";
         public const string OP_AdvanceInstructions = "Ao avançar, a etapa atual será concluída e a ordem passará para a próxima etapa do fluxo.";
         public const string OP_ConfirmAdvance = "Confirmar Avanço";
-        public const string OP_ReworkInstructions = "Esta acción retornará a ordem para a etapa anterior para correções.";
+        public const string OP_ReworkInstructions = "Esta ação retornará a ordem para a etapa anterior para correções.";
         public const string OP_ChangeStage = "Alterar Etapa";
         public const string OP_CurrentAssignment = "Atribuído Atualmente:";
         public const string OP_ReasonNote = "Observação/Motivo:";
@@ -218,12 +223,12 @@ namespace GestionProduccion.Resources
         public const string OP_ConfirmChange = "Confirmar Alteração";
         public const string OP_FinalizeOrder = "Finalizar Produção";
         public const string OP_ConfirmFinalizeOrder = "Tem certeza que deseja finalizar a produção da ordem";
-        public const string OP_FinalizeActionWill = "Esta acción irá:";
+        public const string OP_FinalizeActionWill = "Esta ação irá:";
         public const string OP_FinalizeStopTimer = "Encerrar o cronômetro de produção.";
         public const string OP_FinalizeCalculateCosts = "Calcular os custos finais com base no tempo gasto.";
         public const string OP_FinalizeMoveToHistory = "Mover a ordem para o histórico de concluídas.";
         public const string OP_PartialOutput = "Produção Parcial / Apontamento";
-        public const string OP_PartialOutputDesc = "Registre a quantidade de peças que foram concluídas nesta etapa hoje. O sistema avançará a etapa automaticamente cuando todas as peças forem concluídas.";
+        public const string OP_PartialOutputDesc = "Registre a quantidade de peças que foram concluídas nesta etapa hoje. O sistema avançará a etapa automaticamente quando todas as peças forem concluídas.";
         public const string OP_PiecesCompleted = "Peças Concluídas";
         public const string OP_AlreadyCompleted = "Já Concluído";
         public const string OP_Remaining = "Restante";
@@ -231,7 +236,7 @@ namespace GestionProduccion.Resources
         public const string OP_ConfirmOutput = "Confirmar Registro";
         public const string OP_SuccessPartialOutput = "Produção registrada!";
         public const string OP_ErrorPartialOutput = "Erro ao registrar produção.";
-        public const string OP_ErrLoadUsers = "Erro al carregar usuários.";
+        public const string OP_ErrLoadUsers = "Erro ao carregar usuários.";
         public const string OP_OrderSummary = "Resumo da Ordem";
         public const string OP_BackToList = "Voltar para Lista";
         public const string OP_AddSize = "Adicionar Tamanho";
@@ -267,7 +272,7 @@ namespace GestionProduccion.Resources
         public const string OP_ReportDefect = "Reportar Defeito / Retrabalho";
         public const string OP_AssignTask = "Atribuir Tarefa";
         public const string OP_SuccessGenerated = "Ordem de Produção gerada!";
-        public const string OP_ErrSelectSizes = "Por favor, adicione pelo menos um tamaño e quantidade.";
+        public const string OP_ErrSelectSizes = "Por favor, adicione pelo menos um tamanho e quantidade.";
         public const string OP_BackToListAlt = "Voltar para Listagem";
 
         // Tabela de Histórico
@@ -361,7 +366,7 @@ namespace GestionProduccion.Resources
         public const string Cat_ErrLoad = "Erro ao carregar catálogo.";
         public const string Cat_SuccessCreated = "Produto criado!";
         public const string Cat_SuccessUpdated = "Produto atualizado!";
-        public const string Cat_ErrDuplicateCode = "Este código ou referência já existe.";
+        public const string Cat_ErrDuplicateCode = "Este código o referência já existe.";
         public const string Cat_ErrServerInaccessible = "Servidor inacessível.";
         public const string Cat_ConfirmDelete = "Excluir Produto?";
         public const string Cat_SuccessDeleted = "Produto excluído!";
@@ -373,7 +378,7 @@ namespace GestionProduccion.Resources
         public const string Prod_ErrNameRequired = "O nome do produto é obrigatório";
         public const string Prod_ErrNameLength = "O nome não pode exceder 100 caracteres";
         public const string Prod_ErrInternalCodeRequired = "O código interno é obrigatório";
-        public const string Prod_ErrInternalCodeLength = "O código não pode exceder 50 caracteres";
+        public const string Prod_ErrInternalCodeLength = "O código não puede exceder 50 caracteres";
         public const string Prod_ErrFabricRequired = "O tipo de tecido é obrigatório";
         public const string Prod_ErrFabricLength = "O tipo de tecido não pode exceder 50 caracteres";
         public const string Prod_ErrSkuRequired = "O SKU principal é obrigatório";
@@ -435,7 +440,7 @@ namespace GestionProduccion.Resources
         public const string Team_Members = "Membros da Equipe";
         public const string Team_AddMember = "Adicionar Membro";
         public const string Team_SuccessCreate = "Equipe criada com sucesso!";
-        public const string Team_SuccessUpdate = "Equipe atualizada com sucesso!";
+        public const string Team_SuccessUpdate = "Equipe actualizada com sucesso!";
         public const string Team_ReassignmentBlock = "Esta equipe possui ordens ativas e não pode ser desativada agora.";
         public const string Team_ConfirmDelete = "Tem certeza que deseja excluir esta equipe?";
         public const string Team_SuccessDeleted = "Equipe excluída com sucesso!";
