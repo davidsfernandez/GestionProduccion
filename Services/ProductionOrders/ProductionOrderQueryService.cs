@@ -146,9 +146,11 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(o => o.Product)
             .AsNoTracking();
 
-        var completedToday = ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
-            .Sum(o => o.Quantity);
+        // Calculate completed today using partial outputs for higher accuracy in real-time
+        var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
+        var completedToday = await outputsTodayQuery
+            .Where(o => o.CreatedAt >= today)
+            .SumAsync(o => o.Quantity, ct);
 
         // Daily Goal logic (for now fixed, but could come from SystemConfiguration)
         int dailyGoal = 500; 
@@ -209,9 +211,12 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .AsNoTracking();
 
         var totalActiveOrders = ordersWithRelations.Count(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled);
-        var completedToday = ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
-            .Sum(o => o.Quantity);
+        
+        // Calculate completed today using partial outputs for higher accuracy in real-time
+        var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
+        var completedToday = await outputsTodayQuery
+            .Where(o => o.CreatedAt >= today)
+            .SumAsync(o => o.Quantity, ct);
 
         var activeOrdersList = ordersWithRelations
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)

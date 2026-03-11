@@ -20,6 +20,7 @@ public interface IProductionOrderOutputRepository
     Task<IEnumerable<ProductionOrderOutput>> GetByTeamAndDateRangeAsync(int teamId, DateTime startDate, DateTime endDate);
     Task<IEnumerable<ProductionOrderOutput>> GetByUserAndDateRangeAsync(int userId, DateTime startDate, DateTime endDate);
     Task<int> GetTotalQuantityByOrderAndStageAsync(int orderId, ProductionStage stage);
+    Task<IQueryable<ProductionOrderOutput>> GetQueryableAsync();
     Task SaveChangesAsync();
 }
 

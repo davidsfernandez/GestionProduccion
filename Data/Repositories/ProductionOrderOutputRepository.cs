@@ -83,6 +83,11 @@ public class ProductionOrderOutputRepository : IProductionOrderOutputRepository
             .SumAsync(o => o.Quantity);
     }
 
+    public async Task<IQueryable<ProductionOrderOutput>> GetQueryableAsync()
+    {
+        return await Task.FromResult(_context.ProductionOrderOutputs.AsQueryable());
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
