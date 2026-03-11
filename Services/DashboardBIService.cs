@@ -156,7 +156,14 @@ public class DashboardBIService : IDashboardBIService
             .ToListAsync(ct);
 
         var topModels = profitabilityData.OrderByDescending(x => x.AverageMargin).Take(5).ToList();
-        var bottomModels = profitabilityData.OrderBy(x => x.AverageMargin).Take(5).ToList();
+        
+        // Avoid showing same items in bottom if they are already in top (common in small datasets)
+        var topSkus = topModels.Select(t => t.Sku).ToList();
+        var bottomModels = profitabilityData
+            .Where(x => !topSkus.Contains(x.Sku))
+            .OrderBy(x => x.AverageMargin)
+            .Take(5)
+            .ToList();
 
         // 7. Stalled Stock (Products with no orders in last 60 days)
         var sixtyDaysAgo = now.AddDays(-60);
