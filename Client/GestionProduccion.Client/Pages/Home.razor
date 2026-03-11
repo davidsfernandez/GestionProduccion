@@ -155,8 +155,10 @@
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center py-2">
-                                                        <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
-                                                             class="rounded-circle border-2 border-white shadow-sm me-3" width="45" height="45" />
+                                                        <div class="flex-shrink-0 me-3 shadow-sm rounded-circle border border-2 border-white overflow-hidden" style="width: 45px; height: 45px;">
+                                                            <img src="@(string.IsNullOrEmpty(entry.AvatarUrl) ? "/img/avatars/avatar.jpg" : entry.AvatarUrl)" 
+                                                                 style="width: 100%; height: 100%; object-fit: cover;" alt="@entry.UserName" />
+                                                        </div>
                                                         <div>
                                                             <div class="fw-bold text-dark mb-0">@entry.UserName</div>
                                                             <div class="xsmall text-muted fw-bold">@entry.CompletedOrders Lotes</div>

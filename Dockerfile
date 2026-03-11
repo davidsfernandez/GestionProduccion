@@ -44,8 +44,16 @@ EXPOSE 443
 # Copy published files from build stage
 COPY --from=publish /app/publish .
 
-# Create directory for avatar uploads and set permissions
-RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 755 /app/wwwroot/img/avatars
+# 1. Backup default avatars to avoid volume masking in Azure
+RUN mkdir -p /app/wwwroot/img/avatars_defaults && \
+    cp -r /app/wwwroot/img/avatars/* /app/wwwroot/img/avatars_defaults/ || true
+
+# 2. Add entrypoint script
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+# 3. Create directory for avatar uploads and set permissions
+RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 775 /app/wwwroot/img/avatars
 
 # Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
 RUN apt-get update && \
@@ -54,5 +62,5 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Set entrypoint
-ENTRYPOINT ["dotnet", "GestionProduccion.dll"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
