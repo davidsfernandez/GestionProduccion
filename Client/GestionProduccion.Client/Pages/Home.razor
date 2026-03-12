@@ -300,14 +300,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboard();
-        await LoadActiveTasks();
-        SignalR.OnUpdateReceived += HandleUpdate;
-        _refreshTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadDashboard), null, 60000, 60000);
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            await LoadDashboard();
+            await LoadActiveTasks();
+            SignalR.OnUpdateReceived += HandleUpdate;
+            _refreshTimer = new System.Threading.Timer(async _ => await InvokeAsync(LoadDashboard), null, 60000, 60000);
+        }
     }
 
     private async void HandleUpdate(int opId, string stage, string status)
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true) return;
+
         await InvokeAsync(async () => {
             await LoadDashboard();
             StateHasChanged();
@@ -318,6 +325,9 @@
     {
         try
         {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true) return;
+
             if (dashboard == null) loading = true;
             var response = await Http.GetFromJsonAsync<ApiResponse<DashboardCompleteResponse>>("api/Dashboard/complete", JsonOptions);
             if (response != null && response.Success) dashboard = response.Data;

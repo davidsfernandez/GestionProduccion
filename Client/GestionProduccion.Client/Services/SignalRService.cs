@@ -9,6 +9,8 @@
  */
 
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Http.Connections;
 using System;
 using System.Threading.Tasks;
 
@@ -25,6 +27,7 @@ namespace GestionProduccion.Client.Services
 
     public class SignalRService : ISignalRService
     {
+        private readonly IJSRuntime _jsRuntime;
         private HubConnection? _hubConnection;
 
         public event Action<int, string, string>? OnUpdateReceived;
@@ -32,6 +35,11 @@ namespace GestionProduccion.Client.Services
         public event Action<int, string, string>? OnNotificationReceived;
 
         private Task? _startTask;
+
+        public SignalRService(IJSRuntime jsRuntime)
+        {
+            _jsRuntime = jsRuntime;
+        }
 
         public async Task StartConnection(string hubUrl)
         {
@@ -49,13 +57,27 @@ namespace GestionProduccion.Client.Services
                 }
 
                 _hubConnection = new HubConnectionBuilder()
-                    .WithUrl(hubUrl)
-                    .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+                    .WithUrl(hubUrl, options => {
+                        // Force WebSockets since Nginx is now ready
+                        options.Transports = HttpTransportType.WebSockets;
+                        options.SkipNegotiation = true; // Optimization for WebSockets if backend supports it directly
+                        
+                        // Attach JWT token for authenticated handshake
+                        options.AccessTokenProvider = async () => 
+                        {
+                            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+                        };
+                    })
+                    .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
                     .Build();
+
+                // Optimize server timeout and keep-alive for the VM environment
+                _hubConnection.ServerTimeout = TimeSpan.FromSeconds(60);
+                _hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(15);
 
                 _hubConnection.Closed += async (error) =>
                 {
-                    Console.WriteLine($"SignalR Connection Closed: {error?.Message}");
+                    Console.WriteLine($"SignalR Connection Closed: {error?.Message}. Attempting to recover...");
                     await Task.CompletedTask;
                 };
 
@@ -82,15 +104,33 @@ namespace GestionProduccion.Client.Services
                     catch { }
                 });
 
-                Console.WriteLine($"Starting SignalR connection to: {hubUrl}");
+                Console.WriteLine($"Initiating WebSocket connection to: {hubUrl}");
                 _startTask = _hubConnection.StartAsync();
                 await _startTask;
-                Console.WriteLine("SignalR Connected successfully.");
+                Console.WriteLine("SignalR established via WebSockets successfully.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"SignalR Connection Error: {ex.Message}");
+                
+                // Fallback: If forced WebSockets fails due to network strictness, retry with auto-negotiation
+                if (ex.Message.Contains("WebSockets"))
+                {
+                    Console.WriteLine("Retrying with negotiation fallback...");
+                    await RetryWithNegotiation(hubUrl);
+                }
             }
+        }
+
+        private async Task RetryWithNegotiation(string hubUrl)
+        {
+             _hubConnection = new HubConnectionBuilder()
+                    .WithUrl(hubUrl, options => {
+                        options.AccessTokenProvider = async () => await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+                    })
+                    .WithAutomaticReconnect()
+                    .Build();
+             await _hubConnection.StartAsync();
         }
 
         public async Task StopConnection()

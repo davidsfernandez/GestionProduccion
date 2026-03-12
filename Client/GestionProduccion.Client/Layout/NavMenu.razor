@@ -170,14 +170,22 @@
     {
         UserState.OnChange += HandleStateChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
-        await LoadUserData();
-        await LoadCompanyLogo();
+        
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            await LoadUserData();
+            await LoadCompanyLogo();
+        }
     }
 
     private async Task LoadCompanyLogo()
     {
         try
         {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true) return;
+
             var response = await Http.GetFromJsonAsync<ApiResponse<LogoDto>>("api/Configuration/logo");
             if (response != null && response.Success && response.Data != null && !string.IsNullOrEmpty(response.Data.Base64Image))
             {
