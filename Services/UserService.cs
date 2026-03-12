@@ -315,4 +315,37 @@ public class UserService : IUserService
         var orders = await _orderRepository.GetAssignedToUserAsync(userId);
         return orders.Any(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Finished);
     }
+
+    public async Task<List<UserDto>> GetUsersForOrderAsync(int orderId)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId);
+        if (order == null) return new List<UserDto>();
+
+        var result = new List<User>();
+
+        // 1. Add the main assigned user if exists
+        if (order.UserId.HasValue)
+        {
+            var mainUser = await _userRepository.GetByIdAsync(order.UserId.Value);
+            if (mainUser != null && mainUser.IsActive) result.Add(mainUser);
+        }
+
+        // 2. Add team members if order is assigned to a team
+        if (order.SewingTeamId.HasValue)
+        {
+            var team = await _teamRepository.GetTeamWithMembersAsync(order.SewingTeamId.Value);
+            if (team != null)
+            {
+                foreach (var member in team.Members)
+                {
+                    if (member.IsActive && !result.Any(u => u.Id == member.Id))
+                    {
+                        result.Add(member);
+                    }
+                }
+            }
+        }
+
+        return _mapper.ToDtoList(result);
+    }
 }

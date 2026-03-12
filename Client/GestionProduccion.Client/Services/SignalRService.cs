@@ -23,6 +23,7 @@ namespace GestionProduccion.Client.Services
         event Action<int, string, string>? OnUpdateReceived;
         event Action<string, string>? OnMessageReceived; // message, type
         event Action<int, string, string>? OnNotificationReceived; // userId, title, message
+        event Action<HubConnectionState>? OnStatusChanged;
     }
 
     public class SignalRService : ISignalRService
@@ -33,6 +34,7 @@ namespace GestionProduccion.Client.Services
         public event Action<int, string, string>? OnUpdateReceived;
         public event Action<string, string>? OnMessageReceived;
         public event Action<int, string, string>? OnNotificationReceived;
+        public event Action<HubConnectionState>? OnStatusChanged;
 
         private Task? _startTask;
 
@@ -58,27 +60,47 @@ namespace GestionProduccion.Client.Services
 
                 _hubConnection = new HubConnectionBuilder()
                     .WithUrl(hubUrl, options => {
-                        // Force WebSockets since Nginx is now ready
                         options.Transports = HttpTransportType.WebSockets;
-                        options.SkipNegotiation = true; // Optimization for WebSockets if backend supports it directly
-                        
-                        // Attach JWT token for authenticated handshake
+                        options.SkipNegotiation = true;
                         options.AccessTokenProvider = async () => 
                         {
                             return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
                         };
                     })
-                    .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
+                    .WithAutomaticReconnect(new[] { 
+                        TimeSpan.Zero, 
+                        TimeSpan.FromSeconds(2), 
+                        TimeSpan.FromSeconds(5), 
+                        TimeSpan.FromSeconds(10), 
+                        TimeSpan.FromSeconds(30),
+                        TimeSpan.FromMinutes(1) 
+                    })
                     .Build();
 
-                // Optimize server timeout and keep-alive for the VM environment
-                _hubConnection.ServerTimeout = TimeSpan.FromSeconds(60);
-                _hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                // AGGRESSIVE SETTINGS: Critical for factory floor environments with potential network drops
+                _hubConnection.ServerTimeout = TimeSpan.FromSeconds(30); // Faster detection of dead server
+                _hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(10); // Frequent heartbeat
+
+                _hubConnection.Reconnecting += (error) =>
+                {
+                    OnStatusChanged?.Invoke(HubConnectionState.Reconnecting);
+                    Console.WriteLine("SignalR: Connection lost. Reconnecting...");
+                    return Task.CompletedTask;
+                };
+
+                _hubConnection.Reconnected += (connectionId) =>
+                {
+                    OnStatusChanged?.Invoke(HubConnectionState.Connected);
+                    Console.WriteLine("SignalR: Connection restored.");
+                    return Task.CompletedTask;
+                };
 
                 _hubConnection.Closed += async (error) =>
                 {
-                    Console.WriteLine($"SignalR Connection Closed: {error?.Message}. Attempting to recover...");
-                    await Task.CompletedTask;
+                    OnStatusChanged?.Invoke(HubConnectionState.Disconnected);
+                    Console.WriteLine($"SignalR: Connection closed ({error?.Message}). Retrying in 5s...");
+                    await Task.Delay(5000);
+                    await StartConnection(hubUrl);
                 };
 
                 _hubConnection.On<int, string, string>("ReceiveUpdate", (opId, novaEtapa, novoStatus) =>

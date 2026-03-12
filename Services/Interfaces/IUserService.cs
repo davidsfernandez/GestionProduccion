@@ -111,6 +111,11 @@ public interface IUserService
     Task<bool> IsSetupRequiredAsync();
 
     /// <summary>
+    /// Gets all users that can be responsible for production in a specific order (Assigned user + Team members).
+    /// </summary>
+    Task<List<UserDto>> GetUsersForOrderAsync(int orderId);
+
+    /// <summary>
     /// Validates user credentials and returns the UserDto if successful.
     /// </summary>
     Task<UserDto?> ValidateCredentialsAsync(string email, string password);

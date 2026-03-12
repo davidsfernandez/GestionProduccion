@@ -101,10 +101,10 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users");
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>($"api/Users/orders/{OrderId}/eligible-users");
             if (response != null && response.Success && response.Data != null) 
             {
-                assignableUsers = response.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+                assignableUsers = response.Data;
             }
         }
         catch { }

@@ -301,6 +301,28 @@ if (!app.Environment.IsEnvironment("Testing"))
                 if (await context.Database.CanConnectAsync())
                 {
                     logger.LogInformation("MIGRATION: Database connection established.");
+
+                    // --- HOTFIX: Physical schema verification ---
+                    try 
+                    {
+                        logger.LogInformation("MIGRATION: Verifying physical column consistency...");
+                        var connection = context.Database.GetDbConnection();
+                        if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
+                            var count = Convert.ToInt32(await command.ExecuteScalarAsync());
+                            if (count == 0)
+                            {
+                                logger.LogWarning("MIGRATION: Column 'ResponsibleUserId' missing! Patching schema manually...");
+                                command.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
+                                await command.ExecuteNonQueryAsync();
+                                logger.LogInformation("MIGRATION: Schema patched successfully.");
+                            }
+                        }
+                    }
+                    catch (Exception ex) { logger.LogWarning("MIGRATION: Pre-flight patch skipped: {Message}", ex.Message); }
+
                     var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
                     if (pendingMigrations.Any())
                     {

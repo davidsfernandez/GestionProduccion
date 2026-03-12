@@ -91,8 +91,14 @@ public class BonusCalculationService : IBonusCalculationService
             };
         }
 
-        // 3. Combine sources for productivity
-        int totalProduced = outputsList.Sum(o => o.Quantity) + filteredLegacy.Sum(o => o.Quantity);
+        // 3. Combine sources for productivity (AVOID DOUBLE COUNTING)
+        // We sum the maximum pieces produced in any stage for each order to get real production volume
+        int totalProducedFromOutputs = outputsList
+            .GroupBy(o => o.ProductionOrderId)
+            .Select(g => g.Max(x => x.Quantity))
+            .Sum();
+
+        int totalProduced = totalProducedFromOutputs + filteredLegacy.Sum(o => o.Quantity);
         
         // 4. Identify all involved orders (from outputs or legacy)
         var involvedOrderIds = orderIdsWithOutputs.Union(filteredLegacy.Select(o => o.Id)).Distinct().ToList();
@@ -189,7 +195,13 @@ public class BonusCalculationService : IBonusCalculationService
         // 1. Get all partial/total outputs for this user in the date range
         var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
         var outputsList = outputs.ToList();
-        int totalProduced = outputsList.Sum(o => o.Quantity);
+        
+        // AVOID DOUBLE COUNTING: Sum max pieces in any stage per order
+        int totalProduced = outputsList
+            .GroupBy(o => o.ProductionOrderId)
+            .Select(g => g.Max(x => x.Quantity))
+            .Sum();
+
         var involvedOrderIds = outputsList.Select(o => o.ProductionOrderId).Distinct().ToList();
 
         // 2. Individual Base Metrics (Destrez Técnica)
@@ -204,10 +216,23 @@ public class BonusCalculationService : IBonusCalculationService
 
         // Productivity Factor (Ind)
         decimal indProductivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
-        decimal indDefectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
         
-        // Quality Multiplier (based on individual rule)
-        decimal indQualityFactor = indDefectRatio > rule.DefectLimitPercentage ? 0 : 1;
+        // Quality Denominator: Sum of all pieces handled in all stages (real effort)
+        int totalOperationsInPeriod = outputsList.Sum(o => o.Quantity);
+        decimal indDefectRatio = totalOperationsInPeriod > 0 ? (decimal)totalDefects / totalOperationsInPeriod * 100 : 0;
+        
+        // Quality Multiplier (Progressive): 
+        // If ratio is 0, multiplier is 1. If ratio >= limit, multiplier is 0.
+        decimal indQualityFactor = 1;
+        if (rule.DefectLimitPercentage > 0)
+        {
+            indQualityFactor = Math.Max(0, 1 - (indDefectRatio / rule.DefectLimitPercentage));
+        }
+        else if (indDefectRatio > 0)
+        {
+            indQualityFactor = 0;
+        }
+
         decimal individualPurityResult = indProductivityBonus * indQualityFactor;
 
         decimal finalBonus = 0;

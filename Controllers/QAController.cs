@@ -27,7 +27,7 @@ public class QAController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<QADefectDto>>> RegisterDefect([FromForm] int ProductionOrderId, [FromForm] string Reason, [FromForm] int Quantity, IFormFile? PhotoFile)
+    public async Task<ActionResult<ApiResponse<QADefectDto>>> RegisterDefect([FromForm] int ProductionOrderId, [FromForm] string Reason, [FromForm] int Quantity, [FromForm] int? ResponsibleUserId, IFormFile? PhotoFile)
     {
         try
         {
@@ -42,7 +42,8 @@ public class QAController : ControllerBase
                 ProductionOrderId = ProductionOrderId,
                 Reason = Reason,
                 Quantity = Quantity,
-                ReportedByUserId = userId
+                ReportedByUserId = userId,
+                ResponsibleUserId = ResponsibleUserId
             };
 
             var result = await _qaService.RegisterDefectAsync(dto, PhotoFile);
