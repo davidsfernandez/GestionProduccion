@@ -327,13 +327,22 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (authState.User.Identity?.IsAuthenticated != true) return;
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                // Silently wait if we are in the middle of a login process
+                return;
+            }
 
             if (dashboard == null) loading = true;
             var response = await Http.GetFromJsonAsync<ApiResponse<DashboardCompleteResponse>>("api/Dashboard/complete", JsonOptions);
             if (response != null && response.Success) dashboard = response.Data;
         }
-        catch (Exception ex) { Console.WriteLine($"Dashboard Load Error: {ex.Message}"); }
+        catch (Exception ex) 
+        { 
+            // Only log if it's not a standard 401 (which we handle via Redirect)
+            if (!ex.Message.Contains("401"))
+                Console.WriteLine($"Dashboard Load Error: {ex.Message}"); 
+        }
         finally { loading = false; StateHasChanged(); }
     }
 
