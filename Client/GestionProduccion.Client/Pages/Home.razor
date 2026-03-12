@@ -19,6 +19,7 @@
 @using GestionProduccion.Resources
 @attribute [Authorize]
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject ISignalRService SignalR
 @inject IJSRuntime JSRuntime
