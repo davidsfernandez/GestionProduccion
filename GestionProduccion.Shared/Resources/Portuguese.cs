@@ -390,7 +390,8 @@ namespace GestionProduccion.Resources
         // Relat\u00F3rios & BI
         public const string Analysis_Mode = "Modo de An\u00E1lise";
         public const string Analysis_ByTeam = "An\u00E1lise por Equipe";
-        public const string Analysis_ByEmployee = "An\u00E1lise por Funcion\u00E1rio";
+        public const string Analysis_ByEmployee = "Individual (Produ\u00E7\u00E3o Pura)";
+        public const string Analysis_Professional = "Desempenho Profissional (Individual + Equipe)";
         public const string Employee = "Funcion\u00E1rio";
         public const string Reference_Month = "M\u00EAs de Refer\u00EAncia";
         public const string Calculate = "Calcular";

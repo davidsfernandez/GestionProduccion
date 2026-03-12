@@ -197,9 +197,9 @@ public class ReportService : IReportService
                                 c.Item().Text(Portuguese.FinancialSummary.ToUpper()).Bold().FontColor(Colors.Blue.Darken3);
                                 c.Item().Row(r =>
                                 {
-                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.TotalCostBatch}: ").Bold(); t.Span($"R$ {order.TotalCost:N2}"); });
-                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.UnitRealCost}: ").Bold(); t.Span($"R$ {order.AverageCostPerPiece:N2}"); });
-                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.Margin}: ").Bold(); t.Span($"{order.ProfitMargin:N1}%"); }); 
+                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.TotalCostBatch}: ").Bold(); r.RelativeItem().Text($"R$ {order.TotalCost:N2}"); });
+                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.UnitRealCost}: ").Bold(); r.RelativeItem().Text($"R$ {order.AverageCostPerPiece:N2}"); });
+                                    r.RelativeItem().Text(t => { t.Span($"{Portuguese.Margin}: ").Bold(); r.RelativeItem().Text($"{order.ProfitMargin:N1}%"); }); 
                                 });
                             });
                         }
@@ -353,19 +353,6 @@ public class ReportService : IReportService
         }
     }
 
-    private byte[]? ExtractLogoBytes(string? logoBase64)
-    {
-        if (string.IsNullOrEmpty(logoBase64)) return null;
-        try
-        {
-            string cleanBase64 = logoBase64;
-            int commaIndex = cleanBase64.IndexOf(",");
-            if (commaIndex >= 0) cleanBase64 = cleanBase64.Substring(commaIndex + 1);
-            return Convert.FromBase64String(cleanBase64);
-        }
-        catch { return null; }
-    }
-
     public Task<byte[]> GenerateOrdersCsvAsync(List<ProductionOrderDto> orders)
     {
         var sb = new System.Text.StringBuilder();
@@ -384,6 +371,177 @@ public class ReportService : IReportService
         System.Buffer.BlockCopy(bom, 0, result, 0, bom.Length);
         System.Buffer.BlockCopy(bytes, 0, result, bom.Length, bytes.Length);
         return Task.FromResult(result);
+    }
+
+    public async Task<byte[]> GenerateBonusReportPdfAsync(BonusReportDto report, string mode)
+    {
+        try
+        {
+            var config = await _configService.GetConfigurationAsync();
+            byte[]? logoBytes = ExtractLogoBytes(config?.LogoBase64);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(DefaultFont));
+
+                    // HEADER
+                    page.Header().Background(Colors.Blue.Darken3).Padding(20).Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            if (logoBytes != null) col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
+                            else col.Item().Text("SERONA ERP").FontSize(20).Bold().FontColor(Colors.White);
+
+                            col.Item().Text("RELAT\u00D3RIO DE BONIFICA\u00C7\u00C3O").FontSize(16).Bold().FontColor(Colors.White);
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporaci\u00F3n").FontSize(12).FontColor(Colors.Grey.Lighten3);
+                        });
+
+                        row.RelativeItem().AlignRight().Column(col =>
+                        {
+                            col.Item().Text($"{Portuguese.Date}: {DateTime.Now:dd/MM/yyyy}").FontColor(Colors.White);
+                            col.Item().Text($"{Portuguese.Analysis_Mode}: {mode.ToUpper()}").FontSize(8).Bold().FontColor(Colors.Yellow.Medium);
+                        });
+                    });
+
+                    // CONTENT
+                    page.Content().PaddingVertical(20).Column(x =>
+                    {
+                        x.Spacing(20);
+
+                        // TARGET ENTITY
+                        x.Item().Text(t =>
+                        {
+                            t.Span(mode == "team" ? $"{Portuguese.Team_Title}: " : $"{Portuguese.Employee}: ").Bold().FontSize(14);
+                            t.Span(report.TeamName).FontSize(14);
+                        });
+
+                        // KPI ROW
+                        x.Item().Row(row =>
+                        {
+                            row.RelativeItem().Component(new KpiComponent("B\u00D4NUS FINAL", $"{report.FinalBonusPercentage:F1}%", report.FinalBonusPercentage >= 80 ? Colors.Green.Medium : Colors.Orange.Medium));
+                            row.Spacing(10);
+                            row.RelativeItem().Component(new KpiComponent(Portuguese.Productivity.ToUpper(), $"{report.ProductivityPercentage:F1}%", Colors.Blue.Medium));
+                            row.Spacing(10);
+                            row.RelativeItem().Component(new KpiComponent(Portuguese.Quality.ToUpper(), $"{report.DefectPercentage:F1}%", report.DefectPercentage <= 5 ? Colors.Green.Medium : Colors.Red.Medium));
+                            row.Spacing(10);
+                            row.RelativeItem().Component(new KpiComponent("PRAZO", $"{report.DeadlinePerformance:F1}%", Colors.Purple.Medium));
+                        });
+
+                        // BREAKDOWN (IF USER MODES)
+                        if (mode != "team")
+                        {
+                            x.Item().Padding(10).Background(Colors.Grey.Lighten4).Column(col =>
+                            {
+                                col.Spacing(5);
+                                col.Item().Text("DESGLOSE DE CONTRIBUI\u00C7\u00C3O").Bold().FontSize(9);
+                                col.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(t => { t.Span("Esfor\u00E7o Individual: ").FontSize(8); t.Span($"{report.IndividualContribution:F1}%").Bold().FontSize(8); });
+                                    row.RelativeItem().Text(t => { t.Span("Sucesso da Equipe: ").FontSize(8); t.Span($"{report.TeamContribution:F1}%").Bold().FontSize(8); });
+                                    row.RelativeItem().Text(t => { t.Span("Fator de Qualidade: ").FontSize(8); t.Span($"x{report.QualityFactor:F1}").Bold().FontSize(8); });
+                                });
+                            });
+                        }
+
+                        // DETAILS TABLE
+                        x.Item().Text(Portuguese.Production_Details.ToUpper()).Bold().FontSize(11).FontColor(Colors.Blue.Darken2);
+                        x.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Element(HeaderStyle).Text(Portuguese.OP_Code);
+                                header.Cell().Element(HeaderStyle).Text("STATUS");
+                                header.Cell().Element(HeaderStyle).Text("DEFEITOS");
+                                header.Cell().Element(HeaderStyle).Text("CONTRIBUI\u00C7\u00C3O");
+                                static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Lighten2).Padding(5).DefaultTextStyle(x => x.Bold().FontSize(9));
+                            });
+
+                            foreach (var order in report.Orders)
+                            {
+                                table.Cell().Element(CellStyle).Text(order.LotCode);
+                                table.Cell().Element(CellStyle).Text(order.IsOnTime ? "NO PRAZO" : "ATRASADO").FontColor(order.IsOnTime ? Colors.Green.Medium : Colors.Red.Medium);
+                                table.Cell().Element(CellStyle).Text(order.Defects.ToString());
+                                table.Cell().Element(CellStyle).Text($"{order.Contribution:F2}%");
+                                static IContainer CellStyle(IContainer container) => container.Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten4).DefaultTextStyle(x => x.FontSize(8));
+                            }
+                        });
+
+                        // SUMMARY
+                        x.Item().AlignRight().Background(Colors.Grey.Lighten5).Padding(10).Column(col =>
+                        {
+                            col.Item().Text(t => { t.Span($"{Portuguese.TotalProducedToday}: ").FontSize(9); t.Span(report.TotalProduced.ToString()).Bold(); });
+                            col.Item().Text(t => { t.Span($"{Portuguese.Total_Defects}: ").FontSize(9); t.Span(report.TotalDefects.ToString()).Bold(); });
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span($"{Portuguese.Page} ");
+                        x.CurrentPageNumber();
+                    });
+                });
+            });
+
+            return document.GeneratePdf();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Bonus Report PDF");
+            throw;
+        }
+    }
+
+    private class KpiComponent : IComponent
+    {
+        private string Title { get; }
+        private string Value { get; }
+        private string Color { get; }
+
+        public KpiComponent(string title, string value, string color)
+        {
+            Title = title;
+            Value = value;
+            Color = color;
+        }
+
+        public void Compose(IContainer container)
+        {
+            container
+                .Border(1)
+                .BorderColor(Colors.Grey.Lighten2)
+                .Padding(10)
+                .Column(column =>
+                {
+                    column.Item().AlignCenter().Text(Title).FontSize(8).Bold().FontColor(Colors.Grey.Medium);
+                    column.Item().AlignCenter().Text(Value).FontSize(16).Bold().FontColor(Color);
+                });
+        }
+    }
+
+    private byte[]? ExtractLogoBytes(string? logoBase64)
+    {
+        if (string.IsNullOrEmpty(logoBase64)) return null;
+        try
+        {
+            string cleanBase64 = logoBase64;
+            int commaIndex = cleanBase64.IndexOf(",");
+            if (commaIndex >= 0) cleanBase64 = cleanBase64.Substring(commaIndex + 1);
+            return Convert.FromBase64String(cleanBase64);
+        }
+        catch { return null; }
     }
 
     private string TranslateNote(string? note)

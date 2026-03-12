@@ -26,6 +26,13 @@ public class BonusReportDto
     public int TotalProduced { get; set; }
     public int TotalDefects { get; set; }
     public string? Message { get; set; }
+    
+    // New breakdown fields for Weighted Scorecard
+    public decimal IndividualContribution { get; set; }
+    public decimal TeamContribution { get; set; }
+    public decimal QualityFactor { get; set; } // 0 to 1 multiplier
+    public decimal BenefitMarginSafety { get; set; } // Remaining profit after bonus
+    
     public List<OrderBonusDetail> Orders { get; set; } = new();
 }
 

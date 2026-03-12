@@ -28,7 +28,7 @@ public class BonusCalculationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int? teamId, int? userId, DateTime startDate, DateTime endDate)
+    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int? teamId, int? userId, DateTime startDate, DateTime endDate, bool isProfessional = false)
     {
         try
         {
@@ -39,7 +39,7 @@ public class BonusCalculationController : ControllerBase
             BonusReportDto report;
             if (userId.HasValue)
             {
-                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc);
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc, isProfessional);
             }
             else if (teamId.HasValue)
             {
@@ -55,6 +55,42 @@ public class BonusCalculationController : ControllerBase
         catch (Exception ex)
         {
             return BadRequest(ApiResponse<BonusReportDto>.FailureResult(ex.Message));
+        }
+    }
+
+    [HttpGet("pdf")]
+    public async Task<IActionResult> GetReportPdf(int? teamId, int? userId, DateTime startDate, DateTime endDate, bool isProfessional = false, [FromServices] IReportService reportService = null!)
+    {
+        try
+        {
+            var startUtc = startDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(startDate, DateTimeKind.Utc) : startDate.ToUniversalTime();
+            var endUtc = endDate.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(endDate, DateTimeKind.Utc) : endDate.ToUniversalTime();
+
+            BonusReportDto report;
+            string mode = "team";
+
+            if (userId.HasValue)
+            {
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc, isProfessional);
+                mode = isProfessional ? "professional" : "individual";
+            }
+            else if (teamId.HasValue)
+            {
+                report = await _bonusService.CalculateTeamBonusAsync(teamId.Value, startUtc, endUtc);
+                mode = "team";
+            }
+            else
+            {
+                return BadRequest("Either teamId or userId must be provided.");
+            }
+
+            var pdfBytes = await reportService.GenerateBonusReportPdfAsync(report, mode);
+            var fileName = $"Bonus_{report.TeamName}_{startDate:yyyyMM}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 }

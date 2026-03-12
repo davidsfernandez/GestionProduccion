@@ -19,6 +19,7 @@ public interface IReportService
     Task<byte[]> GenerateProductionOrderReportAsync(int orderId, string baseUrl);
     Task<byte[]> GenerateDailyProductionReportAsync();
     Task<byte[]> GenerateOrdersCsvAsync(List<ProductionOrderDto> orders);
+    Task<byte[]> GenerateBonusReportPdfAsync(BonusReportDto report, string mode);
 }
 
 

@@ -40,6 +40,7 @@
                     <select class="form-select border-2 shadow-none" @onchange="OnModeChanged">
                         <option value="team">@Portuguese.Analysis_ByTeam</option>
                         <option value="user">@Portuguese.Analysis_ByEmployee</option>
+                        <option value="professional">@Portuguese.Analysis_Professional</option>
                     </select>
                 </div>
 
@@ -273,9 +274,16 @@
             var start = new DateTime(selectedMonth.Year, selectedMonth.Month, 1);
             var end = start.AddMonths(1).AddDays(-1);
             
-            string url = reportMode == "team" 
-                ? $"api/BonusCalculation?teamId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}"
-                : $"api/BonusCalculation?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
+            string url = "";
+            if (reportMode == "team")
+            {
+                url = $"api/BonusCalculation?teamId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
+            }
+            else
+            {
+                bool isProfessional = reportMode == "professional";
+                url = $"api/BonusCalculation?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}&isProfessional={isProfessional}";
+            }
 
             var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url, JsonOptions);
             if (response != null && response.Success)
