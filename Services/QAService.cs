@@ -43,6 +43,7 @@ public class QAService : IQAService
             Quantity = dto.Quantity,
             PhotoUrl = photoUrl,
             ReportedByUserId = dto.ReportedByUserId,
+            ResponsibleUserId = dto.ResponsibleUserId,
             ReportedAt = DateTime.UtcNow
         };
 

@@ -179,7 +179,9 @@ public static class ManualMapper
             Quantity = entity.Quantity,
             PhotoUrl = entity.PhotoUrl,
             ReportedAt = entity.ReportedAt,
-            ReportedByUserId = entity.ReportedByUserId
+            ReportedByUserId = entity.ReportedByUserId,
+            ResponsibleUserId = entity.ResponsibleUserId,
+            ResponsibleUserName = entity.ResponsibleUser?.FullName
         };
     }
 

@@ -35,6 +35,11 @@ public class QADefect
     [ForeignKey("ReportedByUserId")]
     public virtual User? ReportedByUser { get; set; }
 
+    // New field to attribute the defect to the operator who made the piece
+    public int? ResponsibleUserId { get; set; }
+    [ForeignKey("ResponsibleUserId")]
+    public virtual User? ResponsibleUser { get; set; }
+
     public DateTime ReportedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsResolved { get; set; }

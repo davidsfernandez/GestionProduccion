@@ -20,6 +20,8 @@ public class QADefectDto
     public string? PhotoUrl { get; set; }
     public DateTime ReportedAt { get; set; }
     public int ReportedByUserId { get; set; }
+    public int? ResponsibleUserId { get; set; }
+    public string? ResponsibleUserName { get; set; }
 }
 
 public class CreateQADefectDto
@@ -28,6 +30,7 @@ public class CreateQADefectDto
     public string Reason { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public int ReportedByUserId { get; set; }
+    public int? ResponsibleUserId { get; set; }
 }
 
 

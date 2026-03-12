@@ -198,7 +198,7 @@ public class BonusCalculationService : IBonusCalculationService
         {
             var defects = await _qaService.GetDefectsByOrderAsync(orderId);
             totalDefects += defects
-                .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ReportedByUserId == userId)
+                .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ResponsibleUserId == userId)
                 .Sum(d => d.Quantity);
         }
 
