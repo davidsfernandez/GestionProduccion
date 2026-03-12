@@ -456,11 +456,16 @@ namespace GestionProduccion.Migrations
                     b.Property<int>("ReportedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ResponsibleUserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductionOrderId");
 
                     b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("ResponsibleUserId");
 
                     b.ToTable("QADefects");
                 });
