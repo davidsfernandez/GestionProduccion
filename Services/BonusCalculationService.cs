@@ -113,13 +113,18 @@ public class BonusCalculationService : IBonusCalculationService
 
         // 4. Sum defects from QA Service for the involved orders in this period
         int totalDefects = 0;
+        var defectsPerOrder = new Dictionary<int, int>();
+
         foreach (var orderId in involvedOrderIds)
         {
             var defects = await _qaService.GetDefectsByOrderAsync(orderId);
             // We only count defects reported in this period
-            totalDefects += defects
+            var orderDefects = defects
                 .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate)
                 .Sum(d => d.Quantity);
+
+            totalDefects += orderDefects;
+            defectsPerOrder[orderId] = orderDefects;
         }
 
         // 1. Productivity Calculation: (Standard Time / Effective Time) * Rule Percentage
@@ -179,7 +184,7 @@ public class BonusCalculationService : IBonusCalculationService
             {
                 LotCode = o.LotCode,
                 IsOnTime = o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt,
-                Defects = 0, 
+                Defects = defectsPerOrder.ContainsKey(o.Id) ? defectsPerOrder[o.Id] : 0, 
                 Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
             }).ToList()
         };
@@ -203,15 +208,26 @@ public class BonusCalculationService : IBonusCalculationService
             .Sum();
 
         var involvedOrderIds = outputsList.Select(o => o.ProductionOrderId).Distinct().ToList();
+        var userOrders = new List<ProductionOrder>();
+        foreach (var id in involvedOrderIds)
+        {
+            var order = await _orderRepo.GetByIdAsync(id);
+            if (order != null) userOrders.Add(order);
+        }
 
         // 2. Individual Base Metrics (Quality attribution)
         int totalDefects = 0;
+        var userDefectsPerOrder = new Dictionary<int, int>();
+
         foreach (var orderId in involvedOrderIds)
         {
             var defects = await _qaService.GetDefectsByOrderAsync(orderId);
-            totalDefects += defects
+            var userOrderDefects = defects
                 .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ResponsibleUserId == userId)
                 .Sum(d => d.Quantity);
+
+            totalDefects += userOrderDefects;
+            userDefectsPerOrder[orderId] = userOrderDefects;
         }
 
         // Productivity Factor
@@ -247,7 +263,14 @@ public class BonusCalculationService : IBonusCalculationService
             CompletedOrders = involvedOrderIds.Count(),
             TotalProduced = totalProduced,
             TotalDefects = totalDefects,
-            QualityFactor = indQualityFactor
+            QualityFactor = indQualityFactor,
+            Orders = userOrders.Select(o => new OrderBonusDetail
+            {
+                LotCode = o.LotCode,
+                IsOnTime = o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt,
+                Defects = userDefectsPerOrder.ContainsKey(o.Id) ? userDefectsPerOrder[o.Id] : 0,
+                Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
+            }).ToList()
         };
     }
 }

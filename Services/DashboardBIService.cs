@@ -34,11 +34,13 @@ public class DashboardBIService : IDashboardBIService
         var firstDayOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
-        // 1. General Metrics
+        // 1. General Metrics - Hybrid Aggregation: Sum(Qty) per (Order, Size, Stage), then Max across Stages, then Sum.
         var monthProduction = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .GroupBy(o => o.ProductionOrderId)
-            .Select(g => g.Max(x => x.Quantity))
+            .GroupBy(o => new { o.ProductionOrderId, o.ProductionOrderSizeId, o.Stage })
+            .Select(g => new { g.Key.ProductionOrderId, g.Key.ProductionOrderSizeId, StageTotal = g.Sum(x => x.Quantity) })
+            .GroupBy(x => new { x.ProductionOrderId, x.ProductionOrderSizeId })
+            .Select(g => g.Max(x => x.StageTotal))
             .SumAsync(ct);
 
         var completedOrdersQuery = _context.ProductionOrders
@@ -63,8 +65,10 @@ public class DashboardBIService : IDashboardBIService
         var weeklyOutputsRaw = await _context.ProductionOrderOutputs
             .AsNoTracking()
             .Where(o => o.CreatedAt >= sevenDaysAgo)
-            .GroupBy(o => new { o.CreatedAt.Date, o.ProductionOrderId })
-            .Select(g => new { g.Key.Date, MaxQty = g.Max(x => x.Quantity) })
+            .GroupBy(o => new { Date = o.CreatedAt.Date, o.ProductionOrderId, o.ProductionOrderSizeId, o.Stage })
+            .Select(g => new { g.Key.Date, g.Key.ProductionOrderId, g.Key.ProductionOrderSizeId, StageTotal = g.Sum(x => x.Quantity) })
+            .GroupBy(x => new { x.Date, x.ProductionOrderId, x.ProductionOrderSizeId })
+            .Select(g => new { g.Key.Date, MaxQty = g.Max(x => x.StageTotal) })
             .ToListAsync(ct);
 
         var weeklyOutputs = weeklyOutputsRaw
@@ -109,6 +113,8 @@ public class DashboardBIService : IDashboardBIService
             .GroupBy(o => new { 
                 o.UserId, 
                 o.ProductionOrderId, 
+                o.ProductionOrderSizeId,
+                o.Stage,
                 o.ResponsibleUser!.FullName, 
                 o.ResponsibleUser.AvatarUrl,
                 o.ProductionOrder!.CurrentStatus 
@@ -117,8 +123,19 @@ public class DashboardBIService : IDashboardBIService
                 g.Key.UserId,
                 g.Key.FullName,
                 g.Key.AvatarUrl,
+                g.Key.ProductionOrderId,
+                g.Key.ProductionOrderSizeId,
                 g.Key.CurrentStatus,
-                MaxQty = g.Max(x => x.Quantity)
+                StageTotal = g.Sum(x => x.Quantity)
+            })
+            .GroupBy(x => new { x.UserId, x.FullName, x.AvatarUrl, x.ProductionOrderId, x.ProductionOrderSizeId, x.CurrentStatus })
+            .Select(g => new {
+                g.Key.UserId,
+                g.Key.FullName,
+                g.Key.AvatarUrl,
+                g.Key.ProductionOrderId,
+                g.Key.CurrentStatus,
+                MaxQty = g.Max(x => x.StageTotal)
             })
             .ToListAsync(ct);
 
@@ -132,7 +149,7 @@ public class DashboardBIService : IDashboardBIService
                 {
                     UserName = g.Key.FullName,
                     AvatarUrl = g.Key.AvatarUrl ?? "/img/avatars/avatar.jpg",
-                    CompletedOrders = completedOrders.Count,
+                    CompletedOrders = completedOrders.Select(x => x.ProductionOrderId).Distinct().Count(),
                     CompletedTasks = totalProduced,
                     Score = Math.Min(100, (double)totalProduced / (OperatorMonthlyTarget / 100.0))
                 };
@@ -148,13 +165,25 @@ public class DashboardBIService : IDashboardBIService
                 Id = o.ResponsibleUser!.SewingTeamId, 
                 Name = o.ResponsibleUser.SewingTeam != null ? o.ResponsibleUser.SewingTeam.Name : "Sem Equipe",
                 o.ProductionOrderId,
+                o.ProductionOrderSizeId,
+                o.Stage,
                 o.ProductionOrder!.CurrentStatus
             })
             .Select(g => new {
                 g.Key.Id,
                 g.Key.Name,
+                g.Key.ProductionOrderId,
+                g.Key.ProductionOrderSizeId,
                 g.Key.CurrentStatus,
-                MaxQty = g.Max(x => x.Quantity)
+                StageTotal = g.Sum(x => x.Quantity)
+            })
+            .GroupBy(x => new { x.Id, x.Name, x.ProductionOrderId, x.ProductionOrderSizeId, x.CurrentStatus })
+            .Select(g => new {
+                g.Key.Id,
+                g.Key.Name,
+                g.Key.ProductionOrderId,
+                g.Key.CurrentStatus,
+                MaxQty = g.Max(x => x.StageTotal)
             })
             .ToListAsync(ct);
 
@@ -178,8 +207,10 @@ public class DashboardBIService : IDashboardBIService
         // 5. PRODUCTION BY WORKSHOP (The "Carga por Operadores" chart)
         var workshopRankingData = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .GroupBy(o => new { o.ResponsibleUser!.FullName, o.ProductionOrderId })
-            .Select(g => new { g.Key.FullName, MaxQty = g.Max(x => x.Quantity) })
+            .GroupBy(o => new { o.ResponsibleUser!.FullName, o.ProductionOrderId, o.ProductionOrderSizeId, o.Stage })
+            .Select(g => new { g.Key.FullName, g.Key.ProductionOrderId, g.Key.ProductionOrderSizeId, StageTotal = g.Sum(x => x.Quantity) })
+            .GroupBy(x => new { x.FullName, x.ProductionOrderId, x.ProductionOrderSizeId })
+            .Select(g => new { g.Key.FullName, MaxQty = g.Max(x => x.StageTotal) })
             .ToListAsync(ct);
 
         var prodByWorkshop = workshopRankingData
@@ -195,7 +226,7 @@ public class DashboardBIService : IDashboardBIService
 
         // 6. Product Insights (Most and Least Profitable)
         var profitabilityData = await _context.ProductionOrders
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed)
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished)
             .Include(o => o.Product)
             .GroupBy(o => new { o.ProductId, o.Product!.Name, o.Product!.MainSku })
             .Select(g => new ProductProfitabilityDto
@@ -234,7 +265,7 @@ public class DashboardBIService : IDashboardBIService
         foreach (var p in stalledList)
         {
             var lastOrder = await _context.ProductionOrders
-                .Where(o => o.ProductId == p.Id && o.CurrentStatus == ProductionStatus.Completed)
+                .Where(o => o.ProductId == p.Id && (o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished))
                 .OrderByDescending(o => o.CompletedAt)
                 .FirstOrDefaultAsync(ct);
 
