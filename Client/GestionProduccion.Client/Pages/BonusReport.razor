@@ -67,8 +67,21 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted uppercase">@Portuguese.Reference_Month</label>
-                    <input type="month" class="form-control border-2 shadow-none" @bind="selectedMonth" />
+                    <label class="form-label xsmall fw-bold text-muted uppercase">@Portuguese.Reference_Month</label>
+                    <div class="d-flex gap-2">
+                        <select class="form-select border-2 shadow-none" @onchange="OnMonthChanged">
+                            @for (int i = 0; i < 12; i++)
+                            {
+                                <option value="@(i + 1)" selected="@(selectedMonth.Month == i + 1)">@Portuguese.Months[i]</option>
+                            }
+                        </select>
+                        <select class="form-select border-2 shadow-none" style="width: 100px;" @onchange="OnYearChanged">
+                            @for (int y = 2024; y <= DateTime.Now.Year + 1; y++)
+                            {
+                                <option value="@y" selected="@(selectedMonth.Year == y)">@y</option>
+                            }
+                        </select>
+                    </div>
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
@@ -262,6 +275,22 @@
         selectedId = 0;
         report = null;
         hasSearched = false;
+    }
+
+    private void OnMonthChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int month))
+        {
+            selectedMonth = new DateTime(selectedMonth.Year, month, 1);
+        }
+    }
+
+    private void OnYearChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int year))
+        {
+            selectedMonth = new DateTime(year, selectedMonth.Month, 1);
+        }
     }
 
     private async Task Calculate()

@@ -565,5 +565,8 @@ namespace GestionProduccion.Resources
         public const string Filter_ByRole = "Filtrar por Cargo";
         public const string Filter_ByTeam = "Filtrar por Equipe";
         public const string Workload = "Carga de Trabalho";
+
+        // Meses
+        public static readonly string[] Months = { "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro" };
     }
 }
