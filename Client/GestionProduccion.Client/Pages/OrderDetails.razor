@@ -323,7 +323,10 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">@Portuguese.OP_EstimatedDelivery</label>
-                        <input type="date" class="form-control" @bind="editRequest.EstimatedCompletionAt" />
+                        <input type="text" @ref="editDateInput" class="form-control border-2 shadow-none bg-white" 
+                               value="@editRequest.EstimatedCompletionAt?.ToString("yyyy-MM-dd")" 
+                               @onchange="OnEditDateChanged"
+                               placeholder="Selecione a data..." />
                     </div>
                     <div class="alert alert-info xsmall">
                         <i class="fa-solid fa-info-circle me-2"></i>
@@ -440,6 +443,7 @@
     private int selectedUserId;
     private ProductionStage targetStage;
     private string stageChangeNote = "";
+    private ElementReference editDateInput;
 
     protected override async Task OnInitializedAsync()
     {
@@ -447,6 +451,14 @@
             if (opId == Id) await LoadData();
         };
         await LoadData();
+    }
+
+    private void OnEditDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            editRequest.EstimatedCompletionAt = date;
+        }
     }
 
     private async Task LoadData()
@@ -503,7 +515,13 @@
         } catch { }
     }
 
-    private async Task ShowEditModal() => showEditModal = true;
+    private async Task ShowEditModal() 
+    {
+        showEditModal = true;
+        StateHasChanged();
+        await Task.Delay(100);
+        await JSRuntime.InvokeVoidAsync("initializeDatePicker", editDateInput, "single");
+    }
 
     private async Task UpdateOrder()
     {

@@ -323,6 +323,13 @@
             {
                 teams = teamsResp.Data.Where(t => t.IsActive).ToList();
             }
+
+            isInitialLoading = false;
+            StateHasChanged();
+            
+            // Wait for UI to render the input before initializing Flatpickr
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("initializeDatePicker", dateInput, "single");
         }
         catch (Exception ex)
         {
