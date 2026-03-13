@@ -218,4 +218,101 @@ public class ProductionOrderServiceTests : IDisposable
         // Assert
         Assert.Equal(150, result.CompletedToday);
     }
+
+    [Fact]
+    public async Task RegisterPartialOutputAsync_ShouldAttributeToOrderUser_WhenAssigned()
+    {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+
+        var order = new ProductionOrder
+        {
+            Id = 301,
+            LotCode = "OP-ATTR-001",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStage = ProductionStage.Sewing,
+            CurrentStatus = ProductionStatus.InProduction,
+            UserId = 99 // Assigned to user 99
+        };
+        order.Sizes.Add(new ProductionOrderSize { Id = 1, Size = "M", Quantity = 10 });
+        _context.ProductionOrders.Add(order);
+        await _context.SaveChangesAsync();
+
+        var sizeOutputs = new Dictionary<int, int> { { 1, 5 } };
+
+        // Act
+        // User 1 (Admin/Manager) records the output
+        await _lifecycleService.RegisterPartialOutputAsync(order.Id, sizeOutputs, 1);
+
+        // Assert
+        var outputs = await _context.ProductionOrderOutputs.Where(o => o.ProductionOrderId == order.Id).ToListAsync();
+        Assert.Single(outputs);
+        Assert.Equal(99, outputs[0].UserId); // Should be attributed to 99, not 1
+    }
+
+    [Fact]
+    public async Task RegisterPartialOutputAsync_ShouldAttributeToModifiedByUser_WhenUnassigned()
+    {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+
+        var order = new ProductionOrder
+        {
+            Id = 302,
+            LotCode = "OP-ATTR-002",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStage = ProductionStage.Sewing,
+            CurrentStatus = ProductionStatus.InProduction,
+            UserId = null // Unassigned
+        };
+        order.Sizes.Add(new ProductionOrderSize { Id = 2, Size = "M", Quantity = 10 });
+        _context.ProductionOrders.Add(order);
+        await _context.SaveChangesAsync();
+
+        var sizeOutputs = new Dictionary<int, int> { { 2, 5 } };
+
+        // Act
+        // User 1 records the output
+        await _lifecycleService.RegisterPartialOutputAsync(order.Id, sizeOutputs, 1);
+
+        // Assert
+        var outputs = await _context.ProductionOrderOutputs.Where(o => o.ProductionOrderId == order.Id).ToListAsync();
+        Assert.Single(outputs);
+        Assert.Equal(1, outputs[0].UserId); // Should be attributed to 1
+    }
+
+    [Fact]
+    public async Task AdvanceStageAsync_ShouldAttributeRemainingToOrderUser()
+    {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+
+        var order = new ProductionOrder
+        {
+            Id = 401,
+            LotCode = "OP-ATTR-003",
+            ProductId = 1,
+            Quantity = 10,
+            CurrentStage = ProductionStage.Cutting,
+            CurrentStatus = ProductionStatus.InProduction,
+            UserId = 88 // Assigned to user 88
+        };
+        order.Sizes.Add(new ProductionOrderSize { Id = 3, Size = "M", Quantity = 10 });
+        _context.ProductionOrders.Add(order);
+        await _context.SaveChangesAsync();
+
+        // Act
+        // Advance from Cutting to Sewing. This should trigger RecordRemainingOutputsAsync for Cutting.
+        await _lifecycleService.AdvanceStageAsync(order.Id, 1);
+
+        // Assert
+        var outputs = await _context.ProductionOrderOutputs.Where(o => o.ProductionOrderId == order.Id && o.Stage == ProductionStage.Cutting).ToListAsync();
+        Assert.Single(outputs);
+        Assert.Equal(88, outputs[0].UserId); // Should be attributed to 88
+    }
 }

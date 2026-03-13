@@ -94,7 +94,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
                 ProductionOrderSizeId = sizeId,
                 Stage = order.CurrentStage,
                 Quantity = quantity,
-                UserId = modifiedByUserId,
+                UserId = order.UserId ?? modifiedByUserId,
                 CreatedAt = DateTime.UtcNow
             });
             anyRegistered = true;
@@ -281,7 +281,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
                         ProductionOrderSizeId = size.Id,
                         Stage = order.CurrentStage,
                         Quantity = sizeRemaining,
-                        UserId = userId,
+                        UserId = order.UserId ?? userId,
                         CreatedAt = DateTime.UtcNow
                     });
                 }

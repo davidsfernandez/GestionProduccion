@@ -19,11 +19,13 @@ namespace GestionProduccion.Services;
 public class QAService : IQAService
 {
     private readonly IRepository<QADefect> _defectRepo;
+    private readonly IProductionOrderRepository _orderRepo;
     private readonly IFileStorageService _fileStorage;
 
-    public QAService(IRepository<QADefect> defectRepo, IFileStorageService fileStorage)
+    public QAService(IRepository<QADefect> defectRepo, IProductionOrderRepository orderRepo, IFileStorageService fileStorage)
     {
         _defectRepo = defectRepo;
+        _orderRepo = orderRepo;
         _fileStorage = fileStorage;
     }
 
@@ -36,6 +38,17 @@ public class QAService : IQAService
             photoUrl = await _fileStorage.UploadAsync(photoFile, "defects");
         }
 
+        // --- ATTRIBUTION SHIELD: Auto-assign responsible user from order if not provided ---
+        var responsibleUserId = dto.ResponsibleUserId;
+        if (responsibleUserId == null)
+        {
+            var order = await _orderRepo.GetByIdAsync(dto.ProductionOrderId);
+            if (order != null)
+            {
+                responsibleUserId = order.UserId;
+            }
+        }
+
         var defect = new QADefect
         {
             ProductionOrderId = dto.ProductionOrderId,
@@ -43,7 +56,7 @@ public class QAService : IQAService
             Quantity = dto.Quantity,
             PhotoUrl = photoUrl,
             ReportedByUserId = dto.ReportedByUserId,
-            ResponsibleUserId = dto.ResponsibleUserId,
+            ResponsibleUserId = responsibleUserId,
             ReportedAt = DateTime.UtcNow
         };
 

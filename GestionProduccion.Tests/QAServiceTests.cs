@@ -37,8 +37,9 @@ public class QAServiceTests : IDisposable
         _context = new AppDbContext(options);
         _mockFileStorage = new Mock<IFileStorageService>();
         _defectRepo = new Repository<QADefect>(_context); // Using generic repo implementation
+        var orderRepo = new ProductionOrderRepository(_context);
 
-        _service = new QAService(_defectRepo, _mockFileStorage.Object);
+        _service = new QAService(_defectRepo, orderRepo, _mockFileStorage.Object);
     }
 
     public void Dispose()
@@ -67,6 +68,34 @@ public class QAServiceTests : IDisposable
         dbDefect.Should().NotBeNull();
 
         _mockFileStorage.Verify(fs => fs.UploadAsync(mockFile.Object, "defects"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterDefect_ShouldAutoAssignResponsibleUser_FromOrder()
+    {
+        // Arrange
+        var order = new ProductionOrder { Id = 10, UserId = 99, LotCode = "LOT-10", ProductId = 1 };
+        _context.ProductionOrders.Add(order);
+        await _context.SaveChangesAsync();
+
+        var dto = new CreateQADefectDto 
+        { 
+            ProductionOrderId = 10, 
+            Reason = "Loose Thread", 
+            Quantity = 1, 
+            ReportedByUserId = 1,
+            ResponsibleUserId = null // Should be auto-assigned to 99
+        };
+
+        // Act
+        var result = await _service.RegisterDefectAsync(dto);
+
+        // Assert
+        result.ResponsibleUserId.Should().Be(99);
+        
+        var dbDefect = await _context.QADefects.FindAsync(result.Id);
+        dbDefect.Should().NotBeNull();
+        dbDefect!.ResponsibleUserId.Should().Be(99);
     }
 
     [Fact]
