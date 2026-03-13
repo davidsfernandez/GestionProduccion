@@ -19,6 +19,8 @@ namespace GestionProduccion.Services;
 public class DashboardBIService : IDashboardBIService
 {
     private readonly AppDbContext _context;
+    private const double OperatorMonthlyTarget = 1000.0;
+    private const double TeamMonthlyTarget = 5000.0;
 
     public DashboardBIService(AppDbContext context)
     {
@@ -28,17 +30,20 @@ public class DashboardBIService : IDashboardBIService
     public async Task<DashboardCompleteResponse> GetCompleteDashboardAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var today = now.Date;
-        var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
+        var startOfToday = now.Date;
+        var firstDayOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
         // 1. General Metrics
         var monthProduction = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .SumAsync(o => o.Quantity, ct);
+            .GroupBy(o => o.ProductionOrderId)
+            .Select(g => g.Max(x => x.Quantity))
+            .SumAsync(ct);
 
         var completedOrdersQuery = _context.ProductionOrders
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= firstDayOfMonth);
+            .Where(o => (o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished) 
+                        && o.CompletedAt >= firstDayOfMonth);
 
         var completedOrdersData = await completedOrdersQuery
             .Select(o => new { o.AverageCostPerPiece, o.ProfitMargin })
@@ -54,13 +59,18 @@ public class DashboardBIService : IDashboardBIService
             .CountAsync(ct);
 
         // 2. Weekly Production Graph (Hybrid: Outputs + Legacy Orders)
-        var sevenDaysAgo = today.AddDays(-6);
-        var weeklyOutputs = await _context.ProductionOrderOutputs
+        var sevenDaysAgo = startOfToday.AddDays(-6);
+        var weeklyOutputsRaw = await _context.ProductionOrderOutputs
             .AsNoTracking()
             .Where(o => o.CreatedAt >= sevenDaysAgo)
-            .GroupBy(o => o.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Quantity) })
+            .GroupBy(o => new { o.CreatedAt.Date, o.ProductionOrderId })
+            .Select(g => new { g.Key.Date, MaxQty = g.Max(x => x.Quantity) })
             .ToListAsync(ct);
+
+        var weeklyOutputs = weeklyOutputsRaw
+            .GroupBy(x => x.Date)
+            .Select(g => new { Date = g.Key, Total = g.Sum(x => x.MaxQty) })
+            .ToList();
 
         var orderIdsWithOutputs = await _context.ProductionOrderOutputs
             .AsNoTracking()
@@ -71,7 +81,8 @@ public class DashboardBIService : IDashboardBIService
 
         var weeklyLegacy = await _context.ProductionOrders
             .AsNoTracking()
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= sevenDaysAgo)
+            .Where(o => (o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished) 
+                        && o.CompletedAt >= sevenDaysAgo)
             .ToListAsync(ct);
         
         var filteredLegacy = weeklyLegacy
@@ -84,7 +95,7 @@ public class DashboardBIService : IDashboardBIService
         var weeklyLabels = new List<string>();
         for (int i = 6; i >= 0; i--)
         {
-            var date = today.AddDays(-i);
+            var date = startOfToday.AddDays(-i);
             var fromOutputs = weeklyOutputs.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
             var fromLegacy = filteredLegacy.FirstOrDefault(x => x.Date == date)?.Total ?? 0;
             
@@ -93,54 +104,94 @@ public class DashboardBIService : IDashboardBIService
         }
 
         // 3. RANKING INDIVIDUAL (Operators) - Optimized for Hall of Fame
-        var operatorRanking = await _context.ProductionOrderOutputs
-            .Include(o => o.ResponsibleUser)
+        var operatorRankingData = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .GroupBy(o => new { o.UserId, o.ResponsibleUser!.FullName, o.ResponsibleUser.AvatarUrl })
-            .Select(g => new RankingEntryDto
-            {
-                UserName = g.Key.FullName,
-                AvatarUrl = g.Key.AvatarUrl ?? "/img/avatars/avatar.jpg",
-                CompletedOrders = g.Select(x => x.ProductionOrderId).Distinct().Count(),
-                CompletedTasks = g.Sum(x => x.Quantity),
-                Score = Math.Min(100, (double)g.Sum(x => x.Quantity) / 10.0) // Scoring normalized
+            .GroupBy(o => new { 
+                o.UserId, 
+                o.ProductionOrderId, 
+                o.ResponsibleUser!.FullName, 
+                o.ResponsibleUser.AvatarUrl,
+                o.ProductionOrder!.CurrentStatus 
+            })
+            .Select(g => new {
+                g.Key.UserId,
+                g.Key.FullName,
+                g.Key.AvatarUrl,
+                g.Key.CurrentStatus,
+                MaxQty = g.Max(x => x.Quantity)
+            })
+            .ToListAsync(ct);
+
+        var operatorRanking = operatorRankingData
+            .GroupBy(o => new { o.UserId, o.FullName, o.AvatarUrl })
+            .Select(g => {
+                var completedOrders = g.Where(x => x.CurrentStatus == ProductionStatus.Completed || x.CurrentStatus == ProductionStatus.Finished).ToList();
+                var totalProduced = completedOrders.Sum(x => x.MaxQty);
+
+                return new RankingEntryDto
+                {
+                    UserName = g.Key.FullName,
+                    AvatarUrl = g.Key.AvatarUrl ?? "/img/avatars/avatar.jpg",
+                    CompletedOrders = completedOrders.Count,
+                    CompletedTasks = totalProduced,
+                    Score = Math.Min(100, (double)totalProduced / (OperatorMonthlyTarget / 100.0))
+                };
             })
             .OrderByDescending(r => r.CompletedTasks)
             .Take(5)
-            .ToListAsync(ct);
+            .ToList();
 
         // 4. RANKING POR EQUIPE (Teams) - Optimized
-        var teamRanking = await _context.ProductionOrderOutputs
-            .Include(o => o.ResponsibleUser)
-            .ThenInclude(u => u.SewingTeam)
+        var teamRankingData = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
             .GroupBy(o => new { 
                 Id = o.ResponsibleUser!.SewingTeamId, 
-                Name = o.ResponsibleUser.SewingTeam != null ? o.ResponsibleUser.SewingTeam.Name : "Sem Equipe" 
+                Name = o.ResponsibleUser.SewingTeam != null ? o.ResponsibleUser.SewingTeam.Name : "Sem Equipe",
+                o.ProductionOrderId,
+                o.ProductionOrder!.CurrentStatus
             })
-            .Select(g => new TeamRankingDto
-            {
-                TeamName = g.Key.Name,
-                TotalProduced = g.Sum(x => x.Quantity),
-                Efficiency = Math.Min(100, (double)g.Sum(x => x.Quantity) / 50.0) // Normalized
+            .Select(g => new {
+                g.Key.Id,
+                g.Key.Name,
+                g.Key.CurrentStatus,
+                MaxQty = g.Max(x => x.Quantity)
+            })
+            .ToListAsync(ct);
+
+        var teamRanking = teamRankingData
+            .GroupBy(o => new { o.Id, o.Name })
+            .Select(g => {
+                var completedOrders = g.Where(x => x.CurrentStatus == ProductionStatus.Completed || x.CurrentStatus == ProductionStatus.Finished).ToList();
+                var totalProduced = completedOrders.Sum(x => x.MaxQty);
+
+                return new TeamRankingDto
+                {
+                    TeamName = g.Key.Name,
+                    TotalProduced = totalProduced,
+                    Efficiency = Math.Min(100, (double)totalProduced / (TeamMonthlyTarget / 100.0))
+                };
             })
             .OrderByDescending(t => t.TotalProduced)
             .Take(5)
-            .ToListAsync(ct);
+            .ToList();
 
         // 5. PRODUCTION BY WORKSHOP (The "Carga por Operadores" chart)
-        var prodByWorkshop = await _context.ProductionOrderOutputs
-            .Include(o => o.ResponsibleUser)
+        var workshopRankingData = await _context.ProductionOrderOutputs
             .Where(o => o.CreatedAt >= firstDayOfMonth)
-            .GroupBy(o => o.ResponsibleUser!.FullName)
+            .GroupBy(o => new { o.ResponsibleUser!.FullName, o.ProductionOrderId })
+            .Select(g => new { g.Key.FullName, MaxQty = g.Max(x => x.Quantity) })
+            .ToListAsync(ct);
+
+        var prodByWorkshop = workshopRankingData
+            .GroupBy(o => o.FullName)
             .Select(g => new WorkshopProductionDto
             {
                 WorkshopName = g.Key,
-                Quantity = g.Sum(x => x.Quantity)
+                Quantity = g.Sum(x => x.MaxQty)
             })
             .OrderByDescending(x => x.Quantity)
             .Take(10)
-            .ToListAsync(ct);
+            .ToList();
 
         // 6. Product Insights (Most and Least Profitable)
         var profitabilityData = await _context.ProductionOrders
