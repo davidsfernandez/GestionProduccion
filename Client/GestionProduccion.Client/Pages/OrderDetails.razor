@@ -324,7 +324,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">@Portuguese.OP_EstimatedDelivery</label>
                         <input type="text" @ref="editDateInput" class="form-control border-2 shadow-none bg-white" 
-                               value="@editRequest.EstimatedCompletionAt?.ToString("yyyy-MM-dd")" 
+                               value="@editRequest.EstimatedCompletionAt.ToString("yyyy-MM-dd")" 
                                @onchange="OnEditDateChanged"
                                placeholder="Selecione a data..." />
                     </div>
