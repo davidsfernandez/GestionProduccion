@@ -192,11 +192,13 @@ public class BonusCalculationService : IBonusCalculationService
 
         var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
 
-        // 1. Get all partial/total outputs for this user in the date range
+        // 1. Get all pieces produced by this user in the date range
+        // IMPORTANT: We filter by the actual output.UserId and the period
         var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
         var outputsList = outputs.ToList();
         
-        // AVOID DOUBLE COUNTING: Sum max pieces in any stage per order
+        // AVOID DOUBLE COUNTING: If a user works on multiple stages of the SAME order in the SAME period,
+        // we take the maximum quantity reached to represent their physical production of units.
         int totalProduced = outputsList
             .GroupBy(o => o.ProductionOrderId)
             .Select(g => g.Max(x => x.Quantity))
@@ -204,11 +206,12 @@ public class BonusCalculationService : IBonusCalculationService
 
         var involvedOrderIds = outputsList.Select(o => o.ProductionOrderId).Distinct().ToList();
 
-        // 2. Individual Base Metrics (Destrez Técnica)
+        // 2. Individual Base Metrics (Quality attribution)
         int totalDefects = 0;
         foreach (var orderId in involvedOrderIds)
         {
             var defects = await _qaService.GetDefectsByOrderAsync(orderId);
+            // Count defects where this user is the RESPONSIBLE party, within the period
             totalDefects += defects
                 .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ResponsibleUserId == userId)
                 .Sum(d => d.Quantity);
@@ -217,12 +220,12 @@ public class BonusCalculationService : IBonusCalculationService
         // Productivity Factor (Ind)
         decimal indProductivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
         
-        // Quality Denominator: Sum of all pieces handled in all stages (real effort)
+        // Quality Denominator: Sum of all operations (stages) performed. 
+        // 8 defects over 10 pieces finished today is worse than 8 over 200 pieces moved between stages.
         int totalOperationsInPeriod = outputsList.Sum(o => o.Quantity);
         decimal indDefectRatio = totalOperationsInPeriod > 0 ? (decimal)totalDefects / totalOperationsInPeriod * 100 : 0;
         
         // Quality Multiplier (Progressive): 
-        // If ratio is 0, multiplier is 1. If ratio >= limit, multiplier is 0.
         decimal indQualityFactor = 1;
         if (rule.DefectLimitPercentage > 0)
         {

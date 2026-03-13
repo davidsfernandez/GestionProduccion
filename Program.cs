@@ -302,26 +302,29 @@ if (!app.Environment.IsEnvironment("Testing"))
                 {
                     logger.LogInformation("MIGRATION: Database connection established.");
 
-                    // --- HOTFIX: Physical schema verification ---
+                    // --- EMERGENCY HOTFIX: Force column creation if missing ---
                     try 
                     {
-                        logger.LogInformation("MIGRATION: Verifying physical column consistency...");
-                        var connection = context.Database.GetDbConnection();
-                        if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
-                        using (var command = connection.CreateCommand())
+                        var conn = context.Database.GetDbConnection();
+                        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+                        using (var cmd = conn.CreateCommand())
                         {
-                            command.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
-                            var count = Convert.ToInt32(await command.ExecuteScalarAsync());
-                            if (count == 0)
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
+                            var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                            if (!exists)
                             {
-                                logger.LogWarning("MIGRATION: Column 'ResponsibleUserId' missing! Patching schema manually...");
-                                command.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
-                                await command.ExecuteNonQueryAsync();
-                                logger.LogInformation("MIGRATION: Schema patched successfully.");
+                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' is MISSING in physical DB! Forcing ALTER TABLE...");
+                                cmd.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
+                                await cmd.ExecuteNonQueryAsync();
+                                logger.LogInformation("HOTFIX: Column added successfully.");
+                            }
+                            else 
+                            {
+                                logger.LogInformation("MIGRATION: Physical column 'ResponsibleUserId' already exists.");
                             }
                         }
                     }
-                    catch (Exception ex) { logger.LogWarning("MIGRATION: Pre-flight patch skipped: {Message}", ex.Message); }
+                    catch (Exception ex) { logger.LogError("HOTFIX FAILED: {Msg}", ex.Message); }
 
                     var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
                     if (pendingMigrations.Any())

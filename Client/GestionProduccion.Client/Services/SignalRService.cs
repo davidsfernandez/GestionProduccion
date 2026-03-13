@@ -58,22 +58,26 @@ namespace GestionProduccion.Client.Services
                     return;
                 }
 
+                // SECURITY GUARD: Ensure we have a token before trying to connect to the authenticated hub
+                var token = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+                if (string.IsNullOrEmpty(token))
+                {
+                    Console.WriteLine("SignalR: Delaying connection until auth token is available...");
+                    return;
+                }
+
                 _hubConnection = new HubConnectionBuilder()
                     .WithUrl(hubUrl, options => {
                         options.Transports = HttpTransportType.WebSockets;
                         options.SkipNegotiation = true;
-                        options.AccessTokenProvider = async () => 
-                        {
-                            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-                        };
+                        options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                     })
                     .WithAutomaticReconnect(new[] { 
                         TimeSpan.Zero, 
                         TimeSpan.FromSeconds(2), 
                         TimeSpan.FromSeconds(5), 
-                        TimeSpan.FromSeconds(10), 
-                        TimeSpan.FromSeconds(30),
-                        TimeSpan.FromMinutes(1) 
+                        TimeSpan.FromSeconds(15), 
+                        TimeSpan.FromSeconds(30) 
                     })
                     .Build();
 

@@ -47,11 +47,11 @@ public class ProductionOrderOutputRepository : IProductionOrderOutputRepository
 
         return await _context.ProductionOrderOutputs
             .AsNoTracking()
-            .Join(_context.ProductionOrders, 
-                output => output.ProductionOrderId, 
-                order => order.Id, 
-                (output, order) => new { output, order })
-            .Where(x => x.order.SewingTeamId == teamId &&
+            .Join(_context.Users,
+                output => output.UserId,
+                user => user.Id,
+                (output, user) => new { output, user })
+            .Where(x => x.user.SewingTeamId == teamId &&
                         x.output.CreatedAt >= start && x.output.CreatedAt <= end)
             .Select(x => x.output)
             .ToListAsync();
@@ -65,13 +65,8 @@ public class ProductionOrderOutputRepository : IProductionOrderOutputRepository
 
         return await _context.ProductionOrderOutputs
             .AsNoTracking()
-            .Join(_context.ProductionOrders, 
-                output => output.ProductionOrderId, 
-                order => order.Id, 
-                (output, order) => new { output, order })
-            .Where(x => x.order.UserId == userId &&
-                        x.output.CreatedAt >= start && x.output.CreatedAt <= end)
-            .Select(x => x.output)
+            .Where(o => o.UserId == userId &&
+                        o.CreatedAt >= start && o.CreatedAt <= end)
             .ToListAsync();
     }
 

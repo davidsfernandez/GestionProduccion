@@ -57,27 +57,25 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         };
     }
 
-    protected void AuthenticateAs(UserRole role)
+    protected void AuthenticateAs(UserRole role, int userId = 1)
     {
-        var token = GenerateJwtToken(role);
+        var token = GenerateJwtToken(role, userId);
         Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
-    private string GenerateJwtToken(UserRole role)
+    private string GenerateJwtToken(UserRole role, int userId)
     {
         var jwtSettings = Configuration.GetSection("Jwt");
         var secretKey = Configuration["Jwt:Key"];
-
         if (string.IsNullOrEmpty(secretKey) || secretKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES")
         {
-            secretKey = "SUPER_SECRET_KEY_FOR_GESTION_PRODUCCION_2024_!@#";
+            secretKey = "THIS_IS_A_SECURE_TEST_KEY_THAT_IS_LONG_ENOUGH_FOR_HMAC_SHA256";
         }
 
         var key = Encoding.ASCII.GetBytes(secretKey);
-
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "1"),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Name, "testuser"),
             new Claim(ClaimTypes.Role, role.ToString())
         };
@@ -127,6 +125,7 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
         // 3. Usuarios
         var admin = new User
         {
+            Id = 1,
             FullName = "Admin Test",
             Email = "admin@integration.com",
             PasswordHash = "BCRYPT_HASH_HERE",
@@ -137,6 +136,7 @@ public abstract class BaseIntegrationTest : IClassFixture<CustomWebApplicationFa
 
         var op = new User
         {
+            Id = 2,
             FullName = "Operator Test",
             Email = "operator@integration.com",
             PasswordHash = "BCRYPT_HASH_HERE",

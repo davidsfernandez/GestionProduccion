@@ -346,6 +346,14 @@ public class UserService : IUserService
             }
         }
 
+        // 3. FALLBACK: If no specific users found, return all active operators/leaders 
+        // to prevent empty dropdowns in QA
+        if (!result.Any())
+        {
+            var allActive = await _userRepository.GetAllActiveAsync();
+            result.AddRange(allActive.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader));
+        }
+
         return _mapper.ToDtoList(result);
     }
 }

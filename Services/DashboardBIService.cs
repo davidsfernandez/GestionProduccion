@@ -168,27 +168,33 @@ public class DashboardBIService : IDashboardBIService
         // 7. Stalled Stock (Products with no orders in last 60 days)
         var sixtyDaysAgo = now.AddDays(-60);
         
-        var stalledStock = await _context.Products
-            .Where(p => !_context.ProductionOrders.Any(o => o.ProductId == p.Id && o.CreatedAt >= sixtyDaysAgo))
-            .Select(p => new StalledProductDto
-            {
-                Sku = p.MainSku,
-                Name = p.Name,
-                DaysSinceLastProduction = 999 // Default for all stalled
-            })
+        // 1. Get IDs of products seen in recent orders
+        var recentIds = await _context.ProductionOrders
+            .Where(o => o.CreatedAt >= sixtyDaysAgo)
+            .Select(o => o.ProductId)
+            .Distinct()
             .ToListAsync(ct);
 
-        foreach (var item in stalledStock)
+        // 2. Get all products and filter out the recent ones in memory
+        var allProductsList = await _context.Products.AsNoTracking().ToListAsync(ct);
+        var stalledList = allProductsList.Where(p => !recentIds.Contains(p.Id)).ToList();
+
+        var stalledStock = new List<StalledProductDto>();
+        foreach (var p in stalledList)
         {
             var lastOrder = await _context.ProductionOrders
-                .Where(o => o.Product!.MainSku == item.Sku && o.CurrentStatus == ProductionStatus.Completed)
+                .Where(o => o.ProductId == p.Id && o.CurrentStatus == ProductionStatus.Completed)
                 .OrderByDescending(o => o.CompletedAt)
                 .FirstOrDefaultAsync(ct);
 
-            if (lastOrder?.CompletedAt != null)
+            stalledStock.Add(new StalledProductDto
             {
-                item.DaysSinceLastProduction = (int)(now - lastOrder.CompletedAt.Value).TotalDays;
-            }
+                Sku = p.MainSku,
+                Name = p.Name,
+                DaysSinceLastProduction = lastOrder?.CompletedAt != null 
+                    ? (int)(now - lastOrder.CompletedAt.Value).TotalDays 
+                    : 999
+            });
         }
 
 
