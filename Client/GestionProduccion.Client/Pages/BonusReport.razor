@@ -68,20 +68,10 @@
 
                 <div class="col-md-3">
                     <label class="form-label xsmall fw-bold text-muted uppercase">@Portuguese.Reference_Month</label>
-                    <div class="d-flex gap-2">
-                        <select class="form-select border-2 shadow-none" @onchange="OnMonthChanged">
-                            @for (int i = 0; i < 12; i++)
-                            {
-                                <option value="@(i + 1)" selected="@(selectedMonth.Month == i + 1)">@Portuguese.Months[i]</option>
-                            }
-                        </select>
-                        <select class="form-select border-2 shadow-none" style="width: 100px;" @onchange="OnYearChanged">
-                            @for (int y = 2024; y <= DateTime.Now.Year + 1; y++)
-                            {
-                                <option value="@y" selected="@(selectedMonth.Year == y)">@y</option>
-                            }
-                        </select>
-                    </div>
+                    <input type="text" @ref="monthInput" class="form-control border-2 shadow-none bg-white" 
+                           value="@selectedMonth.ToString("yyyy-MM")" 
+                           @onchange="OnMonthInputChanged"
+                           placeholder="Selecione o mês..." />
                 </div>
 
                 <div class="col-md-2 d-flex align-items-end">
@@ -238,10 +228,19 @@
     private bool isExporting = false;
     private bool hasSearched = false;
     private bool _shouldRenderChart = false;
+    private ElementReference monthInput;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialData();
+    }
+
+    private void OnMonthInputChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            selectedMonth = date;
+        }
     }
 
     private async Task LoadInitialData()
@@ -334,6 +333,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initializeDatePicker", monthInput, "month");
+        }
+
         if (_shouldRenderChart && report != null)
         {
             _shouldRenderChart = false;

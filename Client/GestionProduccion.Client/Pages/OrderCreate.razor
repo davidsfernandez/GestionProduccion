@@ -82,7 +82,10 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">@Portuguese.OP_EstimatedDelivery</label>
-                                    <InputDate @bind-Value="createModel.EstimatedCompletionAt" class="form-control form-control-lg" />
+                                    <input type="text" @ref="dateInput" class="form-control form-control-lg border-2 shadow-none bg-white" 
+                                           value="@createModel.EstimatedCompletionAt.ToString("yyyy-MM-dd")" 
+                                           @onchange="OnDateInputChanged"
+                                           placeholder="Selecione a data..." />
                                     <ValidationMessage For="@(() => createModel.EstimatedCompletionAt)" class="text-danger small" />
                                 </div>
 
@@ -243,10 +246,27 @@
     private readonly List<string> BrazilianSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
     private bool isSubmitting = false;
     private bool isInitialLoading = true;
+    private ElementReference dateInput;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initializeDatePicker", dateInput, "single");
+        }
+    }
+
+    private void OnDateInputChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            createModel.EstimatedCompletionAt = date;
+        }
     }
 
     private int GetTotalQuantity()

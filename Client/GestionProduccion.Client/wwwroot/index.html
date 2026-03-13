@@ -16,6 +16,11 @@
     <link rel="stylesheet" href="css/custom.css" />
     <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
     <link href="GestionProduccion.Client.styles.css" rel="stylesheet" />
+    
+    <!-- Flatpickr for elegant calendars -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    
     <script type="importmap"></script>
 </head>
 
@@ -240,6 +245,26 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/adminkit.js?v=1.2"></script>
+    
+    <!-- Flatpickr for elegant calendars -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+    <script>
+        window.initializeDatePicker = (element, mode) => {
+            if (!element) return;
+            flatpickr(element, {
+                locale: "pt",
+                altInput: true,
+                altFormat: mode === 'month' ? "F \\de Y" : "d/m/Y",
+                dateFormat: mode === 'month' ? "Y-m" : "Y-m-d",
+                plugins: mode === 'month' ? [] : [], // We can add monthSelectPlugin if needed later
+                onChange: function(selectedDates, dateStr) {
+                    element.value = dateStr;
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        };
+    </script>
     
     <!-- Serona Charts Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
