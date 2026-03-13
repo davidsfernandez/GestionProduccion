@@ -44,6 +44,21 @@
         </div>
     </div>
 
+    @* SEARCH FILTER *@
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group shadow-none border rounded-3 overflow-hidden">
+                        <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" class="form-control border-0 px-2" placeholder="@Portuguese.Search" 
+                               @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterTeams" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (loading && teams == null)
     {
         <SeronaLoader />
@@ -196,10 +211,13 @@
 }
 
 @code {
+    private List<SewingTeamDto>? allTeams;
     private List<SewingTeamDto>? teams;
     private List<UserDto>? allUsers;
     private List<UserDto>? eligibleUsers;
+    private string searchTerm = "";
     private SewingTeamDto teamModel = new() { SelectedUserIds = new List<int>() };
+    
     private bool showModal = false;
     private bool isEditing = false;
     private bool isSaving = false;
@@ -219,6 +237,19 @@
         await LoadData();
     }
 
+    private void FilterTeams()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            teams = allTeams;
+        }
+        else
+        {
+            teams = allTeams?.Where(t => t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        StateHasChanged();
+    }
+
     private async Task LoadData()
     {
         loading = true;
@@ -230,7 +261,11 @@
             await Task.WhenAll(teamsTask, usersTask);
 
             var teamsResponse = await teamsTask;
-            if (teamsResponse != null && teamsResponse.Success) teams = teamsResponse.Data;
+            if (teamsResponse != null && teamsResponse.Success) 
+            {
+                allTeams = teamsResponse.Data;
+                FilterTeams();
+            }
 
             var usersResponse = await usersTask;
             if (usersResponse != null && usersResponse.Success)

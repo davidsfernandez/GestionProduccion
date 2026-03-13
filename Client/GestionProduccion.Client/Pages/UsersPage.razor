@@ -49,7 +49,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select border-0 bg-light shadow-none" @bind="filterRole">
+                    <select class="form-select border-0 bg-light shadow-none" @onchange="OnRoleFilterChanged">
                         <option value="">@Portuguese.Filter_ByRole</option>
                         @foreach (var role in Enum.GetValues<UserRole>())
                         {
@@ -58,7 +58,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select border-0 bg-light shadow-none" @bind="filterTeamId">
+                    <select class="form-select border-0 bg-light shadow-none" @onchange="OnTeamFilterChanged">
                         <option value="0">@Portuguese.Filter_ByTeam</option>
                         @if (teams != null)
                         {
@@ -287,6 +287,21 @@
 
     private void OnSearchKeyUp(KeyboardEventArgs e) { debounceTimer?.Stop(); debounceTimer?.Start(); }
     private void OnDebounceElapsed(object? sender, ElapsedEventArgs e) { InvokeAsync(() => { FilterUsers(); StateHasChanged(); }); }
+
+    private void OnRoleFilterChanged(ChangeEventArgs e)
+    {
+        filterRole = e.Value?.ToString() ?? "";
+        FilterUsers();
+    }
+
+    private void OnTeamFilterChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int teamId))
+        {
+            filterTeamId = teamId;
+            FilterUsers();
+        }
+    }
 
     private void FilterUsers()
     {

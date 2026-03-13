@@ -134,7 +134,8 @@
                         <div class="d-flex flex-wrap gap-2 mb-4">
                             @if (order.CurrentStatus != "Completed" && order.CurrentStatus != "Cancelled")
                             {
-                                <button class="btn btn-primary px-4 shadow-sm" @onclick="AdvanceStage" disabled="@isActionInProgress">
+                                <button class="btn btn-primary px-4 shadow-sm" @onclick="AdvanceStage" 
+                                        disabled="@(isActionInProgress || order.CurrentStage == "Packaging")">
                                     <i class="fa-solid fa-forward-step me-2"></i> @Portuguese.OP_AdvanceStage
                                 </button>
                                 <button class="btn btn-outline-primary px-4" @onclick="ShowPartialOutput" disabled="@isActionInProgress">
