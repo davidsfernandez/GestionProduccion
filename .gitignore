@@ -132,6 +132,10 @@ publish/
 *.zip
 *.docx
 
+# Exceptions for necessary static assets
+!wwwroot/img/avatars/avatar.jpg
+!images.jpg
+
 # Environment files
 .env
 
