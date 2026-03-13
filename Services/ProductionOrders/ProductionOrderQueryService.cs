@@ -139,32 +139,18 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
     public async Task<TvDashboardDto> GetTvDashboardAsync(CancellationToken ct = default)
     {
-        var today = DateTime.UtcNow.Date;
+        // Brazil time adjustment (-3h)
+        var brazilToday = DateTime.UtcNow.AddHours(-3).Date;
+        var startUtc = brazilToday.AddHours(3);
+        var endUtc = startUtc.AddDays(1);
+
         var query = await _orderRepository.GetQueryableAsync();
 
         var ordersWithRelations = query
             .Include(o => o.Product)
             .AsNoTracking();
 
-        // Calculate completed today using a hybrid approach:
-        // 1. All pieces registered via partial outputs today
-        var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
-        var completedFromOutputs = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= today)
-            .SumAsync(o => o.Quantity, ct);
-
-        // 2. Pieces from orders completed today that DON'T have outputs today (legacy or direct DB entries)
-        var orderIdsWithOutputsToday = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= today)
-            .Select(o => o.ProductionOrderId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var completedFromLegacy = await ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today && !orderIdsWithOutputsToday.Contains(o.Id))
-            .SumAsync(o => o.Quantity, ct);
-
-        var completedToday = completedFromOutputs + completedFromLegacy;
+        var completedToday = await CalculateCompletedTodayAsync(startUtc, endUtc, ct);
 
         // Daily Goal logic (for now fixed, but could come from SystemConfiguration)
         int dailyGoal = 500; 
@@ -178,7 +164,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         double avgTimePerPiece = 0;
         var completedList = await ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today)
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= startUtc && o.CompletedAt < endUtc)
             .Select(o => new { o.EffectiveMinutes, o.Quantity })
             .ToListAsync(ct);
 
@@ -214,7 +200,11 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken ct = default)
     {
-        var today = DateTime.UtcNow.Date;
+        // Brazil time adjustment (-3h)
+        var brazilToday = DateTime.UtcNow.AddHours(-3).Date;
+        var startUtc = brazilToday.AddHours(3);
+        var endUtc = startUtc.AddDays(1);
+
         var query = await _orderRepository.GetQueryableAsync();
 
         // Eager load related entities for the report and UI
@@ -226,25 +216,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         var totalActiveOrders = await ordersWithRelations.CountAsync(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled, ct);
         
-        // Calculate completed today using a hybrid approach:
-        // 1. All pieces registered via partial outputs today
-        var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
-        var completedFromOutputs = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= today)
-            .SumAsync(o => o.Quantity, ct);
-
-        // 2. Pieces from orders completed today that DON'T have outputs today (legacy or direct DB entries)
-        var orderIdsWithOutputsToday = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= today)
-            .Select(o => o.ProductionOrderId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var completedFromLegacy = await ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= today && !orderIdsWithOutputsToday.Contains(o.Id))
-            .SumAsync(o => o.Quantity, ct);
-
-        var completedToday = completedFromOutputs + completedFromLegacy;
+        var completedToday = await CalculateCompletedTodayAsync(startUtc, endUtc, ct);
 
         var activeOrdersList = await ordersWithRelations
             .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
@@ -286,7 +258,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var todaysOrdersList = await ordersWithRelations
             .Include(o => o.Sizes)
             .Include(o => o.History)
-            .Where(o => o.CreatedAt >= today || (o.CompletedAt != null && o.CompletedAt >= today))
+            .Where(o => o.CreatedAt >= startUtc || (o.CompletedAt != null && o.CompletedAt >= startUtc && o.CompletedAt < endUtc))
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(ct);
         
@@ -387,6 +359,37 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     {
         var colors = new[] { "#00C899", "#3B7DDD", "#fcb92c", "#dc3545", "#151628", "#6f42c1", "#e83e8c" };
         return colors[index % colors.Length];
+    }
+
+    private async Task<int> CalculateCompletedTodayAsync(DateTime startUtc, DateTime endUtc, CancellationToken ct)
+    {
+        var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
+        var ordersQuery = await _orderRepository.GetQueryableAsync();
+
+        // 1. Hybrid Aggregation: Group by Order+Size+Stage, Sum quantities, then take Max per Order+Size
+        // This avoids overcounting if a piece goes through multiple stages today.
+        var completedFromOutputs = await outputsTodayQuery
+            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc)
+            .GroupBy(o => new { o.ProductionOrderId, o.ProductionOrderSizeId, o.Stage })
+            .Select(g => new { g.Key.ProductionOrderId, g.Key.ProductionOrderSizeId, TotalInStage = g.Sum(o => o.Quantity) })
+            .GroupBy(x => new { x.ProductionOrderId, x.ProductionOrderSizeId })
+            .Select(g => g.Max(x => x.TotalInStage))
+            .SumAsync(ct);
+
+        // 2. Legacy/Direct completion (orders completed today with no outputs today)
+        var orderIdsWithOutputsToday = await outputsTodayQuery
+            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc)
+            .Select(o => o.ProductionOrderId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var completedFromLegacy = await ordersQuery
+            .Where(o => o.CurrentStatus == ProductionStatus.Completed && 
+                        o.CompletedAt >= startUtc && o.CompletedAt < endUtc && 
+                        !orderIdsWithOutputsToday.Contains(o.Id))
+            .SumAsync(o => o.Quantity, ct);
+
+        return completedFromOutputs + completedFromLegacy;
     }
 }
 
