@@ -77,6 +77,20 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpGet("orders/{orderId}/eligible-users")]
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetEligibleUsers(int orderId)
+    {
+        try
+        {
+            var users = await _userService.GetUsersForOrderAsync(orderId);
+            return Ok(ApiResponse<List<UserDto>>.SuccessResult(users));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<List<UserDto>>.FailureResult("Error retrieving eligible users", new List<string> { ex.Message }));
+        }
+    }
+
     [HttpPut("profile")]
     [Authorize]
     public async Task<ActionResult<ApiResponse<UserDto>>> UpdateProfile([FromBody] UpdateProfileRequest request)
@@ -208,20 +222,6 @@ public class UsersController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, ApiResponse<object>.FailureResult("Error deactivating user", new List<string> { ex.Message }));
-        }
-    }
-
-    [HttpGet("orders/{orderId}/eligible-users")]
-    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetEligibleUsers(int orderId)
-    {
-        try
-        {
-            var users = await _userService.GetUsersForOrderAsync(orderId);
-            return Ok(ApiResponse<List<UserDto>>.SuccessResult(users));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ApiResponse<List<UserDto>>.FailureResult("Error retrieving eligible users", new List<string> { ex.Message }));
         }
     }
 }

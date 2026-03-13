@@ -101,13 +101,22 @@
     {
         try
         {
+            Console.WriteLine($"QA: Loading eligible users for Order {OrderId}...");
             var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>($"api/Users/orders/{OrderId}/eligible-users");
             if (response != null && response.Success && response.Data != null) 
             {
                 assignableUsers = response.Data;
+                Console.WriteLine($"QA: Loaded {assignableUsers.Count} users.");
+            }
+            else 
+            {
+                Console.WriteLine($"QA: Failed to load users. Message: {response?.Message}");
             }
         }
-        catch { }
+        catch (Exception ex) 
+        { 
+            Console.WriteLine($"QA ERROR: {ex.Message}");
+        }
     }
 
     private void OnInputFileChange(InputFileChangeEventArgs e)
