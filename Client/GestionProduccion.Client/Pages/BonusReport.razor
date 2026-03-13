@@ -40,7 +40,6 @@
                     <select class="form-select border-2 shadow-none" @onchange="OnModeChanged">
                         <option value="team">@Portuguese.Analysis_ByTeam</option>
                         <option value="user">@Portuguese.Analysis_ByEmployee</option>
-                        <option value="professional">@Portuguese.Analysis_Professional</option>
                     </select>
                 </div>
 
@@ -98,7 +97,7 @@
                         </div>
                         <div class="p-3 bg-white border-top text-center">
                             <span class="text-muted xsmall">
-                                @(reportMode == "team" ? "Desempenho Coletivo" : (reportMode == "professional" ? "Desempenho Profissional (Híbrido)" : "Individual (Produção Pura)"))
+                                @(reportMode == "team" ? "Desempenho Coletivo" : "Individual (Produção Pura)")
                             </span>
                         </div>
                     </div>
@@ -286,8 +285,7 @@
             }
             else
             {
-                bool isProfessional = reportMode == "professional";
-                url = $"api/BonusCalculation?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}&isProfessional={isProfessional}";
+                url = $"api/BonusCalculation?userId={selectedId}&startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}";
             }
 
             var response = await Http.GetFromJsonAsync<ApiResponse<BonusReportDto>>(url, JsonOptions);

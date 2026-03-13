@@ -185,7 +185,7 @@ public class BonusCalculationService : IBonusCalculationService
         };
     }
 
-    public async Task<BonusReportDto> CalculateUserBonusAsync(int userId, DateTime startDate, DateTime endDate, bool isProfessional = false)
+    public async Task<BonusReportDto> CalculateUserBonusAsync(int userId, DateTime startDate, DateTime endDate)
     {
         var user = await _teamRepo.GetMemberByIdAsync(userId);
         if (user == null) throw new KeyNotFoundException("User not found.");
@@ -193,12 +193,10 @@ public class BonusCalculationService : IBonusCalculationService
         var rule = await _ruleRepo.GetActiveRuleAsync() ?? new BonusRule();
 
         // 1. Get all pieces produced by this user in the date range
-        // IMPORTANT: We filter by the actual output.UserId and the period
         var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
         var outputsList = outputs.ToList();
         
-        // AVOID DOUBLE COUNTING: If a user works on multiple stages of the SAME order in the SAME period,
-        // we take the maximum quantity reached to represent their physical production of units.
+        // AVOID DOUBLE COUNTING: We take the maximum quantity reached per order to represent physical pieces.
         int totalProduced = outputsList
             .GroupBy(o => o.ProductionOrderId)
             .Select(g => g.Max(x => x.Quantity))
@@ -211,21 +209,19 @@ public class BonusCalculationService : IBonusCalculationService
         foreach (var orderId in involvedOrderIds)
         {
             var defects = await _qaService.GetDefectsByOrderAsync(orderId);
-            // Count defects where this user is the RESPONSIBLE party, within the period
             totalDefects += defects
                 .Where(d => d.ReportedAt >= startDate && d.ReportedAt <= endDate && d.ResponsibleUserId == userId)
                 .Sum(d => d.Quantity);
         }
 
-        // Productivity Factor (Ind)
+        // Productivity Factor
         decimal indProductivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
         
-        // Quality Denominator: Sum of all operations (stages) performed. 
-        // 8 defects over 10 pieces finished today is worse than 8 over 200 pieces moved between stages.
+        // Quality Denominator: Sum of all operations performed (real effort)
         int totalOperationsInPeriod = outputsList.Sum(o => o.Quantity);
         decimal indDefectRatio = totalOperationsInPeriod > 0 ? (decimal)totalDefects / totalOperationsInPeriod * 100 : 0;
         
-        // Quality Multiplier (Progressive): 
+        // Quality Multiplier (Progressive)
         decimal indQualityFactor = 1;
         if (rule.DefectLimitPercentage > 0)
         {
@@ -236,40 +232,8 @@ public class BonusCalculationService : IBonusCalculationService
             indQualityFactor = 0;
         }
 
-        decimal individualPurityResult = indProductivityBonus * indQualityFactor;
-
-        decimal finalBonus = 0;
-        decimal teamContribution = 0;
-        decimal individualContribution = 0;
+        decimal finalBonus = indProductivityBonus * indQualityFactor;
         decimal deadlinePerformance = totalProduced > 0 ? 100 : 0;
-
-        // 3. Handle Modes
-        if (!isProfessional)
-        {
-            // PURE INDIVIDUAL MODE: 100% individual effort
-            finalBonus = individualPurityResult;
-            individualContribution = finalBonus;
-        }
-        else if (user.SewingTeamId.HasValue)
-        {
-            // PROFESSIONAL MODE (HYBRID): 70% Individual / 30% Team
-            var teamReport = await CalculateTeamBonusAsync(user.SewingTeamId.Value, startDate, endDate);
-            
-            individualContribution = individualPurityResult * 0.7m;
-            teamContribution = teamReport.FinalBonusPercentage * 0.3m;
-            
-            finalBonus = individualContribution + teamContribution;
-            
-            // Sync radar metrics for UI
-            deadlinePerformance = teamReport.DeadlinePerformance; 
-            
-            // If individual has no data, they inherit team performance but weighted down
-            if (totalProduced == 0)
-            {
-                indDefectRatio = teamReport.DefectPercentage;
-                totalProduced = teamReport.TotalProduced / 10; // Nominal display
-            }
-        }
 
         return new BonusReportDto
         {
@@ -278,8 +242,8 @@ public class BonusCalculationService : IBonusCalculationService
             DeadlinePerformance = Math.Round(deadlinePerformance, 2),
             DefectPercentage = Math.Round(indDefectRatio, 2),
             FinalBonusPercentage = Math.Round(finalBonus, 2),
-            IndividualContribution = Math.Round(individualContribution, 2),
-            TeamContribution = Math.Round(teamContribution, 2),
+            IndividualContribution = Math.Round(finalBonus, 2),
+            TeamContribution = 0,
             CompletedOrders = involvedOrderIds.Count(),
             TotalProduced = totalProduced,
             TotalDefects = totalDefects,

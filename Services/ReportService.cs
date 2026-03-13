@@ -438,11 +438,9 @@ public class ReportService : IReportService
                             x.Item().Padding(10).Background(Colors.Grey.Lighten4).Column(col =>
                             {
                                 col.Spacing(5);
-                                col.Item().Text("DESGLOSE DE CONTRIBUIÇÃO").Bold().FontSize(9);
+                                col.Item().Text("MÉTRICAS INDIVIDUAIS").Bold().FontSize(9);
                                 col.Item().Row(row =>
                                 {
-                                    row.RelativeItem().Text(t => { t.Span("Esforço Individual: ").FontSize(8); t.Span($"{report.IndividualContribution:F1}%").Bold().FontSize(8); });
-                                    row.RelativeItem().Text(t => { t.Span("Sucesso da Equipe: ").FontSize(8); t.Span($"{report.TeamContribution:F1}%").Bold().FontSize(8); });
                                     row.RelativeItem().Text(t => { t.Span("Fator de Qualidade: ").FontSize(8); t.Span($"x{report.QualityFactor:F1}").Bold().FontSize(8); });
                                 });
                             });

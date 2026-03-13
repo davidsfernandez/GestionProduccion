@@ -391,7 +391,6 @@ namespace GestionProduccion.Resources
         public const string Analysis_Mode = "Modo de Análise";
         public const string Analysis_ByTeam = "Análise por Equipe";
         public const string Analysis_ByEmployee = "Individual (Produção Pura)";
-        public const string Analysis_Professional = "Desempenho Profissional (Individual + Equipe)";
         public const string Employee = "Funcionário";
         public const string Reference_Month = "Mês de Referência";
         public const string Calculate = "Calcular";

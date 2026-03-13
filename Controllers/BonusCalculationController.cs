@@ -28,7 +28,7 @@ public class BonusCalculationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int? teamId, int? userId, DateTime startDate, DateTime endDate, bool isProfessional = false)
+    public async Task<ActionResult<ApiResponse<BonusReportDto>>> GetReport(int? teamId, int? userId, DateTime startDate, DateTime endDate)
     {
         try
         {
@@ -39,7 +39,7 @@ public class BonusCalculationController : ControllerBase
             BonusReportDto report;
             if (userId.HasValue)
             {
-                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc, isProfessional);
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc);
             }
             else if (teamId.HasValue)
             {
@@ -59,7 +59,7 @@ public class BonusCalculationController : ControllerBase
     }
 
     [HttpGet("pdf")]
-    public async Task<IActionResult> GetReportPdf(int? teamId, int? userId, DateTime startDate, DateTime endDate, bool isProfessional = false, [FromServices] IReportService reportService = null!)
+    public async Task<IActionResult> GetReportPdf(int? teamId, int? userId, DateTime startDate, DateTime endDate, [FromServices] IReportService reportService = null!)
     {
         try
         {
@@ -71,8 +71,8 @@ public class BonusCalculationController : ControllerBase
 
             if (userId.HasValue)
             {
-                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc, isProfessional);
-                mode = isProfessional ? "professional" : "individual";
+                report = await _bonusService.CalculateUserBonusAsync(userId.Value, startUtc, endUtc);
+                mode = "individual";
             }
             else if (teamId.HasValue)
             {

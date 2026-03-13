@@ -10,8 +10,10 @@
 
 @using GestionProduccion.Models.DTOs
 @using System.ComponentModel.DataAnnotations
+@using System.Text.Json
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject JsonSerializerOptions JsonOptions
 
 <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
     <div class="modal-dialog">
@@ -102,7 +104,7 @@
         try
         {
             Console.WriteLine($"QA: Loading eligible users for Order {OrderId}...");
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>($"api/Users/orders/{OrderId}/eligible-users");
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>($"api/Users/orders/{OrderId}/eligible-users", JsonOptions);
             if (response != null && response.Success && response.Data != null) 
             {
                 assignableUsers = response.Data;

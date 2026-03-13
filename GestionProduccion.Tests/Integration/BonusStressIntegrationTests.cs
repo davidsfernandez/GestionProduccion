@@ -72,7 +72,7 @@ public class BonusStressIntegrationTests : BaseIntegrationTest
         var start = DateTime.UtcNow.Date.ToString("yyyy-MM-dd");
         var end = DateTime.UtcNow.Date.AddDays(1).ToString("yyyy-MM-dd");
         
-        var bonusUrl = $"/api/BonusCalculation?userId=2&startDate={start}&endDate={end}&isProfessional=true";
+        var bonusUrl = $"/api/BonusCalculation?userId=2&startDate={start}&endDate={end}";
         var bonusResp = await Client.GetAsync(bonusUrl);
         
         // ASSERT
