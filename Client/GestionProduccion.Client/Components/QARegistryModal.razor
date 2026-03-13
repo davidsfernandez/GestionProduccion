@@ -25,9 +25,9 @@
                     <DataAnnotationsValidator />
                     
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Respons\u00E1vel pelo Defeito</label>
+                        <label class="form-label small fw-bold">Responsável pelo Defeito</label>
                         <InputSelect class="form-select border-2 shadow-none" @bind-Value="model.ResponsibleUserId">
-                            <option value="">-- Selecione o Oper\u00E1rio --</option>
+                            <option value="">-- Selecione o Operário --</option>
                             @if (assignableUsers != null)
                             {
                                 @foreach (var user in assignableUsers)
@@ -36,7 +36,7 @@
                                 }
                             }
                         </InputSelect>
-                        <div class="form-text xsmall">Quem fabricou a pe\u00E7a com erro?</div>
+                        <div class="form-text xsmall">Quem fabricou a peça com erro?</div>
                     </div>
 
                     <div class="mb-3">
@@ -61,7 +61,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">@Portuguese.QA_Photo (Opcional)</label>
                         <InputFile class="form-control" OnChange="OnInputFileChange" accept=".jpg,.png,.jpeg" />
-                        <div class="form-text xsmall">M�ximo 5MB (JPG/PNG).</div>
+                        <div class="form-text xsmall">Máximo 5MB (JPG/PNG).</div>
                     </div>
 
                     @if (isUploading)
@@ -157,10 +157,10 @@
 
     public class DefectFormModel
     {
-        [Required(ErrorMessage = "O motivo \u00E9 obrigat\u00F3rio")]
+        [Required(ErrorMessage = "O motivo é obrigatório")]
         public string Reason { get; set; } = string.Empty;
 
-        [Range(1, 1000, ErrorMessage = "Quantidade inv\u00E1lida")]
+        [Range(1, 1000, ErrorMessage = "Quantidade inválida")]
         public int Quantity { get; set; } = 1;
 
         public int? ResponsibleUserId { get; set; }

@@ -397,8 +397,8 @@ public class ReportService : IReportService
                             if (logoBytes != null) col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
                             else col.Item().Text("SERONA ERP").FontSize(20).Bold().FontColor(Colors.White);
 
-                            col.Item().Text("RELAT\u00D3RIO DE BONIFICA\u00C7\u00C3O").FontSize(16).Bold().FontColor(Colors.White);
-                            col.Item().Text(config?.CompanyName ?? "Serona Corporaci\u00F3n").FontSize(12).FontColor(Colors.Grey.Lighten3);
+                            col.Item().Text("RELATÓRIO DE BONIFICAÇÃO").FontSize(16).Bold().FontColor(Colors.White);
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporación").FontSize(12).FontColor(Colors.Grey.Lighten3);
                         });
 
                         row.RelativeItem().AlignRight().Column(col =>
@@ -438,10 +438,10 @@ public class ReportService : IReportService
                             x.Item().Padding(10).Background(Colors.Grey.Lighten4).Column(col =>
                             {
                                 col.Spacing(5);
-                                col.Item().Text("DESGLOSE DE CONTRIBUI\u00C7\u00C3O").Bold().FontSize(9);
+                                col.Item().Text("DESGLOSE DE CONTRIBUIÇÃO").Bold().FontSize(9);
                                 col.Item().Row(row =>
                                 {
-                                    row.RelativeItem().Text(t => { t.Span("Esfor\u00E7o Individual: ").FontSize(8); t.Span($"{report.IndividualContribution:F1}%").Bold().FontSize(8); });
+                                    row.RelativeItem().Text(t => { t.Span("Esforço Individual: ").FontSize(8); t.Span($"{report.IndividualContribution:F1}%").Bold().FontSize(8); });
                                     row.RelativeItem().Text(t => { t.Span("Sucesso da Equipe: ").FontSize(8); t.Span($"{report.TeamContribution:F1}%").Bold().FontSize(8); });
                                     row.RelativeItem().Text(t => { t.Span("Fator de Qualidade: ").FontSize(8); t.Span($"x{report.QualityFactor:F1}").Bold().FontSize(8); });
                                 });
@@ -465,7 +465,7 @@ public class ReportService : IReportService
                                 header.Cell().Element(HeaderStyle).Text(Portuguese.OP_Code);
                                 header.Cell().Element(HeaderStyle).Text("STATUS");
                                 header.Cell().Element(HeaderStyle).Text("DEFEITOS");
-                                header.Cell().Element(HeaderStyle).Text("CONTRIBUI\u00C7\u00C3O");
+                                header.Cell().Element(HeaderStyle).Text("CONTRIBUIÇÃO");
                                 static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Grey.Lighten2).Padding(5).DefaultTextStyle(x => x.Bold().FontSize(9));
                             });
 
