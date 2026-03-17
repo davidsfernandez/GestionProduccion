@@ -68,7 +68,7 @@
 
                                 <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">@Portuguese.Product</label>
-                                    <InputSelect @bind-Value="createModel.ProductId" class="form-select form-select-lg">
+                                    <InputSelect @bind-Value="createModel.ProductId" @bind-Value:after="OnProductSelected" class="form-select form-select-lg">
                                         <option value="0" disabled>@Portuguese.OP_SelectProduct</option>
                                         @if (products != null)
                                         {
@@ -88,6 +88,18 @@
                                            @onchange="OnDateInputChanged"
                                            placeholder="Selecione a data..." />
                                     <ValidationMessage For="@(() => createModel.EstimatedCompletionAt)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">@Portuguese.OP_BonusPerPiece</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-2 border-end-0">R$</span>
+                                        <InputNumber @bind-Value="createModel.AppliedBonusPerPiece" class="form-control form-control-lg border-2 border-start-0 shadow-none" step="any" />
+                                    </div>
+                                    <div class="text-muted xsmall mt-1">
+                                        <i class="fa-solid fa-lightbulb me-1"></i> @Portuguese.OP_SuggestedFromCatalog
+                                    </div>
+                                    <ValidationMessage For="@(() => createModel.AppliedBonusPerPiece)" class="text-danger small" />
                                 </div>
 
                                 <div class="col-12 mb-4">
@@ -267,6 +279,19 @@
         if (DateTime.TryParse(e.Value?.ToString(), out var date))
         {
             createModel.EstimatedCompletionAt = date;
+        }
+    }
+
+    private void OnProductSelected()
+    {
+        if (createModel.ProductId > 0)
+        {
+            var product = products.FirstOrDefault(p => p.Id == createModel.ProductId);
+            if (product != null)
+            {
+                createModel.AppliedBonusPerPiece = product.DefaultBonusPerPiece;
+                StateHasChanged();
+            }
         }
     }
 
