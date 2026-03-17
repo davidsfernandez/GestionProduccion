@@ -310,18 +310,25 @@ if (!app.Environment.IsEnvironment("Testing"))
                         using (var cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
-                            var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
-                            if (!exists)
+                            var existsQA = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                            if (!existsQA)
                             {
-                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' is MISSING in physical DB! Forcing ALTER TABLE...");
+                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' is MISSING! Forcing ALTER TABLE...");
                                 cmd.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
                                 await cmd.ExecuteNonQueryAsync();
-                                logger.LogInformation("HOTFIX: Column added successfully.");
                             }
-                            else 
+
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'BonusRules' AND COLUMN_NAME = 'IsAtomicMode' AND TABLE_SCHEMA = DATABASE()";
+                            var existsBonus = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                            if (!existsBonus)
                             {
-                                logger.LogInformation("MIGRATION: Physical column 'ResponsibleUserId' already exists.");
+                                logger.LogCritical("CRITICAL: Column 'IsAtomicMode' is MISSING! Forcing ALTER TABLE...");
+                                cmd.CommandText = "ALTER TABLE BonusRules ADD COLUMN IsAtomicMode TINYINT(1) NOT NULL DEFAULT 0";
+                                await cmd.ExecuteNonQueryAsync();
+                                logger.LogInformation("HOTFIX: IsAtomicMode added successfully.");
                             }
+                            
+                            logger.LogInformation("MIGRATION: Physical schema check complete.");
                         }
                     }
                     catch (Exception ex) { logger.LogError("HOTFIX FAILED: {Msg}", ex.Message); }
