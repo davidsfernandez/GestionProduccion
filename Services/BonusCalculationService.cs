@@ -92,6 +92,14 @@ public class BonusCalculationService : IBonusCalculationService
         }
 
         // 3. Combine sources for productivity (AVOID DOUBLE COUNTING)
+        var involvedOrderIds = orderIdsWithOutputs.Union(filteredLegacy.Select(o => o.Id)).Distinct().ToList();
+        var teamOrders = new List<ProductionOrder>();
+        foreach (var id in involvedOrderIds)
+        {
+            var order = await _orderRepo.GetByIdAsync(id);
+            if (order != null) teamOrders.Add(order);
+        }
+
         // For V2, we calculate the monetary amount per order
         decimal totalAmount = 0;
         int totalProduced = 0;
