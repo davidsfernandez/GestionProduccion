@@ -52,6 +52,7 @@ public static class DbInitializer
                     DelayPenaltyPercentage = 5.0m,
                     BonusAmount = 150.00m,
                     IsActive = true,
+                    IsAtomicMode = true, // Enabled by default per Igor's new policy
                     UpdatedAt = DateTime.UtcNow
                 });
             }

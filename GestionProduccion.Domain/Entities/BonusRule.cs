@@ -35,5 +35,10 @@ public class BonusRule
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// If true, bonus is only granted if the production order is 100% completed within the deadline.
+    /// </summary>
+    public bool IsAtomicMode { get; set; } = false;
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
