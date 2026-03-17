@@ -26,6 +26,8 @@ public class BonusReportDto
     public int TotalProduced { get; set; }
     public int TotalDefects { get; set; }
     public string? Message { get; set; }
+    public bool IsAtomicFailure { get; set; }
+    public string? AtomicFailureReason { get; set; }
     
     // New breakdown fields for Weighted Scorecard
     public decimal IndividualContribution { get; set; }

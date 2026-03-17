@@ -109,6 +109,29 @@ public class BonusCalculationService : IBonusCalculationService
             if (order != null) teamOrders.Add(order);
         }
 
+        // --- ATOMIC BONUS VERIFIER ---
+        if (rule.IsAtomicMode)
+        {
+            foreach (var order in teamOrders)
+            {
+                var orderOutputs = outputsList.Where(o => o.ProductionOrderId == order.Id).ToList();
+                var (isValid, reason) = IsAtomicBonusValid(rule, order, orderOutputs);
+                if (!isValid)
+                {
+                    return new BonusReportDto
+                    {
+                        TeamId = teamId,
+                        TeamName = team.Name,
+                        FinalBonusPercentage = 0,
+                        TotalAmount = 0,
+                        IsAtomicFailure = true,
+                        AtomicFailureReason = reason,
+                        Message = $"Atomic Mode: Order {order.LotCode} failed: {reason}"
+                    };
+                }
+            }
+        }
+
         int onTimeOrders = teamOrders.Count(o => o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt);
 
         // 4. Sum defects from QA Service for the involved orders in this period
@@ -159,10 +182,12 @@ public class BonusCalculationService : IBonusCalculationService
         // 3. Quality Penalty
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
         decimal finalBonus = productivityBonus + deadlineBonus;
+        decimal qualityFactor = 1;
 
         if (defectRatio > rule.DefectLimitPercentage)
         {
             finalBonus = 0;
+            qualityFactor = 0;
         }
 
         if (finalBonus < 0) finalBonus = 0;
@@ -175,6 +200,7 @@ public class BonusCalculationService : IBonusCalculationService
             DeadlinePerformance = Math.Round(onTimeRatio * 100, 2),
             DefectPercentage = Math.Round(defectRatio, 2),
             FinalBonusPercentage = Math.Round(finalBonus, 2),
+            QualityFactor = qualityFactor,
             TotalAmount = 0, 
             CompletedOrders = involvedOrderIds.Count(), // Number of orders they worked on
             OnTimeOrders = onTimeOrders,
@@ -213,6 +239,28 @@ public class BonusCalculationService : IBonusCalculationService
         {
             var order = await _orderRepo.GetByIdAsync(id);
             if (order != null) userOrders.Add(order);
+        }
+
+        // --- ATOMIC BONUS VERIFIER ---
+        if (rule.IsAtomicMode)
+        {
+            foreach (var order in userOrders)
+            {
+                var orderOutputs = outputsList.Where(o => o.ProductionOrderId == order.Id).ToList();
+                var (isValid, reason) = IsAtomicBonusValid(rule, order, orderOutputs);
+                if (!isValid)
+                {
+                    return new BonusReportDto
+                    {
+                        TeamName = user.FullName,
+                        FinalBonusPercentage = 0,
+                        TotalAmount = 0,
+                        IsAtomicFailure = true,
+                        AtomicFailureReason = reason,
+                        Message = $"Atomic Mode: Order {order.LotCode} failed: {reason}"
+                    };
+                }
+            }
         }
 
         // 2. Individual Base Metrics (Quality attribution)
@@ -272,6 +320,26 @@ public class BonusCalculationService : IBonusCalculationService
                 Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
             }).ToList()
         };
+    }
+
+    private (bool isValid, string? reason) IsAtomicBonusValid(BonusRule rule, ProductionOrder order, List<ProductionOrderOutput> orderOutputs)
+    {
+        if (!rule.IsAtomicMode) return (true, null);
+
+        // Legacy check: orders created before the rule was last updated are exempt
+        if (order.CreatedAt < rule.UpdatedAt) return (true, null);
+
+        int sumProduced = orderOutputs.Sum(o => o.Quantity);
+        if (sumProduced < order.Quantity) return (false, "MISSING_PIECES");
+
+        if (!orderOutputs.Any()) return (false, "MISSING_PIECES");
+
+        var lastPieceTimestamp = orderOutputs.Max(o => o.CreatedAt);
+        var deadline = order.EstimatedCompletionAt.Date.AddDays(1);
+
+        if (lastPieceTimestamp >= deadline) return (false, "LATE_DELIVERY");
+
+        return (true, null);
     }
 }
 
