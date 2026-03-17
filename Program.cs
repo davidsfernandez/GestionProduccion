@@ -327,6 +327,24 @@ if (!app.Environment.IsEnvironment("Testing"))
                                 await cmd.ExecuteNonQueryAsync();
                                 logger.LogInformation("HOTFIX: IsAtomicMode added successfully.");
                             }
+
+                            // Scaling Bonus V2: Product Default
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'DefaultBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                            {
+                                logger.LogCritical("CRITICAL: Column 'DefaultBonusPerPiece' is MISSING! Forcing ALTER TABLE...");
+                                cmd.CommandText = "ALTER TABLE Products ADD COLUMN DefaultBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+
+                            // Scaling Bonus V2: Order Snapshot
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'AppliedBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                            {
+                                logger.LogCritical("CRITICAL: Column 'AppliedBonusPerPiece' is MISSING! Forcing ALTER TABLE...");
+                                cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN AppliedBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
+                                await cmd.ExecuteNonQueryAsync();
+                            }
                             
                             logger.LogInformation("MIGRATION: Physical schema check complete.");
                         }

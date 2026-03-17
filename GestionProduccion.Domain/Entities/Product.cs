@@ -38,4 +38,7 @@ public class Product
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal EstimatedSalePrice { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DefaultBonusPerPiece { get; set; }
 }

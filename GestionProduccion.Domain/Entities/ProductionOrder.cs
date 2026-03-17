@@ -67,6 +67,9 @@ public class ProductionOrder : IAuditable
     [Column(TypeName = "decimal(18,2)")]
     public decimal ProfitMargin { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal AppliedBonusPerPiece { get; set; }
+
     [StringLength(100)]
     public string? ClientName { get; set; }
 

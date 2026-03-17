@@ -62,6 +62,9 @@ public static class DbInitializer
             // 3. Backfill ProductionOrderOutputs for existing orders (Transparent Migration)
             await BackfillProductionOutputsAsync(context, logger);
 
+            // 4. Backfill Product and ProductionOrder bonuses
+            await BackfillBonusesAsync(context, logger);
+
             logger.LogInformation("Database seeding and data migration completed.");
         }
         catch (Exception ex)
@@ -133,6 +136,31 @@ public static class DbInitializer
         {
             await context.SaveChangesAsync();
             logger.LogInformation("DATA MIGRATION: Successfully created {Count} production output records. History restored.", totalCreated);
+        }
+    }
+
+    private static async Task BackfillBonusesAsync(AppDbContext context, ILogger logger)
+    {
+        // Set default bonus for products that have 0 (Legacy products)
+        var products = await context.Products.Where(p => p.DefaultBonusPerPiece == 0).ToListAsync();
+        if (products.Any())
+        {
+            foreach (var p in products) p.DefaultBonusPerPiece = 1.50m;
+            await context.SaveChangesAsync();
+            logger.LogInformation("DATA MIGRATION: Set default bonus (1.50) for {Count} legacy products.", products.Count);
+        }
+
+        // Set applied bonus for existing orders based on their product (The Snapshot)
+        var orders = await context.ProductionOrders.Where(o => o.AppliedBonusPerPiece == 0).ToListAsync();
+        if (orders.Any())
+        {
+            foreach (var o in orders)
+            {
+                var product = await context.Products.FindAsync(o.ProductId);
+                o.AppliedBonusPerPiece = product?.DefaultBonusPerPiece ?? 1.50m;
+            }
+            await context.SaveChangesAsync();
+            logger.LogInformation("DATA MIGRATION: Snapshotted applied bonus for {Count} existing orders.", orders.Count);
         }
     }
 }

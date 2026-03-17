@@ -40,6 +40,8 @@ public class CreateProductionOrderRequest
 
     public int? SewingTeamId { get; set; }
 
+    public decimal AppliedBonusPerPiece { get; set; }
+
     /// <summary>
     /// Optional list of sizes and their quantities. 
     /// If provided, this overrides the single 'Size' and 'Quantity' fields.

@@ -22,6 +22,7 @@ public class ProductDto
     public string MainSku { get; set; } = string.Empty;
     public double AverageProductionTimeMinutes { get; set; }
     public decimal EstimatedSalePrice { get; set; }
+    public decimal DefaultBonusPerPiece { get; set; }
 }
 
 public class CreateProductDto
@@ -48,6 +49,9 @@ public class CreateProductDto
     [Required(ErrorMessage = Portuguese.Prod_ErrPriceRequired)]
     [Range(0.01, double.MaxValue, ErrorMessage = Portuguese.Prod_ErrPricePositive)]
     public decimal EstimatedSalePrice { get; set; }
+
+    [Range(0, double.MaxValue, ErrorMessage = "Bonus must be positive.")]
+    public decimal DefaultBonusPerPiece { get; set; }
 }
 
 public class UpdateProductDto : CreateProductDto
