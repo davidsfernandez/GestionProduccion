@@ -16,6 +16,7 @@ public class UpdateProductionOrderRequest
 
     public int? UserId { get; set; }
     public int? SewingTeamId { get; set; }
+    public decimal AppliedBonusPerPiece { get; set; }
 
     /// <summary>
     /// If provided, updates the sizes/quantities. 

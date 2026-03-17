@@ -129,6 +129,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
                 UserId = request.UserId,
                 ProductId = request.ProductId,
                 SewingTeamId = request.SewingTeamId,
+                AppliedBonusPerPiece = request.AppliedBonusPerPiece,
                 // Initialize with base values from product catalog
                 AverageCostPerPiece = 0,
                 TotalCost = 0,
@@ -187,6 +188,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         order.EstimatedCompletionAt = request.EstimatedCompletionAt;
         order.UserId = request.UserId;
         order.SewingTeamId = request.SewingTeamId;
+        order.AppliedBonusPerPiece = request.AppliedBonusPerPiece;
         order.UpdatedAt = DateTime.UtcNow;
 
         // 2. Handle size/quantity updates (Only if in initial stage)

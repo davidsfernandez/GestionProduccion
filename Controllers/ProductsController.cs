@@ -71,7 +71,8 @@ public class ProductsController : ControllerBase
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
                 AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
-                EstimatedSalePrice = dto.EstimatedSalePrice
+                EstimatedSalePrice = dto.EstimatedSalePrice,
+                DefaultBonusPerPiece = dto.DefaultBonusPerPiece
             };
 
             var created = await _productService.CreateProductAsync(productDto, HttpContext.RequestAborted);
@@ -103,7 +104,8 @@ public class ProductsController : ControllerBase
                 FabricType = dto.FabricType,
                 MainSku = dto.MainSku,
                 AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
-                EstimatedSalePrice = dto.EstimatedSalePrice
+                EstimatedSalePrice = dto.EstimatedSalePrice,
+                DefaultBonusPerPiece = dto.DefaultBonusPerPiece
             };
 
             await _productService.UpdateProductAsync(productDto, HttpContext.RequestAborted);

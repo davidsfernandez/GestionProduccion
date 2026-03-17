@@ -86,6 +86,7 @@ public class ProductService : IProductService
         existing.MainSku = productDto.MainSku;
         existing.AverageProductionTimeMinutes = productDto.AverageProductionTimeMinutes;
         existing.EstimatedSalePrice = productDto.EstimatedSalePrice;
+        existing.DefaultBonusPerPiece = productDto.DefaultBonusPerPiece;
 
         await _productRepository.UpdateAsync(existing);
         return _mapper.ToDto(existing);

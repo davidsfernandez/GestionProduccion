@@ -488,7 +488,8 @@
                     ClientName = order.ClientName,
                     EstimatedCompletionAt = order.EstimatedCompletionAt,
                     UserId = order.UserId,
-                    SewingTeamId = order.SewingTeamId
+                    SewingTeamId = order.SewingTeamId,
+                    AppliedBonusPerPiece = order.AppliedBonusPerPiece
                 };
                 
                 sizeOutputs = order.Sizes?.ToDictionary(s => s.Id, _ => 0) ?? new Dictionary<int, int>();
