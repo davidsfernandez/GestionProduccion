@@ -18,7 +18,8 @@ public static class ManualMapper
             FabricType = entity.FabricType,
             MainSku = entity.MainSku,
             AverageProductionTimeMinutes = entity.AverageProductionTimeMinutes,
-            EstimatedSalePrice = entity.EstimatedSalePrice
+            EstimatedSalePrice = entity.EstimatedSalePrice,
+            DefaultBonusPerPiece = entity.DefaultBonusPerPiece
         };
     }
 
@@ -33,7 +34,8 @@ public static class ManualMapper
             FabricType = dto.FabricType,
             MainSku = dto.MainSku,
             AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
-            EstimatedSalePrice = dto.EstimatedSalePrice
+            EstimatedSalePrice = dto.EstimatedSalePrice,
+            DefaultBonusPerPiece = dto.DefaultBonusPerPiece
         };
     }
 
@@ -140,6 +142,7 @@ public static class ManualMapper
             TotalCost = entity.TotalCost,
             AverageCostPerPiece = entity.AverageCostPerPiece,
             ProfitMargin = entity.ProfitMargin,
+            AppliedBonusPerPiece = entity.AppliedBonusPerPiece,
             StartedAt = entity.StartedAt,
             CompletedAt = entity.CompletedAt,
             Product = entity.Product?.ToDto(),

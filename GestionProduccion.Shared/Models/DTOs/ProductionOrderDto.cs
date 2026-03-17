@@ -35,6 +35,7 @@ public class ProductionOrderDto
     public decimal TotalCost { get; set; }
     public decimal AverageCostPerPiece { get; set; }
     public decimal ProfitMargin { get; set; }
+    public decimal AppliedBonusPerPiece { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public double EffectiveMinutes { get; set; }

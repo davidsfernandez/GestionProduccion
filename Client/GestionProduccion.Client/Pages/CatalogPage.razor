@@ -76,6 +76,7 @@
                                 <th>@Portuguese.Product</th>
                                 <th>@Portuguese.Cat_FabricType</th>
                                 <th class="text-center">@Portuguese.Cat_AvgTime</th>
+                                <th class="text-end">@Portuguese.Prod_BonusValue</th>
                                 <th class="text-end">@Portuguese.Cat_Price</th>
                                 <th class="text-end">@Portuguese.Actions</th>
                             </tr>
@@ -95,6 +96,9 @@
                                             <i class="fa-solid fa-clock-rotate-left text-muted me-2 small"></i>
                                             <span>@product.AverageProductionTimeMinutes.ToString("F1") min</span>
                                         </div>
+                                    </td>
+                                    <td class="text-end fw-bold text-success">
+                                        @product.DefaultBonusPerPiece.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))
                                     </td>
                                     <td class="text-end fw-bold text-dark">
                                         @product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))
@@ -174,6 +178,15 @@
                                     <InputNumber class="form-control border-2 shadow-none border-start-0" @bind-Value="editingProduct.EstimatedSalePrice" step="any" />
                                 </div>
                                 <ValidationMessage For="@(() => editingProduct.EstimatedSalePrice)" class="text-danger xsmall mt-1" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted">@Portuguese.Prod_BonusValue</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-2 border-end-0">R$</span>
+                                    <InputNumber class="form-control border-2 shadow-none border-start-0" @bind-Value="editingProduct.DefaultBonusPerPiece" step="any" />
+                                </div>
+                                <ValidationMessage For="@(() => editingProduct.DefaultBonusPerPiece)" class="text-danger xsmall mt-1" />
                             </div>
                         </div>
 
@@ -286,7 +299,8 @@
                 FabricType = product.FabricType,
                 MainSku = product.MainSku,
                 EstimatedSalePrice = product.EstimatedSalePrice,
-                AverageProductionTimeMinutes = product.AverageProductionTimeMinutes
+                AverageProductionTimeMinutes = product.AverageProductionTimeMinutes,
+                DefaultBonusPerPiece = product.DefaultBonusPerPiece
             };
         }
         else
@@ -328,7 +342,8 @@
                     FabricType = editingProduct.FabricType,
                     MainSku = editingProduct.MainSku,
                     AverageProductionTimeMinutes = editingProduct.AverageProductionTimeMinutes,
-                    EstimatedSalePrice = editingProduct.EstimatedSalePrice
+                    EstimatedSalePrice = editingProduct.EstimatedSalePrice,
+                    DefaultBonusPerPiece = editingProduct.DefaultBonusPerPiece
                 };
                 response = await ProductClient.UpdateAsync(editingId, updateDto);
             }

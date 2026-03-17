@@ -92,23 +92,44 @@ public class BonusCalculationService : IBonusCalculationService
         }
 
         // 3. Combine sources for productivity (AVOID DOUBLE COUNTING)
-        // We sum the maximum pieces produced in any stage for each order to get real production volume
-        int totalProducedFromOutputs = outputsList
-            .GroupBy(o => o.ProductionOrderId)
-            .Select(g => g.Max(x => x.Quantity))
-            .Sum();
+        // For V2, we calculate the monetary amount per order
+        decimal totalAmount = 0;
+        int totalProduced = 0;
 
-        int totalProduced = totalProducedFromOutputs + filteredLegacy.Sum(o => o.Quantity);
-        
-        // 4. Identify all involved orders (from outputs or legacy)
-        var involvedOrderIds = orderIdsWithOutputs.Union(filteredLegacy.Select(o => o.Id)).Distinct().ToList();
-        var teamOrders = new List<ProductionOrder>();
-        foreach(var id in involvedOrderIds)
+        foreach (var orderId in involvedOrderIds)
         {
-            var order = await _orderRepo.GetByIdAsync(id);
-            if (order != null) teamOrders.Add(order);
-        }
+            var order = teamOrders.FirstOrDefault(o => o.Id == orderId);
+            if (order == null) continue;
 
+            // Get produced quantity for this order in the period
+            int orderQtyInPeriod = 0;
+            if (orderIdsWithOutputs.Contains(orderId))
+            {
+                orderQtyInPeriod = outputsList
+                    .Where(o => o.ProductionOrderId == orderId)
+                    .GroupBy(o => o.ProductionOrderSizeId)
+                    .Select(g => g.Max(x => x.Quantity))
+                    .Sum();
+            }
+            else
+            {
+                orderQtyInPeriod = order.Quantity; // Legacy fallback
+            }
+
+            totalProduced += orderQtyInPeriod;
+
+            // Resolve rate: Order Snapshot > Product Default > Rule Base > 1.50
+            decimal rate = order.AppliedBonusPerPiece;
+            if (rate <= 0)
+            {
+                var product = await _productRepo.GetByIdAsync(order.ProductId);
+                rate = product?.DefaultBonusPerPiece ?? rule.BonusAmount;
+                if (rate <= 0) rate = 1.50m;
+            }
+
+            totalAmount += orderQtyInPeriod * rate;
+        }
+        
         // --- ATOMIC BONUS VERIFIER ---
         if (rule.IsAtomicMode)
         {
@@ -150,7 +171,7 @@ public class BonusCalculationService : IBonusCalculationService
             defectsPerOrder[orderId] = orderDefects;
         }
 
-        // 1. Productivity Calculation: (Standard Time / Effective Time) * Rule Percentage
+        // 1. Efficiency Calculation: (Standard Time / Effective Time)
         double totalStandardMinutes = 0;
         double totalEffectiveMinutes = 0;
 
@@ -168,41 +189,40 @@ public class BonusCalculationService : IBonusCalculationService
         if (totalEffectiveMinutes > 0 && totalStandardMinutes > 0)
         {
             efficiencyFactor = (decimal)(totalStandardMinutes / totalEffectiveMinutes);
-            // Cap efficiency factor between 0.5 and 1.5 to avoid extreme bonus fluctuations
             if (efficiencyFactor > 1.5m) efficiencyFactor = 1.5m;
             if (efficiencyFactor < 0.5m) efficiencyFactor = 0.5m;
         }
 
-        decimal productivityBonus = (decimal)rule.ProductivityPercentage * efficiencyFactor;
-
         // 2. Deadline Performance
         decimal onTimeRatio = teamOrders.Any() ? (decimal)onTimeOrders / teamOrders.Count : 1;
-        decimal deadlineBonus = onTimeRatio * rule.DeadlineBonusPercentage;
-
-        // 3. Quality Penalty
+        
+        // 3. Quality Factor
         decimal defectRatio = totalProduced > 0 ? (decimal)totalDefects / totalProduced * 100 : 0;
-        decimal finalBonus = productivityBonus + deadlineBonus;
         decimal qualityFactor = 1;
 
         if (defectRatio > rule.DefectLimitPercentage)
         {
-            finalBonus = 0;
             qualityFactor = 0;
         }
+        else if (rule.DefectLimitPercentage > 0)
+        {
+            qualityFactor = Math.Max(0, 1 - (defectRatio / rule.DefectLimitPercentage));
+        }
 
-        if (finalBonus < 0) finalBonus = 0;
+        // Final Calculation (Scalable V2): Amount * Efficiency * Deadline * Quality
+        decimal finalBonusAmount = totalAmount * efficiencyFactor * onTimeRatio * qualityFactor;
 
         return new BonusReportDto
         {
             TeamId = teamId,
             TeamName = team.Name,
-            ProductivityPercentage = productivityBonus,
+            ProductivityPercentage = Math.Round(efficiencyFactor * 100, 2),
             DeadlinePerformance = Math.Round(onTimeRatio * 100, 2),
             DefectPercentage = Math.Round(defectRatio, 2),
-            FinalBonusPercentage = Math.Round(finalBonus, 2),
+            FinalBonusPercentage = Math.Round(qualityFactor * 100, 2),
             QualityFactor = qualityFactor,
-            TotalAmount = 0, 
-            CompletedOrders = involvedOrderIds.Count(), // Number of orders they worked on
+            TotalAmount = Math.Round(finalBonusAmount, 2), 
+            CompletedOrders = involvedOrderIds.Count(),
             OnTimeOrders = onTimeOrders,
             TotalProduced = totalProduced,
             TotalDefects = totalDefects,
@@ -211,7 +231,7 @@ public class BonusCalculationService : IBonusCalculationService
                 LotCode = o.LotCode,
                 IsOnTime = o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt,
                 Defects = defectsPerOrder.ContainsKey(o.Id) ? defectsPerOrder[o.Id] : 0, 
-                Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
+                Contribution = 0 // Deprecated in V2
             }).ToList()
         };
     }
@@ -227,18 +247,40 @@ public class BonusCalculationService : IBonusCalculationService
         var outputs = await _outputRepo.GetByUserAndDateRangeAsync(userId, startDate, endDate);
         var outputsList = outputs.ToList();
         
-        // AVOID DOUBLE COUNTING: We take the maximum quantity reached per order to represent physical pieces.
-        int totalProduced = outputsList
-            .GroupBy(o => o.ProductionOrderId)
-            .Select(g => g.Max(x => x.Quantity))
-            .Sum();
-
         var involvedOrderIds = outputsList.Select(o => o.ProductionOrderId).Distinct().ToList();
         var userOrders = new List<ProductionOrder>();
         foreach (var id in involvedOrderIds)
         {
             var order = await _orderRepo.GetByIdAsync(id);
             if (order != null) userOrders.Add(order);
+        }
+
+        // V2: Calculate monetary amount based on individual contribution
+        decimal totalAmount = 0;
+        int totalProduced = 0;
+
+        foreach (var orderId in involvedOrderIds)
+        {
+            var order = userOrders.FirstOrDefault(o => o.Id == orderId);
+            if (order == null) continue;
+
+            int userQtyForOrder = outputsList
+                .Where(o => o.ProductionOrderId == orderId)
+                .GroupBy(o => o.ProductionOrderSizeId)
+                .Select(g => g.Max(x => x.Quantity))
+                .Sum();
+
+            totalProduced += userQtyForOrder;
+
+            decimal rate = order.AppliedBonusPerPiece;
+            if (rate <= 0)
+            {
+                var product = await _productRepo.GetByIdAsync(order.ProductId);
+                rate = product?.DefaultBonusPerPiece ?? rule.BonusAmount;
+                if (rate <= 0) rate = 1.50m;
+            }
+
+            totalAmount += userQtyForOrder * rate;
         }
 
         // --- ATOMIC BONUS VERIFIER ---
@@ -278,9 +320,6 @@ public class BonusCalculationService : IBonusCalculationService
             userDefectsPerOrder[orderId] = userOrderDefects;
         }
 
-        // Productivity Factor
-        decimal indProductivityBonus = totalProduced > 0 ? (decimal)rule.ProductivityPercentage : 0;
-        
         // Quality Denominator: Sum of all operations performed (real effort)
         int totalOperationsInPeriod = outputsList.Sum(o => o.Quantity);
         decimal indDefectRatio = totalOperationsInPeriod > 0 ? (decimal)totalDefects / totalOperationsInPeriod * 100 : 0;
@@ -296,18 +335,16 @@ public class BonusCalculationService : IBonusCalculationService
             indQualityFactor = 0;
         }
 
-        decimal finalBonus = indProductivityBonus * indQualityFactor;
-        decimal deadlinePerformance = totalProduced > 0 ? 100 : 0;
+        decimal finalBonusAmount = totalAmount * indQualityFactor;
 
         return new BonusReportDto
         {
             TeamName = user.FullName,
-            ProductivityPercentage = Math.Round(indProductivityBonus, 2),
-            DeadlinePerformance = Math.Round(deadlinePerformance, 2),
+            ProductivityPercentage = 100, // Fixed base for individual in V2
+            DeadlinePerformance = 100,
             DefectPercentage = Math.Round(indDefectRatio, 2),
-            FinalBonusPercentage = Math.Round(finalBonus, 2),
-            IndividualContribution = Math.Round(finalBonus, 2),
-            TeamContribution = 0,
+            FinalBonusPercentage = Math.Round(indQualityFactor * 100, 2),
+            TotalAmount = Math.Round(finalBonusAmount, 2),
             CompletedOrders = involvedOrderIds.Count(),
             TotalProduced = totalProduced,
             TotalDefects = totalDefects,
@@ -317,7 +354,7 @@ public class BonusCalculationService : IBonusCalculationService
                 LotCode = o.LotCode,
                 IsOnTime = o.CompletedAt != null && o.CompletedAt <= o.EstimatedCompletionAt,
                 Defects = userDefectsPerOrder.ContainsKey(o.Id) ? userDefectsPerOrder[o.Id] : 0,
-                Contribution = Math.Round(finalBonus / Math.Max(1, involvedOrderIds.Count()), 2)
+                Contribution = 0
             }).ToList()
         };
     }

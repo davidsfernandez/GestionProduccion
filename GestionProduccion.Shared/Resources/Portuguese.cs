@@ -178,6 +178,9 @@ namespace GestionProduccion.Resources
         public const string OP_QuickActions = "Ações Rápidas";
         public const string OP_ProductionMetrics = "Métricas de Produção";
         public const string OP_FinancialAnalysis = "Análise Financeira";
+        public const string OP_BonusPerPiece = "Valor do Bônus p/ Peça";
+        public const string OP_AgreedBonus = "Bônus Acordado";
+        public const string OP_SuggestedFromCatalog = "Valor sugerido do catálogo";
         public const string OP_EstimatedCost = "Custo Estimado";
         public const string OP_CostPerPiece = "Custo / Peça";
         public const string OP_ProfitMargin = "Margem de Lucro";
@@ -345,6 +348,7 @@ namespace GestionProduccion.Resources
         public const string Prod_MinStock = "Estoque Mínimo";
         public const string Prod_Sizes = "Grade de Tamanhos";
         public const string Prod_Colors = "Cores Disponíveis";
+        public const string Prod_BonusValue = "Valor do Bônus";
         public const string Prod_SuccessCreate = "Produto cadastrado com sucesso!";
         public const string Prod_SuccessUpdate = "Produto atualizado com sucesso!";
         public const string Prod_ConfirmDeleteTitle = "Excluir Produto";
