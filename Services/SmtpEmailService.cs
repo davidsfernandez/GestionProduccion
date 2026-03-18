@@ -36,12 +36,26 @@ public class SmtpEmailService : IEmailService
             var password = _configuration["SMTP_PASS"] ?? _configuration["Smtp:Password"];
             
             var fromEmail = _configuration["SMTP_FROM_EMAIL"] ?? username ?? "no-reply@gestionproduccion.com";
-            var fromName = _configuration["SMTP_FROM_NAME"] ?? "GestÃ£o de ProduÃ§Ã£o";
+            var fromName = _configuration["SMTP_FROM_NAME"] ?? "Gestão de Produção";
+
+            // Support for SSL/TLS based on standard ports or explicit config
+            bool useSsl = true;
+            if (bool.TryParse(_configuration["SMTP_USE_SSL"], out bool explicitSsl))
+            {
+                useSsl = explicitSsl;
+            }
+            else
+            {
+                // Default heuristic: 465 and 587 almost always require SSL/TLS
+                useSsl = port == 465 || port == 587;
+            }
 
             using var client = new SmtpClient(host, port)
             {
                 Credentials = !string.IsNullOrEmpty(username) ? new NetworkCredential(username, password) : null,
-                EnableSsl = port == 587 || port == 465 || bool.Parse(_configuration["SMTP_SSL"] ?? "true")
+                EnableSsl = useSsl,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false
             };
 
             var mailMessage = new MailMessage
