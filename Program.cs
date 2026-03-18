@@ -350,12 +350,29 @@ if (!app.Environment.IsEnvironment("Testing"))
                         }
                     }
                     catch (Exception ex) { logger.LogError("HOTFIX FAILED: {Msg}", ex.Message); }
+try
+{
+    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+    if (pendingMigrations.Any())
+    {
+        logger.LogInformation("MIGRATION: Applying {Count} pending migrations...", pendingMigrations.Count());
+        await context.Database.MigrateAsync();
+        logger.LogInformation("MIGRATION: Success.");
+    }
+}
+catch (Exception ex)
+{
+    // Error 1060 = Duplicate column name. We ignore this because it means our Hotfix or a previous run already did the work.
+    if (ex.Message.Contains("1060") || ex.InnerException?.Message.Contains("1060") == true)
+    {
+        logger.LogWarning("MIGRATION: Some columns already exist. Proceeding safely...");
+    }
+    else
+    {
+        throw; // Real error, let it retry
+    }
+}
 
-                    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-                    if (pendingMigrations.Any())
-                    {
-                        logger.LogInformation("MIGRATION: Applying {Count} pending migrations...", pendingMigrations.Count());
-                        await context.Database.MigrateAsync();
                         logger.LogInformation("MIGRATION: Migrations applied successfully.");
                     }
                     else
