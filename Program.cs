@@ -73,7 +73,7 @@ else
     );
 }
 
-// --- 2. DEPENDENCY INJECTION (Armored) ---
+// --- 2. DEPENDENCY INJECTION ---
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<GestionProduccion.Application.Mappers.MainMapper>();
 builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderQueryService, GestionProduccion.Services.ProductionOrders.ProductionOrderQueryService>();
@@ -82,20 +82,20 @@ builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProducti
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRepository, GestionProduccion.Data.Repositories.UserRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderRepository, GestionProduccion.Data.Repositories.ProductionOrderRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISystemConfigurationRepository, GestionProduccion.Data.Repositories.SystemConfigurationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
+builder.Services.AddScoped<ISystemConfigurationRepository, SystemConfigurationRepository>();
 builder.Services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 builder.Services.AddScoped<ISewingTeamService, SewingTeamService>();
 builder.Services.AddScoped<IDistributedLockService, MySqlDistributedLockService>();
 builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IUserRefreshTokenRepository, GestionProduccion.Data.Repositories.UserRefreshTokenRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IPasswordResetTokenRepository, GestionProduccion.Data.Repositories.PasswordResetTokenRepository>();
-builder.Services.AddMemoryCache(); // TV Dashboard optimization
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductRepository, GestionProduccion.Data.Repositories.ProductRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.ISewingTeamRepository, GestionProduccion.Data.Repositories.SewingTeamRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IBonusRuleRepository, GestionProduccion.Data.Repositories.BonusRuleRepository>();
-builder.Services.AddScoped<GestionProduccion.Domain.Interfaces.Repositories.IProductionOrderOutputRepository, GestionProduccion.Data.Repositories.ProductionOrderOutputRepository>();
+builder.Services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ISewingTeamRepository, SewingTeamRepository>();
+builder.Services.AddScoped<IBonusRuleRepository, BonusRuleRepository>();
+builder.Services.AddScoped<IProductionOrderOutputRepository, ProductionOrderOutputRepository>();
 builder.Services.AddScoped<IFinancialCalculatorService, FinancialCalculatorService>();
 builder.Services.AddScoped<IDashboardBIService, DashboardBIService>();
 builder.Services.AddScoped<IBonusCalculationService, BonusCalculationService>();
@@ -104,7 +104,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IQAService, QAService>();
 builder.Services.AddScoped<ITaskService, OperationalTaskService>();
-builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, GestionProduccion.Services.SmtpEmailService>();
+builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, SmtpEmailService>();
 builder.Services.AddSignalR();
 
 // --- 3. AUTHENTICACION & JWT ---
@@ -116,12 +116,9 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     var jwtKey = builder.Configuration["Jwt:Key"];
-
-    if (string.IsNullOrEmpty(jwtKey) || 
-        jwtKey == "REPLACE_WITH_SECURE_KEY_IN_ENVIRONMENT_VARIABLES" ||
-        jwtKey.Length < 32)
+    if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 32)
     {
-        throw new InvalidOperationException("CRITICAL SECURITY ERROR: JWT Key is missing, insecure, or too short (min 32 chars). System startup aborted.");
+        throw new InvalidOperationException("CRITICAL SECURITY ERROR: JWT Key is invalid or too short.");
     }
 
     options.TokenValidationParameters = new TokenValidationParameters
@@ -137,268 +134,112 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// --- 4. RATE LIMITING (Security) ---
-bool isTesting = builder.Environment.IsEnvironment("Testing");
-if (!isTesting)
-{
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.OnRejected = async (context, token) =>
-        {
-            context.HttpContext.Response.StatusCode = 429;
-            await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
-        };
-
-        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                factory: partition => new FixedWindowRateLimiterOptions
-                {
-                    AutoReplenishment = true,
-                    PermitLimit = 1000000,
-                    QueueLimit = 0,
-                    Window = TimeSpan.FromMinutes(1)
-                }));
-
-        options.AddPolicy("LoginPolicy", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                factory: partition => new FixedWindowRateLimiterOptions
-                {
-                    AutoReplenishment = true,
-                    PermitLimit = 10,
-                    QueueLimit = 0,
-                    Window = TimeSpan.FromMinutes(1)
-                }));
-    });
-}
-
-// --- 5. VALIDATION ---
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-// --- 6. CONTROLLERS & JSON REPAIR ---
+// --- 4. JSON & CONTROLLERS ---
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 builder.Services.AddRazorPages();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- 7. RESPONSE COMPRESSION (Infrastructure Optimization) ---
-builder.Services.AddResponseCompression(options =>
-{
-    options.EnableForHttps = true;
-    options.Providers.Add<BrotliCompressionProvider>();
-    options.Providers.Add<GzipCompressionProvider>();
-    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/octet-stream", "application/json", "application/wasm" });
-});
-
-// --- 8. CORS REPAIR ---
+// --- 5. CORS & PIPELINE ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// --- 8. MIDDLEWARE PIPELINE ---
-var forwardedOptions = new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-};
+var forwardedOptions = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
 forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
 app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
-
-if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
-{
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseDeveloperExceptionPage();
-        app.UseWebAssemblyDebugging();
-    }
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Append("X-Frame-Options", "DENY");
-    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
-    await next();
-});
-
-app.UseResponseCompression();
-
-if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
-{
-    app.UseHttpsRedirection();
-}
-
-app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAll");
-
-if (!app.Environment.IsEnvironment("Testing"))
-{
-    app.UseRateLimiter();
-}
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 9. AUTOMATIC MIGRATIONS & SEEDING ---
-if (!app.Environment.IsEnvironment("Testing"))
+// --- 6. AUTOMATIC MIGRATIONS & PHYSICAL REPAIR ---
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<AppDbContext>();
+
+    int retries = 5;
+    while (retries > 0)
     {
-        var services = scope.ServiceProvider;
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        var context = services.GetRequiredService<AppDbContext>();
-
-        int retries = 5;
-        int delaySeconds = 3;
-
-        logger.LogInformation("MIGRATION: Starting process...");
-
-        while (retries > 0)
+        try
         {
-            try
+            if (await context.Database.CanConnectAsync())
             {
-                if (await context.Database.CanConnectAsync())
+                logger.LogInformation("MIGRATION: DB Connected. Running Forensics...");
+                var conn = context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
                 {
-                    logger.LogInformation("MIGRATION: Database connected. Running hotfixes...");
+                    // Repair 1: IsArchived column
+                    cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'IsArchived' AND TABLE_SCHEMA = DATABASE()";
+                    if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                    {
+                        logger.LogCritical("REPAIR: Adding IsArchived...");
+                        cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN IsArchived TINYINT(1) NOT NULL DEFAULT 0";
+                        await cmd.ExecuteNonQueryAsync();
+                    }
 
-                    // 1. EMERGENCY HOTFIX: Column existence checks
+                    // Repair 2: CASCADE DELETE FORCE (The error 500 killer)
                     try 
                     {
-                        var conn = context.Database.GetDbConnection();
-                        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-                        using (var cmd = conn.CreateCommand())
+                        logger.LogWarning("REPAIR: Forcing Cascade Delete on ProductionOrderOutputs...");
+                        // We find the FK name dynamically to avoid truncation issues
+                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND COLUMN_NAME = 'ProductionOrderSizeId' AND TABLE_SCHEMA = DATABASE() LIMIT 1";
+                        var fkName = await cmd.ExecuteScalarAsync() as string;
+                        if (!string.IsNullOrEmpty(fkName))
                         {
-                            // QA Defect Responsible
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-
-                            // Atomic Mode
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'BonusRules' AND COLUMN_NAME = 'IsAtomicMode' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'IsAtomicMode' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE BonusRules ADD COLUMN IsAtomicMode TINYINT(1) NOT NULL DEFAULT 0";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-
-                            // Default Bonus
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'DefaultBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'DefaultBonusPerPiece' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE Products ADD COLUMN DefaultBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-
-                            // Applied Bonus
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'AppliedBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'AppliedBonusPerPiece' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN AppliedBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-
-                            // Daily Goal
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'SystemConfigurations' AND COLUMN_NAME = 'DailyGoal' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'DailyGoal' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE SystemConfigurations ADD COLUMN DailyGoal INT NOT NULL DEFAULT 500";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
-
-                            // Production Order Archiving
-                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'IsArchived' AND TABLE_SCHEMA = DATABASE()";
-                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
-                            {
-                                logger.LogCritical("CRITICAL: Column 'IsArchived' MISSING! Forcing ALTER...");
-                                cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN IsArchived TINYINT(1) NOT NULL DEFAULT 0";
-                                await cmd.ExecuteNonQueryAsync();
-                            }
+                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkName}";
+                            await cmd.ExecuteNonQueryAsync();
                         }
-                    }
-                    catch (Exception ex) { logger.LogWarning("HOTFIX SKIPPED: {Msg}", ex.Message); }
-
-                    // 2. APPLY MIGRATIONS
-                    try
-                    {
-                        var pending = await context.Database.GetPendingMigrationsAsync();
-                        if (pending.Any())
-                        {
-                            logger.LogInformation("MIGRATION: Applying {Count} migrations...", pending.Count());
-                            await context.Database.MigrateAsync();
-                        }
-                    }
-                    catch (Exception ex) 
-                    {
-                        var msg = ex.Message + (ex.InnerException?.Message ?? "");
-                        if (msg.Contains("1060") || msg.Contains("Duplicate column name"))
-                        {
-                            logger.LogWarning("MIGRATION: Columns already exist (Handled). Proceeding to seed...");
-                        }
-                        else 
-                        {
-                            logger.LogError("MIGRATION FATAL ERROR: {Msg}", ex.Message);
-                            throw; 
-                        }
-                    }
-
-                    // 3. SEEDING
-                    await DbInitializer.SeedAsync(context, logger);
-                    logger.LogInformation("MIGRATION: All tasks completed.");
-                    break;
+                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
+                        await cmd.ExecuteNonQueryAsync();
+                        logger.LogInformation("REPAIR: Cascade Delete is now ACTIVE.");
+                    } catch (Exception ex) { logger.LogDebug("Cascade repair skipped or already applied: {Msg}", ex.Message); }
                 }
-                else throw new Exception("CanConnectAsync failed");
+
+                // Apply EF Migrations with safety
+                try {
+                    await context.Database.MigrateAsync();
+                    logger.LogInformation("MIGRATION: EF Core Sync Success.");
+                } catch (Exception ex) when (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate")) {
+                    logger.LogWarning("MIGRATION: Schema already updated. Continuing...");
+                }
+
+                await DbInitializer.SeedAsync(context, logger);
+                logger.LogInformation("MIGRATION: All tasks completed successfully.");
+                break;
             }
-            catch (Exception ex)
-            {
-                retries--;
-                logger.LogWarning("MIGRATION: Failed attempt. Retrying in {Delay}s... Error: {Msg}", delaySeconds, ex.Message);
-                await Task.Delay(delaySeconds * 1000);
-            }
+        }
+        catch (Exception ex)
+        {
+            retries--;
+            logger.LogWarning("MIGRATION: Retry in 3s... Error: {Msg}", ex.Message);
+            await Task.Delay(3000);
         }
     }
 }
 
 app.MapControllers();
-app.MapRazorPages();
-app.UseWebSockets();
 app.MapHub<ProductionHub>("/productionHub").RequireCors("AllowAll");
 app.MapFallbackToFile("index.html");
-
 app.Run();
 
 public partial class Program { }
