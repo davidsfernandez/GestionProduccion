@@ -1,4 +1,4 @@
-﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
 # 
 # This software and its associated documentation files are the exclusive property 
 # of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
@@ -41,32 +41,27 @@ ENV DOTNET_RUNNING_IN_CONTAINER=true
 EXPOSE 8080
 EXPOSE 443
 
+# Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation libfreetype6 libicu-dev sed && \
+    fc-cache -f -v && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy published files from build stage
 COPY --from=publish /app/publish .
 
 # 1. Backup default avatars to avoid volume masking in Azure
+# Note: The build now ensures images.jpg is published as wwwroot/img/avatars/avatar.jpg
 RUN mkdir -p /app/wwwroot/img/avatars_defaults && \
     cp -r /app/wwwroot/img/avatars/* /app/wwwroot/img/avatars_defaults/ || true
 
 # 2. Add entrypoint script
 COPY docker-entrypoint.sh /app/
-RUN apt-get update && apt-get install -y sed && \
-    sed -i 's/\r$//' /app/docker-entrypoint.sh && \
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && \
     chmod +x /app/docker-entrypoint.sh
 
 # 3. Create directory for avatar uploads and set permissions
 RUN mkdir -p /app/wwwroot/img/avatars && chmod -R 775 /app/wwwroot/img/avatars
 
-# Install curl for healthchecks and font libraries for QuestPDF/SkiaSharp
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl fontconfig libfontconfig1 fonts-liberation libfreetype6 libicu-dev && \
-    fc-cache -f -v && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create backup directory for default assets to survive volume mounting
-RUN mkdir -p /app/wwwroot/img/avatars_defaults && \
-    cp wwwroot/img/avatars/* /app/wwwroot/img/avatars_defaults/ || true
-
 # Set entrypoint
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-

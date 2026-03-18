@@ -77,6 +77,11 @@
   <ItemGroup>
     <!-- Explicitly include Client wwwroot assets for publishing -->
     <Content Include="Client/GestionProduccion.Client/wwwroot/**" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Ensure default avatar is included in the publish output -->
+    <Content Include="images.jpg">
+      <Link>wwwroot/img/avatars/avatar.jpg</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
