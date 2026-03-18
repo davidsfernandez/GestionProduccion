@@ -1,4 +1,4 @@
-﻿# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
+# Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
 # 
 # This software and its associated documentation files are the exclusive property 
 # of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
@@ -53,7 +53,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: "mysqladmin ping -h localhost -u root -p${DB_ROOT_PASSWORD}"
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${DB_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,10 +62,13 @@ services:
 
 volumes:
   mysql_data:
+    name: gestionproduccion_mysql_data
+    external: true
   avatars_data:
+    name: gestionproduccion_avatars_data
+    external: true
   dataprotection_keys:
 
 networks:
   app-network:
     driver: bridge
-
