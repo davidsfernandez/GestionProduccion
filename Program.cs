@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -104,8 +104,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IQAService, QAService>();
 builder.Services.AddScoped<ITaskService, OperationalTaskService>();
-builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, GestionProduccion.Services.SmtpEmailService>()
-;
+builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, GestionProduccion.Services.SmtpEmailService>();
 builder.Services.AddSignalR();
 
 // --- 3. AUTHENTICACION & JWT ---
@@ -150,7 +149,6 @@ if (!isTesting)
             await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
         };
 
-        // Global Policy: 1000000 requests per minute per IP (increased for production stability)
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -162,7 +160,6 @@ if (!isTesting)
                     Window = TimeSpan.FromMinutes(1)
                 }));
 
-        // Login Policy: 10 requests per minute per IP
         options.AddPolicy("LoginPolicy", httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -184,14 +181,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
-        // Fix for circular references (Architect Rule 7)
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        // Fix for Enums as strings (Architect Rule 9)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        // Maintain CamelCase for consistency with JavaScript
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        // Safeguard against nulls (Architect Rule 48)
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 builder.Services.AddRazorPages();
@@ -209,23 +202,21 @@ builder.Services.AddResponseCompression(options =>
         new[] { "application/octet-stream", "application/json", "application/wasm" });
 });
 
-// --- 8. CORS REPAIR (Architect Rule 11) ---
+// --- 8. CORS REPAIR ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true) // Required for SignalR + AllowCredentials
+        policy.SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // Required for SignalR
+            .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// --- 8. MIDDLEWARE PIPELINE (Correct Order) ---
-
-// Support for Nginx Forwarded Headers (Cloud/Docker compatibility)
+// --- 8. MIDDLEWARE PIPELINE ---
 var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -236,19 +227,17 @@ app.UseForwardedHeaders(forwardedOptions);
 
 app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
 
-// Enable Swagger in Dev or if explicitly enabled via Env Var (e.g. in Docker)
 if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER") == "true")
 {
     if (app.Environment.IsDevelopment())
     {
-        app.UseDeveloperExceptionPage(); // Architect Rule 18
+        app.UseDeveloperExceptionPage();
         app.UseWebAssemblyDebugging();
     }
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Security Headers
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
@@ -259,27 +248,25 @@ app.Use(async (context, next) =>
 
 app.UseResponseCompression();
 
-// Only enforce HTTPS Redirection if NOT running in a container (Docker handles SSL termination usually)
 if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
 {
     app.UseHttpsRedirection();
 }
 
-app.UseBlazorFrameworkFiles(); // Architect Rule 19
-app.UseStaticFiles();          // Architect Rule 19
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 app.UseRouting();
-
-app.UseCors("AllowAll"); // Must be before Auth
+app.UseCors("AllowAll");
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
-    app.UseRateLimiter(); // Apply Rate Limiting
+    app.UseRateLimiter();
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 9. AUTOMATIC MIGRATIONS (Synchronous for Production Reliability) ---
+// --- 9. AUTOMATIC MIGRATIONS & SEEDING ---
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using (var scope = app.Services.CreateScope())
@@ -291,115 +278,88 @@ if (!app.Environment.IsEnvironment("Testing"))
         int retries = 5;
         int delaySeconds = 3;
 
-        logger.LogInformation("MIGRATION: Starting process (Max retries: {Retries}, Delay: {Delay}s)...", retries, delaySeconds);
+        logger.LogInformation("MIGRATION: Starting process...");
 
         while (retries > 0)
         {
             try
             {
-                logger.LogInformation("MIGRATION: Checking database connection...");
                 if (await context.Database.CanConnectAsync())
                 {
-                    logger.LogInformation("MIGRATION: Database connection established.");
+                    logger.LogInformation("MIGRATION: Database connected. Running hotfixes...");
 
-                    // --- EMERGENCY HOTFIX: Force column creation if missing ---
+                    // 1. EMERGENCY HOTFIX: Column existence checks
                     try 
                     {
                         var conn = context.Database.GetDbConnection();
                         if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
                         using (var cmd = conn.CreateCommand())
                         {
+                            // QA Defect Responsible
                             cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'QADefects' AND COLUMN_NAME = 'ResponsibleUserId' AND TABLE_SCHEMA = DATABASE()";
-                            var existsQA = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
-                            if (!existsQA)
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
                             {
-                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' is MISSING! Forcing ALTER TABLE...");
+                                logger.LogCritical("CRITICAL: Column 'ResponsibleUserId' MISSING! Forcing ALTER...");
                                 cmd.CommandText = "ALTER TABLE QADefects ADD COLUMN ResponsibleUserId INT NULL, ADD CONSTRAINT FK_QADefects_Users_ResponsibleUserId FOREIGN KEY (ResponsibleUserId) REFERENCES Users(Id) ON DELETE SET NULL";
                                 await cmd.ExecuteNonQueryAsync();
                             }
 
+                            // Atomic Mode
                             cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'BonusRules' AND COLUMN_NAME = 'IsAtomicMode' AND TABLE_SCHEMA = DATABASE()";
-                            var existsBonus = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
-                            if (!existsBonus)
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
                             {
-                                logger.LogCritical("CRITICAL: Column 'IsAtomicMode' is MISSING! Forcing ALTER TABLE...");
+                                logger.LogCritical("CRITICAL: Column 'IsAtomicMode' MISSING! Forcing ALTER...");
                                 cmd.CommandText = "ALTER TABLE BonusRules ADD COLUMN IsAtomicMode TINYINT(1) NOT NULL DEFAULT 0";
                                 await cmd.ExecuteNonQueryAsync();
-                                logger.LogInformation("HOTFIX: IsAtomicMode added successfully.");
                             }
 
-                            // Scaling Bonus V2: Product Default
+                            // Default Bonus
                             cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'DefaultBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
                             if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
                             {
-                                logger.LogCritical("CRITICAL: Column 'DefaultBonusPerPiece' is MISSING! Forcing ALTER TABLE...");
+                                logger.LogCritical("CRITICAL: Column 'DefaultBonusPerPiece' MISSING! Forcing ALTER...");
                                 cmd.CommandText = "ALTER TABLE Products ADD COLUMN DefaultBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
                                 await cmd.ExecuteNonQueryAsync();
                             }
 
-                            // Scaling Bonus V2: Order Snapshot
+                            // Applied Bonus
                             cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'AppliedBonusPerPiece' AND TABLE_SCHEMA = DATABASE()";
                             if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
                             {
-                                logger.LogCritical("CRITICAL: Column 'AppliedBonusPerPiece' is MISSING! Forcing ALTER TABLE...");
+                                logger.LogCritical("CRITICAL: Column 'AppliedBonusPerPiece' MISSING! Forcing ALTER...");
                                 cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN AppliedBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
                                 await cmd.ExecuteNonQueryAsync();
                             }
-                            
-                            logger.LogInformation("MIGRATION: Physical schema check complete.");
                         }
                     }
-                    catch (Exception ex) { logger.LogError("HOTFIX FAILED: {Msg}", ex.Message); }
-try
-{
-    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-    if (pendingMigrations.Any())
-    {
-        logger.LogInformation("MIGRATION: Applying {Count} pending migrations...", pendingMigrations.Count());
-        await context.Database.MigrateAsync();
-        logger.LogInformation("MIGRATION: Success.");
-    }
-}
-catch (Exception ex)
-{
-    // Error 1060 = Duplicate column name. We ignore this because it means our Hotfix or a previous run already did the work.
-    if (ex.Message.Contains("1060") || ex.InnerException?.Message.Contains("1060") == true)
-    {
-        logger.LogWarning("MIGRATION: Some columns already exist. Proceeding safely...");
-    }
-    else
-    {
-        throw; // Real error, let it retry
-    }
-}
+                    catch (Exception ex) { logger.LogWarning("HOTFIX SKIPPED: {Msg}", ex.Message); }
 
-                        logger.LogInformation("MIGRATION: Migrations applied successfully.");
-                    }
-                    else
+                    // 2. APPLY MIGRATIONS
+                    try
                     {
-                        logger.LogInformation("MIGRATION: Database is already up to date.");
+                        var pending = await context.Database.GetPendingMigrationsAsync();
+                        if (pending.Any())
+                        {
+                            logger.LogInformation("MIGRATION: Applying {Count} migrations...", pending.Count());
+                            await context.Database.MigrateAsync();
+                        }
+                    }
+                    catch (Exception ex) when (ex.Message.Contains("1060"))
+                    {
+                        logger.LogWarning("MIGRATION: Duplicate column detected. EF Core was already updated by hotfix.");
                     }
 
-                    logger.LogInformation("MIGRATION: Ensuring seed data...");
+                    // 3. SEEDING
                     await DbInitializer.SeedAsync(context, logger);
+                    logger.LogInformation("MIGRATION: All tasks completed.");
                     break;
                 }
-                else
-                {
-                    throw new Exception("Database.CanConnectAsync() returned false.");
-                }
+                else throw new Exception("CanConnectAsync failed");
             }
             catch (Exception ex)
             {
                 retries--;
-                if (retries == 0)
-                {
-                    logger.LogCritical(ex, "MIGRATION: Failed after multiple attempts. Application may be unstable.");
-                    // In Production, we might want to continue starting the app even if migration fails
-                    // to allow some parts of the system to work or to allow remote debugging.
-                    break;
-                }
-                logger.LogWarning("MIGRATION: Connection failed. Retrying in {Delay} seconds... ({Retries} attempts left). Error: {Message}", delaySeconds, retries, ex.Message);
+                logger.LogWarning("MIGRATION: Failed attempt. Retrying in {Delay}s... Error: {Msg}", delaySeconds, ex.Message);
                 await Task.Delay(delaySeconds * 1000);
             }
         }
@@ -415,5 +375,3 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 public partial class Program { }
-
-
