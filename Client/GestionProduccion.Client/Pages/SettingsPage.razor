@@ -45,7 +45,7 @@
                             <div class="row">
                                 <div class="col-md-8 mb-3">
                                     <label class="form-label fw-bold">@Portuguese.Set_CompanyName</label>
-                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyName" placeholder="Ex: Serona ConfecÁıes" />
+                                    <InputText class="form-control form-control-lg" @bind-Value="model.CompanyName" placeholder="Ex: Serona ConfecÔøΩÔøΩes" />
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label fw-bold">@Portuguese.Set_CompanyTaxId</label>
@@ -141,10 +141,17 @@
                             <h5 class="card-title mb-0 fw-bold">@Portuguese.Set_TvMode</h5>
                         </div>
                         <div class="card-body p-4">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">@Portuguese.Set_TvAnnouncement</label>
-                                <InputTextArea class="form-control" @bind-Value="model.TvAnnouncement" rows="3" placeholder="@Portuguese.Set_TvAnnouncementPlaceholder" />
-                                <small class="text-muted">@Portuguese.Set_TvAnnouncementHint</small>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Meta Di√°ria de Produ√ß√£o</label>
+                                    <InputNumber class="form-control" @bind-Value="model.DailyGoal" />
+                                    <small class="text-muted">Define a meta exibida no Modo TV</small>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label fw-bold">@Portuguese.Set_TvAnnouncement</label>
+                                    <InputTextArea class="form-control" @bind-Value="model.TvAnnouncement" rows="3" placeholder="@Portuguese.Set_TvAnnouncementPlaceholder" />
+                                    <small class="text-muted">@Portuguese.Set_TvAnnouncementHint</small>
+                                </div>
                             </div>
                         </div>
                     </div>
