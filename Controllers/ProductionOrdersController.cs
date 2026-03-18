@@ -82,16 +82,16 @@ public class ProductionOrdersController : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Administrator,Leader")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteProductionOrder(int id)
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteProductionOrder(int id)
     {
         try
         {
             var result = await _mutationService.DeleteProductionOrderAsync(id, HttpContext.RequestAborted);
-            if (!result) return NotFound(ApiResponse<object>.FailureResult("Order not found"));
-            return Ok(ApiResponse<object>.SuccessResult(null!, "Order deleted successfully"));
+            if (!result) return NotFound(ApiResponse<bool>.FailureResult("Order not found"));
+            return Ok(ApiResponse<bool>.SuccessResult(true, "Order deleted successfully"));
         }
-        catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.FailureResult(ex.Message)); }
-        catch (Exception ex) { return StatusCode(500, ApiResponse<object>.FailureResult("Error deleting order", new List<string> { ex.Message })); }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse<bool>.FailureResult(ex.Message)); }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<bool>.FailureResult("Error deleting order", new List<string> { ex.Message })); }
     }
 
     [HttpPatch("{id}/archive")]

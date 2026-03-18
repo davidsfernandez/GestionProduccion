@@ -186,33 +186,41 @@ using (var scope = app.Services.CreateScope())
                 logger.LogInformation("MIGRATION: DB Connected. Running Forensics...");
                 var conn = context.Database.GetDbConnection();
                 if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-                using (var cmd = conn.CreateCommand())
+                
+                // Hotfix: Ensure Cascade Delete for ProductionOrders
+                try 
                 {
-                    // Repair 1: IsArchived column
-                    cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'IsArchived' AND TABLE_SCHEMA = DATABASE()";
-                    if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                    logger.LogInformation("REPAIR: Verifying Cascade Delete constraints...");
+                    using (var cmd = conn.CreateCommand())
                     {
-                        logger.LogCritical("REPAIR: Adding IsArchived...");
-                        cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN IsArchived TINYINT(1) NOT NULL DEFAULT 0";
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-
-                    // Repair 2: CASCADE DELETE FORCE (The error 500 killer)
-                    try 
-                    {
-                        logger.LogWarning("REPAIR: Forcing Cascade Delete on ProductionOrderOutputs...");
-                        // We find the FK name dynamically to avoid truncation issues
+                        // 1. Outputs -> Sizes
                         cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND COLUMN_NAME = 'ProductionOrderSizeId' AND TABLE_SCHEMA = DATABASE() LIMIT 1";
-                        var fkName = await cmd.ExecuteScalarAsync() as string;
-                        if (!string.IsNullOrEmpty(fkName))
+                        var fkSize = await cmd.ExecuteScalarAsync() as string;
+                        if (!string.IsNullOrEmpty(fkSize))
                         {
-                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkName}";
+                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkSize}";
+                            await cmd.ExecuteNonQueryAsync();
+                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
                             await cmd.ExecuteNonQueryAsync();
                         }
-                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
-                        await cmd.ExecuteNonQueryAsync();
-                        logger.LogInformation("REPAIR: Cascade Delete is now ACTIVE.");
-                    } catch (Exception ex) { logger.LogDebug("Cascade repair skipped or already applied: {Msg}", ex.Message); }
+                        
+                        // 2. Outputs -> Orders
+                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND COLUMN_NAME = 'ProductionOrderId' AND TABLE_SCHEMA = DATABASE() LIMIT 1";
+                        var fkOrder = await cmd.ExecuteScalarAsync() as string;
+                        if (!string.IsNullOrEmpty(fkOrder))
+                        {
+                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkOrder}";
+                            await cmd.ExecuteNonQueryAsync();
+                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Orders_Cascade FOREIGN KEY (ProductionOrderId) REFERENCES ProductionOrders(Id) ON DELETE CASCADE";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        
+                        logger.LogInformation("REPAIR: Cascade Delete is now ACTIVE for all relationships.");
+                    }
+                } 
+                catch (Exception ex) 
+                { 
+                    logger.LogWarning("REPAIR WARNING: Could not apply cascade delete hotfix. Deletion might fail. Error: {Msg}", ex.Message); 
                 }
 
                 // Apply EF Migrations with safety
@@ -220,7 +228,7 @@ using (var scope = app.Services.CreateScope())
                     await context.Database.MigrateAsync();
                     logger.LogInformation("MIGRATION: EF Core Sync Success.");
                 } catch (Exception ex) when (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate")) {
-                    logger.LogWarning("MIGRATION: Schema already updated. Continuing...");
+                    logger.LogWarning("MIGRATION: Schema already updated by hotfix. Continuing...");
                 }
 
                 await DbInitializer.SeedAsync(context, logger);
