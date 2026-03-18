@@ -19,6 +19,7 @@ public interface IProductionOrderMutationClient
 {
     Task<ApiResponse<ProductionOrderDto>> CreateProductionOrderAsync(CreateProductionOrderRequest request, int? assignedUserId = null, CancellationToken ct = default);
     Task<ApiResponse<ProductionOrderDto>> UpdateProductionOrderAsync(int id, UpdateProductionOrderRequest request, CancellationToken ct = default);
+    Task<ApiResponse<bool>> ArchiveProductionOrderAsync(int id, CancellationToken ct = default);
     Task<ApiResponse<bool>> DeleteProductionOrderAsync(int id, CancellationToken ct = default);
 }
 

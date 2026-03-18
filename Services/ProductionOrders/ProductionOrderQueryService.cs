@@ -70,6 +70,12 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int pageNumber = 1, int pageSize = 10, CancellationToken ct = default)
     {
         var query = await _orderRepository.GetQueryableAsync();
+
+        if (filter == null || !filter.IncludeArchived)
+        {
+            query = query.Where(o => !o.IsArchived);
+        }
+
         var currentUserId = GetCurrentUserId();
         var currentUser = await _userRepository.GetByIdAsync(currentUserId);
 

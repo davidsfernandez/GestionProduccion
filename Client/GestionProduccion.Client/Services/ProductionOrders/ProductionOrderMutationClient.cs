@@ -39,6 +39,13 @@ public class ProductionOrderMutationClient : IProductionOrderMutationClient
             ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao atualizar ordem de produção.");
     }
 
+    public async Task<ApiResponse<bool>> ArchiveProductionOrderAsync(int id, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/ProductionOrders/{id}/archive", null, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(_options, ct)
+            ?? ApiResponse<bool>.FailureResult("Erro ao arquivar ordem de produção.");
+    }
+
     public async Task<ApiResponse<bool>> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
     {
         var response = await _httpClient.DeleteAsync($"api/ProductionOrders/{id}", ct);

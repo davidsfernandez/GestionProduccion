@@ -130,6 +130,7 @@ public static class ManualMapper
             Quantity = entity.Quantity,
             ClientName = entity.ClientName,
             Size = entity.Size,
+            IsArchived = entity.IsArchived,
             CurrentStage = entity.CurrentStage.ToString(),
             CurrentStatus = entity.CurrentStatus.ToString(),
             CreatedAt = entity.CreatedAt,

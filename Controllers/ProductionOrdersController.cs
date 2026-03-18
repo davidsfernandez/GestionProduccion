@@ -94,6 +94,25 @@ public class ProductionOrdersController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ApiResponse<object>.FailureResult("Error deleting order", new List<string> { ex.Message })); }
     }
 
+    [HttpPatch("{id}/archive")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<ActionResult<ApiResponse<bool>>> ArchiveProductionOrder(int id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(ApiResponse<bool>.FailureResult("Unauthorized access"));
+            }
+
+            var result = await _mutationService.ArchiveProductionOrderAsync(id, userId, HttpContext.RequestAborted);
+            if (!result) return NotFound(ApiResponse<bool>.FailureResult("Order not found"));
+            return Ok(ApiResponse<bool>.SuccessResult(true, "Order archived successfully"));
+        }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<bool>.FailureResult("Error archiving order", new List<string> { ex.Message })); }
+    }
+
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {

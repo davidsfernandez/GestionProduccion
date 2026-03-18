@@ -22,5 +22,6 @@ namespace GestionProduccion.Models.DTOs
         public DateTime? EndDate { get; set; }
         public string? ClientName { get; set; }
         public string? Size { get; set; }
+        public bool IncludeArchived { get; set; } = false;
     }
 }

@@ -29,6 +29,8 @@ namespace GestionProduccion.Resources
         public const string Actions = "Ações";
         public const string Search = "Buscar";
         public const string Filter = "Filtrar";
+        public const string Archive = "Arquivar";
+        public const string ShowArchived = "Mostrar Arquivados";
         public const string Refresh = "Atualizar";
         public const string Client = "Cliente";
         public const string Print = "Imprimir";

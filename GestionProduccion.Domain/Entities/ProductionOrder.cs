@@ -76,6 +76,11 @@ public class ProductionOrder : IAuditable
     [StringLength(20)]
     public string? Size { get; set; }
 
+    /// <summary>
+    /// Indicates whether the production order is archived.
+    /// </summary>
+    public bool IsArchived { get; set; } = false;
+
     // Relationship with User (can be null)
     public int? UserId { get; set; }
     [ForeignKey("UserId")]

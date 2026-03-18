@@ -339,6 +339,15 @@ if (!app.Environment.IsEnvironment("Testing"))
                                 cmd.CommandText = "ALTER TABLE SystemConfigurations ADD COLUMN DailyGoal INT NOT NULL DEFAULT 500";
                                 await cmd.ExecuteNonQueryAsync();
                             }
+
+                            // Production Order Archiving
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'IsArchived' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                            {
+                                logger.LogCritical("CRITICAL: Column 'IsArchived' MISSING! Forcing ALTER...");
+                                cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN IsArchived TINYINT(1) NOT NULL DEFAULT 0";
+                                await cmd.ExecuteNonQueryAsync();
+                            }
                         }
                     }
                     catch (Exception ex) { logger.LogWarning("HOTFIX SKIPPED: {Msg}", ex.Message); }

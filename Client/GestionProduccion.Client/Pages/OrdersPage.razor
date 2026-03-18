@@ -48,18 +48,24 @@
                     <div class="row align-items-center">
                         <div class="col-md-12 mb-3">
                             <div class="row g-2">
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     <div class="input-group shadow-sm h-100" style="border-radius: 10px; overflow: hidden;">
                                         <span class="input-group-text bg-white border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                                         <input type="search" class="form-control border-0 px-2" placeholder="@Portuguese.OP_SearchPlaceholder"
                                                @bind="searchTerm" @oninput="OnSearchInput" />
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_ClientPlaceholder" @bind="filterClient" style="border-radius: 10px;" />
                                 </div>
                                 <div class="col-md-2">
                                     <input type="text" class="form-control shadow-sm border-0 h-100" placeholder="@Portuguese.OP_SizePlaceholder" @bind="filterTamanho" style="border-radius: 10px;" />
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-check form-switch h-100 d-flex align-items-center ms-2">
+                                        <input class="form-check-input me-2" type="checkbox" id="showArchivedSwitch" @bind="showArchived" @bind:after="() => LoadOrders(1)">
+                                        <label class="form-check-label small text-muted" for="showArchivedSwitch">@Portuguese.ShowArchived</label>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
                                     <button class="btn btn-primary w-100 shadow-sm h-100" @onclick="() => LoadOrders(1)" style="border-radius: 10px;" disabled="@loading">
@@ -197,6 +203,14 @@
                                             <button class="btn btn-sm btn-light text-danger me-1 shadow-none" @onclick="() => DownloadOrderReport(order)" title="@Portuguese.OP_Report">
                                                 <i class="fa-solid fa-file-pdf"></i>
                                             </button>
+                                            <AuthorizeView Roles="Administrator,Leader">
+                                                @if (!order.IsArchived && (order.CurrentStatus == "Completed" || order.CurrentStatus == "Cancelled" || order.CurrentStatus == "Finished"))
+                                                {
+                                                    <button class="btn btn-sm btn-light text-warning me-1 shadow-none" @onclick="() => ArchiveOrder(order)" title="@Portuguese.Archive">
+                                                        <i class="fa-solid fa-box-archive"></i>
+                                                    </button>
+                                                }
+                                            </AuthorizeView>
                                             <AuthorizeView Roles="Administrator">
                                                 <button class="btn btn-sm btn-light text-danger shadow-none" @onclick="() => DeleteOrder(order)" title="@Portuguese.Delete">
                                                     <i class="fa-solid fa-trash"></i>
@@ -251,6 +265,7 @@
     private string searchTerm = "";
     private string filterClient = "";
     private string filterTamanho = "";
+    private bool showArchived = false;
     private Timer? debounceTimer;
 
     protected override async Task OnInitializedAsync()
@@ -295,6 +310,7 @@
                 SearchTerm = searchTerm,
                 ClientName = filterClient,
                 Size = filterTamanho,
+                IncludeArchived = showArchived
             };
 
             var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, page, 10);
@@ -321,6 +337,30 @@
 
     private void CreateNewOrder() => NavigationManager.NavigateTo("/orders/create");
     private void ViewDetails(int id) => NavigationManager.NavigateTo($"/orders/{id}");
+
+    private async Task ArchiveOrder(ProductionOrderDto order)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Deseja arquivar a ordem {order.LotCode}? Ela não aparecerá mais na lista principal."))
+        {
+            try
+            {
+                var response = await ProductionOrderMutationClient.ArchiveProductionOrderAsync(order.Id);
+                if (response?.Success == true)
+                {
+                    ToastService.ShowToast("Ordem arquivada com sucesso.", ToastLevel.Success);
+                    await LoadOrders(paginatedData?.PageNumber ?? 1);
+                }
+                else
+                {
+                    ToastService.ShowToast(response?.Message ?? "Erro ao arquivar ordem.", ToastLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowToast($"Falha: {ex.Message}", ToastLevel.Error);
+            }
+        }
+    }
 
     private async Task DeleteOrder(ProductionOrderDto order)
     {

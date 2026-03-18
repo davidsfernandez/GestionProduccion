@@ -223,6 +223,21 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         return order.ToDto();
     }
 
+    public async Task<bool> ArchiveProductionOrderAsync(int id, int userId, CancellationToken ct = default)
+    {
+        var order = await _orderRepository.GetByIdAsync(id);
+        if (order == null) return false;
+
+        order.IsArchived = true;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        await _orderRepository.UpdateAsync(order);
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, userId, "Order archived");
+        await _orderRepository.SaveChangesAsync();
+
+        return true;
+    }
+
     public async Task<bool> DeleteProductionOrderAsync(int id, CancellationToken ct = default)
     {
         var order = await _orderRepository.GetByIdAsync(id);
