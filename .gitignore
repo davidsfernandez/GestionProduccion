@@ -126,6 +126,8 @@ publish/
 *.binlog
 *.jpg
 *.png
+*.jpeg
+*.webp
 *.ico
 *.pdf
 *.xlsx
@@ -134,7 +136,6 @@ publish/
 
 # Exceptions for necessary static assets
 !wwwroot/img/avatars/avatar.jpg
-!images.jpg
 
 # Environment files
 .env
