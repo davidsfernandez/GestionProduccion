@@ -330,6 +330,15 @@ if (!app.Environment.IsEnvironment("Testing"))
                                 cmd.CommandText = "ALTER TABLE ProductionOrders ADD COLUMN AppliedBonusPerPiece DECIMAL(18,2) NOT NULL DEFAULT 0";
                                 await cmd.ExecuteNonQueryAsync();
                             }
+
+                            // Daily Goal
+                            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'SystemConfigurations' AND COLUMN_NAME = 'DailyGoal' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0)
+                            {
+                                logger.LogCritical("CRITICAL: Column 'DailyGoal' MISSING! Forcing ALTER...");
+                                cmd.CommandText = "ALTER TABLE SystemConfigurations ADD COLUMN DailyGoal INT NOT NULL DEFAULT 500";
+                                await cmd.ExecuteNonQueryAsync();
+                            }
                         }
                     }
                     catch (Exception ex) { logger.LogWarning("HOTFIX SKIPPED: {Msg}", ex.Message); }

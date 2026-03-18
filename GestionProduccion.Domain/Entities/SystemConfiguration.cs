@@ -45,6 +45,8 @@ public class SystemConfiguration
 
     [StringLength(50)]
     public string? ThemeName { get; set; }
+
+    public int DailyGoal { get; set; } = 500;
 }
 
 

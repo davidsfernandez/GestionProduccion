@@ -32,6 +32,9 @@ public class SystemConfigurationDto
     [StringLength(50)]
     public string? ThemeName { get; set; }
 
+    [Range(1, 10000, ErrorMessage = "A meta diária deve ser entre 1 e 10.000")]
+    public int DailyGoal { get; set; } = 500;
+
     [StringLength(500, ErrorMessage = "O anúncio de TV não puede exceder 500 caracteres")]
     public string? TvAnnouncement { get; set; }
 }

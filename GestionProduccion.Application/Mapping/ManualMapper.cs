@@ -258,6 +258,7 @@ public static class ManualMapper
             DailyFixedCost = entity.DailyFixedCost,
             OperationalHourlyCost = entity.OperationalHourlyCost,
             ThemeName = entity.ThemeName,
+            DailyGoal = entity.DailyGoal,
             TvAnnouncement = entity.Value // Map Value to TvAnnouncement if used for that
         };
     }

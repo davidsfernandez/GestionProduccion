@@ -26,6 +26,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
     private readonly IUserRepository _userRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IProductionOrderOutputRepository _outputRepository;
+    private readonly ISystemConfigurationService _configService;
     private readonly MainMapper _mapper;
 
     public ProductionOrderQueryService(
@@ -33,12 +34,14 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         IUserRepository userRepository,
         IHttpContextAccessor httpContextAccessor,
         IProductionOrderOutputRepository outputRepository,
+        ISystemConfigurationService configService,
         MainMapper mapper)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _httpContextAccessor = httpContextAccessor;
         _outputRepository = outputRepository;
+        _configService = configService;
         _mapper = mapper;
     }
 
@@ -152,8 +155,11 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         var completedToday = await CalculateCompletedTodayAsync(startUtc, endUtc, ct);
 
-        // Daily Goal logic (for now fixed, but could come from SystemConfiguration)
-        int dailyGoal = 500; 
+        // Daily Goal logic (now dynamic from SystemConfiguration)
+        var config = await _configService.GetConfigurationAsync();
+        int dailyGoal = config?.DailyGoal ?? 500;
+        if (dailyGoal <= 0) dailyGoal = 500;
+
         double completionRate = dailyGoal > 0 ? (double)completedToday / dailyGoal * 100 : 0;
 
         var activeOrders = await ordersWithRelations
@@ -176,7 +182,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         }
 
         // Get TV Announcement from config (Igor's request)
-        var announcement = "Foco na meta de hoje! Vamos com tudo! 🚀"; 
+        var announcement = config?.TvAnnouncement ?? "Foco na meta de hoje! Vamos com tudo! 🚀"; 
 
         return new TvDashboardDto
         {
@@ -366,19 +372,15 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
         var ordersQuery = await _orderRepository.GetQueryableAsync();
 
-        // 1. Hybrid Aggregation: Group by Order+Size+Stage, Sum quantities, then take Max per Order+Size
-        // This avoids overcounting if a piece goes through multiple stages today.
+        // 1. PRECISION FIX: Only count pieces that reached the FINAL stage (Packaging) today.
+        // This ensures items in Cutting/Sewing don't inflate the "Produced Today" KPI.
         var completedFromOutputs = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc)
-            .GroupBy(o => new { o.ProductionOrderId, o.ProductionOrderSizeId, o.Stage })
-            .Select(g => new { g.Key.ProductionOrderId, g.Key.ProductionOrderSizeId, TotalInStage = g.Sum(o => o.Quantity) })
-            .GroupBy(x => new { x.ProductionOrderId, x.ProductionOrderSizeId })
-            .Select(g => g.Max(x => x.TotalInStage))
-            .SumAsync(ct);
+            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc && o.Stage == ProductionStage.Packaging)
+            .SumAsync(o => o.Quantity, ct);
 
-        // 2. Legacy/Direct completion (orders completed today with no outputs today)
-        var orderIdsWithOutputsToday = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc)
+        // 2. Legacy/Direct completion (orders marked as Completed today but without specific Packaging outputs today)
+        var orderIdsWithPackagingOutputsToday = await outputsTodayQuery
+            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc && o.Stage == ProductionStage.Packaging)
             .Select(o => o.ProductionOrderId)
             .Distinct()
             .ToListAsync(ct);
@@ -386,7 +388,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var completedFromLegacy = await ordersQuery
             .Where(o => o.CurrentStatus == ProductionStatus.Completed && 
                         o.CompletedAt >= startUtc && o.CompletedAt < endUtc && 
-                        !orderIdsWithOutputsToday.Contains(o.Id))
+                        !orderIdsWithPackagingOutputsToday.Contains(o.Id))
             .SumAsync(o => o.Quantity, ct);
 
         return completedFromOutputs + completedFromLegacy;

@@ -228,12 +228,19 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         var order = await _orderRepository.GetByIdAsync(id);
         if (order == null) return false;
 
-        // Business Rule: block deletion if the order has passed the initial stage (Cutting) or is completed/finished
-        if (order.CurrentStage != ProductionStage.Cutting ||
-            order.CurrentStatus == ProductionStatus.Completed ||
-            order.CurrentStatus == ProductionStatus.Finished)
+        // NEW RULE: Administrators can delete anything to clean up the system.
+        // Other roles (Leaders) can only delete if the order is still in the initial stage.
+        var userRole = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+        bool isAdministrator = userRole == "Administrator";
+
+        if (!isAdministrator)
         {
-            throw new InvalidOperationException($"{ErrorMessages.CannotDeleteByBusinessRules}: {ErrorMessages.OrderAlreadyInProgress}");
+            if (order.CurrentStage != ProductionStage.Cutting ||
+                order.CurrentStatus == ProductionStatus.Completed ||
+                order.CurrentStatus == ProductionStatus.Finished)
+            {
+                throw new InvalidOperationException($"{ErrorMessages.CannotDeleteByBusinessRules}: {ErrorMessages.OrderAlreadyInProgress}");
+            }
         }
 
         await _orderRepository.DeleteAsync(id);

@@ -49,6 +49,7 @@ public class SystemConfigurationService : ISystemConfigurationService
             DailyFixedCost = config.DailyFixedCost,
             OperationalHourlyCost = config.OperationalHourlyCost,
             ThemeName = config.ThemeName,
+            DailyGoal = config.DailyGoal,
             TvAnnouncement = announcement
         };
     }
@@ -97,6 +98,7 @@ public class SystemConfigurationService : ISystemConfigurationService
         existing.DailyFixedCost = dto.DailyFixedCost;
         existing.OperationalHourlyCost = dto.OperationalHourlyCost;
         existing.ThemeName = dto.ThemeName;
+        existing.DailyGoal = dto.DailyGoal;
 
         await _repository.UpdateAsync(existing);
 
