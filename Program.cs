@@ -189,15 +189,18 @@ using (var scope = app.Services.CreateScope())
                 
                 using (var cmd = conn.CreateCommand())
                 {
-                    // 1. Column Repairs (IsArchived & DailyGoal)
-                    string[] columns = { 
-                        "ALTER TABLE ProductionOrders ADD COLUMN IF NOT EXISTS IsArchived TINYINT(1) NOT NULL DEFAULT 0",
-                        "ALTER TABLE SystemConfigurations ADD COLUMN IF NOT EXISTS DailyGoal INT NOT NULL DEFAULT 500"
-                    };
-                    
-                    foreach (var sql in columns) {
-                        try { cmd.CommandText = sql; await cmd.ExecuteNonQueryAsync(); } catch { /* Ignore if exists */ }
+                    // 1. Physical Column Repairs (Standard MySQL Compatible)
+                    async Task EnsureColumn(string table, string column, string definition) {
+                        cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = '{table}' AND COLUMN_NAME = '{column}' AND TABLE_SCHEMA = DATABASE()";
+                        if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0) {
+                            logger.LogCritical("REPAIR: Adding missing column {Col} to {Tab}...", column, table);
+                            cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
+
+                    await EnsureColumn("ProductionOrders", "IsArchived", "TINYINT(1) NOT NULL DEFAULT 0");
+                    await EnsureColumn("SystemConfigurations", "DailyGoal", "INT NOT NULL DEFAULT 500");
 
                     // 2. THE ERROR 500 KILLER: Dynamic Foreign Key Reconstruction
                     try 
