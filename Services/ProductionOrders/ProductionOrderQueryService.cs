@@ -12,6 +12,7 @@ using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Models.DTOs;
+using GestionProduccion.Services.Interfaces;
 using GestionProduccion.Application.Mapping;
 using GestionProduccion.Application.Mappers;
 using Microsoft.EntityFrameworkCore;
