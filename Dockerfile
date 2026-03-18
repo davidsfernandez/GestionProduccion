@@ -63,6 +63,10 @@ RUN apt-get update && \
     fc-cache -f -v && \
     rm -rf /var/lib/apt/lists/*
 
+# Create backup directory for default assets to survive volume mounting
+RUN mkdir -p /app/wwwroot/img/avatars_defaults && \
+    cp wwwroot/img/avatars/* /app/wwwroot/img/avatars_defaults/ || true
+
 # Set entrypoint
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
