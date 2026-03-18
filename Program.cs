@@ -344,9 +344,18 @@ if (!app.Environment.IsEnvironment("Testing"))
                             await context.Database.MigrateAsync();
                         }
                     }
-                    catch (Exception ex) when (ex.Message.Contains("1060"))
+                    catch (Exception ex) 
                     {
-                        logger.LogWarning("MIGRATION: Duplicate column detected. EF Core was already updated by hotfix.");
+                        var msg = ex.Message + (ex.InnerException?.Message ?? "");
+                        if (msg.Contains("1060") || msg.Contains("Duplicate column name"))
+                        {
+                            logger.LogWarning("MIGRATION: Columns already exist (Handled). Proceeding to seed...");
+                        }
+                        else 
+                        {
+                            logger.LogError("MIGRATION FATAL ERROR: {Msg}", ex.Message);
+                            throw; 
+                        }
                     }
 
                     // 3. SEEDING
