@@ -80,6 +80,20 @@ public class ProductionOrdersController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ApiResponse<ProductionOrderDto>.FailureResult("Error updating order", new List<string> { ex.Message })); }
     }
 
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProductionOrder(int id)
+    {
+        try
+        {
+            var result = await _mutationService.DeleteProductionOrderAsync(id, HttpContext.RequestAborted);
+            if (!result) return NotFound(ApiResponse<object>.FailureResult("Order not found"));
+            return Ok(ApiResponse<object>.SuccessResult(null!, "Order deleted successfully"));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.FailureResult(ex.Message)); }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<object>.FailureResult("Error deleting order", new List<string> { ex.Message })); }
+    }
+
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResponseDto<ProductionOrderDto>>>> GetProductionOrders([FromQuery] FilterProductionOrderDto? filter, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
