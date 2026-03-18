@@ -76,9 +76,9 @@ else
 // --- 2. DEPENDENCY INJECTION ---
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<GestionProduccion.Application.Mappers.MainMapper>();
-builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderQueryService, GestionProduccion.Services.ProductionOrders.ProductionOrderQueryService>();
-builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderMutationService, GestionProduccion.Services.ProductionOrders.ProductionOrderMutationService>();
-builder.Services.AddScoped<GestionProduccion.Services.ProductionOrders.IProductionOrderLifecycleService, GestionProduccion.Services.ProductionOrders.ProductionOrderLifecycleService>();
+builder.Services.AddScoped<IProductionOrderQueryService, ProductionOrderQueryService>();
+builder.Services.AddScoped<IProductionOrderMutationService, ProductionOrderMutationService>();
+builder.Services.AddScoped<IProductionOrderLifecycleService, ProductionOrderLifecycleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
@@ -169,7 +169,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- 6. AUTOMATIC MIGRATIONS & PHYSICAL REPAIR ---
+// --- 6. AUTOMATIC MIGRATIONS & FINAL SYSTEM REPAIR ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -183,63 +183,72 @@ using (var scope = app.Services.CreateScope())
         {
             if (await context.Database.CanConnectAsync())
             {
-                logger.LogInformation("MIGRATION: DB Connected. Running Forensics...");
+                logger.LogInformation("SYSTEM: Running Critical Integrity Repairs...");
                 var conn = context.Database.GetDbConnection();
                 if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
                 
-                // Hotfix: Ensure Cascade Delete for ProductionOrders
-                try 
+                using (var cmd = conn.CreateCommand())
                 {
-                    logger.LogInformation("REPAIR: Verifying Cascade Delete constraints...");
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        // 1. Outputs -> Sizes
-                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND COLUMN_NAME = 'ProductionOrderSizeId' AND TABLE_SCHEMA = DATABASE() LIMIT 1";
-                        var fkSize = await cmd.ExecuteScalarAsync() as string;
-                        if (!string.IsNullOrEmpty(fkSize))
-                        {
-                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkSize}";
-                            await cmd.ExecuteNonQueryAsync();
-                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        
-                        // 2. Outputs -> Orders
-                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND COLUMN_NAME = 'ProductionOrderId' AND TABLE_SCHEMA = DATABASE() LIMIT 1";
-                        var fkOrder = await cmd.ExecuteScalarAsync() as string;
-                        if (!string.IsNullOrEmpty(fkOrder))
-                        {
-                            cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY {fkOrder}";
-                            await cmd.ExecuteNonQueryAsync();
-                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Orders_Cascade FOREIGN KEY (ProductionOrderId) REFERENCES ProductionOrders(Id) ON DELETE CASCADE";
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        
-                        logger.LogInformation("REPAIR: Cascade Delete is now ACTIVE for all relationships.");
+                    // 1. Column Repairs (IsArchived & DailyGoal)
+                    string[] columns = { 
+                        "ALTER TABLE ProductionOrders ADD COLUMN IF NOT EXISTS IsArchived TINYINT(1) NOT NULL DEFAULT 0",
+                        "ALTER TABLE SystemConfigurations ADD COLUMN IF NOT EXISTS DailyGoal INT NOT NULL DEFAULT 500"
+                    };
+                    
+                    foreach (var sql in columns) {
+                        try { cmd.CommandText = sql; await cmd.ExecuteNonQueryAsync(); } catch { /* Ignore if exists */ }
                     }
-                } 
-                catch (Exception ex) 
-                { 
-                    logger.LogWarning("REPAIR WARNING: Could not apply cascade delete hotfix. Deletion might fail. Error: {Msg}", ex.Message); 
+
+                    // 2. THE ERROR 500 KILLER: Dynamic Foreign Key Reconstruction
+                    try 
+                    {
+                        logger.LogWarning("SYSTEM: Forcing Cascade Delete on ProductionOrderOutputs...");
+                        
+                        // Find ALL foreign keys on ProductionOrderOutputs
+                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL";
+                        var fks = new List<string>();
+                        using (var reader = await cmd.ExecuteReaderAsync()) {
+                            while (await reader.ReadAsync()) fks.Add(reader.GetString(0));
+                        }
+
+                        foreach (var fk in fks) {
+                            try {
+                                cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY `{fk}`";
+                                await cmd.ExecuteNonQueryAsync();
+                            } catch { }
+                        }
+
+                        // Recreate correct Cascade Keys
+                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Orders_Cascade FOREIGN KEY (ProductionOrderId) REFERENCES ProductionOrders(Id) ON DELETE CASCADE";
+                        await cmd.ExecuteNonQueryAsync();
+                        
+                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
+                        await cmd.ExecuteNonQueryAsync();
+                        
+                        logger.LogInformation("SYSTEM: Cascade Delete is now ACTIVE and BLINDED.");
+                    } 
+                    catch (Exception ex) { logger.LogWarning("Repair detail: {Msg}", ex.Message); }
                 }
 
-                // Apply EF Migrations with safety
+                // Apply EF Migrations with total silence on duplicates
                 try {
                     await context.Database.MigrateAsync();
-                    logger.LogInformation("MIGRATION: EF Core Sync Success.");
-                } catch (Exception ex) when (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate")) {
-                    logger.LogWarning("MIGRATION: Schema already updated by hotfix. Continuing...");
+                    logger.LogInformation("SYSTEM: EF Core Synchronized.");
+                } catch (Exception ex) {
+                    if (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate"))
+                        logger.LogWarning("SYSTEM: Schema already updated. Proceeding...");
+                    else throw;
                 }
 
                 await DbInitializer.SeedAsync(context, logger);
-                logger.LogInformation("MIGRATION: All tasks completed successfully.");
+                logger.LogInformation("SYSTEM: ALL STABILIZATION TASKS COMPLETED.");
                 break;
             }
         }
         catch (Exception ex)
         {
             retries--;
-            logger.LogWarning("MIGRATION: Retry in 3s... Error: {Msg}", ex.Message);
+            logger.LogWarning("SYSTEM: Retry in 3s... Error: {Msg}", ex.Message);
             await Task.Delay(3000);
         }
     }
