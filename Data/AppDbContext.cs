@@ -77,7 +77,7 @@ public class AppDbContext : DbContext
             .HasOne(poo => poo.ProductionOrderSize)
             .WithMany()
             .HasForeignKey(poo => poo.ProductionOrderSizeId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ProductionOrderOutput>()
             .HasOne(poo => poo.ResponsibleUser)
