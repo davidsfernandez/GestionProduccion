@@ -237,6 +237,14 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         order.CurrentStatus = ProductionStatus.InProduction;
         order.UpdatedAt = DateTime.UtcNow;
 
+        // --- NEW BUSINESS RULE: Enter Packaging = Automatically Produced Today ---
+        // If the new stage is Packaging, we immediately record all remaining pieces
+        // so they count towards the "Produced Today" KPI in TV Mode.
+        if (newStage == ProductionStage.Packaging)
+        {
+            await RecordRemainingOutputsAsync(order, modifiedByUserId);
+        }
+
         await _orderRepository.UpdateAsync(order);
         await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
         await _orderRepository.SaveChangesAsync();
