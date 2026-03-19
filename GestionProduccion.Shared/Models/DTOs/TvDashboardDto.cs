@@ -31,6 +31,7 @@ public class TvProductionItemDto
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int CurrentStageQuantity { get; set; } // New field for partial progress
     public string Stage { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
 }

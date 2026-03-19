@@ -184,6 +184,13 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
 
         var announcement = config?.TvAnnouncement ?? "Foco na meta de hoje! Vamos com tudo! 🚀"; 
 
+        // Fetch all outputs for the active orders to calculate current stage progress
+        var activeOrderIds = activeOrders.Select(o => o.Id).ToList();
+        var allActiveOutputs = await _outputRepository.GetQueryableAsync();
+        var activeOutputsList = await allActiveOutputs
+            .Where(o => activeOrderIds.Contains(o.ProductionOrderId))
+            .ToListAsync(ct);
+
         return new TvDashboardDto
         {
             CompletedToday = completedToday,
@@ -198,6 +205,9 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
                 ProductCode = o.Product?.InternalCode ?? "N/A",
                 ProductName = o.Product?.Name ?? "N/A",
                 Quantity = o.Quantity,
+                CurrentStageQuantity = activeOutputsList
+                    .Where(x => x.ProductionOrderId == o.Id && x.Stage == o.CurrentStage)
+                    .Sum(x => x.Quantity),
                 Stage = o.CurrentStage.ToString(),
                 Status = o.CurrentStatus.ToString()
             }).ToList()

@@ -191,8 +191,14 @@ else
                     @foreach (var item in dashboard.ProductionItems.Take(4))
                     {
                         <div class="list-item animate-fade-in">
-                            <span class="text-truncate" style="max-width: 75%;">@item.ProductName</span>
-                            <span class="color-info">@item.Quantity</span>
+                            <div class="d-flex flex-column" style="max-width: 70%;">
+                                <span class="text-truncate" style="font-size: 2.2rem;">@item.ProductName</span>
+                                <small class="text-muted" style="font-size: 1.4rem; margin-top: -5px;">@item.LotCode • @TranslateStage(item.Stage)</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="color-info" style="font-size: 3.2rem;">@item.CurrentStageQuantity</span>
+                                <span class="text-muted" style="font-size: 2rem;"> / @item.Quantity</span>
+                            </div>
                         </div>
                     }
                 </div>
@@ -290,6 +296,15 @@ else
         try { await hubConnection.StartAsync(); isConnected = true; }
         catch { isConnected = false; }
     }
+
+    private string TranslateStage(string stage) => stage.ToLower() switch
+    {
+        "cutting" => "Corte",
+        "sewing" => "Costura",
+        "review" => "Revisão",
+        "packaging" => "Embalagem",
+        _ => stage
+    };
 
     public async ValueTask DisposeAsync()
     {
