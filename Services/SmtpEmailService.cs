@@ -1,16 +1,17 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
  * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited.
+ * or use of this software, via any medium, is strictly prohibited. 
  * 
  * Proprietary and Confidential.
  */
 
 using GestionProduccion.Services.Interfaces;
-using System.Net.Mail;
-using System.Net;
+using MimeKit;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 
 namespace GestionProduccion.Services;
 
@@ -38,43 +39,39 @@ public class SmtpEmailService : IEmailService
             var fromEmail = _configuration["SMTP_FROM_EMAIL"] ?? username ?? "no-reply@gestionproduccion.com";
             var fromName = _configuration["SMTP_FROM_NAME"] ?? "Gestão de Produção";
 
-            // Support for SSL/TLS based on standard ports or explicit config
-            bool useSsl = true;
-            if (bool.TryParse(_configuration["SMTP_USE_SSL"], out bool explicitSsl))
+            // Support for SSL/TLS based on port
+            // Port 465 requires SslOnConnect (Implicit SSL)
+            // Port 587 requires StartTls (Explicit SSL)
+            var secureOptions = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.Auto;
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, fromEmail));
+            message.To.Add(new MailboxAddress("", to));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            
+            // Bypass certificate validation if needed (common in some VPS environments)
+            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+            await client.ConnectAsync(host, port, secureOptions);
+            
+            if (!string.IsNullOrEmpty(username))
             {
-                useSsl = explicitSsl;
+                await client.AuthenticateAsync(username, password);
             }
-            else
-            {
-                // Default heuristic: 465 and 587 almost always require SSL/TLS
-                useSsl = port == 465 || port == 587;
-            }
 
-            using var client = new SmtpClient(host, port)
-            {
-                Credentials = !string.IsNullOrEmpty(username) ? new NetworkCredential(username, password) : null,
-                EnableSsl = useSsl,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false
-            };
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
 
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(fromEmail, fromName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
-            };
-            mailMessage.To.Add(to);
-
-            await client.SendMailAsync(mailMessage);
-            _logger.LogInformation("Email successfully sent to {To} via {Host}", to, host);
+            _logger.LogInformation("Email successfully sent to {To} via {Host} (Port {Port}) using MailKit", to, host, port);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {To}. Check your SMTP environment variables.", to);
+            _logger.LogError(ex, "MAILKIT ERROR: Failed to send email to {To}. Technical Detail: {Msg}", to, ex.Message);
         }
     }
 }
-
-
