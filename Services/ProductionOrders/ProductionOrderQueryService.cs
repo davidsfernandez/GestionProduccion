@@ -67,9 +67,13 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         return order.ToDto();
     }
 
-    public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int pageNumber = 1, int pageSize = 10, CancellationToken ct = default)
+    public async Task<PaginatedResponseDto<ProductionOrderDto>> ListProductionOrdersAsync(FilterProductionOrderDto? filter, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var query = await _orderRepository.GetQueryableAsync();
+        // Safety: Ensure page and pageSize are positive to avoid MySQL negative OFFSET errors
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        var query = _repository.GetQueryableAsync();
 
         if (filter == null || !filter.IncludeArchived)
         {
@@ -134,7 +138,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(po => po.AssignedUser)
             .Include(po => po.AssignedTeam)
             .OrderByDescending(po => po.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
 
@@ -142,7 +146,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         {
             Items = ordersList.ToDtoList(),
             TotalItems = totalItems,
-            PageNumber = pageNumber,
+            PageNumber = page,
             PageSize = pageSize
         };
     }
