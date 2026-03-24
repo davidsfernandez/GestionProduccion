@@ -41,6 +41,7 @@ public class ProductionOrderServiceTests : IDisposable
     private readonly Mock<IFinancialCalculatorService> _mockFinancialCalc;
     private readonly Mock<IProductService> _mockProductService;
     private readonly Mock<ITaskService> _mockTaskService;
+    private readonly Mock<ISystemConfigurationService> _mockConfigService;
 
     private readonly ProductionOrderQueryService _queryService;
     private readonly ProductionOrderMutationService _mutationService;
@@ -60,6 +61,7 @@ public class ProductionOrderServiceTests : IDisposable
         _mockFinancialCalc = new Mock<IFinancialCalculatorService>();
         _mockProductService = new Mock<IProductService>();
         _mockTaskService = new Mock<ITaskService>();
+        _mockConfigService = new Mock<ISystemConfigurationService>();
 
         _mockLock.Setup(l => l.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -77,7 +79,7 @@ public class ProductionOrderServiceTests : IDisposable
 
         _mockProductRepo.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Product?)null);
 
-        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object, outputRepo, mapper);
+        _queryService = new ProductionOrderQueryService(orderRepo, userRepo, _mockHttpContextAccessor.Object, outputRepo, _mockConfigService.Object, mapper);
 
         _mutationService = new ProductionOrderMutationService(
             orderRepo,

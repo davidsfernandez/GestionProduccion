@@ -9,9 +9,9 @@ using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services;
 using GestionProduccion.Services.Interfaces;
-using GestionProduccion.GestionProduccion.Domain.Interfaces; // For IQARepository if in sub-namespace
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 
@@ -34,14 +34,15 @@ namespace GestionProduccion.Tests.Integration
             services.AddScoped<IBonusRuleRepository, BonusRuleRepository>();
             services.AddScoped<ISewingTeamRepository, SewingTeamRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             
             // Services
+            services.AddSingleton<GestionProduccion.Application.Mappers.MainMapper>();
             services.AddScoped<BonusCalculationService>();
-            services.AddScoped<QAService>(); // Required by Bonus Service
+            services.AddScoped<IQAService, QAService>(); // Required by Bonus Service
             
             // Mocks
-            services.AddSingleton(new Mock<IQARepository>().Object);
-            services.AddSingleton(new Mock<ILocalFileStorageService>().Object);
+            services.AddSingleton(new Mock<IFileStorageService>().Object);
             services.AddSingleton(new Mock<ILogger<BonusCalculationService>>().Object);
             services.AddSingleton(new Mock<ILogger<QAService>>().Object);
 
@@ -57,6 +58,7 @@ namespace GestionProduccion.Tests.Integration
             var bonusService = testProvider.GetRequiredService<BonusCalculationService>();
 
             // Arrange
+            await EnsureTestUser(db, 1);
             var productId = await CreateTestProduct(db, 2.50m);
             var orderId = await CreateTestOrder(db, productId, 100, DateTime.UtcNow.AddDays(1), 2.50m);
             await CompleteOrder(db, orderId, 100, DateTime.UtcNow);
@@ -78,6 +80,7 @@ namespace GestionProduccion.Tests.Integration
             var bonusService = testProvider.GetRequiredService<BonusCalculationService>();
 
             // Arrange
+            await EnsureTestUser(db, 1);
             var productId = await CreateTestProduct(db, 2.50m);
             var orderId = await CreateTestOrder(db, productId, 100, DateTime.UtcNow.AddDays(1), 2.50m);
             await CompleteOrder(db, orderId, 99, DateTime.UtcNow); 
@@ -100,6 +103,7 @@ namespace GestionProduccion.Tests.Integration
             var bonusService = testProvider.GetRequiredService<BonusCalculationService>();
 
             // Arrange
+            await EnsureTestUser(db, 1);
             var productId = await CreateTestProduct(db, 2.50m);
             var orderId = await CreateTestOrder(db, productId, 100, DateTime.UtcNow.AddDays(-1), 2.50m); 
             await CompleteOrder(db, orderId, 100, DateTime.UtcNow); 
@@ -114,6 +118,13 @@ namespace GestionProduccion.Tests.Integration
         }
 
         // Helpers
+        private async Task EnsureTestUser(AppDbContext db, int id)
+        {
+            if (await db.Users.AnyAsync(u => u.Id == id)) return;
+            db.Users.Add(new User { Id = id, FullName = "Test User", Email = $"test{id}@test.com", ExternalId = Guid.NewGuid() });
+            await db.SaveChangesAsync();
+        }
+
         private async Task<int> CreateTestProduct(AppDbContext db, decimal bonus)
         {
             var p = new Product { 
