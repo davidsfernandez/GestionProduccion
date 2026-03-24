@@ -4,7 +4,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Fix Blazor WASM icudt_no_CJK.dat 404/SRI failure**
+- [x] **Track: Fix Blazor WASM icudt_no_CJK.dat 404/SRI failure**
   *Link: [./tracks/fix_blazor_wasm_icu_404_20260324/][./tracks/fix_blazor_wasm_icu_404_20260324/]*
 
 - [ ] **Track: Optimize Production Orders workflow**
