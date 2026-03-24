@@ -51,6 +51,10 @@ public class LoginPageTests : TestContext
 
         Services.AddSingleton(new UserStateService());
 
+        var mockTvDetection = new Mock<TvDetectionService>(JSInterop.JSRuntime);
+        mockTvDetection.Setup(x => x.IsTvDeviceAsync()).ReturnsAsync(false);
+        Services.AddSingleton(mockTvDetection.Object);
+
         this.AddTestAuthorization().SetNotAuthorized();
     }
 

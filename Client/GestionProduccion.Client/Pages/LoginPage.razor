@@ -20,6 +20,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject UserStateService UserState
 @inject JsonSerializerOptions JsonOptions
+@inject TvDetectionService TvDetection
 
 <PageTitle>Login | @Portuguese.AppName</PageTitle>
 
@@ -36,6 +37,16 @@
         <div class="row vh-100">
             <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 mx-auto d-table h-100">
                 <div class="d-table-cell align-middle">
+
+                    @if (isTvDevice)
+                    {
+                        <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4 p-4 animate-fade-in text-center">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-tv me-2"></i>Smart TV Detectada</h5>
+                            <button type="button" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-900" @onclick='() => NavigationManager.NavigateTo("/tv-producao")'>
+                                ACESSAR MODO TV AGORA <i class="fa-solid fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    }
 
                     <div class="text-center mb-4">
                         <div class="bg-white p-4 rounded-4 d-inline-flex shadow-sm mb-4 animate-fade-in" style="min-width: 140px; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
@@ -140,6 +151,7 @@
     private bool isLoading = false;
     private bool showPassword = false;
     private bool isChecking = true;
+    private bool isTvDevice = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -147,6 +159,9 @@
         {
             isChecking = true;
             
+            // Check if device is a TV
+            isTvDevice = await TvDetection.IsTvDeviceAsync();
+
             // 1. Silent check for setup (First Priority)
             var setupResp = await Http.GetFromJsonAsync<ApiResponse<bool>>("api/Auth/setup-required", JsonOptions);
             if (setupResp != null && setupResp.Success && setupResp.Data)

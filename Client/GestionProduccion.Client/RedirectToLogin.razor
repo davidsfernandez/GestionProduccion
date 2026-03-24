@@ -1,8 +1,10 @@
 @using GestionProduccion.Models.DTOs
 @using System.Text.Json
+@using GestionProduccion.Client.Services
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject JsonSerializerOptions JsonOptions
+@inject TvDetectionService TvDetection
 
 <div class="vh-100 d-flex flex-column align-items-center justify-content-center bg-light animate-fade-in">
     <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
@@ -22,6 +24,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // First check if it's a TV device to allow public access to dashboard
+        var isTv = await TvDetection.IsTvDeviceAsync();
+        if (isTv)
+        {
+            NavigationManager.NavigateTo("/tv-producao", true);
+            return;
+        }
+
         await CheckSetup();
     }
 

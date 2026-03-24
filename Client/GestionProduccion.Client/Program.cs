@@ -60,5 +60,6 @@ builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddScoped<AudioService>();
 builder.Services.AddScoped<UserStateService>();
+builder.Services.AddScoped<TvDetectionService>();
 
 await builder.Build().RunAsync();
