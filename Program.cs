@@ -163,6 +163,7 @@ forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
 app.UseMiddleware<GestionProduccion.Helpers.ExceptionMiddleware>();
+app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowAll");

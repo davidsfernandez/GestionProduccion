@@ -7,7 +7,6 @@
     <UserSecretsId>gestion-produccion-secrets-2026</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <!-- Explicitly exclude nested source directories to prevent duplicate compilation in Docker/Linux -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Client/GestionProduccion.Client/wwwroot/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- Optimization for Production (Release) -->
@@ -32,15 +31,6 @@
     <None Remove="GestionProduccion.Domain/**" />
     <None Remove="GestionProduccion.Application/**" />
     <None Remove="GestionProduccion.Tests/**" />
-    
-    <!-- CRITICAL: Exclude Razor files from Content to stop Server from compiling them -->
-    <Content Remove="Client/**" />
-    <Content Remove="GestionProduccion.Shared/**" />
-    <Content Remove="GestionProduccion.Domain/**" />
-    <Content Remove="GestionProduccion.Application/**" />
-    <Content Remove="GestionProduccion.Tests/**" />
-    <Content Remove="docker_publish_test/**" />
-    <Content Remove="test_publish/**" />
     
     <EmbeddedResource Remove="Client/**" />
     <EmbeddedResource Remove="GestionProduccion.Shared/**" />
