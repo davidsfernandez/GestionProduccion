@@ -14,3 +14,6 @@
     - [x] Alternatively, set `InvariantGlobalization` to `true` if culture-specific logic is not needed (unlikely for this project).
 - [x] Task: Configure the server/container to correctly handle `.dat` files if missing.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions 2ec88f9
