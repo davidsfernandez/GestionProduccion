@@ -10,13 +10,9 @@ window.tvDetection = {
             'AndroidTV', 'CrKey', 'Roku', 'AppleTV', 'HbbTV'
         ];
         
-        // 1. Check User Agent keywords
-        const isTvUA = tvKeywords.some(keyword => userAgent.includes(keyword));
-        
-        // 2. Check for large screens with no touch support (common for factory TVs)
-        const isLargeScreen = window.screen.width >= 1280 && !('ontouchstart' in window);
-        
-        return isTvUA || isLargeScreen;
+        // Check ONLY User Agent keywords. 
+        // We removed screen-size based detection to avoid false positives on Laptops/PCs.
+        return tvKeywords.some(keyword => userAgent.includes(keyword));
     },
     getScreenResolution: function () {
         return {
