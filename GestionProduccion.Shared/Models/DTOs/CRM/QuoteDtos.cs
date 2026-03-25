@@ -15,6 +15,7 @@ public class QuoteDto
 {
     public int Id { get; set; }
     public int LeadId { get; set; }
+    public int? CustomerUserId { get; set; }
     public string LeadName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiryDate { get; set; }

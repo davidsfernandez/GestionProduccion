@@ -121,11 +121,8 @@ public class CustomerPortalController : ControllerBase
 
             // Verify ownership first
             var quote = await _quoteService.GetQuoteByIdAsync(id, HttpContext.RequestAborted);
-            var lead = await _leadService.GetLeadsAsync(HttpContext.RequestAborted); // Need a better way to check lead ownership
-            
-            // For now, let's assume IQuoteService.GetCustomerQuotesAsync already handles security, 
-            // but for specific actions we need to be careful.
-            
+            if (quote.CustomerUserId != userId) return Forbid();
+
             // Implementation detail: Quote status transition to Approved
             var result = await _quoteService.UpdateQuoteStatusAsync(id, Domain.Entities.CRM.QuoteStatus.Approved, HttpContext.RequestAborted);
             return Ok(ApiResponse<QuoteDto>.SuccessResult(result, "Orçamento aprovado com sucesso! Igor iniciará a produção em breve."));
@@ -135,5 +132,4 @@ public class CustomerPortalController : ControllerBase
             _logger.LogError(ex, "Error approving quote");
             return StatusCode(500, ApiResponse<QuoteDto>.FailureResult("Erro ao aprovar orçamento."));
         }
-    }
-}
+    }}

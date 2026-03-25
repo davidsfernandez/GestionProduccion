@@ -90,6 +90,7 @@ public class QuoteService : IQuoteService
         {
             Id = q.Id,
             LeadId = q.LeadId,
+            CustomerUserId = q.Lead?.CustomerUserId,
             LeadName = q.Lead?.Name ?? "Unknown",
             CreatedAt = q.CreatedAt,
             ExpiryDate = q.ExpiryDate,
