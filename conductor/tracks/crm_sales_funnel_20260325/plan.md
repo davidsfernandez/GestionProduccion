@@ -10,7 +10,7 @@
 - [x] Task: Implement Real-time Lead Notifications 0bd072d.
     - [ ] Update SignalR Hub to notify Igor of new leads.
     - [ ] Create UI Toast notification for new leads.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Inbound' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Inbound' 4d181a7 (Protocol in workflow.md)
 
 ## Phase 2: Sales Pipeline Management (CRM UI)
 - [ ] Task: Build CRM Dashboard and Pipeline View.
