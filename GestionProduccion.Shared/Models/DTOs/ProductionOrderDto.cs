@@ -30,6 +30,7 @@ public class ProductionOrderDto
     public int? UserId { get; set; }
     public string? AssignedUserName { get; set; }
     public string? AssignedUserAvatar { get; set; }
+    public int? CustomerUserId { get; set; }
     public int? SewingTeamId { get; set; }
     public string? SewingTeamName { get; set; }
     public bool IsTeamTask { get; set; }

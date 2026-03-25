@@ -62,6 +62,17 @@ public class QuoteService : IQuoteService
         return MapToDto(quote);
     }
 
+    public async Task<List<QuoteDto>> GetCustomerQuotesAsync(int customerUserId, CancellationToken ct = default)
+    {
+        return await _context.Quotes
+            .Include(q => q.Lead)
+            .Include(q => q.Items)
+            .Where(q => q.Lead!.CustomerUserId == customerUserId)
+            .OrderByDescending(q => q.CreatedAt)
+            .Select(q => MapToDto(q))
+            .ToListAsync(ct);
+    }
+
     public async Task<QuoteDto> UpdateQuoteStatusAsync(int quoteId, QuoteStatus newStatus, CancellationToken ct = default)
     {
         var quote = await _context.Quotes.FindAsync(new object[] { quoteId }, ct)

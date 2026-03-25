@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using GestionProduccion.Domain.Enums;
 
 namespace GestionProduccion.Domain.Entities.CRM;
@@ -30,6 +31,11 @@ public class Lead
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // --- CUSTOMER PORTAL ---
+    public int? CustomerUserId { get; set; }
+    [ForeignKey(nameof(CustomerUserId))]
+    public virtual User? CustomerUser { get; set; }
 
     public string? CommercialNotes { get; set; }
 

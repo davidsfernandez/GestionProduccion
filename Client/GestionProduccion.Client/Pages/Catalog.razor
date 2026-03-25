@@ -1,0 +1,214 @@
+@page "/catalogo"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using GestionProduccion.Client.Services
+@using System.Globalization
+@inject IProductClient ProductClient
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Catálogo de Produtos | @Portuguese.AppName</PageTitle>
+
+<div class="container-fluid p-4 animate-fade-in">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+        <div>
+            <h2 class="fw-900 text-dark mb-1" style="letter-spacing: -1px;">CATÁLOGO DIGITAL</h2>
+            <p class="text-muted mb-0">Explore nossa coleção e faça seu pedido online.</p>
+        </div>
+        <div class="search-box">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
+                <span class="input-group-text bg-white border-0 ps-3"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" class="form-control border-0 py-2 shadow-none" placeholder="Buscar produto..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterProducts" />
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-grow text-primary" role="status"></div>
+        </div>
+    }
+    else if (filteredProducts == null || !filteredProducts.Any())
+    {
+        <SeronaEmptyState Icon="fa-solid fa-bag-shopping" Title="Nenhum produto encontrado" Description="Tente ajustar sua busca ou volte mais tarde." />
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var product in filteredProducts)
+            {
+                <div class="col-sm-6 col-lg-4 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden product-card" @onclick="() => ViewProduct(product)">
+                        <div class="position-relative">
+                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                            {
+                                <img src="@product.ImageUrl" class="card-img-top product-img" alt="@product.Name">
+                            }
+                            else
+                            {
+                                <div class="product-placeholder d-flex align-items-center justify-content-center bg-light">
+                                    <i class="fa-solid fa-shirt text-muted fs-1 opacity-25"></i>
+                                </div>
+                            }
+                            <span class="badge bg-white text-dark shadow-sm position-absolute top-0 end-0 m-3 rounded-pill px-3 py-2">
+                                @product.FabricType
+                            </span>
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-dark mb-1">@product.Name</h5>
+                            <p class="text-muted small mb-3 text-truncate">@product.Description</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <div class="price-tag">
+                                    <span class="text-primary fw-900 fs-4">@product.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</span>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                                    VER DETALHES
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (selectedProduct != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.8)">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+                        <div class="col-lg-6 bg-light d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                            @if (!string.IsNullOrEmpty(selectedProduct.ImageUrl))
+                            {
+                                <img src="@selectedProduct.ImageUrl" class="img-fluid object-fit-cover h-100 w-100" alt="@selectedProduct.Name">
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-shirt text-muted display-1 opacity-25"></i>
+                            }
+                        </div>
+                        <div class="col-lg-6 p-5 position-relative">
+                            <button type="button" class="btn-close position-absolute top-0 end-0 m-4 shadow-none" @onclick="() => selectedProduct = null"></button>
+                            
+                            <span class="badge bg-primary-soft text-primary rounded-pill px-3 py-2 mb-3">@selectedProduct.FabricType</span>
+                            <h2 class="fw-900 text-dark mb-2">@selectedProduct.Name</h2>
+                            <p class="text-muted mb-4">SKU: <span class="fw-bold">@selectedProduct.MainSku</span></p>
+                            
+                            <div class="price-section mb-4">
+                                <h3 class="fw-900 text-primary">@selectedProduct.EstimatedSalePrice.ToString("C", CultureInfo.GetCultureInfo("pt-BR"))</h3>
+                                <p class="small text-muted italic">Preço sujeito a orçamento personalizado.</p>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted uppercase mb-3">Tamanhos Disponíveis</label>
+                                <div class="d-flex gap-2">
+                                    @if (!string.IsNullOrEmpty(selectedProduct.AvailableSizes))
+                                    {
+                                        @foreach (var size in selectedProduct.AvailableSizes.Split(','))
+                                        {
+                                            <span class="size-box">@size.Trim()</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted italic small">Consulte-nos sobre as grades.</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="mb-5">
+                                <label class="form-label small fw-bold text-muted uppercase mb-3">Cores</label>
+                                <div class="d-flex gap-2">
+                                    @if (!string.IsNullOrEmpty(selectedProduct.AvailableColors))
+                                    {
+                                        @foreach (var color in selectedProduct.AvailableColors.Split(','))
+                                        {
+                                            <span class="badge rounded-pill border px-3 py-2 text-dark bg-white">@color.Trim()</span>
+                                        }
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-3">
+                                <button class="btn btn-primary btn-lg rounded-pill fw-bold py-3 shadow" @onclick="RequestQuote">
+                                    SOLICITAR ORÇAMENTO <i class="fa-solid fa-paper-plane ms-2"></i>
+                                </button>
+                                <button class="btn btn-light btn-lg rounded-pill fw-bold py-3" @onclick="() => selectedProduct = null">
+                                    VOLTAR AO CATÁLOGO
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .product-card { transition: all 0.3s ease; cursor: pointer; }
+    .product-card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important; }
+    .product-img { height: 250px; object-fit: cover; }
+    .product-placeholder { height: 250px; }
+    .search-box { width: 350px; }
+    .size-box { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border: 2px solid #e2e8f0; border-radius: 10px; font-weight: bold; color: #475569; }
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+</style>
+
+@code {
+    private List<ProductDto>? allProducts;
+    private List<ProductDto>? filteredProducts;
+    private ProductDto? selectedProduct;
+    private string searchTerm = "";
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        var response = await ProductClient.GetAllAsync();
+        if (response.Success)
+        {
+            allProducts = response.Data;
+            filteredProducts = allProducts;
+        }
+        loading = false;
+    }
+
+    private void FilterProducts()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredProducts = allProducts;
+        }
+        else
+        {
+            filteredProducts = allProducts?.Where(p => 
+                p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                p.MainSku.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+
+    private void ViewProduct(ProductDto product)
+    {
+        selectedProduct = product;
+    }
+
+    private void RequestQuote()
+    {
+        // For now, redirect to lead capture or WhatsApp
+        ToastService.ShowToast("Solicitação de orçamento enviada para Igor!", ToastLevel.Success);
+        selectedProduct = null;
+    }
+}

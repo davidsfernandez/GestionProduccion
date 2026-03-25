@@ -20,7 +20,11 @@ public static class ManualMapper
             MainSku = entity.MainSku,
             AverageProductionTimeMinutes = entity.AverageProductionTimeMinutes,
             EstimatedSalePrice = entity.EstimatedSalePrice,
-            DefaultBonusPerPiece = entity.DefaultBonusPerPiece
+            DefaultBonusPerPiece = entity.DefaultBonusPerPiece,
+            Description = entity.Description,
+            ImageUrl = entity.ImageUrl,
+            AvailableSizes = entity.AvailableSizes,
+            AvailableColors = entity.AvailableColors
         };
     }
 
@@ -36,7 +40,11 @@ public static class ManualMapper
             MainSku = dto.MainSku,
             AverageProductionTimeMinutes = dto.AverageProductionTimeMinutes,
             EstimatedSalePrice = dto.EstimatedSalePrice,
-            DefaultBonusPerPiece = dto.DefaultBonusPerPiece
+            DefaultBonusPerPiece = dto.DefaultBonusPerPiece,
+            Description = dto.Description,
+            ImageUrl = dto.ImageUrl,
+            AvailableSizes = dto.AvailableSizes,
+            AvailableColors = dto.AvailableColors
         };
     }
 
@@ -139,6 +147,7 @@ public static class ManualMapper
             UserId = entity.UserId,
             AssignedUserName = entity.AssignedUser?.FullName,
             AssignedUserAvatar = entity.AssignedUser?.AvatarUrl,
+            CustomerUserId = entity.CustomerUserId,
             SewingTeamId = entity.SewingTeamId,
             SewingTeamName = entity.AssignedTeam?.Name,
             TotalCost = entity.TotalCost,

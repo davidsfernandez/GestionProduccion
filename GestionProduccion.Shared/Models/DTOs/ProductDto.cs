@@ -23,6 +23,10 @@ public class ProductDto
     public double AverageProductionTimeMinutes { get; set; }
     public decimal EstimatedSalePrice { get; set; }
     public decimal DefaultBonusPerPiece { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? AvailableSizes { get; set; }
+    public string? AvailableColors { get; set; }
 }
 
 public class CreateProductDto

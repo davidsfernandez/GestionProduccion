@@ -91,6 +91,11 @@ public class ProductionOrder : IAuditable
     [ForeignKey("SewingTeamId")]
     public virtual SewingTeam? AssignedTeam { get; set; }
 
+    // --- CUSTOMER PORTAL ---
+    public int? CustomerUserId { get; set; }
+    [ForeignKey(nameof(CustomerUserId))]
+    public virtual User? CustomerUser { get; set; }
+
     // Navigation property for history
     public virtual ICollection<ProductionHistory> History { get; set; } = new List<ProductionHistory>();
 

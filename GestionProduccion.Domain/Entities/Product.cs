@@ -41,4 +41,15 @@ public class Product
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal DefaultBonusPerPiece { get; set; }
+
+    [MaxLength(1000)]
+    public string? Description { get; set; }
+
+    public string? ImageUrl { get; set; }
+
+    [MaxLength(200)]
+    public string? AvailableSizes { get; set; } // e.g. "P, M, G, GG"
+
+    [MaxLength(200)]
+    public string? AvailableColors { get; set; } // e.g. "Preto, Branco, Azul"
 }

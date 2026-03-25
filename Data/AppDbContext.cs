@@ -288,6 +288,13 @@ public class AppDbContext : DbContext
             .HasForeignKey(h => h.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // --- CUSTOMER PORTAL CONFIGURATION ---
+        modelBuilder.Entity<ProductionOrder>()
+            .HasOne(po => po.CustomerUser)
+            .WithMany()
+            .HasForeignKey(po => po.CustomerUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // --- SEWING TEAM AND BONUS RULES ---
         modelBuilder.Entity<User>()
             .HasOne(u => u.SewingTeam)
@@ -335,6 +342,11 @@ public class AppDbContext : DbContext
             entity.Property(l => l.Source)
                 .HasConversion<string>()
                 .HasMaxLength(50);
+
+            entity.HasOne(l => l.CustomerUser)
+                .WithMany()
+                .HasForeignKey(l => l.CustomerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<LeadHistory>(entity =>

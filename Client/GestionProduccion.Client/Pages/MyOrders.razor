@@ -1,0 +1,224 @@
+@page "/meus-pedidos"
+@using GestionProduccion.Models.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using GestionProduccion.Client.Services.HR
+@using GestionProduccion.Resources
+@attribute [Authorize(Roles = "Customer")]
+@inject ICustomerPortalClient CustomerClient
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+
+<PageTitle>Meus Pedidos | @Portuguese.AppName</PageTitle>
+
+<div class="container-fluid p-4 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-900 text-dark mb-1">ACOMPANHAMENTO DE PEDIDOS</h2>
+            <p class="text-muted">Veja o status de produção em tempo real.</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (orders == null || !orders.Any())
+    {
+        <SeronaEmptyState Icon="fa-solid fa-box-open" Title="Você ainda não tem pedidos" Description="Explore nosso catálogo para realizar sua primeira solicitação.">
+            <button class="btn btn-primary rounded-pill px-4 mt-3" @onclick='() => NavigationManager.NavigateTo("/catalogo")'>
+                VER CATÁLOGO
+            </button>
+        </SeronaEmptyState>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var order in orders)
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden order-card">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 mb-3 mb-md-0">
+                                    <div class="small text-muted mb-1">Lote #@order.LotCode</div>
+                                    <h5 class="fw-bold text-dark mb-0">@order.ProductName</h5>
+                                    <div class="badge bg-light text-dark border mt-2">@order.Quantity peças</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <div class="progress-tracker">
+                                        @{
+                                            var progress = GetProgressPercentage(order.CurrentStage);
+                                            var stageName = TranslateStageForCustomer(order.CurrentStage);
+                                        }
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="small fw-bold text-primary">@stageName.ToUpper()</span>
+                                            <span class="small text-muted">@progress%</span>
+                                        </div>
+                                        <div class="progress rounded-pill shadow-none bg-light" style="height: 10px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated rounded-pill" 
+                                                 role="progressbar" style="width: @progress%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-2 xsmall text-muted">
+                                            <span>Corte</span>
+                                            <span>Costura</span>
+                                            <span>Revisão</span>
+                                            <span>Embalagem</span>
+                                            <span>Pronto</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 text-md-end">
+                                    <div class="mb-2">
+                                        <span class="small text-muted">Entrega prevista:</span><br/>
+                                        <span class="fw-bold">@order.EstimatedCompletionAt.ToLocalTime().ToString("d")</span>
+                                    </div>
+                                    <div class="d-flex gap-2 justify-content-md-end">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="() => ViewDetails(order.Id)">
+                                            DETALHES
+                                        </button>
+                                        <button class="btn btn-primary btn-sm rounded-pill px-3" @onclick="() => Reorder(order.Id)" disabled="@isReordering">
+                                            RE-PEDIDO
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (selectedOrder != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 p-4 pb-0">
+                    <h5 class="modal-title fw-bold">Pedido #@selectedOrder.LotCode</h5>
+                    <button type="button" class="btn-close shadow-none" @onclick="() => selectedOrder = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-muted small uppercase">Informações Gerais</h6>
+                            <p class="mb-1"><strong>Produto:</strong> @selectedOrder.ProductName</p>
+                            <p class="mb-1"><strong>Quantidade:</strong> @selectedOrder.Quantity</p>
+                            <p class="mb-1"><strong>Data do Pedido:</strong> @selectedOrder.CreatedAt.ToLocalTime().ToString("g")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-muted small uppercase">Grade de Tamanhos</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var size in selectedOrder.Sizes)
+                                {
+                                    <span class="badge bg-light text-dark border p-2">@size.Size: @size.Quantity</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-bold text-muted small uppercase">Histórico de Movimentação</h6>
+                            <div class="timeline-simple mt-3">
+                                @foreach (var h in selectedOrder.History.OrderByDescending(x => x.ChangedAt))
+                                {
+                                    <div class="timeline-item border-start ps-3 pb-3 position-relative">
+                                        <div class="dot position-absolute bg-primary" style="left: -5px; top: 0; width: 10px; height: 10px; border-radius: 50%;"></div>
+                                        <div class="small fw-bold">@TranslateStageForCustomer(h.NewStage)</div>
+                                        <div class="xsmall text-muted">@h.ChangedAt.ToLocalTime().ToString("g")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => selectedOrder = null">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .order-card { transition: all 0.2s; }
+    .order-card:hover { border-left: 5px solid var(--bs-primary) !important; transform: translateX(5px); }
+    .xsmall { font-size: 0.7rem; }
+    .timeline-item { border-color: #dee2e6 !important; }
+</style>
+
+@code {
+    private List<ProductionOrderDto>? orders;
+    private bool isLoading = true;
+    private bool isReordering = false;
+    private ProductionOrderDto? selectedOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        isLoading = true;
+        var response = await CustomerClient.GetMyOrdersAsync();
+        if (response.Success) orders = response.Data;
+        isLoading = false;
+    }
+
+    private async Task ViewDetails(int id)
+    {
+        var response = await CustomerClient.GetOrderDetailsAsync(id);
+        if (response.Success) selectedOrder = response.Data;
+    }
+
+    private async Task Reorder(int id)
+    {
+        try 
+        {
+            isReordering = true;
+            var response = await CustomerClient.ReorderAsync(id);
+            if (response.Success)
+            {
+                ToastService.ShowToast(response.Message ?? "Solicitação de re-pedido enviada!", ToastLevel.Success);
+            }
+            else
+            {
+                ToastService.ShowToast(response.Message ?? "Erro ao processar re-pedido.", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            isReordering = false;
+        }
+    }
+
+    private int GetProgressPercentage(string stage) => stage.ToLower() switch
+    {
+        "pending" => 5,
+        "cutting" => 20,
+        "sewing" => 50,
+        "review" => 80,
+        "packaging" => 95,
+        "completed" => 100,
+        _ => 0
+    };
+
+    private string TranslateStageForCustomer(string stage) => stage.ToLower() switch
+    {
+        "pending" => "Aguardando Início",
+        "cutting" => "Em Corte",
+        "sewing" => "Em Costura",
+        "review" => "Em Revisão de Qualidade",
+        "packaging" => "Finalizando Embalagem",
+        "completed" => "Pronto para Entrega / Enviado",
+        _ => stage
+    };
+}

@@ -61,6 +61,7 @@ builder.Services.AddScoped<IPayrollClient, PayrollClient>();
 builder.Services.AddScoped<IHRClient, HRClient>();
 builder.Services.AddScoped<ILeadClient, LeadClient>();
 builder.Services.AddScoped<IQuoteClient, QuoteClient>();
+builder.Services.AddScoped<ICustomerPortalClient, CustomerPortalClient>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();

@@ -3,6 +3,7 @@ using System;
 using GestionProduccion.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionProduccion.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260325122506_LinkProductionOrderToCustomer")]
+    partial class LinkProductionOrderToCustomer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,9 +125,6 @@ namespace GestionProduccion.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("CustomerUserId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -157,8 +157,6 @@ namespace GestionProduccion.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CustomerUserId");
 
                     b.ToTable("Leads");
                 });
@@ -1055,16 +1053,6 @@ namespace GestionProduccion.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("GestionProduccion.Domain.Entities.CRM.Lead", b =>
-                {
-                    b.HasOne("GestionProduccion.Domain.Entities.User", "CustomerUser")
-                        .WithMany()
-                        .HasForeignKey("CustomerUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CustomerUser");
                 });
 
             modelBuilder.Entity("GestionProduccion.Domain.Entities.CRM.LeadHistory", b =>
