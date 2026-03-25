@@ -25,11 +25,11 @@
 - [ ] Task: Develop `QuoteService` with dual-costing logic.
     - [ ] Implement fixed price calculation.
     - [ ] Implement dynamic costing (Fabric + Labor + Margin) integration.
-- [ ] Task: Implement Quote PDF Generation.
+- [x] Task: Implement Quote PDF Generation. eb6c241
     - [ ] Use QuestPDF to generate professional quotes in PT-BR.
-- [ ] Task: Quote Management UI.
+- [x] Task: Quote Management UI. eb6c241
     - [ ] Interface to create, view, and download quotes for a specific Lead.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Quotes' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Quotes' eb6c241 (Protocol in workflow.md)
 
 ## Phase 4: Final Integration & Polish
 - [ ] Task: End-to-end testing of the lead-to-quote flow.
