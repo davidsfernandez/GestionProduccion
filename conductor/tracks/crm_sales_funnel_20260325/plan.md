@@ -16,10 +16,10 @@
 - [x] Task: Build CRM Dashboard and Pipeline View c49d0f4
     - [x] Create `LeadsPage.razor` with a visual pipeline (Kanban or List).
     - [x] Implement lead status update logic (Drag & Drop or Select).
-- [ ] Task: Implement Lead Detail and Commercial Notes.
+- [x] Task: Implement Lead Detail and Commercial Notes. c3d7e49
     - [ ] Create detail view for each lead with history of interactions.
     - [ ] Add `LeadHistory` entity to track status changes automatically.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: CRM UI' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: CRM UI' c3d7e49 (Protocol in workflow.md)
 
 ## Phase 3: Quote Engine (Motor de Presupuestos)
 - [ ] Task: Develop `QuoteService` with dual-costing logic.
