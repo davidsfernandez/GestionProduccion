@@ -1,0 +1,200 @@
+@page "/crm/leads"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services.HR
+@using GestionProduccion.Domain.Enums
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@inject ILeadClient LeadClient
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Leads | CRM</PageTitle>
+
+<div class="container-fluid p-4 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Funil de Vendas</h2>
+            <p class="text-muted">Gerencie seus prospectos e converta leads em ordens de produção.</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var status in Enum.GetValues<LeadStatus>())
+            {
+                <div class="col-md-4 col-xl-2">
+                    <div class="card border-0 bg-light shadow-sm rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-3 px-3 pb-0 d-flex justify-content-between">
+                            <span class="badge @GetStatusBadgeClass(status) rounded-pill px-3">@TranslateStatus(status)</span>
+                            <span class="text-muted small fw-bold">@leads.Count(l => l.Status == status)</span>
+                        </div>
+                        <div class="card-body p-2 overflow-auto" style="max-height: 70vh;">
+                            @foreach (var lead in leads.Where(l => l.Status == status))
+                            {
+                                <div class="card border-0 shadow-sm rounded-3 mb-2 p-3 lead-card clickable" @onclick="() => ViewDetails(lead)">
+                                    <div class="fw-bold text-dark small mb-1">@lead.Name</div>
+                                    <div class="text-muted xsmall mb-2"><i class="fa-solid fa-envelope me-1"></i>@lead.Email</div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="xsmall text-muted">@lead.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                                        <div class="dropdown">
+                                            <button class="btn btn-link btn-sm p-0 text-muted shadow-none" type="button" data-bs-toggle="dropdown">
+                                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                                                @foreach (var nextStatus in Enum.GetValues<LeadStatus>())
+                                                {
+                                                    if (nextStatus != status)
+                                                    {
+                                                        <li><a class="dropdown-item xsmall" href="javascript:void(0)" @onclick="() => UpdateStatus(lead.Id, nextStatus)">Mudar para @TranslateStatus(nextStatus)</a></li>
+                                                    }
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (selectedLead != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 p-4 pb-0">
+                    <h5 class="modal-title fw-bold">Detalhes do Lead</h5>
+                    <button type="button" class="btn-close shadow-none" @onclick="() => selectedLead = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Cliente</label>
+                            <div class="h6">@selectedLead.Name</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Email</label>
+                            <div class="h6">@selectedLead.Email</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Telefone</label>
+                            <div class="h6">@(selectedLead.Phone ?? "N/A")</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data de Captação</label>
+                            <div class="h6">@selectedLead.CreatedAt.ToLocalTime().ToString("G")</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Mensagem do Site</label>
+                            <div class="p-3 bg-light rounded-3 small">@(selectedLead.Message ?? "Sem mensagem")</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Notas Comerciais</label>
+                            <textarea class="form-control rounded-3 small" rows="4" @bind="commercialNote" placeholder="Adicione observações sobre a negociação..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => selectedLead = null">Fechar</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="SaveNotes">SALVAR NOTAS</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .lead-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-left: 4px solid transparent !important;
+    }
+    .lead-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    }
+    .clickable { cursor: pointer; }
+    .xsmall { font-size: 0.75rem; }
+</style>
+
+@code {
+    private List<LeadDto> leads = new();
+    private bool isLoading = true;
+    private LeadDto? selectedLead;
+    private string commercialNote = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLeads();
+    }
+
+    private async Task LoadLeads()
+    {
+        isLoading = true;
+        var response = await LeadClient.GetLeadsAsync();
+        if (response.Success) leads = response.Data ?? new();
+        isLoading = false;
+    }
+
+    private void ViewDetails(LeadDto lead)
+    {
+        selectedLead = lead;
+        commercialNote = "";
+    }
+
+    private async Task UpdateStatus(int id, LeadStatus newStatus)
+    {
+        var response = await LeadClient.UpdateLeadStatusAsync(id, newStatus);
+        if (response.Success)
+        {
+            ToastService.ShowToast("Status atualizado.", ToastLevel.Success);
+            await LoadLeads();
+        }
+    }
+
+    private async Task SaveNotes()
+    {
+        if (selectedLead == null || string.IsNullOrWhiteSpace(commercialNote)) return;
+        var response = await LeadClient.UpdateLeadStatusAsync(selectedLead.Id, selectedLead.Status, commercialNote);
+        if (response.Success)
+        {
+            ToastService.ShowToast("Notas salvas.", ToastLevel.Success);
+            selectedLead = null;
+            await LoadLeads();
+        }
+    }
+
+    private string TranslateStatus(LeadStatus status) => status switch
+    {
+        LeadStatus.New => "Novo",
+        LeadStatus.Qualified => "Qualificado",
+        LeadStatus.DesignPending => "Design",
+        LeadStatus.QuoteSent => "Cotado",
+        LeadStatus.Negotiation => "Negociação",
+        LeadStatus.Won => "Ganho",
+        LeadStatus.Lost => "Perdido",
+        _ => status.ToString()
+    };
+
+    private string GetStatusBadgeClass(LeadStatus status) => status switch
+    {
+        LeadStatus.New => "bg-info",
+        LeadStatus.Qualified => "bg-primary",
+        LeadStatus.DesignPending => "bg-warning text-dark",
+        LeadStatus.QuoteSent => "bg-secondary",
+        LeadStatus.Negotiation => "bg-info text-dark",
+        LeadStatus.Won => "bg-success",
+        LeadStatus.Lost => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

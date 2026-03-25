@@ -16,14 +16,56 @@ namespace GestionProduccion.Controllers;
 public class HRController : ControllerBase
 {
     private readonly IAbsenceService _absenceService;
+    private readonly ILeadService _leadService;
     private readonly AppDbContext _context;
     private readonly ILogger<HRController> _logger;
 
-    public HRController(IAbsenceService absenceService, AppDbContext context, ILogger<HRController> logger)
+    public HRController(IAbsenceService absenceService, ILeadService leadService, AppDbContext context, ILogger<HRController> logger)
     {
         _absenceService = absenceService;
+        _leadService = leadService;
         _context = context;
         _logger = logger;
+    }
+
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpGet("leads")]
+    public async Task<ActionResult<ApiResponse<List<LeadDto>>>> GetLeads()
+    {
+        try
+        {
+            var result = await _leadService.GetLeadsAsync(HttpContext.RequestAborted);
+            return Ok(ApiResponse<List<LeadDto>>.SuccessResult(result));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting leads");
+            return StatusCode(500, ApiResponse<List<LeadDto>>.FailureResult("Erro ao carregar leads."));
+        }
+    }
+
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpPost("leads/{id}/status")]
+    public async Task<ActionResult<ApiResponse<LeadDto>>> UpdateLeadStatus(int id, [FromBody] dynamic request)
+    {
+        try
+        {
+            string newStatusStr = request.GetProperty("newStatus").GetString();
+            string? note = request.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : null;
+
+            if (!Enum.TryParse<GestionProduccion.Domain.Enums.LeadStatus>(newStatusStr, true, out var newStatus))
+            {
+                return BadRequest(ApiResponse<LeadDto>.FailureResult("Status inválido."));
+            }
+
+            var result = await _leadService.UpdateLeadStatusAsync(id, newStatus, note, HttpContext.RequestAborted);
+            return Ok(ApiResponse<LeadDto>.SuccessResult(result, "Status do lead atualizado."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating lead status {Id}", id);
+            return StatusCode(500, ApiResponse<LeadDto>.FailureResult("Erro ao atualizar status."));
+        }
     }
 
     [Authorize(Roles = "Administrator,Leader")]
