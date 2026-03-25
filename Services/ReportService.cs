@@ -28,13 +28,15 @@ public class ReportService : IReportService
 {
     private readonly IProductionOrderQueryService _queryService;
     private readonly ISystemConfigurationService _configService;
+    private readonly IQuoteService _quoteService;
     private readonly ILogger<ReportService> _logger;
     private static readonly string DefaultFont = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux) ? "Liberation Sans" : "Arial";
 
-    public ReportService(IProductionOrderQueryService queryService, ISystemConfigurationService configService, ILogger<ReportService> logger)
+    public ReportService(IProductionOrderQueryService queryService, ISystemConfigurationService configService, IQuoteService quoteService, ILogger<ReportService> logger)
     {
         _queryService = queryService;
         _configService = configService;
+        _quoteService = quoteService;
         _logger = logger;
         try { QuestPDF.Settings.License = LicenseType.Community; } catch { }
     }
@@ -86,7 +88,7 @@ public class ReportService : IReportService
                                 col.Item().Text("SERONA ERP").FontSize(20).Bold().FontColor(Colors.White);
                             }
                             col.Item().Text(Portuguese.OP_Report.ToUpper()).FontSize(16).Bold().FontColor(Colors.Grey.Lighten2);
-                            col.Item().Text(config?.CompanyName ?? "Serona Corporación").FontSize(12).FontColor(Colors.Grey.Lighten2);  
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporação").FontSize(12).FontColor(Colors.Grey.Lighten2);  
                         });
 
                         if (qrCodeBytes != null)
@@ -279,7 +281,7 @@ public class ReportService : IReportService
                             else col.Item().Text("SERONA ERP").FontSize(20).Bold();
 
                             col.Item().Text(Portuguese.OP_DailyPDF.ToUpper()).FontSize(16).Bold().FontColor(Colors.Grey.Darken3);  
-                            col.Item().Text(config?.CompanyName ?? "Serona Corporación").FontSize(12).FontColor(Colors.Grey.Medium);    
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporação").FontSize(12).FontColor(Colors.Grey.Medium);    
                             col.Item().Text($"{Portuguese.Date}: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Medium);    
                         });
                     });
@@ -398,7 +400,7 @@ public class ReportService : IReportService
                             else col.Item().Text("SERONA ERP").FontSize(20).Bold().FontColor(Colors.White);
 
                             col.Item().Text("RELATÓRIO DE BONIFICAÇÃO").FontSize(16).Bold().FontColor(Colors.White);
-                            col.Item().Text(config?.CompanyName ?? "Serona Corporación").FontSize(12).FontColor(Colors.Grey.Lighten3);
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporação").FontSize(12).FontColor(Colors.Grey.Lighten3);
                         });
 
                         row.RelativeItem().AlignRight().Column(col =>
@@ -498,6 +500,121 @@ public class ReportService : IReportService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating Bonus Report PDF");
+            throw;
+        }
+    }
+
+    public async Task<byte[]> GenerateQuotePdfAsync(int quoteId, string baseUrl)
+    {
+        try
+        {
+            var quote = await _quoteService.GetQuoteByIdAsync(quoteId);
+            var config = await _configService.GetConfigurationAsync();
+            byte[]? logoBytes = ExtractLogoBytes(config?.LogoBase64);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(DefaultFont));
+
+                    // HEADER
+                    page.Header().Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            if (logoBytes != null) col.Item().Width(4, Unit.Centimetre).Image(logoBytes);
+                            else col.Item().Text("SERONA ERP").FontSize(20).Bold().FontColor(Colors.Blue.Medium);
+
+                            col.Item().Text("ORÇAMENTO DE PRODUÇÃO").FontSize(16).Bold().FontColor(Colors.Grey.Darken3);
+                            col.Item().Text(config?.CompanyName ?? "Serona Corporação").FontSize(12).FontColor(Colors.Grey.Medium);
+                        });
+
+                        row.RelativeItem().AlignRight().Column(col =>
+                        {
+                            col.Item().Text($"Nº Orçamento: {quote.Id:D6}").Bold();
+                            col.Item().Text($"Data: {quote.CreatedAt:dd/MM/yyyy}");
+                            col.Item().Text($"Vencimento: {quote.ExpiryDate:dd/MM/yyyy}").FontColor(Colors.Red.Medium);
+                        });
+                    });
+
+                    // CONTENT
+                    page.Content().PaddingVertical(20).Column(x =>
+                    {
+                        x.Spacing(20);
+
+                        // LEAD INFO
+                        x.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(col =>
+                        {
+                            col.Item().Text("DADOS DO CLIENTE").Bold().FontSize(9);
+                            col.Item().Text(quote.LeadName).FontSize(12).Bold();
+                        });
+
+                        // ITEMS TABLE
+                        x.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(4); // Description
+                                columns.RelativeColumn(1); // Qty
+                                columns.RelativeColumn(2); // Unit
+                                columns.RelativeColumn(2); // Total
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Element(HeaderStyle).Text("DESCRIÇÃO");
+                                header.Cell().Element(HeaderStyle).AlignCenter().Text("QTD");
+                                header.Cell().Element(HeaderStyle).AlignRight().Text("UNITÁRIO");
+                                header.Cell().Element(HeaderStyle).AlignRight().Text("TOTAL");
+                                static IContainer HeaderStyle(IContainer container) => container.Background(Colors.Blue.Darken3).Padding(5).DefaultTextStyle(x => x.Bold().FontColor(Colors.White));
+                            });
+
+                            foreach (var item in quote.Items)
+                            {
+                                table.Cell().Element(CellStyle).Text(item.Description);
+                                table.Cell().Element(CellStyle).AlignCenter().Text(item.Quantity.ToString());
+                                table.Cell().Element(CellStyle).AlignRight().Text($"R$ {item.UnitPrice:N2}");
+                                table.Cell().Element(CellStyle).AlignRight().Text($"R$ {item.TotalPrice:N2}");
+                                static IContainer CellStyle(IContainer container) => container.Padding(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+                            }
+                        });
+
+                        // TOTAL
+                        x.Item().AlignRight().Column(col =>
+                        {
+                            col.Item().Text(t =>
+                            {
+                                t.Span("TOTAL DO ORÇAMENTO: ").Bold().FontSize(12);
+                                t.Span($"R$ {quote.TotalAmount:N2}").Bold().FontSize(14).FontColor(Colors.Blue.Medium);
+                            });
+                        });
+
+                        if (!string.IsNullOrEmpty(quote.Notes))
+                        {
+                            x.Item().Column(col =>
+                            {
+                                col.Item().Text("OBSERVAÇÕES:").Bold();
+                                col.Item().Text(quote.Notes).Italic().FontSize(9);
+                            });
+                        }
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Este orçamento está sujeito à disponibilidade de estoque e capacidade produtiva.");
+                    });
+                });
+            });
+
+            return document.GeneratePdf();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Quote PDF for QuoteId: {QuoteId}", quoteId);
             throw;
         }
     }

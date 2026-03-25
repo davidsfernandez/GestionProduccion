@@ -23,6 +23,7 @@ public class ReportServiceTests
 {
     private readonly Mock<IProductionOrderQueryService> _mockQuery;
     private readonly Mock<ISystemConfigurationService> _mockConfig;
+    private readonly Mock<IQuoteService> _mockQuote;
     private readonly Mock<ILogger<ReportService>> _mockLogger;
     private readonly ReportService _service;
 
@@ -30,8 +31,9 @@ public class ReportServiceTests
     {
         _mockQuery = new Mock<IProductionOrderQueryService>();
         _mockConfig = new Mock<ISystemConfigurationService>();
+        _mockQuote = new Mock<IQuoteService>();
         _mockLogger = new Mock<ILogger<ReportService>>();
-        _service = new ReportService(_mockQuery.Object, _mockConfig.Object, _mockLogger.Object);
+        _service = new ReportService(_mockQuery.Object, _mockConfig.Object, _mockQuote.Object, _mockLogger.Object);
     }
 
     [Fact]

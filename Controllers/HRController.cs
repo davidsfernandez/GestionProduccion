@@ -1,5 +1,6 @@
 using GestionProduccion.Application.Mapping;
 using GestionProduccion.Domain.Entities.HR;
+using GestionProduccion.Domain.Entities.CRM;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -17,15 +18,88 @@ public class HRController : ControllerBase
 {
     private readonly IAbsenceService _absenceService;
     private readonly ILeadService _leadService;
+    private readonly IQuoteService _quoteService;
+    private readonly IReportService _reportService;
     private readonly AppDbContext _context;
     private readonly ILogger<HRController> _logger;
 
-    public HRController(IAbsenceService absenceService, ILeadService leadService, AppDbContext context, ILogger<HRController> logger)
+    public HRController(IAbsenceService absenceService, ILeadService leadService, IQuoteService quoteService, IReportService reportService, AppDbContext context, ILogger<HRController> logger)
     {
         _absenceService = absenceService;
         _leadService = leadService;
+        _quoteService = quoteService;
+        _reportService = reportService;
         _context = context;
         _logger = logger;
+    }
+
+    // --- QUOTES ---
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpPost("quotes")]
+    public async Task<ActionResult<ApiResponse<QuoteDto>>> CreateQuote([FromBody] CreateQuoteRequest request)
+    {
+        try
+        {
+            var result = await _quoteService.CreateQuoteAsync(request, HttpContext.RequestAborted);
+            return Ok(ApiResponse<QuoteDto>.SuccessResult(result, "Orçamento criado com sucesso."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating quote");
+            return StatusCode(500, ApiResponse<QuoteDto>.FailureResult("Erro ao criar orçamento."));
+        }
+    }
+
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpGet("leads/{id}/quotes")]
+    public async Task<ActionResult<ApiResponse<List<QuoteDto>>>> GetLeadQuotes(int id)
+    {
+        try
+        {
+            var result = await _quoteService.GetLeadQuotesAsync(id, HttpContext.RequestAborted);
+            return Ok(ApiResponse<List<QuoteDto>>.SuccessResult(result));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting lead quotes");
+            return StatusCode(500, ApiResponse<List<QuoteDto>>.FailureResult("Erro ao carregar orçamentos."));
+        }
+    }
+
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpPost("quotes/{id}/status")]
+    public async Task<ActionResult<ApiResponse<QuoteDto>>> UpdateQuoteStatus(int id, [FromBody] dynamic request)
+    {
+        try
+        {
+            string newStatusStr = request.GetProperty("newStatus").GetString();
+            if (!Enum.TryParse<QuoteStatus>(newStatusStr, true, out var newStatus)) return BadRequest("Status inválido.");
+
+            var result = await _quoteService.UpdateQuoteStatusAsync(id, newStatus, HttpContext.RequestAborted);
+            return Ok(ApiResponse<QuoteDto>.SuccessResult(result, "Status atualizado."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating quote status");
+            return StatusCode(500, ApiResponse<QuoteDto>.FailureResult("Erro ao atualizar status."));
+        }
+    }
+
+    [Authorize(Roles = "Administrator,Leader")]
+    [HttpGet("quotes/{id}/pdf")]
+    public async Task<IActionResult> DownloadQuotePdf(int id)
+    {
+        try
+        {
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var pdfBytes = await _reportService.GenerateQuotePdfAsync(id, baseUrl);
+            return File(pdfBytes, "application/pdf", $"Orcamento_{id:D6}.pdf");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating quote PDF");
+            return StatusCode(500);
+        }
     }
 
     [Authorize(Roles = "Administrator,Leader")]

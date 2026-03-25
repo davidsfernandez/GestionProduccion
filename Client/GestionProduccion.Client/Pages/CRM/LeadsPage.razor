@@ -5,8 +5,10 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator,Leader")]
 @inject ILeadClient LeadClient
+@inject IQuoteClient QuoteClient
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Leads | CRM</PageTitle>
 
@@ -43,7 +45,7 @@
                                     <div class="text-muted xsmall mb-2"><i class="fa-solid fa-envelope me-1"></i>@lead.Email</div>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="xsmall text-muted">@lead.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</span>
-                                        <div class="dropdown">
+                                        <div class="dropdown" @onclick:stopPropagation="true">
                                             <button class="btn btn-link btn-sm p-0 text-muted shadow-none" type="button" data-bs-toggle="dropdown">
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                                             </button>
@@ -74,40 +76,92 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 rounded-4 shadow">
                 <div class="modal-header border-0 p-4 pb-0">
-                    <h5 class="modal-title fw-bold">Detalhes do Lead</h5>
-                    <button type="button" class="btn-close shadow-none" @onclick="() => selectedLead = null"></button>
+                    <h5 class="modal-title fw-bold">Gestão de Lead: @selectedLead.Name</h5>
+                    <button type="button" class="btn-close shadow-none" @onclick="CloseModal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Cliente</label>
-                            <div class="h6">@selectedLead.Name</div>
+                <div class="modal-body p-4 pt-0">
+                    <ul class="nav nav-pills mb-3 border-bottom pb-2" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link @(activeTab == "details" ? "active" : "")" @onclick='() => activeTab = "details"'>Detalhes</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link @(activeTab == "quotes" ? "active" : "")" @onclick='LoadQuotes'>Orçamentos</button>
+                        </li>
+                    </ul>
+
+                    @if (activeTab == "details")
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Email</label>
+                                <div class="h6">@selectedLead.Email</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Telefone</label>
+                                <div class="h6">@(selectedLead.Phone ?? "N/A")</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Data de Captação</label>
+                                <div class="h6">@selectedLead.CreatedAt.ToLocalTime().ToString("G")</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Mensagem do Site</label>
+                                <div class="p-3 bg-light rounded-3 small">@(selectedLead.Message ?? "Sem mensagem")</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Notas Comerciais</label>
+                                <textarea class="form-control rounded-3 small" rows="4" @bind="commercialNote" placeholder="Adicione observações sobre a negociação..."></textarea>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Email</label>
-                            <div class="h6">@selectedLead.Email</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Telefone</label>
-                            <div class="h6">@(selectedLead.Phone ?? "N/A")</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Data de Captação</label>
-                            <div class="h6">@selectedLead.CreatedAt.ToLocalTime().ToString("G")</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Mensagem do Site</label>
-                            <div class="p-3 bg-light rounded-3 small">@(selectedLead.Message ?? "Sem mensagem")</div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Notas Comerciais</label>
-                            <textarea class="form-control rounded-3 small" rows="4" @bind="commercialNote" placeholder="Adicione observações sobre a negociação..."></textarea>
-                        </div>
-                    </div>
+                    }
+                    else
+                    {
+                        @if (isQuotesLoading)
+                        {
+                            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Lista de Orçamentos</h6>
+                                <button class="btn btn-outline-primary btn-sm rounded-pill" @onclick="PrepareNewQuote">
+                                    <i class="fa-solid fa-plus me-1"></i> NOVO ORÇAMENTO
+                                </button>
+                            </div>
+
+                            @if (leadQuotes.Any())
+                            {
+                                <div class="list-group list-group-flush">
+                                    @foreach (var q in leadQuotes)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                                            <div>
+                                                <div class="fw-bold small">Orçamento #@q.Id.ToString("D6")</div>
+                                                <div class="xsmall text-muted">@q.CreatedAt.ToLocalTime().ToString("d") - @q.TotalAmount.ToString("C2")</div>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge @GetQuoteStatusClass(q.Status) xsmall">@q.Status</span>
+                                                <button class="btn btn-sm btn-light" @onclick="() => DownloadPdf(q.Id)" title="Download PDF">
+                                                    <i class="fa-solid fa-file-pdf text-danger"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4 text-muted small">Nenhum orçamento gerado para este lead.</div>
+                            }
+                        }
+                    }
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => selectedLead = null">Fechar</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="SaveNotes">SALVAR NOTAS</button>
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Fechar</button>
+                    @if (activeTab == "details")
+                    {
+                        <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="SaveNotes">SALVAR NOTAS</button>
+                    }
                 </div>
             </div>
         </div>
@@ -125,6 +179,8 @@
     }
     .clickable { cursor: pointer; }
     .xsmall { font-size: 0.75rem; }
+    .nav-link { color: #6c757d; cursor: pointer; border: none !important; }
+    .nav-link.active { color: #0d6efd !important; font-weight: bold; background: none !important; border-bottom: 2px solid #0d6efd !important; border-radius: 0; }
 </style>
 
 @code {
@@ -132,6 +188,11 @@
     private bool isLoading = true;
     private LeadDto? selectedLead;
     private string commercialNote = "";
+    private string activeTab = "details";
+
+    // Quotes logic
+    private List<QuoteDto> leadQuotes = new();
+    private bool isQuotesLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,6 +211,22 @@
     {
         selectedLead = lead;
         commercialNote = "";
+        activeTab = "details";
+    }
+
+    private void CloseModal()
+    {
+        selectedLead = null;
+    }
+
+    private async Task LoadQuotes()
+    {
+        activeTab = "quotes";
+        if (selectedLead == null) return;
+        isQuotesLoading = true;
+        var response = await QuoteClient.GetLeadQuotesAsync(selectedLead.Id);
+        if (response.Success) leadQuotes = response.Data ?? new();
+        isQuotesLoading = false;
     }
 
     private async Task UpdateStatus(int id, LeadStatus newStatus)
@@ -171,6 +248,25 @@
             ToastService.ShowToast("Notas salvas.", ToastLevel.Success);
             selectedLead = null;
             await LoadLeads();
+        }
+    }
+
+    private void PrepareNewQuote() 
+    { 
+        ToastService.ShowToast("Formulário de novo presupuesto em desarrollo.", ToastLevel.Info);
+    }
+
+    private async Task DownloadPdf(int quoteId)
+    {
+        var pdfBytes = await QuoteClient.DownloadQuotePdfAsync(quoteId);
+        if (pdfBytes != null && pdfBytes.Length > 0)
+        {
+            var fileName = $"Orcamento_{quoteId:D6}.pdf";
+            await JSRuntime.InvokeVoidAsync("saveAsFile", fileName, Convert.ToBase64String(pdfBytes));
+        }
+        else
+        {
+            ToastService.ShowToast("Erro ao gerar PDF.", ToastLevel.Error);
         }
     }
 
@@ -196,5 +292,13 @@
         LeadStatus.Won => "bg-success",
         LeadStatus.Lost => "bg-danger",
         _ => "bg-secondary"
+    };
+
+    private string GetQuoteStatusClass(QuoteStatusDto status) => status switch
+    {
+        QuoteStatusDto.Approved => "bg-success",
+        QuoteStatusDto.Rejected => "bg-danger",
+        QuoteStatusDto.Draft => "bg-secondary",
+        _ => "bg-primary"
     };
 }

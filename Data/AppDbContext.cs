@@ -70,6 +70,8 @@ public class AppDbContext : DbContext
     // --- CRM MODULE ---
     public DbSet<Lead> Leads { get; set; }
     public DbSet<LeadHistory> LeadHistories { get; set; }
+    public DbSet<Quote> Quotes { get; set; }
+    public DbSet<QuoteItem> QuoteItems { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -353,6 +355,23 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(h => h.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Quote>(entity =>
+        {
+            entity.Property(q => q.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(q => q.TotalAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<QuoteItem>(entity =>
+        {
+            entity.Property(qi => qi.UnitPrice).HasPrecision(18, 2);
+            entity.Property(qi => qi.EstimatedFabricCost).HasPrecision(18, 2);
+            entity.Property(qi => qi.EstimatedLaborCost).HasPrecision(18, 2);
+            entity.Property(qi => qi.ProfitMarginApplied).HasPrecision(18, 2);
         });
     }
 }
