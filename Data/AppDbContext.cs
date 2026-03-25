@@ -72,6 +72,7 @@ public class AppDbContext : DbContext
     public DbSet<LeadHistory> LeadHistories { get; set; }
     public DbSet<Quote> Quotes { get; set; }
     public DbSet<QuoteItem> QuoteItems { get; set; }
+    public DbSet<CustomerProfile> CustomerProfiles { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -372,6 +373,15 @@ public class AppDbContext : DbContext
             entity.Property(qi => qi.EstimatedFabricCost).HasPrecision(18, 2);
             entity.Property(qi => qi.EstimatedLaborCost).HasPrecision(18, 2);
             entity.Property(qi => qi.ProfitMarginApplied).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<CustomerProfile>(entity =>
+        {
+            entity.HasIndex(c => c.UserId).IsUnique();
+            entity.HasOne(c => c.User)
+                .WithOne()
+                .HasForeignKey<CustomerProfile>(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

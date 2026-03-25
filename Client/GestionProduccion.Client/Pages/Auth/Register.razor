@@ -1,0 +1,119 @@
+@page "/registro"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Resources
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@layout EmptyLayout
+
+<PageTitle>Registro de Cliente | @Portuguese.AppName</PageTitle>
+
+<main class="d-flex w-100" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh;">
+    <div class="container d-flex flex-column">
+        <div class="row vh-100">
+            <div class="col-sm-10 col-md-8 col-lg-6 col-xl-5 mx-auto d-table h-100">
+                <div class="d-table-cell align-middle">
+
+                    <div class="text-center mb-4">
+                        <h1 class="h2 fw-bold text-primary">Crie sua Conta</h1>
+                        <p class="text-muted">Acesse o catálogo e acompanhe seus pedidos.</p>
+                    </div>
+
+                    <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                        <div class="card-body p-5">
+                            <EditForm Model="request" OnValidSubmit="HandleRegister">
+                                <DataAnnotationsValidator />
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Nome Completo</label>
+                                    <InputText @bind-Value="request.FullName" class="form-control rounded-3 py-2" placeholder="Seu nome..." />
+                                    <ValidationMessage For="@(() => request.FullName)" class="text-danger small" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">E-mail</label>
+                                    <InputText @bind-Value="request.Email" class="form-control rounded-3 py-2" placeholder="exemplo@email.com" />
+                                    <ValidationMessage For="@(() => request.Email)" class="text-danger small" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Empresa (Opcional)</label>
+                                    <InputText @bind-Value="request.CompanyName" class="form-control rounded-3 py-2" placeholder="Nome da sua empresa" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Senha</label>
+                                    <InputText @bind-Value="request.Password" type="password" class="form-control rounded-3 py-2" placeholder="******" />
+                                    <ValidationMessage For="@(() => request.Password)" class="text-danger small" />
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-danger border-0 small py-2 animate-shake">
+                                        <i class="fa-solid fa-circle-exclamation me-2"></i> @errorMessage
+                                    </div>
+                                }
+
+                                <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-2 mt-3 fw-bold" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span> @Portuguese.Loading
+                                    }
+                                    else
+                                    {
+                                        <span>CADASTRAR AGORA</span>
+                                    }
+                                </button>
+                            </EditForm>
+                        </div>
+                        <div class="card-footer bg-light border-0 p-4 text-center">
+                            <span class="text-muted small">Já possui uma conta? </span>
+                            <a href="/login" class="text-primary fw-bold small text-decoration-none">Entrar</a>
+                        </div>
+                    </div>
+
+                    <p class="text-center mt-4 text-muted small">
+                        &copy; 2026 @Portuguese.AppName. Todos os direitos reservados.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@code {
+    private RegisterCustomerRequest request = new();
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            var response = await Http.PostAsJsonAsync("api/Account/register", request);
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserDto>>();
+
+            if (result != null && result.Success)
+            {
+                ToastService.ShowToast("Conta criada com sucesso! Por favor, faça login.", ToastLevel.Success);
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = result?.Message ?? "Falha ao criar conta.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

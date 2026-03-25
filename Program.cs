@@ -112,6 +112,7 @@ builder.Services.AddScoped<ITaskService, OperationalTaskService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IAbsenceService, AbsenceService>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, SmtpEmailService>();
 builder.Services.AddSignalR();

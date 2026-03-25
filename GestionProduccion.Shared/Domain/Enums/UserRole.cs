@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -18,7 +18,7 @@ public enum UserRole
     Administrator = 0, // Role with all permissions
     Leader = 1,        // Team leader role
     Operational = 2,   // Production operator role
-    Office = 3         // Administrative/Office role
+    Office = 3,        // Administrative/Office role
+    Workshop = 4,      // Workshop/Production management role
+    Customer = 5       // External customer portal role
 }
-
-
