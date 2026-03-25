@@ -82,6 +82,7 @@ builder.Services.AddScoped<IProductionOrderLifecycleService, ProductionOrderLife
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
+builder.Services.AddScoped<ILeadService, LeadService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();

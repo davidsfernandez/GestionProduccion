@@ -42,4 +42,21 @@ public class SignalRNotificationService : INotificationService
             _logger.LogError(ex, "Failed to notify user {UserId}", userId);
         }
     }
+
+    public async Task NotifyNewLeadAsync(string clientName, string email, CancellationToken ct = default)
+    {
+        try
+        {
+            await _hubContext.Clients.All.SendAsync("ReceiveNewLead", new {
+                name = clientName,
+                email = email,
+                timestamp = DateTime.UtcNow
+            }, cancellationToken: ct);
+            _logger.LogInformation("New lead notification sent for: {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send SignalR notification for new lead {Email}", email);
+        }
+    }
 }

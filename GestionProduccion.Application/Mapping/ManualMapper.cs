@@ -1,5 +1,6 @@
 using GestionProduccion.Domain.Entities;
-using GestionProduccion.Domain.Enums;
+using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Entities.CRM;
 using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Application.Mapping;
@@ -262,5 +263,28 @@ public static class ManualMapper
             DailyGoal = entity.DailyGoal,
             TvAnnouncement = entity.Value // Map Value to TvAnnouncement if used for that
         };
+    }
+
+    // --- LEAD MAPPING ---
+    public static LeadDto ToDto(this Lead entity)
+    {
+        if (entity == null) return null!;
+        return new LeadDto
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            Email = entity.Email,
+            Phone = entity.Phone,
+            Message = entity.Message,
+            Status = entity.Status,
+            Source = entity.Source,
+            CreatedAt = entity.CreatedAt,
+            CommercialNotes = entity.CommercialNotes
+        };
+    }
+
+    public static List<LeadDto> ToDtoList(this IEnumerable<Lead> entities)
+    {
+        return entities?.Select(e => e.ToDto()).ToList() ?? new List<LeadDto>();
     }
 }

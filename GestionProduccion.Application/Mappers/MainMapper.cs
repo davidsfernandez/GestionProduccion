@@ -21,4 +21,6 @@ public class MainMapper
     public List<SewingTeamDto> ToDtoList(IEnumerable<SewingTeam> entities) => entities.ToDtoList();
     public QADefectDto ToDto(QADefect entity) => entity.ToDto();
     public List<QADefectDto> ToDtoList(IEnumerable<QADefect> entities) => entities.ToDtoList();
+    public LeadDto ToDto(Lead entity) => entity.ToDto();
+    public List<LeadDto> ToDtoList(IEnumerable<Lead> entities) => entities.ToDtoList();
 }

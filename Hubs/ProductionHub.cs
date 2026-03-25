@@ -46,17 +46,28 @@ public class ProductionHub : Hub
     /// </summary>
     public async Task NotifyGoalReached(int currentCount, int goal)
     {
-        await Clients.All.SendAsync("ReceiveGoalUpdate", new { 
-            current = currentCount, 
+        await Clients.All.SendAsync("ReceiveGoalUpdate", new {
+            current = currentCount,
             goal = goal,
-            timestamp = DateTime.UtcNow 
+            timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
+    /// Notifies administrators about a new incoming lead.
+    /// </summary>
+    public async Task NotifyNewLead(string clientName, string email)
+    {
+        await Clients.All.SendAsync("ReceiveNewLead", new {
+            name = clientName,
+            email = email,
+            timestamp = DateTime.UtcNow
         });
     }
 
     /// <summary>
     /// Connection event: notifies when a user connects.
-    /// </summary>
-    public override async Task OnConnectedAsync()
+    /// </summary>    public override async Task OnConnectedAsync()
     {
         await Clients.All.SendAsync("UserConnected", new
         {

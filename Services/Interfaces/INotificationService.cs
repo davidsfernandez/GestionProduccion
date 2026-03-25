@@ -11,4 +11,9 @@ public interface INotificationService
     /// Sends a general notification to a specific user.
     /// </summary>
     Task NotifyUserAsync(int userId, string title, string message, CancellationToken ct = default);
+
+    /// <summary>
+    /// Notifies administrators about a new lead.
+    /// </summary>
+    Task NotifyNewLeadAsync(string clientName, string email, CancellationToken ct = default);
 }
