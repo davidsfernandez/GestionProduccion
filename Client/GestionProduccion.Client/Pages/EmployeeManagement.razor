@@ -1,0 +1,167 @@
+@page "/rh/colaboradores"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services.HR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrator,Leader")]
+@inject IHRClient HRClient
+@inject ToastService ToastService
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Gestão de Colaboradores</h2>
+            <p class="text-muted">Administre perfis, salários e documentos da equipe.</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Nome</th>
+                            <th>CPF</th>
+                            <th>Salário Base</th>
+                            <th>Admissão</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var emp in employees)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold">@emp.FullName</div>
+                                    <div class="small text-muted">ID: @emp.UserId</div>
+                                </td>
+                                <td>@emp.CPF</td>
+                                <td>R$ @emp.BaseSalary.ToString("N2")</td>
+                                <td>@emp.JoinedDate.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="badge @(emp.IsActive ? "bg-success-soft text-success" : "bg-danger-soft text-danger")">
+                                        @(emp.IsActive ? "Ativo" : "Inativo")
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-light shadow-none" @onclick="() => EditEmployee(emp.UserId)">
+                                        <i class="fa-solid fa-user-gear text-primary"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (selectedEmployee != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 p-4">
+                    <h5 class="modal-title fw-bold">Editar Perfil: @selectedEmployee.FullName</h5>
+                    <button type="button" class="btn-close" @onclick="() => selectedEmployee = null"></button>
+                </div>
+                <div class="modal-body p-4 pt-0">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">CPF</label>
+                            <input type="text" class="form-control rounded-3" @bind="selectedEmployee.CPF" placeholder="000.000.000-00" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">PIS</label>
+                            <input type="text" class="form-control rounded-3" @bind="selectedEmployee.PIS" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">RG</label>
+                            <input type="text" class="form-control rounded-3" @bind="selectedEmployee.RG" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data de Nascimento</label>
+                            <input type="date" class="form-control rounded-3" @bind="selectedEmployee.BirthDate" />
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Endereço Completo</label>
+                            <input type="text" class="form-control rounded-3" @bind="selectedEmployee.Address" />
+                        </div>
+                        <hr class="my-4" />
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-primary">Salário Base (R$)</label>
+                            <input type="number" class="form-control rounded-3 border-primary" @bind="selectedEmployee.BaseSalary" />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" @bind="selectedEmployee.OptsForTransportationVoucher">
+                                <label class="form-check-label small fw-bold">Opta por Vale Transporte (6%)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => selectedEmployee = null">Cancelar</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="SaveProfile">
+                        @if (isSaving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        SALVAR ALTERAÇÕES
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private List<EmployeeProfileDto> employees = new();
+    private EmployeeProfileDto? selectedEmployee;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployees();
+    }
+
+    private async Task LoadEmployees()
+    {
+        isLoading = true;
+        var response = await HRClient.ListEmployeesAsync();
+        if (response.Success) employees = response.Data ?? new();
+        isLoading = false;
+    }
+
+    private async Task EditEmployee(int userId)
+    {
+        var response = await HRClient.GetProfileAsync(userId);
+        if (response.Success) selectedEmployee = response.Data;
+        else ToastService.ShowToast("Erro ao carregar perfil.", ToastLevel.Error);
+    }
+
+    private async Task SaveProfile()
+    {
+        if (selectedEmployee == null) return;
+        isSaving = true;
+        var response = await HRClient.UpdateProfileAsync(selectedEmployee);
+        if (response.Success)
+        {
+            ToastService.ShowToast("Perfil atualizado com sucesso!", ToastLevel.Success);
+            selectedEmployee = null;
+            await LoadEmployees();
+        }
+        else
+        {
+            ToastService.ShowToast(response.Message ?? "Erro ao salvar.", ToastLevel.Error);
+        }
+        isSaving = false;
+    }
+}

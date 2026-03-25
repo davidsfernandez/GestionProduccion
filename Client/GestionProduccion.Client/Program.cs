@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using GestionProduccion.Client.Auth;
 using GestionProduccion.Client.Services;
 using GestionProduccion.Client.Services.ProductionOrders;
+using GestionProduccion.Client.Services.HR;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 
@@ -55,6 +56,9 @@ builder.Services.AddScoped<IProductionOrderMutationClient, ProductionOrderMutati
 builder.Services.AddScoped<IProductionOrderLifecycleClient, ProductionOrderLifecycleClient>();
 builder.Services.AddScoped<IProductClient, ProductClient>();
 builder.Services.AddScoped<ISewingTeamClient, SewingTeamClient>();
+builder.Services.AddScoped<IAttendanceClient, AttendanceClient>();
+builder.Services.AddScoped<IPayrollClient, PayrollClient>();
+builder.Services.AddScoped<IHRClient, HRClient>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 builder.Services.AddSingleton<ToastService>();

@@ -104,6 +104,12 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IQAService, QAService>();
 builder.Services.AddScoped<ITaskService, OperationalTaskService>();
+
+// --- 2.1 HR & FINANCE MODULE SERVICES ---
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddScoped<IAbsenceService, AbsenceService>();
+builder.Services.AddScoped<IPayrollService, PayrollService>();
+
 builder.Services.AddTransient<GestionProduccion.Services.Interfaces.IEmailService, SmtpEmailService>();
 builder.Services.AddSignalR();
 

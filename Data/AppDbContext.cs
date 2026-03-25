@@ -10,7 +10,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Domain.Entities;
-
+using GestionProduccion.Domain.Entities.HR;
 using GestionProduccion.Domain.Interfaces;
 
 namespace GestionProduccion.Data;
@@ -58,6 +58,13 @@ public class AppDbContext : DbContext
     public DbSet<OperationalTaskHistory> OperationalTaskHistories { get; set; }
     public DbSet<ProductionOrderSize> ProductionOrderSizes { get; set; }
     public DbSet<ProductionOrderOutput> ProductionOrderOutputs { get; set; }
+
+    // --- HR MODULE ---
+    public DbSet<EmployeeProfile> EmployeeProfiles { get; set; }
+    public DbSet<Contract> Contracts { get; set; }
+    public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
+    public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -292,6 +299,23 @@ public class AppDbContext : DbContext
             .WithMany(po => po.Sizes)
             .HasForeignKey(pos => pos.ProductionOrderId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // --- HR MODULE CONFIGURATION ---
+        modelBuilder.Entity<EmployeeProfile>(entity =>
+        {
+            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.Property(e => e.BaseSalary).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Attendance>(entity =>
+        {
+            entity.Property(a => a.HoursWorked).HasPrecision(10, 2);
+        });
+
+        modelBuilder.Entity<EmployeeDocument>(entity =>
+        {
+            entity.Property(d => d.DocumentName).IsRequired().HasMaxLength(100);
+        });
     }
 }
 

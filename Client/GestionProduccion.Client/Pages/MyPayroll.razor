@@ -1,0 +1,201 @@
+@page "/rh/meus-pagamentos"
+@using GestionProduccion.Models.DTOs
+@using GestionProduccion.Client.Services.HR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IPayrollClient PayrollClient
+@inject ToastService ToastService
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Meus Pagamentos</h2>
+            <p class="text-muted">Consulte seus recibos de pagamento e desdobramentos de bônus.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <select class="form-select border-0 shadow-sm" @bind="selectedYear">
+                @foreach (var y in years)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+            <select class="form-select border-0 shadow-sm" @bind="selectedMonth">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i">@GetMonthName(i)</option>
+                }
+            </select>
+            <button class="btn btn-primary shadow-sm" @onclick="LoadSlip">
+                <i class="fa-solid fa-magnifying-glass me-1"></i> BUSCAR
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (slip != null)
+    {
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+                    <div class="card-header bg-dark text-white p-4 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0 fw-bold">Demonstrativo de Pagamento</h4>
+                            <span class="badge bg-primary mt-2">@GetMonthName(slip.Month).ToUpper() / @slip.Year</span>
+                        </div>
+                        <i class="fa-solid fa-file-invoice-dollar fa-3x opacity-25"></i>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <!-- Employee Info Section -->
+                        <div class="p-4 border-bottom bg-light">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="small text-muted text-uppercase fw-bold">Colaborador</div>
+                                    <div class="h5 mb-0">@slip.EmployeeName</div>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div class="small text-muted text-uppercase fw-bold">CPF</div>
+                                    <div class="h5 mb-0">@slip.CPF</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Earnings & Deductions Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Descrição</th>
+                                        <th class="text-end">Proventos (+)</th>
+                                        <th class="text-end pe-4">Descontos (-)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="ps-4">Salário Base</td>
+                                        <td class="text-end">R$ @slip.BaseSalary.ToString("N2")</td>
+                                        <td class="text-end pe-4">-</td>
+                                    </tr>
+                                    @if (slip.ProductionBonus > 0)
+                                    {
+                                        <tr class="table-success-subtle">
+                                            <td class="ps-4 fw-bold text-success">Bônus de Produção (ERP)</td>
+                                            <td class="text-end fw-bold text-success">R$ @slip.ProductionBonus.ToString("N2")</td>
+                                            <td class="text-end pe-4">-</td>
+                                        </tr>
+                                    }
+                                    @if (slip.OvertimePay > 0)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">Horas Extras</td>
+                                            <td class="text-end">R$ @slip.OvertimePay.ToString("N2")</td>
+                                            <td class="text-end pe-4">-</td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <td class="ps-4">INSS (Previdência Social)</td>
+                                        <td class="text-end">-</td>
+                                        <td class="text-end pe-4 text-danger">R$ @slip.InssDeduction.ToString("N2")</td>
+                                    </tr>
+                                    @if (slip.IrrfDeduction > 0)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">IRRF (Imposto de Renda)</td>
+                                            <td class="text-end">-</td>
+                                            <td class="text-end pe-4 text-danger">R$ @slip.IrrfDeduction.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                    @if (slip.AbsenceDeduction > 0)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 text-danger">Faltas Injustificadas</td>
+                                            <td class="text-end">-</td>
+                                            <td class="text-end pe-4 text-danger">R$ @slip.AbsenceDeduction.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                    @if (slip.TransportationDeduction > 0)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">Vale Transporte (6%)</td>
+                                            <td class="text-end">-</td>
+                                            <td class="text-end pe-4 text-danger">R$ @slip.TransportationDeduction.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="bg-light fw-bold border-top-2">
+                                    <tr>
+                                        <td class="ps-4 h5">TOTAL LÍQUIDO</td>
+                                        <td colspan="2" class="text-end pe-4 h4 text-primary">R$ @slip.NetSalary.ToString("N2")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Footer Info -->
+                        <div class="p-4 bg-light border-top">
+                            <div class="row small text-muted text-center">
+                                <div class="col-4 border-end">
+                                    <div>Total Proventos</div>
+                                    <div class="fw-bold">R$ @slip.TotalEarnings.ToString("N2")</div>
+                                </div>
+                                <div class="col-4 border-end">
+                                    <div>Total Descontos</div>
+                                    <div class="fw-bold">R$ @slip.TotalDeductions.ToString("N2")</div>
+                                </div>
+                                <div class="col-4">
+                                    <div>FGTS Mensal (Info)</div>
+                                    <div class="fw-bold">R$ @slip.FgtsDeposit.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info border-0 shadow-sm rounded-3">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Este é un documento digital para consulta simples. Para valor legal, utilize o documento assinado em papel.
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="bg-white p-5 rounded-4 shadow-sm d-inline-block">
+                <i class="fa-solid fa-search fa-3x text-light mb-3"></i>
+                <h5 class="text-muted">Selecione o período para visualizar seu recibo.</h5>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = false;
+    private PayrollSlipDto? slip;
+    private int selectedYear = DateTime.Now.Year;
+    private int selectedMonth = DateTime.Now.Month;
+    private List<int> years = new() { 2023, 2024, 2025, 2026 };
+
+    private string GetMonthName(int m) => new System.Globalization.CultureInfo("pt-BR").DateTimeFormat.GetMonthName(m);
+
+    private async Task LoadSlip()
+    {
+        isLoading = true;
+        var response = await PayrollClient.GetMyCurrentSlipAsync(selectedYear, selectedMonth);
+        if (response.Success)
+        {
+            slip = response.Data;
+        }
+        else
+        {
+            ToastService.ShowToast(response.Message ?? "Não foi possível carregar o recibo.", ToastLevel.Warning);
+            slip = null;
+        }
+        isLoading = false;
+    }
+}
