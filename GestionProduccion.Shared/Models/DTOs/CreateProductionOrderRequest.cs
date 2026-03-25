@@ -40,6 +40,8 @@ public class CreateProductionOrderRequest
 
     public int? SewingTeamId { get; set; }
 
+    public int? CustomerUserId { get; set; }
+
     public decimal AppliedBonusPerPiece { get; set; }
 
     /// <summary>

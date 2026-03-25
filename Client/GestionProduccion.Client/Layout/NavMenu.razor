@@ -81,10 +81,26 @@
                 </li>
             </AuthorizeView>
 
+            <AuthorizeView Roles="Administrator,Customer">
+                <li class="menu-label">Portal do Cliente</li>
+                <li class="sidebar-item">
+                    <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
+                        <i class="fa-solid fa-store"></i> <span class="align-middle">Catálogo Digital</span>
+                    </NavLink>
+                </li>
+                <AuthorizeView Roles="Customer" Context="custOnly">
+                    <li class="sidebar-item">
+                        <NavLink class="sidebar-link" href="meus-pedidos" @onclick="CollapseSidebar">
+                            <i class="fa-solid fa-bag-shopping"></i> <span class="align-middle">Meus Pedidos</span>
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+            </AuthorizeView>
+
             <AuthorizeView Roles="Administrator,Leader">
                 <li class="menu-label">@Portuguese.Menu_FactoryManagement</li>
                 <li class="sidebar-item">
-                    <NavLink class="sidebar-link" href="catalogo" @onclick="CollapseSidebar">
+                    <NavLink class="sidebar-link" href="admin/productos" @onclick="CollapseSidebar">
                         <i class="fa-solid fa-layer-group"></i> <span class="align-middle">@Portuguese.Cat_Title</span>
                     </NavLink>
                 </li>
@@ -253,6 +269,7 @@
         "operator" => Portuguese.Role_Operator,
         "sewer" => Portuguese.Role_Operator,
         "workshop" => Portuguese.Role_Workshop,
+        "customer" => "Cliente",
         _ => role ?? ""
     };
 

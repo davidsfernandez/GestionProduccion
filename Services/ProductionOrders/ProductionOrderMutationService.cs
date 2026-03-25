@@ -121,6 +121,7 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
                 Quantity = request.Quantity,
                 EstimatedCompletionAt = request.EstimatedCompletionAt,
                 ClientName = request.ClientName,
+                CustomerUserId = request.CustomerUserId,
                 Size = request.Size,
                 CurrentStage = ProductionStage.Cutting,
                 CurrentStatus = ProductionStatus.InProduction,

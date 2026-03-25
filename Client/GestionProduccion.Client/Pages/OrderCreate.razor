@@ -1,13 +1,3 @@
-@*
- * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
- * 
- * This software and its associated documentation files are the exclusive property 
- * of David Fernandez Garzon. Unauthorized copying, modification, distribution, 
- * or use of this software, via any medium, is strictly prohibited. 
- * 
- * Proprietary and Confidential.
- *@
-
 @page "/orders/create"
 @using GestionProduccion.Models.DTOs
 @using Microsoft.AspNetCore.Authorization
@@ -163,6 +153,21 @@
                                 </div>
 
                                 <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-bold">Conta do Cliente (Portal)</label>
+                                    <InputSelect @bind-Value="createModel.CustomerUserId" class="form-select form-select-lg">
+                                        <option value="">-- Vincular Usuário (Opcional) --</option>
+                                        @if (customers != null)
+                                        {
+                                            @foreach (var cust in customers)
+                                            {
+                                                <option value="@cust.Id">@cust.FullName (@cust.Email)</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <div class="text-muted xsmall mt-1">Permite que o cliente acompanhe no portal.</div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
                                     <label class="form-label fw-bold">@Portuguese.OP_SewingTeamOptional</label>
                                     <InputSelect @bind-Value="createModel.SewingTeamId" class="form-select form-select-lg">
                                         <option value="">@Portuguese.OP_AssignTeamOptional</option>
@@ -254,6 +259,7 @@
         Sizes = new List<ProductionOrderSizeRequest> { new() { Size = "", Quantity = 1 } }
     };
     private List<UserDto> users = new();
+    private List<UserDto> customers = new();
     private List<ProductDto> products = new();
     private List<SewingTeamDto> teams = new();
     private readonly List<string> BrazilianSizes = new() { "PP", "P", "M", "G", "GG", "XG", "U", "34", "36", "38", "40", "42", "44", "46", "48" };
@@ -326,15 +332,22 @@
             
             // Parallel loading using standardized clients where possible
             var usersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users", JsonOptions); 
+            var customersTask = Http.GetFromJsonAsync<ApiResponse<List<UserDto>>>("api/Users?role=Customer", JsonOptions);
             var productsTask = ProductClient.GetAllAsync();
             var teamsTask = SewingTeamClient.GetAllTeamsAsync();
 
-            await Task.WhenAll(usersTask, productsTask, teamsTask);
+            await Task.WhenAll(usersTask, customersTask, productsTask, teamsTask);
 
             var usersResp = await usersTask;
             if (usersResp?.Success == true && usersResp.Data != null)
             {
                 users = usersResp.Data.Where(u => u.Role == UserRole.Operational || u.Role == UserRole.Leader).ToList();
+            }
+
+            var customersResp = await customersTask;
+            if (customersResp?.Success == true && customersResp.Data != null)
+            {
+                customers = customersResp.Data;
             }
 
             var productsResp = await productsTask;
