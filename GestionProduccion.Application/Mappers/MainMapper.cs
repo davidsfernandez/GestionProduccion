@@ -1,4 +1,5 @@
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Entities.CRM;
 using GestionProduccion.Models.DTOs;
 using GestionProduccion.Application.Mapping;
 

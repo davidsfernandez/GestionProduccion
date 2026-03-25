@@ -1,6 +1,6 @@
 using GestionProduccion.Domain.Entities;
-using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Entities.CRM;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Models.DTOs;
 
 namespace GestionProduccion.Application.Mapping;

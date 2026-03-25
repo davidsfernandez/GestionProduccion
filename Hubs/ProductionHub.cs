@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -34,10 +34,10 @@ public class ProductionHub : Hub
     /// </summary>
     public async Task NotifyAnnouncement(string message, string type = "info")
     {
-        await Clients.All.SendAsync("ReceiveMessage", new { 
-            message = message, 
+        await Clients.All.SendAsync("ReceiveMessage", new {
+            message = message,
             type = type,
-            timestamp = DateTime.UtcNow 
+            timestamp = DateTime.UtcNow
         });
     }
 
@@ -67,7 +67,8 @@ public class ProductionHub : Hub
 
     /// <summary>
     /// Connection event: notifies when a user connects.
-    /// </summary>    public override async Task OnConnectedAsync()
+    /// </summary>
+    public override async Task OnConnectedAsync()
     {
         await Clients.All.SendAsync("UserConnected", new
         {
@@ -90,4 +91,3 @@ public class ProductionHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 }
-
