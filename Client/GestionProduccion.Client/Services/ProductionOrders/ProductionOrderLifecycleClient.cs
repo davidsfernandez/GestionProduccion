@@ -47,11 +47,25 @@ public class ProductionOrderLifecycleClient : IProductionOrderLifecycleClient
             ?? ApiResponse<ProductionOrderDto>.FailureResult("Erro ao avançar etapa.");
     }
 
+    public async Task<ApiResponse<BulkUpdateResult>> BulkAdvanceStageAsync(List<int> orderIds, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-advance-stage", new { OrderIds = orderIds }, _options, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<BulkUpdateResult>>(_options, ct)
+            ?? ApiResponse<BulkUpdateResult>.FailureResult("Erro ao avançar etapas em massa.");
+    }
+
     public async Task<ApiResponse<bool>> ChangeStageAsync(int orderId, ProductionStage newStage, string note, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsJsonAsync($"api/ProductionOrders/{orderId}/change-stage", new { NewStage = newStage, Note = note }, _options, ct);
         return await response.Content.ReadFromJsonAsync<ApiResponse<bool>>(_options, ct)
             ?? ApiResponse<bool>.FailureResult("Erro ao alterar etapa.");
+    }
+
+    public async Task<ApiResponse<BulkUpdateResult>> BulkChangeStageAsync(List<int> orderIds, ProductionStage newStage, string note, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/ProductionOrders/bulk-change-stage", new { OrderIds = orderIds, NewStage = newStage, Note = note }, _options, ct);
+        return await response.Content.ReadFromJsonAsync<ApiResponse<BulkUpdateResult>>(_options, ct)
+            ?? ApiResponse<BulkUpdateResult>.FailureResult("Erro ao alterar etapas em massa.");
     }
 
     public async Task<ApiResponse<BulkUpdateResult>> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, CancellationToken ct = default)

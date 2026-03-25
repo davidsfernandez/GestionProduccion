@@ -197,20 +197,19 @@ public class ProductionOrderServiceTests : IDisposable
 
         var orders = new List<ProductionOrder>
         {
-            new() { 
-                Id = 201, LotCode = "OP-SUM-1", Quantity = 100, 
-                CurrentStatus = ProductionStatus.Completed, 
-                CompletedAt = today.AddHours(2), 
-                CreatedAt = yesterday, UpdatedAt = today 
+            new() {
+                Id = 201, LotCode = "OP-SUM-1", Quantity = 100,
+                CurrentStatus = ProductionStatus.Completed,
+                CompletedAt = today.AddHours(10), // Within window
+                CreatedAt = yesterday, UpdatedAt = today
             },
-            new() { 
-                Id = 202, LotCode = "OP-SUM-2", Quantity = 50, 
-                CurrentStatus = ProductionStatus.Completed, 
-                CompletedAt = today.AddHours(5), 
-                CreatedAt = yesterday, UpdatedAt = today 
+            new() {
+                Id = 202, LotCode = "OP-SUM-2", Quantity = 50,
+                CurrentStatus = ProductionStatus.Completed,
+                CompletedAt = today.AddHours(12), // Within window
+                CreatedAt = yesterday, UpdatedAt = today
             }
         };
-
         _context.ProductionOrders.AddRange(orders);
         await _context.SaveChangesAsync();
 
@@ -316,5 +315,65 @@ public class ProductionOrderServiceTests : IDisposable
         var outputs = await _context.ProductionOrderOutputs.Where(o => o.ProductionOrderId == order.Id && o.Stage == ProductionStage.Cutting).ToListAsync();
         Assert.Single(outputs);
         Assert.Equal(88, outputs[0].UserId); // Should be attributed to 88
+    }
+
+    [Fact]
+    public async Task BulkAdvanceStageAsync_ShouldAdvanceMultipleOrders()
+    {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+        _context.Users.Add(new User { Id = 1, FullName = "Tester", Email = "test@test.com", Role = UserRole.Administrator, IsActive = true });
+        
+        var orders = new List<ProductionOrder>
+        {
+            new() { LotCode = "OP-B-1", Quantity = 10, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.InProduction, ProductId = 1 },
+            new() { LotCode = "OP-B-2", Quantity = 10, CurrentStage = ProductionStage.Sewing, CurrentStatus = ProductionStatus.InProduction, ProductId = 1 }
+        };
+        _context.ProductionOrders.AddRange(orders);
+        await _context.SaveChangesAsync();
+
+        var id1 = orders[0].Id;
+        var id2 = orders[1].Id;
+
+        // Act
+        var result = await _lifecycleService.BulkAdvanceStageAsync(new List<int> { id1, id2 }, 1);
+
+        // Assert
+        Assert.Equal(2, result.SuccessCount);
+        var o1 = await _context.ProductionOrders.FindAsync(id1);
+        var o2 = await _context.ProductionOrders.FindAsync(id2);
+        Assert.Equal(ProductionStage.Sewing, o1!.CurrentStage);
+        Assert.Equal(ProductionStage.Review, o2!.CurrentStage);
+    }
+
+    [Fact]
+    public async Task BulkChangeStageAsync_ShouldUpdateMultipleOrders()
+    {
+        // Arrange
+        var product = new Product { Id = 1, Name = "P1", InternalCode = "C1", FabricType = "F1", MainSku = "S1" };
+        _context.Products.Add(product);
+        _context.Users.Add(new User { Id = 1, FullName = "Tester", Email = "test@test.com", Role = UserRole.Administrator, IsActive = true });
+
+        var orders = new List<ProductionOrder>
+        {
+            new() { LotCode = "OP-C-1", Quantity = 10, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.InProduction, ProductId = 1 },
+            new() { LotCode = "OP-C-2", Quantity = 10, CurrentStage = ProductionStage.Cutting, CurrentStatus = ProductionStatus.InProduction, ProductId = 1 }
+        };
+        _context.ProductionOrders.AddRange(orders);
+        await _context.SaveChangesAsync();
+
+        var id1 = orders[0].Id;
+        var id2 = orders[1].Id;
+
+        // Act
+        var result = await _lifecycleService.BulkChangeStageAsync(new List<int> { id1, id2 }, ProductionStage.Packaging, "Bulk manual", 1);
+
+        // Assert
+        Assert.Equal(2, result.SuccessCount);
+        var o1 = await _context.ProductionOrders.FindAsync(id1);
+        var o2 = await _context.ProductionOrders.FindAsync(id2);
+        Assert.Equal(ProductionStage.Packaging, o1!.CurrentStage);
+        Assert.Equal(ProductionStage.Packaging, o2!.CurrentStage);
     }
 }

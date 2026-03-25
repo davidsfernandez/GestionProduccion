@@ -22,6 +22,8 @@ public interface IProductionOrderLifecycleService
     Task<ProductionOrderDto?> UpdateStatusAsync(int orderId, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default);
     Task<BulkUpdateResult> BulkUpdateStatusAsync(List<int> orderIds, ProductionStatus newStatus, string note, int modifiedByUserId, CancellationToken ct = default);
     Task<ProductionOrderDto?> AdvanceStageAsync(int orderId, int modifiedByUserId, CancellationToken ct = default);
+    Task<BulkUpdateResult> BulkAdvanceStageAsync(List<int> orderIds, int modifiedByUserId, CancellationToken ct = default);
     Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default);
+    Task<BulkUpdateResult> BulkChangeStageAsync(List<int> orderIds, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default);
     Task<bool> RegisterPartialOutputAsync(int orderId, Dictionary<int, int> sizeOutputs, int modifiedByUserId, CancellationToken ct = default);
 }

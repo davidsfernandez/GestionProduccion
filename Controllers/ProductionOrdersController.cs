@@ -183,7 +183,7 @@ public class ProductionOrdersController : ControllerBase
     }
 
     [HttpPatch("{orderId}/status")]
-    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)
+    public async Task<ActionResult<ApiResponse<ProductionOrderDto>>> UpdateStatus(int orderId, [FromBody] UpdateStatusRequest request)   
     {
         try
         {
@@ -194,6 +194,21 @@ public class ProductionOrdersController : ControllerBase
             return Ok(ApiResponse<ProductionOrderDto>.SuccessResult(updatedOrder!, "Status updated"));
         }
         catch (Exception ex) { return StatusCode(500, ApiResponse<ProductionOrderDto>.FailureResult("Error", new List<string> { ex.Message })); }
+    }
+
+    [HttpPost("bulk-status")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<ActionResult<ApiResponse<BulkUpdateResult>>> BulkUpdateStatus([FromBody] BulkUpdateStatusRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId)) return Unauthorized();
+
+            var result = await _lifecycleService.BulkUpdateStatusAsync(request.OrderIds, request.NewStatus, request.Note, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(ApiResponse<BulkUpdateResult>.SuccessResult(result, "Bulk status updated"));
+        }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<BulkUpdateResult>.FailureResult("Error", new List<string> { ex.Message })); }
     }
 
     [HttpPost("{orderId}/advance-stage")]
@@ -210,6 +225,21 @@ public class ProductionOrdersController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ApiResponse<ProductionOrderDto>.FailureResult("Error", new List<string> { ex.Message })); }
     }
 
+    [HttpPost("bulk-advance-stage")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<ActionResult<ApiResponse<BulkUpdateResult>>> BulkAdvanceStage([FromBody] BulkAdvanceStageRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId)) return Unauthorized();
+
+            var result = await _lifecycleService.BulkAdvanceStageAsync(request.OrderIds, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(ApiResponse<BulkUpdateResult>.SuccessResult(result, "Bulk stages advanced"));
+        }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<BulkUpdateResult>.FailureResult("Error", new List<string> { ex.Message })); }
+    }
+
     [HttpPost("{orderId}/change-stage")]
     [Authorize(Roles = "Administrator,Leader")]
     public async Task<ActionResult<ApiResponse<bool>>> ChangeStage(int orderId, [FromBody] ManualStageChangeRequest request)
@@ -222,9 +252,23 @@ public class ProductionOrdersController : ControllerBase
             var result = await _lifecycleService.ChangeStageAsync(orderId, request.NewStage, request.Note ?? "", modifiedByUserId, HttpContext.RequestAborted);
             return Ok(ApiResponse<bool>.SuccessResult(result, "Etapa alterada"));
         }
-        catch (Exception ex) { return StatusCode(500, ApiResponse<bool>.FailureResult("Error", new List<string> { ex.Message })); }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<bool>.FailureResult("Error", new List<string> { ex.Message })); }      
     }
 
+    [HttpPost("bulk-change-stage")]
+    [Authorize(Roles = "Administrator,Leader")]
+    public async Task<ActionResult<ApiResponse<BulkUpdateResult>>> BulkChangeStage([FromBody] BulkChangeStageRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var modifiedByUserId)) return Unauthorized();
+
+            var result = await _lifecycleService.BulkChangeStageAsync(request.OrderIds, request.NewStage, request.Note, modifiedByUserId, HttpContext.RequestAborted);
+            return Ok(ApiResponse<BulkUpdateResult>.SuccessResult(result, "Bulk stages changed"));
+        }
+        catch (Exception ex) { return StatusCode(500, ApiResponse<BulkUpdateResult>.FailureResult("Error", new List<string> { ex.Message })); }
+    }
     [HttpPost("{orderId}/partial-output")]
     public async Task<ActionResult<ApiResponse<bool>>> RegisterPartialOutput(int orderId, [FromBody] PartialOutputRequest request)
     {

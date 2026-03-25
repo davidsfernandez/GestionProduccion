@@ -120,6 +120,10 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm px-3" @onclick="BulkAdvance">
+                                        <i class="fa-solid fa-forward me-1"></i> @Portuguese.NextStage
+                                    </button>
+                                    <div class="vr mx-1"></div>
                                     <button class="btn btn-outline-warning btn-sm px-3" @onclick="() => BulkUpdate(3)">
                                         <i class="fa-solid fa-pause me-1"></i> @Portuguese.Pause
                                     </button>
@@ -154,8 +158,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var order in paginatedData.Items)
-                                {
+                                <Virtualize Items="paginatedData.Items" Context="order">
                                     <tr @key="order.Id">
                                         <td>
                                             <input type="checkbox" class="form-check-input" checked="@selectedOrderIds.Contains(order.Id)" @onchange="@(() => ToggleSelection(order.Id))" @onclick:stopPropagation="true" />
@@ -171,7 +174,7 @@
                                                 <span class="text-danger small"><i>@Portuguese.Cat_NoLinkedProduct</i></span>
                                             }
                                         </td>
-                                        <td class="d-none d-md-table-cell"><span class="text-muted small">@order.LotCode</span></td>
+                                        <td class="d-none d-md-table-cell"><span class="text-muted small">@order.LotCode</span></td>     
                                         <td>
                                             @if (order.Sizes != null && order.Sizes.Any())
                                             {
@@ -218,9 +221,8 @@
                                             </AuthorizeView>
                                         </td>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </Virtualize>
+                            </tbody>                        </table>
                     </div>
 
                     @* Pagination Controls *@
@@ -276,8 +278,14 @@
             await SignalR.StartConnection(hubUrl);
 
             SignalR.OnUpdateReceived += async (opId, stage, status) => {
-                await LoadOrders(paginatedData?.PageNumber ?? 1);
-                await InvokeAsync(StateHasChanged);
+                // Optimization: Update local item if present instead of full reload
+                var item = paginatedData?.Items.FirstOrDefault(i => i.Id == opId);
+                if (item != null)
+                {
+                    item.CurrentStage = stage;
+                    item.CurrentStatus = status;
+                    await InvokeAsync(StateHasChanged);
+                }
             };
         }
         catch (Exception) { /* Silent */ }
@@ -313,7 +321,7 @@
                 IncludeArchived = showArchived
             };
 
-            var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, page, 10);
+            var response = await ProductionOrderQueryClient.ListProductionOrdersAsync(filter, page, 25); // Increased page size
             if (response != null && response.Success)
             {
                 paginatedData = response.Data;
@@ -414,6 +422,35 @@
         else selectedOrderIds.Clear();
     }
 
+    private async Task BulkAdvance()
+    {
+        if (selectedOrderIds.Count == 0) return;
+        try
+        {
+            loading = true;
+            var response = await ProductionOrderLifecycleClient.BulkAdvanceStageAsync(selectedOrderIds.ToList());
+            if (response != null && response.Success && response.Data != null)
+            {
+                ToastService.ShowToast($"{response.Data.SuccessCount} ordens avançadas!", ToastLevel.Success);
+                selectedOrderIds.Clear();
+                await LoadOrders(paginatedData?.PageNumber ?? 1);
+            }
+            else
+            {
+                ToastService.ShowToast(response?.Message ?? "Erro al avanzar en masa", ToastLevel.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task BulkUpdate(int status)
     {
         if (selectedOrderIds.Count == 0) return;
@@ -421,18 +458,26 @@
         {
             loading = true;
             ProductionStatus newStatus = (ProductionStatus)status;
-            var result = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa");
-            if (result != null)
+            var response = await ProductionOrderLifecycleClient.BulkUpdateStatusAsync(selectedOrderIds.ToList(), newStatus, "Atualização em massa");
+            if (response != null && response.Success && response.Data != null)
             {
-                ToastService.ShowToast($"{selectedOrderIds.Count} ordens atualizadas!", ToastLevel.Success);
+                ToastService.ShowToast($"{response.Data.SuccessCount} ordens atualizadas!", ToastLevel.Success);
                 selectedOrderIds.Clear();
                 await LoadOrders(paginatedData?.PageNumber ?? 1);
+            }
+            else
+            {
+                ToastService.ShowToast(response?.Message ?? "Erro ao atualizar em massa", ToastLevel.Error);
             }
         }
         catch (Exception ex)
         {
             ToastService.ShowToast($"Erro: {ex.Message}", ToastLevel.Error);
+        }
+        finally
+        {
             loading = false;
+            StateHasChanged();
         }
     }
 

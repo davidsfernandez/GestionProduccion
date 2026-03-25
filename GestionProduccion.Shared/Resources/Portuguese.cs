@@ -120,6 +120,7 @@ namespace GestionProduccion.Resources
         public const string OP_Product = "Produto";
         public const string OP_Quantity = "Quantidade";
         public const string OP_Stage = "Etapa Atual";
+        public const string NextStage = "Avançar Etapa";
         public const string OP_Status = "Status";
         public const string OP_Priority = "Prioridade";
         public const string OP_AssignedTo = "Atribuído a";

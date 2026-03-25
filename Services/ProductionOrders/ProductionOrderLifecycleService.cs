@@ -134,10 +134,8 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         order.UserId = userId;
         order.UpdatedAt = DateTime.UtcNow;
-        await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, userId, $"Assigned to {user.FullName}");
-        await _orderRepository.SaveChangesAsync();
-        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+
+        await CommitChangesAsync(order, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, userId, $"Assigned to {user.FullName}", ct);
 
         return _mapper.ToDto(order);
     }
@@ -177,17 +175,13 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             await RecordRemainingOutputsAsync(order, modifiedByUserId);
         }
 
-        await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, note);
-
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
         {
             await _financialCalculator.CalculateFinalOrderCostAsync(order);
             await _productService.RecalculateAverageTimeAsync(order.ProductId, ct);
         }
 
-        await _orderRepository.SaveChangesAsync();
-        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await CommitChangesAsync(order, order.CurrentStage, order.CurrentStage, previousStatus, newStatus, modifiedByUserId, note, ct);
 
         return _mapper.ToDto(order);
     }
@@ -212,6 +206,18 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         return _mapper.ToDto(order);
     }
 
+    public async Task<BulkUpdateResult> BulkAdvanceStageAsync(List<int> orderIds, int modifiedByUserId, CancellationToken ct = default)
+    {
+        var result = new BulkUpdateResult();
+        foreach (var id in orderIds)
+        {
+            var updated = await AdvanceStageAsync(id, modifiedByUserId, ct);
+            if (updated != null) result.SuccessCount++;
+            else result.FailureCount++;
+        }
+        return result;
+    }
+
     private async Task InternalAdvanceStageAsync(ProductionOrder order, int modifiedByUserId, CancellationToken ct = default)
     {
         var previousStage = order.CurrentStage;
@@ -225,10 +231,6 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
 
         // If the calculated new stage is the same as current, do nothing (prevent infinite loop)
         if (newStage == previousStage) return;
-
-        // Double check against DB to ensure another thread hasn't already advanced it
-        var latestOrder = await _orderRepository.GetByIdAsync(order.Id);
-        if (latestOrder != null && latestOrder.CurrentStage != previousStage) return;
 
         // Record remaining outputs for the stage we are leaving
         await RecordRemainingOutputsAsync(order, modifiedByUserId);
@@ -245,10 +247,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             await RecordRemainingOutputsAsync(order, modifiedByUserId);
         }
 
-        await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}");
-        await _orderRepository.SaveChangesAsync();
-        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+        await CommitChangesAsync(order, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Advanced to {newStage}", ct);
     }
 
     public async Task<bool> ChangeStageAsync(int orderId, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default)
@@ -260,14 +259,29 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         order.CurrentStage = newStage;
         order.UpdatedAt = DateTime.UtcNow;
 
-        await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, note);
-        await _orderRepository.SaveChangesAsync();
-        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
-
+        await CommitChangesAsync(order, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, note, ct);
         return true;
     }
 
+    public async Task<BulkUpdateResult> BulkChangeStageAsync(List<int> orderIds, ProductionStage newStage, string note, int modifiedByUserId, CancellationToken ct = default)
+    {
+        var result = new BulkUpdateResult();
+        foreach (var id in orderIds)
+        {
+            var success = await ChangeStageAsync(id, newStage, note, modifiedByUserId, ct);
+            if (success) result.SuccessCount++;
+            else result.FailureCount++;
+        }
+        return result;
+    }
+
+    private async Task CommitChangesAsync(ProductionOrder order, ProductionStage? prevStage, ProductionStage newStage, ProductionStatus? prevStatus, ProductionStatus newStatus, int userId, string note, CancellationToken ct)
+    {
+        await _orderRepository.UpdateAsync(order);
+        await AddHistory(order.Id, prevStage, newStage, prevStatus, newStatus, userId, note);
+        await _orderRepository.SaveChangesAsync();
+        await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
+    }
     private async Task RecordRemainingOutputsAsync(ProductionOrder order, int userId)
     {
         var existingOutputs = await _outputRepository.GetByOrderIdAsync(order.Id);
