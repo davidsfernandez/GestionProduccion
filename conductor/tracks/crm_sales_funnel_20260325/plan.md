@@ -4,10 +4,10 @@
 - [x] Task: Create database schema for Leads 6dc0470 (Name, Email, Phone, Message, Status, Source).
     - [ ] Create DB Migration for `Lead` entity.
     - [ ] Implement `LeadRepository`.
-- [ ] Task: Develop Public Lead API and Confirmation Workflow.
+- [x] Task: Develop Public Lead API 0bd072d and Confirmation Workflow.
     - [ ] Create `PublicController` with `/leads` endpoint (Rate Limited).
     - [ ] Implement `LeadService` with automated email confirmation.
-- [ ] Task: Implement Real-time Lead Notifications.
+- [x] Task: Implement Real-time Lead Notifications 0bd072d.
     - [ ] Update SignalR Hub to notify Igor of new leads.
     - [ ] Create UI Toast notification for new leads.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Inbound' (Protocol in workflow.md)
