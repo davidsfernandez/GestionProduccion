@@ -32,4 +32,6 @@ public class Lead
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public string? CommercialNotes { get; set; }
+
+    public virtual ICollection<LeadHistory> History { get; set; } = new List<LeadHistory>();
 }

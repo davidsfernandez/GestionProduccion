@@ -13,11 +13,12 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Inbound' 4d181a7 (Protocol in workflow.md)
 
 ## Phase 2: Sales Pipeline Management (CRM UI)
-- [ ] Task: Build CRM Dashboard and Pipeline View.
-    - [ ] Create `LeadsPage.razor` with a visual pipeline (Kanban or List).
-    - [ ] Implement lead status update logic (Drag & Drop or Select).
+- [x] Task: Build CRM Dashboard and Pipeline View c49d0f4
+    - [x] Create `LeadsPage.razor` with a visual pipeline (Kanban or List).
+    - [x] Implement lead status update logic (Drag & Drop or Select).
 - [ ] Task: Implement Lead Detail and Commercial Notes.
     - [ ] Create detail view for each lead with history of interactions.
+    - [ ] Add `LeadHistory` entity to track status changes automatically.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: CRM UI' (Protocol in workflow.md)
 
 ## Phase 3: Quote Engine (Motor de Presupuestos)

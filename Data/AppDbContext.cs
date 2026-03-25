@@ -69,6 +69,7 @@ public class AppDbContext : DbContext
 
     // --- CRM MODULE ---
     public DbSet<Lead> Leads { get; set; }
+    public DbSet<LeadHistory> LeadHistories { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -331,6 +332,27 @@ public class AppDbContext : DbContext
             entity.Property(l => l.Source)
                 .HasConversion<string>()
                 .HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<LeadHistory>(entity =>
+        {
+            entity.Property(h => h.PreviousStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(h => h.NewStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.HasOne(h => h.Lead)
+                .WithMany(l => l.History)
+                .HasForeignKey(h => h.LeadId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(h => h.ResponsibleUser)
+                .WithMany()
+                .HasForeignKey(h => h.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

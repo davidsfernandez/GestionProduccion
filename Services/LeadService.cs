@@ -92,14 +92,27 @@ public class LeadService : ILeadService
         var lead = await _leadRepository.GetByIdAsync(leadId);
         if (lead == null) throw new KeyNotFoundException("Lead not found.");
 
+        var previousStatus = lead.Status;
         lead.Status = newStatus;
         lead.UpdatedAt = DateTime.UtcNow;
+        
         if (!string.IsNullOrEmpty(note))
         {
             lead.CommercialNotes = string.IsNullOrEmpty(lead.CommercialNotes) 
                 ? $"[{DateTime.UtcNow:dd/MM/yyyy}] {note}" 
                 : $"{lead.CommercialNotes}\n[{DateTime.UtcNow:dd/MM/yyyy}] {note}";
         }
+
+        // Record History
+        var history = new LeadHistory
+        {
+            LeadId = leadId,
+            PreviousStatus = previousStatus,
+            NewStatus = newStatus,
+            Note = note,
+            ChangedAt = DateTime.UtcNow
+        };
+        lead.History.Add(history);
 
         await _leadRepository.UpdateAsync(lead);
         await _leadRepository.SaveChangesAsync();

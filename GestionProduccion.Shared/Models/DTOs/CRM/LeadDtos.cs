@@ -33,3 +33,9 @@ public class LeadDto
     public DateTime CreatedAt { get; set; }
     public string? CommercialNotes { get; set; }
 }
+
+public class UpdateLeadStatusRequest
+{
+    public LeadStatus NewStatus { get; set; }
+    public string? Note { get; set; }
+}

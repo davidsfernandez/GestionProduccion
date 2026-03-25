@@ -46,19 +46,11 @@ public class HRController : ControllerBase
 
     [Authorize(Roles = "Administrator,Leader")]
     [HttpPost("leads/{id}/status")]
-    public async Task<ActionResult<ApiResponse<LeadDto>>> UpdateLeadStatus(int id, [FromBody] dynamic request)
+    public async Task<ActionResult<ApiResponse<LeadDto>>> UpdateLeadStatus(int id, [FromBody] UpdateLeadStatusRequest request)
     {
         try
         {
-            string newStatusStr = request.GetProperty("newStatus").GetString();
-            string? note = request.TryGetProperty("note", out var noteProp) ? noteProp.GetString() : null;
-
-            if (!Enum.TryParse<GestionProduccion.Domain.Enums.LeadStatus>(newStatusStr, true, out var newStatus))
-            {
-                return BadRequest(ApiResponse<LeadDto>.FailureResult("Status inválido."));
-            }
-
-            var result = await _leadService.UpdateLeadStatusAsync(id, newStatus, note, HttpContext.RequestAborted);
+            var result = await _leadService.UpdateLeadStatusAsync(id, request.NewStatus, request.Note, HttpContext.RequestAborted);
             return Ok(ApiResponse<LeadDto>.SuccessResult(result, "Status do lead atualizado."));
         }
         catch (Exception ex)
