@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 David Fernandez Garzon. All rights reserved.
  * 
  * This software and its associated documentation files are the exclusive property 
@@ -11,6 +11,7 @@
 using Microsoft.EntityFrameworkCore;
 using GestionProduccion.Domain.Entities;
 using GestionProduccion.Domain.Entities.HR;
+using GestionProduccion.Domain.Entities.CRM;
 using GestionProduccion.Domain.Interfaces;
 
 namespace GestionProduccion.Data;
@@ -65,6 +66,9 @@ public class AppDbContext : DbContext
     public DbSet<Attendance> Attendances { get; set; }
     public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
     public DbSet<EmployeeLeave> EmployeeLeaves { get; set; }
+
+    // --- CRM MODULE ---
+    public DbSet<Lead> Leads { get; set; }
 
     /// <summary>
     /// Configures the data model using EF Core Fluent API.
@@ -316,7 +320,17 @@ public class AppDbContext : DbContext
         {
             entity.Property(d => d.DocumentName).IsRequired().HasMaxLength(100);
         });
+
+        // --- CRM MODULE CONFIGURATION ---
+        modelBuilder.Entity<Lead>(entity =>
+        {
+            entity.Property(l => l.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(l => l.Source)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+        });
     }
 }
-
-
