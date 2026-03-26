@@ -12,9 +12,16 @@ namespace GestionProduccion.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~",
-                table: "ProductionOrderOutputs");
+            migrationBuilder.Sql(@"
+                SET @exists = (SELECT 1 FROM information_schema.key_column_usage 
+                               WHERE constraint_name = 'FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~' 
+                               AND table_name = 'ProductionOrderOutputs' 
+                               AND table_schema = DATABASE() LIMIT 1);
+                SET @sql = IF(@exists, 'ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY `FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~`', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
             migrationBuilder.AddColumn<int>(
                 name: "DailyGoal",
@@ -285,9 +292,16 @@ namespace GestionProduccion.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~",
-                table: "ProductionOrderOutputs");
+            migrationBuilder.Sql(@"
+                SET @exists = (SELECT 1 FROM information_schema.key_column_usage 
+                               WHERE constraint_name = 'FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~' 
+                               AND table_name = 'ProductionOrderOutputs' 
+                               AND table_schema = DATABASE() LIMIT 1);
+                SET @sql = IF(@exists, 'ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY `FK_ProductionOrderOutputs_ProductionOrderSizes_ProductionOrderS~`', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_QADefects_Users_ResponsibleUserId",
