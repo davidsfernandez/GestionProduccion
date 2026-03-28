@@ -18,5 +18,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Fix Product Visual Fields Sync (AvailableColors missing)**
-*Link: [./tracks/fix_product_visual_fields_20260328/](./tracks/fix_product_visual_fields_20260328/)*
