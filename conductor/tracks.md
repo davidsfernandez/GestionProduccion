@@ -18,5 +18,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Fix Database Synchronization Issue (CustomerUserId missing)**
-*Link: [./tracks/fix_db_sync_issue_20260328/](./tracks/fix_db_sync_issue_20260328/)*
