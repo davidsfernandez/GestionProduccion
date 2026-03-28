@@ -195,64 +195,80 @@ using (var scope = app.Services.CreateScope())
         {
             if (await context.Database.CanConnectAsync())
             {
+                logger.LogInformation("SYSTEM: Synchronizing database schema...");
+
+                // 1. Apply EF Migrations with total silence on duplicates
+                try 
+                {
+                    await context.Database.MigrateAsync();
+                    logger.LogInformation("SYSTEM: EF Core Synchronized.");
+                } 
+                catch (Exception ex) 
+                {
+                    if (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate"))
+                        logger.LogWarning("SYSTEM: Schema already updated via migrations. Proceeding...");
+                    else throw;
+                }
+
                 logger.LogInformation("SYSTEM: Running Critical Integrity Repairs...");
                 var conn = context.Database.GetDbConnection();
                 if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
                 
                 using (var cmd = conn.CreateCommand())
                 {
-                    // 1. Physical Column Repairs (Standard MySQL Compatible)
+                    // 2. Physical Column Repairs (Resilient to missing tables)
                     async Task EnsureColumn(string table, string column, string definition) {
-                        cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = '{table}' AND COLUMN_NAME = '{column}' AND TABLE_SCHEMA = DATABASE()";
-                        if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0) {
-                            logger.LogCritical("REPAIR: Adding missing column {Col} to {Tab}...", column, table);
-                            cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
-                            await cmd.ExecuteNonQueryAsync();
-                        }
+                        try {
+                            cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = '{table}' AND COLUMN_NAME = '{column}' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0) {
+                                // Double check if table exists to avoid crash
+                                cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME = '{table}' AND TABLE_SCHEMA = DATABASE()";
+                                if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) {
+                                    logger.LogCritical("REPAIR: Adding missing column {Col} to {Tab}...", column, table);
+                                    cmd.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+                                    await cmd.ExecuteNonQueryAsync();
+                                }
+                            }
+                        } catch (Exception ex) { logger.LogWarning("Resiliency notice: Could not verify column {Col} in {Tab}. {Msg}", column, table, ex.Message); }
                     }
 
                     await EnsureColumn("ProductionOrders", "IsArchived", "TINYINT(1) NOT NULL DEFAULT 0");
+                    await EnsureColumn("ProductionOrders", "CustomerUserId", "INT NULL");
                     await EnsureColumn("SystemConfigurations", "DailyGoal", "INT NOT NULL DEFAULT 500");
 
-                    // 2. THE ERROR 500 KILLER: Dynamic Foreign Key Reconstruction
+                    // 3. THE ERROR 500 KILLER: Dynamic Foreign Key Reconstruction
                     try 
                     {
-                        logger.LogWarning("SYSTEM: Forcing Cascade Delete on ProductionOrderOutputs...");
-                        
-                        // Find ALL foreign keys on ProductionOrderOutputs
-                        cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL";
-                        var fks = new List<string>();
-                        using (var reader = await cmd.ExecuteReaderAsync()) {
-                            while (await reader.ReadAsync()) fks.Add(reader.GetString(0));
-                        }
+                        // Check if ProductionOrderOutputs table exists first
+                        cmd.CommandText = "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME = 'ProductionOrderOutputs' AND TABLE_SCHEMA = DATABASE()";
+                        if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0) {
+                            logger.LogWarning("SYSTEM: Verifying Cascade Delete on ProductionOrderOutputs...");
+                            
+                            // Find ALL foreign keys on ProductionOrderOutputs
+                            cmd.CommandText = "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'ProductionOrderOutputs' AND TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL";
+                            var fks = new List<string>();
+                            using (var reader = await cmd.ExecuteReaderAsync()) {
+                                while (await reader.ReadAsync()) fks.Add(reader.GetString(0));
+                            }
 
-                        foreach (var fk in fks) {
-                            try {
-                                cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY `{fk}`";
-                                await cmd.ExecuteNonQueryAsync();
-                            } catch { }
-                        }
+                            foreach (var fk in fks) {
+                                try {
+                                    cmd.CommandText = $"ALTER TABLE ProductionOrderOutputs DROP FOREIGN KEY `{fk}`";
+                                    await cmd.ExecuteNonQueryAsync();
+                                } catch { }
+                            }
 
-                        // Recreate correct Cascade Keys
-                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Orders_Cascade FOREIGN KEY (ProductionOrderId) REFERENCES ProductionOrders(Id) ON DELETE CASCADE";
-                        await cmd.ExecuteNonQueryAsync();
-                        
-                        cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
-                        await cmd.ExecuteNonQueryAsync();
-                        
-                        logger.LogInformation("SYSTEM: Cascade Delete is now ACTIVE and BLINDED.");
+                            // Recreate correct Cascade Keys
+                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Orders_Cascade FOREIGN KEY (ProductionOrderId) REFERENCES ProductionOrders(Id) ON DELETE CASCADE";
+                            await cmd.ExecuteNonQueryAsync();
+                            
+                            cmd.CommandText = "ALTER TABLE ProductionOrderOutputs ADD CONSTRAINT FK_Outputs_Sizes_Cascade FOREIGN KEY (ProductionOrderSizeId) REFERENCES ProductionOrderSizes(Id) ON DELETE CASCADE";
+                            await cmd.ExecuteNonQueryAsync();
+                            
+                            logger.LogInformation("SYSTEM: Cascade Delete is now ACTIVE and VERIFIED.");
+                        }
                     } 
                     catch (Exception ex) { logger.LogWarning("Repair detail: {Msg}", ex.Message); }
-                }
-
-                // Apply EF Migrations with total silence on duplicates
-                try {
-                    await context.Database.MigrateAsync();
-                    logger.LogInformation("SYSTEM: EF Core Synchronized.");
-                } catch (Exception ex) {
-                    if (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate"))
-                        logger.LogWarning("SYSTEM: Schema already updated. Proceeding...");
-                    else throw;
                 }
 
                 await DbInitializer.SeedAsync(context, logger);

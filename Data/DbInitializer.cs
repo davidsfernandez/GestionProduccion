@@ -77,6 +77,32 @@ public static class DbInitializer
     {
         logger.LogInformation("DATA MIGRATION: Checking for orders that need production output backfilling...");
 
+        // Safety check: verify column existence before querying to prevent crash if migrations are partially applied.
+        // We only perform this check on relational providers (MySQL, SQLite, etc.)
+        bool columnExists = true;
+        if (context.Database.IsRelational())
+        {
+            try 
+            {
+                var connection = context.Database.GetDbConnection();
+                if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'ProductionOrders' AND COLUMN_NAME = 'CustomerUserId' AND TABLE_SCHEMA = DATABASE()";
+                columnExists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Schema verification failed: {Msg}. Proceeding with caution.", ex.Message);
+                columnExists = true; 
+            }
+        }
+
+        if (!columnExists)
+        {
+            logger.LogWarning("DATA MIGRATION: Skipping backfill as CustomerUserId column is not yet present in the database.");
+            return;
+        }
+
         // Get all orders that don't have ANY output records yet
         var ordersNeedingBackfill = await context.ProductionOrders
             .Include(o => o.Sizes)
