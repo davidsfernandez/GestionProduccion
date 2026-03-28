@@ -15,3 +15,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: Fix Database Schema Synchronization in Docker**
 *Link: [./tracks/db_fix_20260325/](./tracks/db_fix_20260325/)*
+
+---
+
+- [ ] **Track: Fix Database Synchronization Issue (CustomerUserId missing)**
+*Link: [./tracks/fix_db_sync_issue_20260328/](./tracks/fix_db_sync_issue_20260328/)*
