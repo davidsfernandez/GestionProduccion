@@ -167,6 +167,33 @@ public static class DbInitializer
 
     private static async Task BackfillBonusesAsync(AppDbContext context, ILogger logger)
     {
+        // Safety check: verify column existence before querying to prevent crash in out-of-sync schemas (e.g. Docker)
+        bool visualColumnsExist = true;
+        if (context.Database.IsRelational())
+        {
+            try 
+            {
+                var connection = context.Database.GetDbConnection();
+                if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
+                using var cmd = connection.CreateCommand();
+                
+                // We check for one of the missing columns as a proxy for the entire migration set
+                cmd.CommandText = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'AvailableColors' AND TABLE_SCHEMA = DATABASE()";
+                visualColumnsExist = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Product schema verification failed: {Msg}. Proceeding with caution.", ex.Message);
+                visualColumnsExist = true; 
+            }
+        }
+
+        if (!visualColumnsExist)
+        {
+            logger.LogWarning("DATA MIGRATION: Skipping bonus backfill as product visual columns are not yet present in the database.");
+            return;
+        }
+
         // Set default bonus for products that have 0 (Legacy products)
         var products = await context.Products.Where(p => p.DefaultBonusPerPiece == 0).ToListAsync();
         if (products.Any())
