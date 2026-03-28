@@ -235,6 +235,12 @@ using (var scope = app.Services.CreateScope())
                     await EnsureColumn("ProductionOrders", "IsArchived", "TINYINT(1) NOT NULL DEFAULT 0");
                     await EnsureColumn("ProductionOrders", "CustomerUserId", "INT NULL");
                     await EnsureColumn("SystemConfigurations", "DailyGoal", "INT NOT NULL DEFAULT 500");
+                    
+                    // Products visual fields repair
+                    await EnsureColumn("Products", "AvailableColors", "VARCHAR(200) NULL");
+                    await EnsureColumn("Products", "AvailableSizes", "VARCHAR(200) NULL");
+                    await EnsureColumn("Products", "Description", "VARCHAR(1000) NULL");
+                    await EnsureColumn("Products", "ImageUrl", "LONGTEXT NULL");
 
                     // 3. THE ERROR 500 KILLER: Dynamic Foreign Key Reconstruction
                     try 
