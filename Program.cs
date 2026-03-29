@@ -197,26 +197,51 @@ using (var scope = app.Services.CreateScope())
             {
                 logger.LogInformation("SYSTEM: Synchronizing database schema...");
 
-                // 1. Apply EF Migrations with total silence on duplicates
-                try 
+                // 1. Audit Pending Migrations
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                var pendingList = pendingMigrations.ToList();
+                if (pendingList.Any())
+                {
+                    logger.LogInformation("SYSTEM: Found {Count} pending migrations: {Migrations}", pendingList.Count, string.Join(", ", pendingList));
+                }
+                else
+                {
+                    logger.LogInformation("SYSTEM: No pending migrations according to EF Core.");
+                }
+
+                // 2. Apply EF Migrations with total silence on duplicates
+                try
                 {
                     await context.Database.MigrateAsync();
                     logger.LogInformation("SYSTEM: EF Core Synchronized.");
-                } 
-                catch (Exception ex) 
+                }
+                catch (Exception ex)
                 {
+                    logger.LogError(ex, "SYSTEM: EF Core Migration failed. Details: {Msg}", ex.Message);
                     if (ex.Message.Contains("1060") || ex.Message.Contains("Duplicate"))
-                        logger.LogWarning("SYSTEM: Schema already updated via migrations. Proceeding...");
+                        logger.LogWarning("SYSTEM: Duplicate error detected. Schema might be partially updated. Proceeding with integrity repairs...");
                     else throw;
                 }
 
                 logger.LogInformation("SYSTEM: Running Critical Integrity Repairs...");
                 var conn = context.Database.GetDbConnection();
                 if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
-                
+
                 using (var cmd = conn.CreateCommand())
                 {
-                    // 2. Physical Column Repairs (Resilient to missing tables)
+                    // A. Physical Table Repairs (Resilient to EF Core failures)
+                    async Task EnsureTable(string name, string sql) {
+                        try {
+                            cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_NAME = '{name}' AND TABLE_SCHEMA = DATABASE()";
+                            if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 0) {
+                                logger.LogCritical("REPAIR: Table {Tab} MISSING. Creating manually...", name);
+                                cmd.CommandText = sql;
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+                        } catch (Exception ex) { logger.LogError("REPAIR ERROR: Could not ensure table {Tab}: {Msg}", name, ex.Message); }
+                    }
+
+                    // B. Physical Column Repairs (Resilient to missing tables)
                     async Task EnsureColumn(string table, string column, string definition) {
                         try {
                             cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = '{table}' AND COLUMN_NAME = '{column}' AND TABLE_SCHEMA = DATABASE()";
@@ -232,10 +257,53 @@ using (var scope = app.Services.CreateScope())
                         } catch (Exception ex) { logger.LogWarning("Resiliency notice: Could not verify column {Col} in {Tab}. {Msg}", column, table, ex.Message); }
                     }
 
+                    // Ensure CRM Tables exist
+                    await EnsureTable("Leads", @"CREATE TABLE `Leads` (
+                        `Id` int NOT NULL AUTO_INCREMENT,
+                        `Name` varchar(100) NOT NULL,
+                        `Email` varchar(100) NOT NULL,
+                        `Phone` varchar(20) NULL,
+                        `Message` varchar(500) NULL,
+                        `Status` varchar(50) NOT NULL,
+                        `Source` varchar(50) NOT NULL,
+                        `CreatedAt` datetime(6) NOT NULL,
+                        `UpdatedAt` datetime(6) NOT NULL,
+                        `CommercialNotes` longtext NULL,
+                        PRIMARY KEY (`Id`)
+                    ) ENGINE=InnoDB;");
+
+                    await EnsureTable("Quotes", @"CREATE TABLE `Quotes` (
+                        `Id` int NOT NULL AUTO_INCREMENT,
+                        `LeadId` int NOT NULL,
+                        `CreatedAt` datetime(6) NOT NULL,
+                        `ExpiryDate` datetime(6) NOT NULL,
+                        `Status` varchar(50) NOT NULL,
+                        `TotalAmount` decimal(18,2) NOT NULL,
+                        `Notes` longtext NULL,
+                        PRIMARY KEY (`Id`),
+                        CONSTRAINT `FK_Quotes_Leads_LeadId` FOREIGN KEY (`LeadId`) REFERENCES `Leads` (`Id`) ON DELETE CASCADE
+                    ) ENGINE=InnoDB;");
+
+                    await EnsureTable("CustomerProfiles", @"CREATE TABLE `CustomerProfiles` (
+                        `Id` int NOT NULL AUTO_INCREMENT,
+                        `UserId` int NOT NULL,
+                        `TaxId` varchar(20) NULL,
+                        `CompanyName` varchar(100) NULL,
+                        `Phone` varchar(20) NULL,
+                        `Address` varchar(200) NULL,
+                        `City` varchar(50) NULL,
+                        `State` varchar(2) NULL,
+                        `PostalCode` varchar(10) NULL,
+                        `CreatedAt` datetime(6) NOT NULL,
+                        `UpdatedAt` datetime(6) NOT NULL,
+                        PRIMARY KEY (`Id`),
+                        CONSTRAINT `FK_CustomerProfiles_Users_UserId` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
+                    ) ENGINE=InnoDB;");
+
                     await EnsureColumn("ProductionOrders", "IsArchived", "TINYINT(1) NOT NULL DEFAULT 0");
                     await EnsureColumn("ProductionOrders", "CustomerUserId", "INT NULL");
                     await EnsureColumn("SystemConfigurations", "DailyGoal", "INT NOT NULL DEFAULT 500");
-                    
+
                     // Products visual fields repair
                     await EnsureColumn("Products", "AvailableColors", "VARCHAR(200) NULL");
                     await EnsureColumn("Products", "AvailableSizes", "VARCHAR(200) NULL");
