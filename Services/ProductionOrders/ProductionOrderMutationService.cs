@@ -183,6 +183,9 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         if (order == null) throw new KeyNotFoundException($"Order with ID {request.Id} not found.");
 
         var oldInfo = $"Client: {order.ClientName}, Delivery: {order.EstimatedCompletionAt:d}";
+        var previousStartedAt = order.StartedAt;
+        var previousCompletedAt = order.CompletedAt;
+        var previousBonusPerPiece = order.AppliedBonusPerPiece;
         
         // 1. Update basic metadata
         order.ClientName = request.ClientName;
@@ -190,7 +193,27 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         order.UserId = request.UserId;
         order.SewingTeamId = request.SewingTeamId;
         order.AppliedBonusPerPiece = request.AppliedBonusPerPiece;
+        order.StartedAt = request.StartedAt;
+        order.CompletedAt = request.CompletedAt;
         order.UpdatedAt = DateTime.UtcNow;
+
+        if (order.StartedAt.HasValue && order.CompletedAt.HasValue && order.CompletedAt < order.StartedAt)
+        {
+            throw new InvalidOperationException("Completion date cannot be earlier than start date.");
+        }
+
+        if ((order.CurrentStatus == ProductionStatus.Completed || order.CurrentStatus == ProductionStatus.Finished) &&
+            !order.CompletedAt.HasValue)
+        {
+            throw new InvalidOperationException("Completed lots must keep a completion date.");
+        }
+
+        if (order.CompletedAt.HasValue &&
+            order.CurrentStatus != ProductionStatus.Completed &&
+            order.CurrentStatus != ProductionStatus.Finished)
+        {
+            throw new InvalidOperationException("Completion date can only be edited for completed lots.");
+        }
 
         // 2. Handle size/quantity updates (Only if in initial stage)
         if (request.Sizes != null && request.Sizes.Any())
@@ -215,8 +238,16 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
             order.Size = request.Sizes.First().Size;
         }
 
+        if (previousStartedAt != order.StartedAt ||
+            previousCompletedAt != order.CompletedAt ||
+            previousBonusPerPiece != order.AppliedBonusPerPiece)
+        {
+            await _financialCalculator.UpdateIntermediateCostAsync(order);
+        }
+
         await _orderRepository.UpdateAsync(order);
-        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, $"Order metadata updated. Previous: {oldInfo}");
+        await AddHistory(order.Id, order.CurrentStage, order.CurrentStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId,
+            $"Order metadata updated. Previous: {oldInfo}. Start: {FormatDateTime(order.StartedAt)}, End: {FormatDateTime(order.CompletedAt)}");
         await _orderRepository.SaveChangesAsync();
 
         await _notificationService.NotifyOrderUpdateAsync(order.Id, order.CurrentStage.ToString(), order.CurrentStatus.ToString(), ct);
@@ -279,6 +310,9 @@ public class ProductionOrderMutationService : IProductionOrderMutationService
         };
         await _orderRepository.AddHistoryAsync(history);
     }
+
+    private static string FormatDateTime(DateTime? dateTime)
+        => dateTime?.ToString("dd/MM/yyyy HH:mm") ?? "-";
 }
 
 

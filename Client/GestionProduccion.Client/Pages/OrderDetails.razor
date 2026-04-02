@@ -341,9 +341,23 @@
                                @onchange="OnEditDateChanged"
                                placeholder="Selecione a data..." />
                     </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data/hora real de início</label>
+                            <input type="datetime-local" class="form-control"
+                                   value="@FormatDateTimeLocal(editRequest.StartedAt)"
+                                   @onchange="OnEditStartedAtChanged" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Data/hora real de fim</label>
+                            <input type="datetime-local" class="form-control"
+                                   value="@FormatDateTimeLocal(editRequest.CompletedAt)"
+                                   @onchange="OnEditCompletedAtChanged" />
+                        </div>
+                    </div>
                     <div class="alert alert-info xsmall">
                         <i class="fa-solid fa-info-circle me-2"></i>
-                        As quantidades só podem ser editadas durante a etapa de Corte.
+                        As quantidades só podem ser editadas durante a etapa de Corte. Administradores e líderes podem corrigir datas reais do lote.
                     </div>
                 </div>
                 <div class="modal-footer border-0">
@@ -474,6 +488,30 @@
         }
     }
 
+    private void OnEditStartedAtChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            editRequest.StartedAt = DateTime.SpecifyKind(date, DateTimeKind.Local).ToUniversalTime();
+        }
+        else
+        {
+            editRequest.StartedAt = null;
+        }
+    }
+
+    private void OnEditCompletedAtChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            editRequest.CompletedAt = DateTime.SpecifyKind(date, DateTimeKind.Local).ToUniversalTime();
+        }
+        else
+        {
+            editRequest.CompletedAt = null;
+        }
+    }
+
     private async Task LoadData()
     {
         try
@@ -487,6 +525,8 @@
                     Id = order.Id,
                     ClientName = order.ClientName,
                     EstimatedCompletionAt = order.EstimatedCompletionAt,
+                    StartedAt = order.StartedAt,
+                    CompletedAt = order.CompletedAt,
                     UserId = order.UserId,
                     SewingTeamId = order.SewingTeamId,
                     AppliedBonusPerPiece = order.AppliedBonusPerPiece
@@ -696,6 +736,9 @@
         catch (Exception ex) { ToastService.ShowToast(ex.Message, ToastLevel.Error); }
         finally { isActionInProgress = false; }
     }
+
+    private static string FormatDateTimeLocal(DateTime? value)
+        => value?.ToLocalTime().ToString("yyyy-MM-ddTHH:mm") ?? string.Empty;
 
     private string TranslateStatus(string? status) => status?.ToLower() switch
     {

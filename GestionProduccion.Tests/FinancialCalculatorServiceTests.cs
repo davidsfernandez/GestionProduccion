@@ -11,6 +11,7 @@
 using FluentAssertions;
 using GestionProduccion.Data.Repositories;
 using GestionProduccion.Domain.Entities;
+using GestionProduccion.Domain.Enums;
 using GestionProduccion.Domain.Interfaces.Repositories;
 using GestionProduccion.Services;
 using Moq;
@@ -110,6 +111,61 @@ public class FinancialCalculatorServiceTests
         // Assert
         // Should calculate 5 hours duration from CreatedAt
         order.TotalCost.Should().Be(50m); // 5h * 10
+    }
+
+    [Fact]
+    public async Task CalculateFinalOrderCostAsync_ShouldIncludeBonusInTotalAndUnitCost()
+    {
+        var order = new ProductionOrder
+        {
+            Quantity = 10,
+            StartedAt = DateTime.UtcNow.AddHours(-2),
+            CompletedAt = DateTime.UtcNow,
+            ProductId = 1,
+            AppliedBonusPerPiece = 3m
+        };
+
+        var config = new SystemConfiguration { OperationalHourlyCost = 50m };
+        _mockConfigRepo.Setup(r => r.GetByKeyAsync("MainConfig")).ReturnsAsync(config);
+
+        var product = new Product { Id = 1, EstimatedSalePrice = 20m };
+        _mockProductRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
+
+        await _service.CalculateFinalOrderCostAsync(order);
+
+        order.TotalCost.Should().Be(130m);
+        order.AverageCostPerPiece.Should().Be(13m);
+        order.ProfitMargin.Should().Be(35m);
+    }
+
+    [Fact]
+    public async Task CalculateFinalOrderCostAsync_ShouldUseCorrectedCompletedWindow_EvenWhenEffectiveMinutesExists()
+    {
+        var startedAt = DateTime.UtcNow.AddHours(-2);
+        var completedAt = DateTime.UtcNow;
+
+        var order = new ProductionOrder
+        {
+            Quantity = 10,
+            StartedAt = startedAt,
+            CompletedAt = completedAt,
+            ProductId = 1,
+            AppliedBonusPerPiece = 1m,
+            EffectiveMinutes = 30,
+            CurrentStatus = ProductionStatus.Completed
+        };
+
+        var config = new SystemConfiguration { OperationalHourlyCost = 60m };
+        _mockConfigRepo.Setup(r => r.GetByKeyAsync("MainConfig")).ReturnsAsync(config);
+
+        var product = new Product { Id = 1, EstimatedSalePrice = 20m };
+        _mockProductRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
+
+        await _service.CalculateFinalOrderCostAsync(order);
+
+        order.EffectiveMinutes.Should().BeApproximately(120d, 0.001d);
+        order.TotalCost.Should().Be(130m);
+        order.AverageCostPerPiece.Should().Be(13m);
     }
 }
 

@@ -121,6 +121,38 @@ public class OrderDetailsTests : TestContext
         cut.WaitForState(() => cut.FindAll("h5.card-title").Count > 0);
         cut.Markup.Should().NotContain(Portuguese.OP_FinancialAnalysis);
     }
+
+    [Fact]
+    public void OrderDetails_ShouldShowStartedAndCompletedInputs_WhenEditModalOpens()
+    {
+        var order = new ProductionOrderDto
+        {
+            Id = 3,
+            LotCode = "OP-EDIT-1",
+            CurrentStatus = "Completed",
+            TotalCost = 250m,
+            AverageCostPerPiece = 12.5m,
+            Quantity = 20,
+            EstimatedCompletionAt = DateTime.Now,
+            CreatedAt = DateTime.Now,
+            StartedAt = DateTime.UtcNow.AddHours(-2),
+            CompletedAt = DateTime.UtcNow.AddHours(-1)
+        };
+
+        _mockQueryClient.Setup(c => c.GetProductionOrderByIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiResponse<ProductionOrderDto>.SuccessResult(order));
+        _mockQueryClient.Setup(c => c.GetHistoryByProductionOrderIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ApiResponse<List<ProductionHistoryDto>>.SuccessResult(new List<ProductionHistoryDto>()));
+
+        var cut = RenderComponent<OrderDetails>(parameters => parameters.Add(p => p.Id, 3));
+        cut.WaitForState(() => cut.FindAll("button").Any());
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("Editar") || b.TextContent.Contains("Edit")).Click();
+
+        cut.Markup.Should().Contain("Data/hora real de início");
+        cut.Markup.Should().Contain("Data/hora real de fim");
+        cut.FindAll("input[type=\"datetime-local\"]").Count.Should().Be(2);
+    }
 }
 
 

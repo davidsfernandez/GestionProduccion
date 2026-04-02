@@ -146,6 +146,7 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return null;
 
         var previousStatus = order.CurrentStatus;
+        var previousStage = order.CurrentStage;
         var now = DateTime.UtcNow;
 
         // --- INTEGRITY SHIELD: Persist Effective Minutes ---
@@ -173,6 +174,12 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
             order.CompletedAt = now;
             // Record remaining outputs for the last stage if not already recorded
             await RecordRemainingOutputsAsync(order, modifiedByUserId);
+        }
+        else if ((previousStatus == ProductionStatus.Completed || previousStatus == ProductionStatus.Finished) &&
+                 newStatus != ProductionStatus.Completed &&
+                 newStatus != ProductionStatus.Finished)
+        {
+            order.CompletedAt = null;
         }
 
         if (newStatus == ProductionStatus.Completed && previousStatus != ProductionStatus.Completed)
@@ -256,10 +263,22 @@ public class ProductionOrderLifecycleService : IProductionOrderLifecycleService
         if (order == null) return false;
 
         var previousStage = order.CurrentStage;
+        var previousStatus = order.CurrentStatus;
         order.CurrentStage = newStage;
         order.UpdatedAt = DateTime.UtcNow;
 
-        await CommitChangesAsync(order, previousStage, newStage, order.CurrentStatus, order.CurrentStatus, modifiedByUserId, note, ct);
+        if ((order.CurrentStatus == ProductionStatus.Completed || order.CurrentStatus == ProductionStatus.Finished) &&
+            newStage != ProductionStage.Packaging)
+        {
+            order.CurrentStatus = ProductionStatus.InProduction;
+            order.CompletedAt = null;
+            if (!order.StartedAt.HasValue)
+            {
+                order.StartedAt = DateTime.UtcNow;
+            }
+        }
+
+        await CommitChangesAsync(order, previousStage, newStage, previousStatus, order.CurrentStatus, modifiedByUserId, note, ct);
         return true;
     }
 

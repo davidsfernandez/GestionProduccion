@@ -192,22 +192,23 @@ public class ProductionOrderServiceTests : IDisposable
     public async Task GetDashboardAsync_ShouldReturnSumOfQuantitiesForCompletedToday()
     {
         // Arrange
-        var today = DateTime.UtcNow.Date;
-        var yesterday = today.AddDays(-1);
+        var brazilToday = DateTime.UtcNow.AddHours(-3).Date;
+        var startUtc = brazilToday.AddHours(3);
+        var yesterday = startUtc.AddDays(-1);
 
         var orders = new List<ProductionOrder>
         {
-            new() {
-                Id = 201, LotCode = "OP-SUM-1", Quantity = 100,
-                CurrentStatus = ProductionStatus.Completed,
-                CompletedAt = today.AddHours(10), // Within window
-                CreatedAt = yesterday, UpdatedAt = today
+            new() { 
+                Id = 201, LotCode = "OP-SUM-1", Quantity = 100, 
+                CurrentStatus = ProductionStatus.Completed, 
+                CompletedAt = startUtc.AddHours(2), 
+                CreatedAt = yesterday, UpdatedAt = startUtc 
             },
-            new() {
-                Id = 202, LotCode = "OP-SUM-2", Quantity = 50,
-                CurrentStatus = ProductionStatus.Completed,
-                CompletedAt = today.AddHours(12), // Within window
-                CreatedAt = yesterday, UpdatedAt = today
+            new() { 
+                Id = 202, LotCode = "OP-SUM-2", Quantity = 50, 
+                CurrentStatus = ProductionStatus.Completed, 
+                CompletedAt = startUtc.AddHours(5), 
+                CreatedAt = yesterday, UpdatedAt = startUtc 
             }
         };
         _context.ProductionOrders.AddRange(orders);
@@ -218,6 +219,39 @@ public class ProductionOrderServiceTests : IDisposable
 
         // Assert
         Assert.Equal(150, result.CompletedToday);
+    }
+
+    [Fact]
+    public async Task GetTvDashboardAsync_ShouldIgnorePackagingOutputs_ForReopenedOrders()
+    {
+        var today = DateTime.UtcNow.Date;
+
+        var order = new ProductionOrder
+        {
+            Id = 203,
+            LotCode = "OP-TV-REOPEN",
+            Quantity = 40,
+            CurrentStage = ProductionStage.Sewing,
+            CurrentStatus = ProductionStatus.InProduction,
+            CreatedAt = today.AddDays(-1),
+            UpdatedAt = today,
+            Product = new Product { Id = 3, Name = "P3", InternalCode = "C3", FabricType = "F3", MainSku = "S3" }
+        };
+
+        _context.ProductionOrders.Add(order);
+        _context.ProductionOrderOutputs.Add(new ProductionOrderOutput
+        {
+            ProductionOrderId = order.Id,
+            Stage = ProductionStage.Packaging,
+            Quantity = 40,
+            CreatedAt = today.AddHours(4)
+        });
+        await _context.SaveChangesAsync();
+
+        var result = await _queryService.GetTvDashboardAsync();
+
+        Assert.Equal(0, result.CompletedToday);
+        Assert.Contains(result.ProductionItems, x => x.LotCode == order.LotCode && x.Status == ProductionStatus.InProduction.ToString());
     }
 
     [Fact]
