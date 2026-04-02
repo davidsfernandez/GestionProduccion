@@ -189,7 +189,9 @@ public class ReportService : IReportService
                         });
 
                         // RESUMO FINANCEIRO
-                        if (order.CurrentStatus?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true && order.AverageCostPerPiece > 0)
+                        if ((order.CurrentStatus?.Equals("Completed", StringComparison.OrdinalIgnoreCase) == true ||
+                             order.CurrentStatus?.Equals("Finished", StringComparison.OrdinalIgnoreCase) == true) &&
+                            order.AverageCostPerPiece > 0)
                         {
                             x.Item().Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten3).Padding(10).Column(c =>
                             {
