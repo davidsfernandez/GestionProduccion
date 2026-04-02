@@ -40,10 +40,16 @@ public class FinancialCalculatorService : IFinancialCalculatorService
     public async Task UpdateIntermediateCostAsync(ProductionOrder order)
     {
         // 1. Calculate current effective hours
-        // Priority: Use the managed 'EffectiveMinutes' property, fallback to history calculation
-        double currentEffectiveHours = order.EffectiveMinutes > 0 
-            ? order.EffectiveMinutes / 60.0 
-            : CalculateEffectiveWorkingHours(order);
+        // Priority: explicit completed window, then managed EffectiveMinutes, then history fallback
+        bool hasExplicitCompletedWindow = order.StartedAt.HasValue &&
+                                         order.CompletedAt.HasValue &&
+                                         (order.CurrentStatus == ProductionStatus.Completed || order.CurrentStatus == ProductionStatus.Finished);
+
+        double currentEffectiveHours = hasExplicitCompletedWindow
+            ? Math.Max(0, (order.CompletedAt!.Value - order.StartedAt!.Value).TotalHours)
+            : order.EffectiveMinutes > 0
+                ? order.EffectiveMinutes / 60.0
+                : CalculateEffectiveWorkingHours(order);
 
         // If currently in production, add time elapsed since the last recorded start
         if (order.CurrentStatus == ProductionStatus.InProduction && order.StartedAt.HasValue)
@@ -62,17 +68,24 @@ public class FinancialCalculatorService : IFinancialCalculatorService
             }
         }
 
+        if (hasExplicitCompletedWindow)
+        {
+            order.EffectiveMinutes = currentEffectiveHours * 60.0;
+        }
+
         // 2. Extract costs from configuration
         var config = await _configRepo.GetByKeyAsync("MainConfig");
         decimal hourlyCost = config?.OperationalHourlyCost ?? 45.0m;
 
-        // 3. Labor Cost calculation
+        // 3. Labor + agreed bonus
         decimal totalLaborCost = Math.Round((decimal)currentEffectiveHours * hourlyCost, 2);
-        order.TotalCost = totalLaborCost;
+        int quantity = order.Quantity > 0 ? order.Quantity : 1;
+        decimal bonusCostTotal = Math.Round(order.AppliedBonusPerPiece * quantity, 2);
+        decimal totalCost = totalLaborCost + bonusCostTotal;
+        order.TotalCost = totalCost;
 
         // 4. Unit / Real Cost (WIP)
-        int quantity = order.Quantity > 0 ? order.Quantity : 1;
-        decimal realCost = Math.Round(totalLaborCost / quantity, 2);
+        decimal realCost = Math.Round(totalCost / quantity, 2);
         order.AverageCostPerPiece = realCost;
 
         // 5. Profit Margin Calculation

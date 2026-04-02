@@ -14,6 +14,9 @@ public class UpdateProductionOrderRequest
     [Required]
     public DateTime EstimatedCompletionAt { get; set; }
 
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
     public int? UserId { get; set; }
     public int? SewingTeamId { get; set; }
     public decimal AppliedBonusPerPiece { get; set; }

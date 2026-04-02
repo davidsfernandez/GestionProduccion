@@ -164,14 +164,17 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         double completionRate = dailyGoal > 0 ? (double)completedToday / dailyGoal * 100 : 0;
 
         var activeOrders = await ordersWithRelations
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled)
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed &&
+                        o.CurrentStatus != ProductionStatus.Finished &&
+                        o.CurrentStatus != ProductionStatus.Cancelled)
             .OrderByDescending(o => o.UpdatedAt)
             .Take(15)
             .ToListAsync(ct);
 
         double avgTimePerPiece = 0;
         var completedList = await ordersWithRelations
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && o.CompletedAt >= startUtc && o.CompletedAt < endUtc)
+            .Where(o => (o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished) &&
+                        o.CompletedAt >= startUtc && o.CompletedAt < endUtc)
             .Select(o => new { o.EffectiveMinutes, o.Quantity })
             .ToListAsync(ct);
 
@@ -197,7 +200,9 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             DailyGoal = dailyGoal,
             CompletionRate = completionRate,
             AverageTimePerPieceMinutes = avgTimePerPiece,
-            ActiveOrders = await ordersWithRelations.CountAsync(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled, ct),
+            ActiveOrders = await ordersWithRelations.CountAsync(o => o.CurrentStatus != ProductionStatus.Completed &&
+                                                                    o.CurrentStatus != ProductionStatus.Finished &&
+                                                                    o.CurrentStatus != ProductionStatus.Cancelled, ct),
             TvAnnouncement = announcement,
             ProductionItems = activeOrders.Select(o => new TvProductionItemDto
             {
@@ -228,12 +233,17 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
             .Include(o => o.Product)
             .AsNoTracking();
 
-        var totalActiveOrders = await ordersWithRelations.CountAsync(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled, ct);
+        var totalActiveOrders = await ordersWithRelations.CountAsync(o => o.CurrentStatus != ProductionStatus.Completed &&
+                                                                         o.CurrentStatus != ProductionStatus.Finished &&
+                                                                         o.CurrentStatus != ProductionStatus.Cancelled, ct);
         
         var completedToday = await CalculateCompletedTodayAsync(startUtc, endUtc, ct);
 
         var activeOrdersList = await ordersWithRelations
-            .Where(o => o.CurrentStatus != ProductionStatus.Completed && o.CurrentStatus != ProductionStatus.Cancelled && o.UserId.HasValue)
+            .Where(o => o.CurrentStatus != ProductionStatus.Completed &&
+                        o.CurrentStatus != ProductionStatus.Finished &&
+                        o.CurrentStatus != ProductionStatus.Cancelled &&
+                        o.UserId.HasValue)
             .ToListAsync(ct);
 
         var workloadDistribution = activeOrdersList
@@ -261,7 +271,7 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         }).ToList();
 
         var totalAll = await ordersWithRelations.CountAsync(ct);
-        var totalComp = await ordersWithRelations.CountAsync(o => o.CurrentStatus == ProductionStatus.Completed, ct);
+        var totalComp = await ordersWithRelations.CountAsync(o => o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished, ct);
         var rate = totalAll > 0 ? (decimal)totalComp / totalAll * 100 : 0;
 
         var todaysOrdersList = await ordersWithRelations
@@ -369,18 +379,31 @@ public class ProductionOrderQueryService : IProductionOrderQueryService
         var outputsTodayQuery = await _outputRepository.GetQueryableAsync();
         var ordersQuery = await _orderRepository.GetQueryableAsync();
 
+        var validPackagingOrderIds = await ordersQuery
+            .Where(o => o.CurrentStage == ProductionStage.Packaging ||
+                        o.CurrentStatus == ProductionStatus.Completed ||
+                        o.CurrentStatus == ProductionStatus.Finished)
+            .Select(o => o.Id)
+            .ToListAsync(ct);
+
         var completedFromOutputs = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc && o.Stage == ProductionStage.Packaging)
+            .Where(o => o.CreatedAt >= startUtc &&
+                        o.CreatedAt < endUtc &&
+                        o.Stage == ProductionStage.Packaging &&
+                        validPackagingOrderIds.Contains(o.ProductionOrderId))
             .SumAsync(o => o.Quantity, ct);
 
         var orderIdsWithPackagingOutputsToday = await outputsTodayQuery
-            .Where(o => o.CreatedAt >= startUtc && o.CreatedAt < endUtc && o.Stage == ProductionStage.Packaging)
+            .Where(o => o.CreatedAt >= startUtc &&
+                        o.CreatedAt < endUtc &&
+                        o.Stage == ProductionStage.Packaging &&
+                        validPackagingOrderIds.Contains(o.ProductionOrderId))
             .Select(o => o.ProductionOrderId)
             .Distinct()
             .ToListAsync(ct);
 
         var completedFromLegacy = await ordersQuery
-            .Where(o => o.CurrentStatus == ProductionStatus.Completed && 
+            .Where(o => (o.CurrentStatus == ProductionStatus.Completed || o.CurrentStatus == ProductionStatus.Finished) && 
                         o.CompletedAt >= startUtc && o.CompletedAt < endUtc && 
                         !orderIdsWithPackagingOutputsToday.Contains(o.Id))
             .SumAsync(o => o.Quantity, ct);
